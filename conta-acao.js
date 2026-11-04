@@ -1,6 +1,6 @@
 // =====================================================
 // Link dos e-mails da conta (conta-acao.html), no lugar da página padrão do Firebase:
-// - mode=resetPassword: confere o link, mostra de qual conta é e cria a senha nova (com força e confirmação).
+// - mode=resetPassword: confere o link, mostra de qual conta é e cria a senha nova (requisitos do senha-forte.js e confirmação).
 // - mode=verifyEmail: confirma o e-mail e segue para o site.
 // - mode=recoverEmail: desfaz uma troca de e-mail que a pessoa não pediu e oferece trocar a senha.
 // Para valer, no Firebase: Authentication → Templates → Personalizar o URL de ação →
@@ -8,7 +8,8 @@
 // Segurança: o código sai do endereço assim que é lido (não fica no histórico nem vai para outro site),
 // e o "continuar" só leva a páginas do próprio site.
 // =====================================================
-import { $, mensagemErro, firebasePronto } from "./acesso.js?v=4";
+import { $, mensagemErro, firebasePronto } from "./acesso.js?v=5";
+import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 
 const q = new URLSearchParams(location.search);
 const modo = q.get("mode") || "", codigo = q.get("oobCode") || "";
@@ -41,13 +42,6 @@ function resultado({ tipo = "ok", titulo, texto, botoes = [] }) {
 const vencido = (c) => c === "auth/expired-action-code" || c === "auth/invalid-action-code";
 const linkRuim = (texto, botao) => resultado({ tipo: "erro", titulo: "Este link não vale mais", texto, botoes: [botao, ["Voltar ao início", "index.html", true]] });
 
-function forca(v) {
-  let p = 0;
-  if (v.length >= 6) p++; if (v.length >= 10) p++;
-  if (/[a-z]/.test(v) && /[A-Z]/.test(v)) p++;
-  if (/\d/.test(v)) p++; if (/[^A-Za-z0-9]/.test(v)) p++;
-  return p <= 1 ? "fraca" : p <= 3 ? "media" : "forte";
-}
 function aviso(texto, tipo = "erro") { const el = $("avisoAcao"); el.hidden = !texto; el.className = "aviso " + tipo; el.textContent = texto || ""; }
 
 (async function iniciar() {
@@ -72,17 +66,12 @@ function aviso(texto, tipo = "erro") { const el = $("avisoAcao"); el.hidden = !t
     $("emailConta").textContent = email;
     mostrar("telaSenha");
     $("senha").focus();
-    $("senha").addEventListener("input", () => {
-      const v = $("senha").value, n = v ? forca(v) : "";
-      $("forcaBarra").className = n;
-      $("forcaTexto").textContent = n ? { fraca: "Senha fraca", media: "Senha média", forte: "Senha forte" }[n] : "Mínimo de 6 caracteres. Misture letras, números e símbolos.";
-    });
+    const regras = ligarSenhaForte({ campo: $("senha"), lista: $("senhaRegras"), dados: { email } });
     $("formNova").addEventListener("submit", async (e) => {
       e.preventDefault();
       const s1 = $("senha").value, s2 = $("senha2").value;
-      if (s1.length < 6) { aviso("A senha precisa ter pelo menos 6 caracteres."); $("senha").focus(); return; }
+      if (!senhaForte(s1, { email })) { regras.mostrarFaltas(); aviso(primeiroProblema(s1, { email })); $("senha").focus(); return; }
       if (s1 !== s2) { aviso("As duas senhas não são iguais. Digite de novo."); $("senha2").focus(); return; }
-      if (s1.trim().toLowerCase() === email.toLowerCase()) { aviso("Não use o seu e-mail como senha."); $("senha").focus(); return; }
       const b = $("salvar"); b.disabled = true; b.textContent = "Salvando...";
       aviso("");
       try {
@@ -93,7 +82,7 @@ function aviso(texto, tipo = "erro") { const el = $("avisoAcao"); el.hidden = !t
       } catch (err) {
         b.disabled = false; b.textContent = "Salvar senha nova";
         if (vencido(err.code)) linkRuim("O link venceu enquanto você criava a senha. Peça outro: chega em alguns minutos.", ["Pedir um link novo", `recuperar-senha.html?email=${encodeURIComponent(email)}`]);
-        else aviso(err.code === "auth/weak-password" ? "Senha fraca. Use pelo menos 6 caracteres, misturando letras, números e símbolos." : mensagemErro(err.code));
+        else aviso(err.code === "auth/weak-password" ? "Senha fraca. Siga os requisitos da lista embaixo da senha." : mensagemErro(err.code));
       }
     });
     return;

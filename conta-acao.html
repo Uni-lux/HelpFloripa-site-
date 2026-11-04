@@ -31,7 +31,7 @@
   </script>
   <link rel="stylesheet" href="acesso.css?v=7" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="conta-acao.js?v=1"></script>
+  <script type="module" src="conta-acao.js?v=2"></script>
 </head>
 <body>
   <div class="acesso">
@@ -70,9 +70,9 @@
             <form class="form" id="formNova" novalidate style="margin-top:14px">
               <div class="campo">
                 <label for="senha">Senha nova</label>
-                <div class="senha"><input type="password" id="senha" autocomplete="new-password" placeholder="Pelo menos 6 caracteres" required minlength="6" /></div>
+                <div class="senha"><input type="password" id="senha" autocomplete="new-password" placeholder="Pelo menos 8 caracteres" required minlength="8" /></div>
               </div>
-              <div class="campo"><div class="forca"><b id="forcaBarra"></b></div><span class="ajuda" id="forcaTexto">Mínimo de 6 caracteres. Misture letras, números e símbolos.</span></div>
+              <div class="campo" id="senhaRegras"></div>
               <div class="campo">
                 <label for="senha2">Repita a senha nova</label>
                 <div class="senha"><input type="password" id="senha2" autocomplete="new-password" placeholder="Digite de novo" required /></div>

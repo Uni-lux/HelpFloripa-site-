@@ -3,7 +3,8 @@
 // - Uma conta para tudo: contratar, comprar, publicar e anunciar.
 // - @usuário reservado na mesma transação que cria o perfil.
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=4";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=5";
+import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 import { camposEndereco, gravarComLocal, NOVOS } from "./endereco.js?v=1";
 
 const IDADE_MIN = 16;
@@ -19,20 +20,10 @@ $("telefone").addEventListener("input", () => {
     : d.length > 2 ? d.replace(/(\d{2})(\d{0,5})/, "($1) $2") : d ? `(${d}` : "";
 });
 
-// ---------- força da senha ----------
-function forca(v) {
-  let p = 0;
-  if (v.length >= 6) p++; if (v.length >= 10) p++;
-  if (/[a-z]/.test(v) && /[A-Z]/.test(v)) p++;
-  if (/\d/.test(v)) p++; if (/[^A-Za-z0-9]/.test(v)) p++;
-  return p <= 1 ? "fraca" : p <= 3 ? "media" : "forte";
-}
-$("senha").addEventListener("input", () => {
-  const v = $("senha").value;
-  const n = v ? forca(v) : "";
-  $("forcaBarra").className = n;
-  $("forcaTexto").textContent = n ? { fraca: "Senha fraca", media: "Senha média", forte: "Senha forte" }[n] : "Mínimo de 6 caracteres. Misture letras, números e símbolos.";
-});
+// ---------- senha forte (lista de requisitos ao vivo) ----------
+const dadosSenha = () => ({ nome: $("nome").value, nick: $("nick").value, email: $("email").value, telefone: $("telefone").value, nascimento: $("nascimento").value });
+const regrasSenha = ligarSenhaForte({ campo: $("senha"), lista: $("senhaRegras"), dados: dadosSenha });
+["nome", "nick", "email", "telefone", "nascimento"].forEach((id) => $(id).addEventListener("input", () => { if ($("senha").value) regrasSenha.atualizar(); }));
 
 // ---------- data de nascimento ----------
 const limite = new Date(); limite.setFullYear(limite.getFullYear() - IDADE_MIN);
@@ -97,7 +88,7 @@ window.addEventListener("beforeunload", (e) => { if (comecou() && !podeSair) { e
     const i = idade(nasc);
     if (i === null || i < 0) return erro("Informe uma data de nascimento válida.", $("nascimento"));
     if (i < IDADE_MIN) return erro(`É preciso ter ${IDADE_MIN} anos ou mais para criar uma conta.`, $("nascimento"));
-    if (senha.length < 6) return erro("A senha precisa ter pelo menos 6 caracteres.", $("senha"));
+    if (!senhaForte(senha, dadosSenha())) { regrasSenha.mostrarFaltas(); return erro(primeiroProblema(senha, dadosSenha()), $("senha")); }
     if (senha !== $("confirmar").value) return erro("As senhas não são iguais.", $("confirmar"));
     const erroLocal = local.validar();
     if (erroLocal) return erro(erroLocal);

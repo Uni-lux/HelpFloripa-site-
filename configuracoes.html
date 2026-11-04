@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="rede.css?v=84" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="configuracoes.js?v=147"></script>
+  <script type="module" src="configuracoes.js?v=148"></script>
 </head>
 <body>
   <header class="topo">
@@ -178,7 +178,7 @@
         <div class="end-aviso" id="senhaGoogle" hidden><svg class="i"><use href="#i-cadeado"/></svg><span><strong>Sua conta entra com o Google.</strong> A senha é a da sua conta Google e é trocada lá, nas configurações do Google.</span></div>
         <form id="formSenha" novalidate>
           <div class="campo"><label for="senhaAtual">Senha atual</label><input id="senhaAtual" type="password" autocomplete="current-password" /></div>
-          <div class="campo"><label for="senhaNova">Nova senha</label><input id="senhaNova" type="password" autocomplete="new-password" minlength="6" /><div class="ajuda"><span>Mínimo de 6 caracteres. Misture letras, números e símbolos.</span></div></div>
+          <div class="campo"><label for="senhaNova">Nova senha</label><input id="senhaNova" type="password" autocomplete="new-password" minlength="8" /><div id="senhaRegras"></div></div>
           <div class="campo"><label for="senhaConfirma">Repita a nova senha</label><input id="senhaConfirma" type="password" autocomplete="new-password" /></div>
           <button type="button" class="btn sec" id="senhaEsqueci" style="margin-top:14px">Esqueci minha senha atual</button>
         </form>

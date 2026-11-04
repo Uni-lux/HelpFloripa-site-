@@ -45,7 +45,7 @@
   </script>
   <link rel="stylesheet" href="acesso.css?v=7" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="cadastro.js?v=6"></script>
+  <script type="module" src="cadastro.js?v=7"></script>
 </head>
 <body>
   <div class="acesso">
@@ -91,10 +91,10 @@
             <div id="cadLocal"></div>
             <span class="ajuda" style="margin-top:-8px">Sua cidade aparece no perfil e ajuda a achar quem atende perto de você. O endereço completo é opcional e fica privado, nas Configurações.</span>
             <div class="duas">
-              <div class="campo"><label for="senha">Senha</label><div class="senha"><input type="password" id="senha" minlength="6" autocomplete="new-password" required /></div></div>
-              <div class="campo"><label for="confirmar">Confirmar senha</label><div class="senha"><input type="password" id="confirmar" minlength="6" autocomplete="new-password" required /></div></div>
+              <div class="campo"><label for="senha">Senha</label><div class="senha"><input type="password" id="senha" minlength="8" autocomplete="new-password" required /></div></div>
+              <div class="campo"><label for="confirmar">Confirmar senha</label><div class="senha"><input type="password" id="confirmar" minlength="8" autocomplete="new-password" required /></div></div>
             </div>
-            <div class="campo"><div class="forca"><b id="forcaBarra"></b></div><span class="ajuda" id="forcaTexto">Mínimo de 6 caracteres. Misture letras, números e símbolos.</span></div>
+            <div class="campo" id="senhaRegras"></div>
             <label class="aceite"><input type="checkbox" id="aceite" required /><span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</span></label>
             <div class="aviso" id="avisoCadastro" role="status" aria-live="polite" hidden></div>
             <button type="submit" class="botao" id="criar">Criar minha conta grátis</button>

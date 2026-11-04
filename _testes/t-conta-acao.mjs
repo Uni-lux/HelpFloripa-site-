@@ -31,11 +31,13 @@ ok((await p.textContent("#emailConta")) === "ana@teste.com", "tela “Criar senh
 ok(await p.evaluate(() => !location.search), "o código saiu do endereço (não fica no histórico)");
 await p.screenshot({ path: "saida/conta-acao-senha.png" });
 await p.fill("#senha", "abc"); await p.fill("#senha2", "abc"); await p.click("#salvar");
-ok(/pelo menos 6/.test(await p.textContent("#avisoAcao")), "senha curta: avisa");
-await p.fill("#senha", "NovaSenha#2026"); await p.fill("#senha2", "NovaSenha#2027"); await p.click("#salvar");
+ok(/pelo menos 8/.test(await p.textContent("#avisoAcao")), "senha curta: avisa");
+await p.fill("#senha", "Ana#Kq8!vRt"); await p.click("#salvar");
+ok(/e-mail ou celular/.test(await p.textContent("#avisoAcao")) && (await p.getAttribute("[data-regra=contato]", "class")) === "falta", "senha com o e-mail: avisa e marca o requisito");
+await p.fill("#senha", "Kq8!vRt2mz"); await p.fill("#senha2", "Kq8!vRt2my"); await p.click("#salvar");
 ok(/não são iguais/.test(await p.textContent("#avisoAcao")), "senhas diferentes: avisa");
-ok(/forte|média/i.test(await p.textContent("#forcaTexto")), "mostra a força da senha");
-await p.fill("#senha2", "NovaSenha#2026"); await p.click("#salvar");
+ok(/Senha forte/.test(await p.textContent(".sf-nivel")) && (await p.$$("#senhaRegras li.ok")).length === 7, "todos os requisitos verdes: “Senha forte”");
+await p.fill("#senha2", "Kq8!vRt2mz"); await p.click("#salvar");
 await p.waitForSelector("#telaResultado:not([hidden])", { timeout: 10000 }).catch(() => {});
 ok(/Senha nova salva/.test(await p.textContent("#resTitulo")), "senha salva");
 const href = await p.getAttribute("#resBotoes a", "href");
@@ -45,7 +47,7 @@ await p.screenshot({ path: "saida/conta-acao-pronto.png" });
 // 3) entrar com a senha nova
 await p.click("#resBotoes a"); await p.waitForTimeout(1500);
 ok((await p.inputValue("#email")) === "ana@teste.com", "Entrar já vem com o e-mail");
-await p.fill("#senha", "NovaSenha#2026"); await p.click("#entrar");
+await p.fill("#senha", "Kq8!vRt2mz"); await p.click("#entrar");
 await p.waitForURL((u) => !/login\.html/.test(u.toString()), { timeout: 15000 }).catch(() => {});
 ok(!/login\.html/.test(p.url()), "entra com a senha nova");
 
