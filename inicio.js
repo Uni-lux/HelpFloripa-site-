@@ -11,12 +11,15 @@ import { fotoSegura } from "./seguranca.js?v=1";
 import { enfeitarSelect } from "./escolha.js?v=4";
 import { estrelas, lerResumos, media } from "./avaliacoes.js?v=18";
 import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
-import { ligarPuxar } from "./puxar-atualizar.js?v=1";
+import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=8";
+// Dedo parado numa classe ou num cartão: a vitrine começa a carregar por trás (quando o toque termina, ela já está pronta).
+prepararAoTocar(escolherVitrine);
 import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=4";
 import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=89";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=90";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -345,6 +348,7 @@ async function secaoSaude(fs, db, u) {
 async function secaoComunidade(fs, db, u) {
   const { loc, rotulo } = await localSecoes(fs, db, u);
   const { lista, nivel } = await lerComunidade({ ...fs, db }, docsComValidade, loc);
+  marcos.com = maisNovo(lista);
   // Distância pela posição da pessoa (GPS guardado ou a cidade): só aparece quando sabemos onde ela está.
   const pos = await minhaPosicao({}).catch(() => null);
   if (pos) { await comDistancia(lista, pos); lista.forEach((a) => { if (Number.isFinite(a._km)) a._dist = textoDistancia(a._km, a._aprox); }); }
@@ -390,6 +394,11 @@ async function montarPerto(fs, db, u, negocios, imoveis, nota) {
   if (location.hash === "#secPerto") scrollTo({ top: sec.getBoundingClientRect().top + scrollY - 76 });
 }
 
+// Mais recente já mostrado de cada lista (puxar para atualizar só recarrega se o servidor tiver algo depois disso).
+const marcos = { neg: null, im: null, com: null };
+const valorTs = (t) => (t && typeof t.seconds === "number" ? t.seconds * 1e9 + (t.nanoseconds || 0) : 0);
+const maisNovo = (lista) => lista.reduce((m, x) => (valorTs(x.atualizadoEm) > valorTs(m) ? x.atualizadoEm : m), null);
+
 async function carregar(fs, db, u) {
   let negociosPerto = [], imoveisPerto = [], notaPerto = () => null;
   // Os totais por categoria ficam guardados por 30 min.
@@ -419,6 +428,7 @@ async function carregar(fs, db, u) {
     // Vale por 10 min no aparelho: voltar à página inicial não lê tudo de novo.
     const snap = await docsComValidade({ ...fs, db }, "inicio-negocios", fs.query(neg, fs.orderBy("atualizadoEm", "desc"), fs.limit(60)), 10 * 60000).catch(() => fs.getDocs(fs.query(neg, fs.limit(60))));
     // Sem plano, só o perfil principal de cada dono aparece (os outros estão pausados).
+    marcos.neg = maisNovo(snap.docs.map((d) => d.data()));
     const lista = await semPausados({ ...fs, db }, snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && n.oculto !== true && !oculto(n) && NOMES_TIPO[n.tipo]));
     const resumos = await lerResumos({ ...fs, db }, lista.map((n) => "neg_" + n.id));
     const nota = (n) => resumos["neg_" + n.id];
@@ -459,6 +469,7 @@ async function carregar(fs, db, u) {
     const an = fs.collection(db, "anuncios");
     const snap = await docsComValidade({ ...fs, db }, "inicio-imoveis", fs.query(an, fs.where("tipo", "==", "imovel"), fs.orderBy("atualizadoEm", "desc"), fs.limit(24)), 10 * 60000)
       .catch(() => fs.getDocs(fs.query(an, fs.where("tipo", "==", "imovel"), fs.limit(24))));
+    marcos.im = maisNovo(snap.docs.map((d) => d.data()));
     const locIm = lerLocal();
     const imsTodos = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((a) => a.ativo !== false && !oculto(a)).sort((a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm || a.criadoEm));
     const ims = (locIm.uf ? [...imsTodos.filter((a) => noLocal(a, locIm)), ...imsTodos.filter((a) => !noLocal(a, locIm))] : imsTodos).slice(0, 30);
@@ -503,7 +514,10 @@ async function carregar(fs, db, u) {
     carregar(fs, db, u);
     comunicados(fs, db);
     // Puxar para atualizar (como no Diário): tudo vem de novo do servidor; os cartões de antes ficam até os novos chegarem.
+    // Puxar para atualizar (como no Instagram): primeiro pergunta ao servidor se chegou algo depois do mais recente que já
+    // está na tela (1 leitura por lista); só então lê tudo de novo. Sem novidade, a página fica como está.
     ligarPuxar({ aoAtualizar: async () => {
+      if (!(await temNovidade(fs, db))) return;
       buscarDeNovo();
       try { localStorage.removeItem("hf-totais-inicio"); } catch {}
       localSecoesP = null;
@@ -511,6 +525,21 @@ async function carregar(fs, db, u) {
     } });
   });
 })();
+
+async function temNovidade(fs, db) {
+  if (!marcos.neg || !marcos.im) return true; // a 1ª leitura falhou: lê tudo
+  const ts = (t) => new fs.Timestamp(t.seconds, t.nanoseconds || 0);
+  const ha = (q) => fs.getDocs(fs.query(q, fs.limit(1))).then((s) => !s.empty);
+  const neg = fs.collection(db, "negocios"), an = fs.collection(db, "anuncios");
+  try {
+    const r = await Promise.all([
+      ha(fs.query(neg, fs.where("atualizadoEm", ">", ts(marcos.neg)), fs.orderBy("atualizadoEm", "desc"))),
+      ha(fs.query(an, fs.where("tipo", "==", "imovel"), fs.where("atualizadoEm", ">", ts(marcos.im)), fs.orderBy("atualizadoEm", "desc"))),
+      marcos.com ? ha(fs.query(fs.collection(db, "comunidade"), fs.where("atualizadoEm", ">", ts(marcos.com)), fs.orderBy("atualizadoEm", "desc"))) : false
+    ]);
+    return r.some(Boolean);
+  } catch (e) { console.warn("Início: conferir novidades:", e); return true; }
+}
 
 // ---------- cidades em destaque ----------
 // Cidades com mais negócios entre os carregados (como a lista de estados/cidades dos classificados).

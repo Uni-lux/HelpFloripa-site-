@@ -74,14 +74,45 @@ let ligado = false;
 // Prepara a página de destino (prerender do Chrome; nos outros navegadores não faz nada).
 const preparadas = new Set();
 const podePreparar = (() => { try { return !!HTMLScriptElement.supports?.("speculationrules"); } catch { return false; } })();
-export function preparar(href) {
+// modo "prerender" = a página inteira roda por trás (dados e tudo); "prefetch" = só baixa o HTML (não roda nada).
+export function preparar(href, modo = "prerender") {
   if (!podePreparar || !href) return;
   let u; try { u = new URL(href, location.href); } catch { return; }
-  if (u.origin !== location.origin || u.pathname === location.pathname || preparadas.has(u.href) || preparadas.size >= 4) return;
+  if (u.origin !== location.origin || u.pathname === location.pathname || preparadas.has(u.href) || preparadas.size >= 6) return;
   preparadas.add(u.href);
   const s = document.createElement("script"); s.type = "speculationrules";
-  s.textContent = JSON.stringify({ prerender: [{ source: "list", urls: [u.href], eagerness: "immediate" }] });
+  s.textContent = JSON.stringify({ [modo]: [{ source: "list", urls: [u.href], eagerness: "immediate" }] });
   document.head.appendChild(s);
+}
+
+// Prepara a página do link quando o dedo PARA em cima dele (como os apps: quando o toque termina, a página já está
+// carregando). Só depois de 70 ms parado: começar a rolar a lista em cima de um cartão não prepara nada (cada página
+// preparada lê dados do Firebase). No computador, ao passar o mouse por 120 ms. escolher(url) → "prerender" | "prefetch" | null.
+export function prepararAoTocar(escolher) {
+  if (!podePreparar) return;
+  let tempo = 0, x0 = 0, y0 = 0;
+  const alvo = (e) => { const a = e.target?.closest?.("a[href]"); if (!a || a.target === "_blank") return null; let u; try { u = new URL(a.href, location.href); } catch { return null; } const m = escolher(u); return m ? { u, m } : null; };
+  const cancelar = () => { clearTimeout(tempo); tempo = 0; };
+  document.addEventListener("touchstart", (e) => {
+    cancelar();
+    const a = e.touches.length === 1 && alvo(e); if (!a) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    tempo = setTimeout(() => preparar(a.u.href, a.m), 70);
+  }, { passive: true, capture: true });
+  document.addEventListener("touchmove", (e) => { if (tempo && Math.hypot(e.touches[0].clientX - x0, e.touches[0].clientY - y0) > 8) cancelar(); }, { passive: true, capture: true });
+  document.addEventListener("touchcancel", cancelar, { passive: true, capture: true });
+  if (matchMedia("(hover: hover)").matches) {
+    let sobre = 0;
+    document.addEventListener("mouseover", (e) => { clearTimeout(sobre); const a = alvo(e); if (a) sobre = setTimeout(() => preparar(a.u.href, a.m), 120); }, { passive: true });
+    document.addEventListener("mouseout", () => clearTimeout(sobre), { passive: true });
+  }
+}
+// Vitrines: a página sozinha é preparada inteira; com ?negocio= / ?anuncio= / ?item= (abre um perfil e conta a visita
+// nas estatísticas do negócio) só o HTML, para não contar visita de quem não abriu.
+const VITRINES = /\/(servicos|delivery|shopping|imoveis|saude|comunidade|mural)\.html$/;
+export function escolherVitrine(u) {
+  if (!VITRINES.test(u.pathname)) return null;
+  return ["negocio", "anuncio", "item", "novo"].some((k) => u.searchParams.has(k)) ? "prefetch" : "prerender";
 }
 
 function examinar(n) {
