@@ -1638,6 +1638,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (seed.mjs cria mensagem no futuro; espera até 10 s). Teste novo `t-flash-correcoes3.mjs` (21). Varredura: 51 testes, 937
   verificações; só `t-email-confirmado` falha no "apagar conta" (precisa de `FUNCOES=1`) e `t-enquete-escala` precisa de
   `FS_PORTA=8086` (medidor).
+- **Deslizar da rede + Diário/Flash rápidos + criar (04/11/2026, PR depois do #156, sem regra nova):** o Perfil NÃO
+  deslizava: `deslizar-flash.js` contava qualquer `[aria-modal='true']` como janela aberta e as folhas do usuarios.html
+  ficam no HTML com aria-modal mesmo fechadas → `camadaAberta()` (ignora folha fechada/invisível). rede-app.js: durante o
+  deslize a barra de baixo fica parada (`copiaDaBarra`: cópia com o estilo calculado por cima dos quadros, a de dentro
+  some; o item acende na metade, `acenderNaCopia`), sombra na aba que entra (`.hf-quadro.entra`) e a animação termina na
+  velocidade do dedo (`terminar(vai, v)`, 140–320 ms). Diário: não espera mais a posição (`prepararLeitor` síncrono;
+  `esperarPosicaoSePrecisa` só com público "perto"), Flash começa junto com a lista de quem segue, cópia da última lista
+  (`hf-diario-ultimos-<uid>`, 8 ids lidos do cache do Firebase) aparece na hora e a do servidor entra por trás (se a
+  pessoa já rolou, mantém e põe o resto embaixo), voltar do Explorar não recarrega (`feedAtual`, 4 min; `carregarFeed({forcar})`).
+  Fileira do Flash na hora (`hf-flash-barra-<uid>`, ids e horários; anel `_leve` espera a leitura ao tocar, `.carregando`).
+  Botão do topo do Diário: lápis com brilho num quadradinho em degradê (`i-criar`, `.tc-ic`), não o "+" das outras redes.
+  Nova publicação: trocar o tipo NÃO abre a galeria nem o teclado (`mudarTipo(t, {abrir:false})`); Foto/Vídeo sem arquivo
+  mostram o quadro `#pubEscolher`. Testes `t-deslizar-rede.mjs`, `t-diario-rapido.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=6";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=7";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=2";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -70,6 +70,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-grade" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
 <symbol id="i-bussola" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
 <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-criar" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/><path d="M19 15v4M17 17h4"/></symbol>
 <symbol id="i-imagem" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-8.5 8.5"/></symbol>
 <symbol id="i-reels" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><path d="M3.5 8.5h17M8.2 3.7l3 4.8M13.4 3.7l3 4.8"/><path d="M10.4 11.6v5.3l4.4-2.65z" fill="currentColor" stroke-linejoin="round"/></symbol>
 <symbol id="i-alvo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></symbol>
@@ -1580,7 +1581,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=90").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=91").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2140,7 +2141,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=90").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=91").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2837,8 +2838,22 @@ function mostrarPreviaPublicacao() {
   const box = $("pubPrevia");
   box.replaceChildren();
   box.classList.toggle("varias", pubMidia?.tipo === "image" && pubMidia.fotos.length > 1);
-  box.classList.remove("casada-previa");
-  if (!pubMidia) { box.hidden = true; return; }
+  box.classList.remove("casada-previa", "vazia");
+  if (!pubMidia) {
+    // Foto ou vídeo ainda sem arquivo: quadro grande para escolher (a galeria só abre quando a pessoa toca aqui).
+    if (pubTipo === "foto" || pubTipo === "video") {
+      const v = pubTipo === "video";
+      const b = el("button", "pub-escolher"); b.type = "button"; b.id = "pubEscolher";
+      const ic = el("span", "ic"); ic.append(icone(v ? "reels" : "imagem"));
+      b.append(ic, el("strong", null, v ? "Escolher o vídeo" : "Escolher as fotos"), el("small", null, v ? "Até 60 segundos" : "De 1 a 4 fotos · toque para abrir a galeria"));
+      b.addEventListener("click", () => $(v ? "pubArquivoVideo" : "pubArquivoFoto").click());
+      box.classList.add("vazia");
+      box.append(b);
+      box.hidden = false;
+      return;
+    }
+    box.hidden = true; return;
+  }
   // Texto com imagem: a prévia é o próprio cartão casado (muda enquanto a pessoa escreve).
   if (pubMidia.tipo === "image" && pubTipo === "texto") {
     box.classList.add("casada-previa");
@@ -2893,7 +2908,9 @@ function ligarCompositor() {
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
-  $("pubTipos").querySelectorAll(".pub-tipo").forEach((b) => b.addEventListener("click", () => mudarTipo(b.dataset.tipo)));
+  // Trocar o tipo só troca (04/11/2026): não abre a galeria nem o teclado sozinho. Para escolher a foto/vídeo há o
+  // quadro "Toque para escolher" (pubPrevia) e o botão Imagem/Fotos embaixo; na enquete, toque na pergunta.
+  $("pubTipos").querySelectorAll(".pub-tipo").forEach((b) => b.addEventListener("click", () => mudarTipo(b.dataset.tipo, { abrir: false })));
   $("pubAjustes").addEventListener("click", abrirAjustesPub);
   $("pubHashtag").addEventListener("click", () => {
     const t = $("pubTexto"), i = t.selectionStart ?? t.value.length;

@@ -119,47 +119,111 @@ function ir(k, { historico = true } = {}) {
 }
 
 // ---------- deslizar entre abas (chamado de dentro do quadro) ----------
+// As duas abas andam juntas com o dedo (1:1), com uma sombra na beirada. A barra de baixo fica PARADA (como nos apps):
+// uma cópia dela fica por cima dos quadros enquanto eles andam e o item acende quando passa da metade. Ao soltar, a
+// animação termina na velocidade do dedo (04/11/2026; antes a barra ia embora junto com a página).
 let arraste = null;
 function vizinho(k, lado) {
   const i = ABAS.indexOf(k);
   const j = lado === "dir" ? i - 1 : i + 1;
   return j >= 0 && j < ABAS.length ? ABAS[j] : null;
 }
+const barraDe = (q) => { try { return q.contentDocument?.getElementById("barraRede") || null; } catch { return null; } };
+// Cópia da barra com o estilo já calculado (a de dentro do quadro seria cortada na beirada dele).
+const CORES = new Set(["color", "stroke", "fill", "-webkit-text-fill-color", "caret-color", "text-decoration-color", "text-emphasis-color", "outline-color", "column-rule-color", "-webkit-text-stroke-color"]);
+function copiarEstilo(orig, copia, raiz) {
+  const w = orig.ownerDocument.defaultView, cs = w.getComputedStyle(orig);
+  const cor = cs.getPropertyValue("color");
+  const corPai = !raiz && orig.parentElement ? w.getComputedStyle(orig.parentElement).getPropertyValue("color") : null;
+  let t = "";
+  for (let i = 0; i < cs.length; i++) {
+    const p = cs[i];
+    if (p.startsWith("--") || p.startsWith("transition") || p.startsWith("animation")) continue;
+    const v = cs.getPropertyValue(p);
+    // Cor igual à do item: fica "currentColor"/herdada (assim acender o item muda tudo dentro dele).
+    if (corPai !== null && CORES.has(p) && v === cor) { if (p === "color" && v === corPai) continue; t += `${p}:${p === "color" ? v : "currentcolor"};`; continue; }
+    t += `${p}:${v};`;
+  }
+  copia.style.cssText = t;
+  const fo = [...orig.children], fc = [...copia.children];
+  fo.forEach((x, i) => fc[i] && copiarEstilo(x, fc[i], false));
+}
+function copiaDaBarra(b) {
+  try {
+    const r = b.getBoundingClientRect();
+    if (!r.width) return null;
+    const c = b.cloneNode(true);
+    c.removeAttribute("id"); c.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id"));
+    c.setAttribute("aria-hidden", "true");
+    copiarEstilo(b, c, true);
+    Object.assign(c.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", right: "auto", bottom: "auto", margin: "0", transform: "none", translate: "none", zIndex: "20", pointerEvents: "none", boxSizing: "border-box" });
+    const w = b.ownerDocument.defaultView;
+    const cor = (sel) => { const a = b.querySelector(sel); return a ? w.getComputedStyle(a).color : ""; };
+    c._corAtiva = cor("[aria-current='page']") || "#00adee";
+    c._corNormal = cor("[data-barra]:not([aria-current])") || "#8fa0ab";
+    document.body.appendChild(c);
+    return c;
+  } catch { return null; }
+}
+function acenderNaCopia(c, k) {
+  if (!c) return;
+  c.querySelectorAll("[data-barra]").forEach((a) => {
+    const on = a.dataset.barra === k;
+    a.style.color = on ? c._corAtiva : c._corNormal;
+    a.style.backgroundColor = "transparent";
+    const av = a.querySelector(".mini-av");
+    if (av) av.style.boxShadow = on ? `0 0 0 2px ${c._corAtiva}` : "none";
+  });
+}
 function comecar(k, lado) {
   const alvo = vizinho(k, lado);
-  if (!alvo || QUADRO_DE[alvo] === QUADRO_DE[k]) return false;
+  if (!alvo || QUADRO_DE[alvo] === QUADRO_DE[k] || arraste) return false;
   const de = quadros[QUADRO_DE[k]], para = quadro(QUADRO_DE[alvo], alvo);
   // Explorar fica no quadro do Diário: já deixa o feed no Explorar antes de aparecer.
   if (alvo === "explorar" || alvo === "diario") { try { para.contentWindow.__hfTrocarAba?.(alvo); } catch {} }
-  for (const q of [de, para]) { q.classList.remove("anima"); q.classList.add("movendo"); }
+  for (const q of [de, para]) { q.classList.remove("anima"); q.style.transitionDuration = ""; q.classList.add("movendo"); }
+  para.classList.add("entra");
   para.style.transform = `translate3d(${lado === "dir" ? -W() : W()}px,0,0)`;
-  arraste = { de, para, lado, alvo, dx: 0 };
+  const bDe = barraDe(de), bPara = barraDe(para);
+  const copia = bDe ? copiaDaBarra(bDe) : null;
+  if (copia) { bDe.style.visibility = "hidden"; if (bPara) bPara.style.visibility = "hidden"; }
+  arraste = { de, para, lado, alvo, k, dx: 0, bDe, bPara, copia, aceso: false };
   return true;
 }
 function mover(dx) {
   if (!arraste) return;
-  const { de, para, lado } = arraste;
+  const { de, para, lado, copia } = arraste;
   const d = lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
   arraste.dx = d;
   de.style.transform = `translate3d(${d}px,0,0)`;
   para.style.transform = `translate3d(${(lado === "dir" ? -W() : W()) + d}px,0,0)`;
+  const aceso = Math.abs(d) > W() / 2;
+  if (aceso !== arraste.aceso) { arraste.aceso = aceso; acenderNaCopia(copia, aceso ? arraste.alvo : arraste.k); }
 }
-function terminar(vai) {
+function terminar(vai, v = 0) {
   if (!arraste) return;
-  const { de, para, lado, alvo } = arraste;
-  arraste = null;
-  for (const q of [de, para]) q.classList.add("anima");
+  const { de, para, lado, alvo, k, dx, bDe, bPara, copia } = arraste;
+  // Duração pelo que falta andar e pela velocidade do dedo (deslize rápido termina rápido), entre 140 e 320 ms.
+  const falta = vai ? W() - Math.abs(dx) : Math.abs(dx);
+  const dur = Math.round(Math.min(320, Math.max(140, falta / Math.max(Math.abs(v), 1.1))));
+  for (const q of [de, para]) { q.style.transitionDuration = dur + "ms"; q.classList.add("anima"); }
   if (vai) {
     de.style.transform = `translate3d(${lado === "dir" ? W() : -W()}px,0,0)`;
     para.style.transform = "translate3d(0,0,0)";
+    acenderNaCopia(copia, alvo);
+    try { if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.(8); } catch {}
   } else {
     de.style.transform = "translate3d(0,0,0)";
     para.style.transform = `translate3d(${lado === "dir" ? -W() : W()}px,0,0)`;
+    acenderNaCopia(copia, k);
   }
   setTimeout(() => {
-    for (const q of [de, para]) { q.classList.remove("anima", "movendo"); q.style.transform = ""; }
+    arraste = null;
+    for (const q of [de, para]) { q.classList.remove("anima", "movendo", "entra"); q.style.transform = ""; q.style.transitionDuration = ""; }
     if (vai) ir(alvo);
-  }, 250);
+    for (const b of [bDe, bPara]) if (b) b.style.visibility = "";
+    copia?.remove();
+  }, dur + 20);
 }
 
 Object.assign(S, {
