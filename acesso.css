@@ -168,3 +168,10 @@ svg.i.s { width: 16px; height: 16px; }
 
 /* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
 html { -webkit-tap-highlight-color: transparent; }
+
+/* Esqueceu a senha? (recuperar-senha.html): os 3 passos numerados embaixo do formulário. */
+.passos-senha { list-style: none; counter-reset: ps; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
+.passos-senha li { counter-increment: ps; position: relative; padding: 2px 0 2px 38px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.passos-senha li::before { content: counter(ps); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 13px; font-weight: 800; color: var(--accent, #00adee); background: color-mix(in srgb, var(--accent, #00adee) 14%, transparent); }
+.passos-senha strong { color: var(--text); font-weight: 700; }
