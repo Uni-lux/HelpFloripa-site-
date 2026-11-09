@@ -12,7 +12,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada } from "./chamadas.js?v=3";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=4";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -697,7 +697,7 @@ function resumoMensagem(m) {
   }
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
-  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao);
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao, m.remetenteId === eu?.uid);
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") return `Pix${Number(m.cartao.valor) > 0 ? ": " + reais(m.cartao.valor) : ""}`;
   if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
   if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
@@ -3512,7 +3512,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=3");
+  const { ligar } = await import("./chamadas.js?v=4");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }
@@ -3521,25 +3521,32 @@ async function fazerLigacao(modo) {
 $("btnLigar").addEventListener("click", () => fazerLigacao("audio"));
 $("btnVideo").addEventListener("click", () => fazerLigacao("video"));
 // ---------- Registro de chamadas (aba Chamadas) ----------
-// Lê chamadas/{id} em que a pessoa ligou (de) ou recebeu (para). Com o índice (de/para + criadoEm) vêm as 100 mais
-// recentes de cada lado; sem ele, lê sem ordem e ordena aqui. "Limpar" e "visto" ficam no aparelho.
-let chamadasLidas = null, filtroChamadas = "todas";
+// Lê chamadas/{id} em que a pessoa ligou (de) ou recebeu (para). Com o índice (de/para + criadoEm) vêm as 50 mais
+// recentes de cada lado; sem ele, lê sem ordem e ordena aqui. "Limpar", "tirar do registro" e "visto" ficam no aparelho.
+// Tela (09/11/2026): Nova chamada, filtros Todas · Perdidas · Recebidas · Feitas com contagem, busca por nome, ligações
+// seguidas da mesma pessoa juntas numa linha ("Ana (3)"), e tocar na linha abre o histórico com aquela pessoa
+// (Mensagem · Voz · Vídeo, cada ligação com hora e duração e o tempo total em ligação).
+let chamadasLidas = null, filtroChamadas = "todas", buscaChamadas = "";
 const chaveCham = () => `hf-chamadas-${eu?.uid}`;
 const lerCfgCham = () => { try { return JSON.parse(localStorage.getItem(chaveCham()) || "{}"); } catch { return {}; } };
 const gravarCfgCham = (x) => { try { localStorage.setItem(chaveCham(), JSON.stringify({ ...lerCfgCham(), ...x })); } catch {} };
+const FILTROS_CHAM = [["todas", "Todas"], ["perdidas", "Perdidas"], ["recebidas", "Recebidas"], ["feitas", "Feitas"]];
+// Duração pela sinalização (aceitaEm → fimEm): a mesma para os dois lados.
 function situacaoChamada(c) {
   const saiu = c.de === eu.uid, falou = !!c.aceitaEm;
   const dur = falou && c.fimEm ? Math.max(0, Math.round((ms(c.fimEm) - ms(c.aceitaEm)) / 1000)) : 0;
-  const perdida = !saiu && !falou && ["perdida", "cancelada", "chamando"].includes(c.status);
-  const txt = falou ? (dur ? (dur < 60 ? `${dur} s` : `${Math.round(dur / 60)} min`) : "Atendida")
-    : saiu ? (c.status === "recusada" ? "Recusada" : "Não atendida")
-    : c.status === "recusada" ? "Você recusou" : "Perdida";
-  return { saiu, perdida, txt };
+  const resultado = falou ? (c.status === "aceita" ? "aceita" : "encerrada") : c.status;
+  return { saiu, dur, ...descreverChamada({ modo: c.tipo, resultado, duracao: dur, saiu }) };
+}
+const outroDa = (c) => (c.de === eu.uid ? c.para : c.de);
+function chamadasVisiveis() {
+  const cfg = lerCfgCham(), tirados = cfg.tirados || {};
+  return (chamadasLidas || []).filter((c) => ms(c.criadoEm) > (cfg.limpo || 0) && ms(c.criadoEm) > (tirados[outroDa(c)] || 0));
 }
 function perdidasNovas() {
   if (!chamadasLidas) return 0;
   const visto = lerCfgCham().visto || 0;
-  return chamadasLidas.filter((c) => ms(c.criadoEm) > visto && situacaoChamada(c).perdida).length;
+  return chamadasVisiveis().filter((c) => ms(c.criadoEm) > visto && situacaoChamada(c).perdida).length;
 }
 async function lerChamadas() {
   const col = fb.collection(fb.db, "chamadas");
@@ -3549,73 +3556,216 @@ async function lerChamadas() {
   };
   const [a, b] = await Promise.all([lado("de"), lado("para")]);
   const vistos = new Set();
-  chamadasLidas = [...a, ...b].filter((d) => !vistos.has(d.id) && vistos.add(d.id)).map((d) => ({ id: d.id, ...d.data() }))
+  chamadasLidas = [...a, ...b].filter((d) => !vistos.has(d.id) && vistos.add(d.id)).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))
     .sort((x, y) => ms(y.criadoEm) - ms(x.criadoEm));
   return chamadasLidas;
 }
+// Nome e foto de quem está na ligação: da conversa (já carregada) ou do perfil público.
+function pessoaDaChamada(c) {
+  const conv = conversas.find((x) => x.id === c.conv) || conversas.find((x) => x.outroId === outroDa(c));
+  return { uid: outroDa(c), conv, nome: conv?.nome || "", foto: conv?.foto || "" };
+}
+async function completarNomes(itens) {
+  const faltam = [...new Set(itens.map((c) => pessoaDaChamada(c)).filter((p) => !p.nome).map((p) => p.uid))];
+  const lidos = await Promise.all(faltam.map((u) => obterPerfil(u).then((p) => [u, p]).catch(() => [u, {}])));
+  return new Map(lidos);
+}
+const diaDaChamada = (t) => { const d = new Date(t), hoje = new Date(), ontem = new Date(); ontem.setDate(hoje.getDate() - 1); return mesmoDia(d, hoje) ? "Hoje" : mesmoDia(d, ontem) ? "Ontem" : d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }); };
+function setaChamada(sit) {
+  const seta = document.createElementNS("http://www.w3.org/2000/svg", "svg"); seta.setAttribute("viewBox", "0 0 24 24");
+  seta.setAttribute("class", "rc-seta " + (sit.perdida ? "perdida" : sit.saiu ? "saiu" : "entrou")); seta.setAttribute("aria-hidden", "true");
+  seta.innerHTML = sit.saiu ? '<path d="M7 17L17 7M9 7h8v8"/>' : '<path d="M17 7L7 17M15 17H7V9"/>';
+  return seta;
+}
+// Liga para a pessoa (abre a conversa e chama): da lista, do histórico e da Nova chamada.
+async function ligarPara(convId, tipo) {
+  if (!convId) { toast("Converse com a pessoa antes de ligar."); return; }
+  await abrirConversa(convId);
+  fazerLigacao(tipo === "video" ? "video" : "audio");
+}
+function botaoLigar(tipo, nome, convId, outro, cls = "rc-ligar") {
+  const bt = elm("button", cls); bt.type = "button"; bt.appendChild(usar(tipo === "video" ? "videochamada" : "telefone", "i"));
+  bt.setAttribute("aria-label", `${tipo === "video" ? "Chamada de vídeo" : "Chamada de voz"} para ${nome || "esta pessoa"}`);
+  bt.disabled = !convId || bloqueado(outro);
+  bt.addEventListener("click", (e) => { e.stopPropagation(); ligarPara(convId, tipo); });
+  return bt;
+}
 async function renderizarChamadas() {
   const lista = $("listaConversas");
-  lista.replaceChildren(elm("div", "lista-vazia", "Carregando as chamadas..."));
+  if (!chamadasLidas) lista.replaceChildren(elm("div", "lista-vazia", "Carregando as chamadas..."));
   await lerChamadas();
   if (modo !== "chamadas") return;
-  const cfg = lerCfgCham();
+  const visto = lerCfgCham().visto || 0;
   gravarCfgCham({ visto: Date.now() }); pintarModos();
-  let itens = chamadasLidas.filter((c) => ms(c.criadoEm) > (cfg.limpo || 0));
-  if (filtroChamadas === "perdidas") itens = itens.filter((c) => situacaoChamada(c).perdida);
+  const todas = chamadasVisiveis();
+  const extras = await completarNomes(todas);
+  if (modo !== "chamadas") return;
+  const quem = (c) => { const p = pessoaDaChamada(c), x = extras.get(p.uid) || {}; return { ...p, nome: p.nome || x.nome || "Usuário", foto: p.foto || x.fotoPerfil || "" }; };
+  const conta = { todas: todas.length, perdidas: 0, recebidas: 0, feitas: 0 };
+  todas.forEach((c) => { const s = situacaoChamada(c); if (s.perdida) conta.perdidas++; if (s.saiu) conta.feitas++; else conta.recebidas++; });
+  const passa = (c) => { const s = situacaoChamada(c); return filtroChamadas === "perdidas" ? s.perdida : filtroChamadas === "recebidas" ? !s.saiu : filtroChamadas === "feitas" ? s.saiu : true; };
+  const termo = semAcentoCham(buscaChamadas.trim());
+  const itens = todas.filter(passa).filter((c) => !termo || semAcentoCham(quem(c).nome).includes(termo));
+
+  // Topo: Nova chamada + limpar; filtros com contagem; busca (com várias ligações).
   const topo = elm("div", "rc-topo");
-  [["todas", "Todas"], ["perdidas", "Perdidas"]].forEach(([k, rot]) => {
-    const b = elm("button", "pill" + (filtroChamadas === k ? " on" : ""), rot); b.type = "button";
-    b.addEventListener("click", () => { filtroChamadas = k; renderizarChamadas(); });
-    topo.appendChild(b);
-  });
-  if (itens.length) {
-    const limpar = elm("button", "rc-limpar", "Limpar registro"); limpar.type = "button";
+  const nova = elm("button", "rc-nova"); nova.type = "button"; nova.append(usar("telefone", "i s"), document.createTextNode("Nova chamada"));
+  nova.addEventListener("click", abrirNovaChamada);
+  topo.appendChild(nova);
+  if (todas.length) {
+    const limpar = elm("button", "rc-limpar"); limpar.type = "button"; limpar.setAttribute("aria-label", "Limpar o registro de chamadas"); limpar.title = "Limpar registro";
+    limpar.append(usar("lixo", "i s"), document.createTextNode("Limpar"));
     limpar.addEventListener("click", async () => {
       if (!(await confirmarHF({ titulo: "Limpar o registro de chamadas?", texto: "As ligações somem desta lista só neste aparelho. Os cartões das ligações nas conversas continuam.", ok: "Limpar", icone: "lixo" }))) return;
       gravarCfgCham({ limpo: Date.now() }); renderizarChamadas();
     });
     topo.appendChild(limpar);
   }
-  const nos = [topo];
+  const filtros = elm("div", "rc-filtros"); filtros.setAttribute("role", "tablist"); filtros.setAttribute("aria-label", "Filtrar chamadas");
+  FILTROS_CHAM.forEach(([k, rot]) => {
+    const b = elm("button", "pill" + (filtroChamadas === k ? " on" : "") + (k === "perdidas" ? " perd" : "")); b.type = "button";
+    b.setAttribute("role", "tab"); b.setAttribute("aria-selected", filtroChamadas === k ? "true" : "false");
+    b.append(document.createTextNode(rot));
+    if (k === "perdidas" && conta[k]) b.appendChild(elm("span", "rc-num", String(conta[k])));
+    else if (k !== "todas") b.title = `${conta[k]} ${conta[k] === 1 ? "chamada" : "chamadas"}`;
+    b.addEventListener("click", () => { filtroChamadas = k; renderizarChamadas(); });
+    filtros.appendChild(b);
+  });
+  const nos = [topo, filtros];
+  if (todas.length > 6) {
+    const busca = elm("label", "rc-busca"); busca.appendChild(usar("lupa", "i s"));
+    const campo = elm("input"); campo.type = "search"; campo.placeholder = "Buscar pelo nome"; campo.value = buscaChamadas; campo.setAttribute("aria-label", "Buscar nas chamadas");
+    campo.addEventListener("input", () => { buscaChamadas = campo.value; clearTimeout(campo._t); campo._t = setTimeout(async () => { await renderizarChamadas(); const c = document.querySelector(".rc-busca input"); if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); } }, 250); });
+    busca.appendChild(campo); nos.push(busca);
+  }
   if (!itens.length) {
-    const vazio = elm("div", "lista-vazia");
-    vazio.append(elm("strong", null, filtroChamadas === "perdidas" ? "Nenhuma chamada perdida" : "Nenhuma chamada ainda"), "Para ligar, abra uma conversa e toque no telefone ou na câmera, no topo.");
+    const vazio = elm("div", "rc-vazio");
+    const ic = elm("span", "rc-vazio-ic"); ic.appendChild(usar(filtroChamadas === "perdidas" ? "check" : "telefone", "i"));
+    const tit = termo ? "Ninguém com esse nome" : { perdidas: "Nenhuma chamada perdida", recebidas: "Nenhuma chamada recebida", feitas: "Você ainda não ligou" }[filtroChamadas] || "Nenhuma chamada ainda";
+    vazio.append(ic, elm("strong", null, tit), elm("span", null, termo ? "Confira o nome ou limpe a busca." : "Ligações de voz e vídeo com quem você conversa aparecem aqui."));
+    if (!termo && filtroChamadas === "todas") { const b = elm("button", "rc-nova"); b.type = "button"; b.append(usar("telefone", "i s"), document.createTextNode("Fazer uma chamada")); b.addEventListener("click", abrirNovaChamada); vazio.appendChild(b); }
     nos.push(vazio);
   }
-  const diaDe = (t) => { const d = new Date(t), hoje = new Date(), ontem = new Date(); ontem.setDate(hoje.getDate() - 1); return mesmoDia(d, hoje) ? "Hoje" : mesmoDia(d, ontem) ? "Ontem" : d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }); };
-  let ultimoDia = "";
+  // Ligações seguidas da mesma pessoa, no mesmo dia, do mesmo jeito (perdidas, feitas ou recebidas) viram uma linha.
+  const grupos = [];
   for (const c of itens) {
-    const dia = diaDe(ms(c.criadoEm));
-    if (dia !== ultimoDia) { nos.push(elm("div", "rc-dia", dia)); ultimoDia = dia; }
-    const outro = c.de === eu.uid ? c.para : c.de;
-    const sit = situacaoChamada(c);
-    const conv = conversas.find((x) => x.id === c.conv);
-    const item = elm("div", "rc-item" + (sit.perdida ? " perdida" : ""));
-    const av = elm("div", "avatar"); pintarAvatar(av, conv?.foto || "", conv?.nome || "...");
-    const tx = elm("div", "rc-tx"); const nome = elm("b", null, conv?.nome || "..."); const linha = elm("small");
-    const seta = document.createElementNS("http://www.w3.org/2000/svg", "svg"); seta.setAttribute("viewBox", "0 0 24 24"); seta.setAttribute("class", "rc-seta " + (sit.saiu ? "saiu" : "entrou"));
-    seta.innerHTML = sit.saiu ? '<path d="M7 17L17 7M9 7h8v8"/>' : '<path d="M17 7L7 17M15 17H7V9"/>';
-    linha.append(seta, document.createTextNode(`${c.tipo === "video" ? "Vídeo" : "Voz"} · ${hora(new Date(ms(c.criadoEm)))} · ${sit.txt}`));
+    const s = situacaoChamada(c), dia = diaDaChamada(ms(c.criadoEm));
+    const g = grupos.at(-1);
+    if (g && g.uid === outroDa(c) && g.dia === dia && g.sit.perdida === s.perdida && g.sit.saiu === s.saiu) { g.lista.push(c); continue; }
+    grupos.push({ uid: outroDa(c), dia, sit: s, lista: [c] });
+  }
+  let ultimoDia = "";
+  for (const g of grupos) {
+    if (g.dia !== ultimoDia) { nos.push(elm("div", "rc-dia", g.dia)); ultimoDia = g.dia; }
+    const c = g.lista[0], sit = g.sit, p = quem(c);
+    const nova = !sit.saiu && sit.perdida && ms(c.criadoEm) > visto;
+    const item = elm("div", "rc-item" + (sit.perdida ? " perdida" : "") + (nova ? " nova" : ""));
+    item.tabIndex = 0; item.setAttribute("role", "button");
+    const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
+    const tx = elm("div", "rc-tx");
+    const nome = elm("b"); nome.append(p.nome); if (g.lista.length > 1) nome.appendChild(elm("span", "rc-qtd", `(${g.lista.length})`));
+    const linha = elm("small");
+    const tipoIc = usar(c.tipo === "video" ? "videochamada" : "telefone", "i rc-tipo");
+    const partes = [hora(new Date(ms(c.criadoEm)))];
+    if (sit.falou) partes.push(sit.estado); else if (!sit.perdida) partes.push(sit.estado);
+    linha.append(setaChamada(sit), tipoIc, document.createTextNode(partes.join(" · ")));
     tx.append(nome, linha);
-    const bt = elm("button", "rc-ligar"); bt.type = "button"; bt.appendChild(usar(c.tipo === "video" ? "videochamada" : "telefone", "i"));
-    bt.setAttribute("aria-label", `${c.tipo === "video" ? "Chamada de vídeo" : "Ligar"} para ${conv?.nome || "esta pessoa"}`);
-    bt.disabled = !conv || bloqueado(outro);
-    bt.addEventListener("click", async (e) => { e.stopPropagation(); await abrirConversa(c.conv); fazerLigacao(c.tipo === "video" ? "video" : "audio"); });
-    if (conv) { item.style.cursor = "pointer"; item.addEventListener("click", () => abrirConversa(c.conv)); }
-    item.append(av, tx, bt);
+    item.setAttribute("aria-label", `${p.nome}, ${sit.perdida ? "chamada perdida" : sit.saiu ? "chamada feita" : "chamada recebida"}, ${partes.join(", ")}. Ver detalhes`);
+    item.append(av, tx, botaoLigar(c.tipo, p.nome, p.conv?.id || c.conv, p.uid));
+    const abrir = () => abrirDetalheChamadas(p);
+    item.addEventListener("click", abrir);
+    item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
     nos.push(item);
-    if (!conv) obterPerfil(outro).then((p) => { nome.textContent = p.nome || "Usuário"; pintarAvatar(av, p.fotoPerfil || "", p.nome || "Usuário"); });
   }
   lista.replaceChildren(...nos);
 }
+const semAcentoCham = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+// Histórico com uma pessoa: Mensagem · Voz · Vídeo, totais e cada ligação (dia, hora, tipo, situação e duração).
+function abrirDetalheChamadas(p) {
+  const { corpo, fechar } = abrirGaveta("Chamadas");
+  const minhas = chamadasVisiveis().filter((c) => outroDa(c) === p.uid);
+  const convId = p.conv?.id || minhas[0]?.conv;
+  const cab = elm("div", "rcd-cab");
+  const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
+  const tot = minhas.reduce((t, c) => t + situacaoChamada(c).dur, 0);
+  const sub = [`${minhas.length} ${minhas.length === 1 ? "chamada" : "chamadas"}`]; if (tot) sub.push(`${duracaoTexto(tot)} em ligação`);
+  const tx = elm("div", "rcd-tx"); tx.append(elm("strong", null, p.nome), elm("small", null, sub.join(" · ")));
+  cab.append(av, tx);
+  const acoes = elm("div", "rcd-acoes");
+  const acao = (icone, rot, fn, off) => { const b = elm("button", "rcd-acao"); b.type = "button"; b.disabled = !!off; const ic = elm("span"); ic.appendChild(usar(icone, "i")); b.append(ic, elm("b", null, rot)); b.addEventListener("click", () => { fechar(); setTimeout(fn, 220); }); acoes.appendChild(b); };
+  const sem = !convId || bloqueado(p.uid);
+  acao("chat", "Mensagem", () => abrirConversa(convId), !convId);
+  acao("telefone", "Voz", () => ligarPara(convId, "audio"), sem);
+  acao("videochamada", "Vídeo", () => ligarPara(convId, "video"), sem);
+  corpo.append(cab, acoes);
+  if (sem && convId) corpo.appendChild(elm("p", "rcd-aviso", "Não é possível ligar para esta pessoa."));
+  let ultimo = "";
+  const box = elm("div", "rcd-lista");
+  for (const c of minhas) {
+    const dia = diaDaChamada(ms(c.criadoEm));
+    if (dia !== ultimo) { box.appendChild(elm("div", "rc-dia", dia)); ultimo = dia; }
+    const s = situacaoChamada(c);
+    const l = elm("div", "rcd-item" + (s.perdida ? " perdida" : ""));
+    const ic = elm("span", "rcd-ic"); ic.appendChild(usar(c.tipo === "video" ? "videochamada" : "telefone", "i"));
+    const t = elm("div", "rcd-t");
+    const lin = elm("small"); lin.append(setaChamada(s), document.createTextNode(`${s.direcao} · ${hora(new Date(ms(c.criadoEm)))}`));
+    t.append(elm("b", null, s.perdida ? s.titulo : c.tipo === "video" ? "Chamada de vídeo" : "Chamada de voz"), lin);
+    l.append(ic, t, elm("span", "rcd-dur", s.perdida ? "" : s.estado));
+    box.appendChild(l);
+  }
+  corpo.appendChild(box);
+  const tirar = elm("button", "pv-btn perigo rcd-tirar"); tirar.type = "button"; tirar.append(usar("lixo", "i s"), document.createTextNode("Tirar do registro"));
+  tirar.addEventListener("click", async () => {
+    if (!(await confirmarHF({ titulo: `Tirar as chamadas com ${p.nome}?`, texto: "Somem desta lista só neste aparelho. A conversa e os cartões das ligações continuam.", ok: "Tirar", icone: "lixo" }))) return;
+    const cfg = lerCfgCham(); gravarCfgCham({ tirados: { ...(cfg.tirados || {}), [p.uid]: Date.now() } });
+    fechar(); renderizarChamadas();
+  });
+  corpo.appendChild(tirar);
+}
+// Nova chamada: escolher alguém das suas conversas (busca pelo nome) e ligar por voz ou vídeo.
+function abrirNovaChamada() {
+  const { corpo, fechar } = abrirGaveta("Nova chamada");
+  const busca = elm("label", "rc-busca"); busca.appendChild(usar("lupa", "i s"));
+  const campo = elm("input"); campo.type = "search"; campo.placeholder = "Buscar nas suas conversas"; campo.setAttribute("aria-label", "Buscar pessoa");
+  busca.appendChild(campo);
+  const box = elm("div", "rcn-lista");
+  corpo.append(busca, box);
+  const pessoas = conversas.filter((c) => c.outroId && c.outroId !== eu.uid && !c.dados?.suporte && !c.dados?.equipe)
+    .sort((a, b) => ms(b.dados?.atualizadoEm) - ms(a.dados?.atualizadoEm));
+  const pintar = () => {
+    const t = semAcentoCham(campo.value.trim());
+    const l = pessoas.filter((c) => !t || semAcentoCham(c.nome).includes(t)).slice(0, 60);
+    box.replaceChildren();
+    if (!l.length) { box.appendChild(elm("div", "lista-vazia", pessoas.length ? "Ninguém com esse nome nas suas conversas." : "Você ainda não tem conversas. Mande uma mensagem para alguém e depois ligue.")); return; }
+    for (const c of l) {
+      const li = elm("div", "rcn-item");
+      const av = elm("div", "avatar"); pintarAvatar(av, c.foto || "", c.nome || "Usuário");
+      const tx = elm("div", "rc-tx"); tx.append(elm("b", null, c.nome || "Usuário"));
+      if (bloqueado(c.outroId)) tx.appendChild(elm("small", null, "Não é possível ligar"));
+      const ligar = (tipo) => { const b = botaoLigar(tipo, c.nome, c.id, c.outroId); b.addEventListener("click", () => fechar(), true); return b; };
+      li.append(av, tx, ligar("audio"), ligar("video"));
+      box.appendChild(li);
+    }
+  };
+  campo.addEventListener("input", pintar);
+  pintar();
+  if (!matchMedia("(pointer: coarse)").matches) setTimeout(() => campo.focus(), 250);
+}
+// Cartão da ligação na conversa (neutro dos dois lados, como os outros cartões): ícone, tipo, quem ligou e a situação
+// (duração, Cancelada, Sem resposta, Perdida) e o botão para ligar de volta (em destaque quando é perdida).
 function cartaoChamada(c, minha) {
-  const box = elm("div", "lg");
-  const perdeu = ["perdida", "recusada", "cancelada"].includes(c.resultado);
-  const ic = elm("span", "lg-ic" + (perdeu ? " perdeu" : "")); ic.appendChild(usar(c.modo === "video" ? "videochamada" : "telefone", "i"));
-  const tx = elm("div", "lg-tx"); tx.append(elm("b", null, textoChamada(c)), elm("small", null, minha ? "Você ligou" : "Ligou para você"));
-  const de_novo = elm("button", "lg-bt"); de_novo.type = "button"; de_novo.append(usar(c.modo === "video" ? "videochamada" : "telefone", "i s"), document.createTextNode(minha ? "Ligar de novo" : "Retornar"));
+  const d = descreverChamada({ modo: c.modo, resultado: c.resultado, duracao: c.duracao, saiu: minha });
+  const box = elm("div", "lg " + d.tom);
+  const cab = elm("div", "lg-cab");
+  const ic = elm("span", "lg-ic"); ic.appendChild(usar(c.modo === "video" ? "videochamada" : "telefone", "i"));
+  const tx = elm("div", "lg-tx");
+  const lin = elm("small"); lin.append(setaChamada({ saiu: minha, perdida: d.perdida }), document.createTextNode(d.perdida ? "Você não atendeu" : `${minha ? "Você ligou" : "Ligou para você"} · ${d.estado}`));
+  tx.append(elm("b", null, d.titulo), lin);
+  cab.append(ic, tx);
+  const de_novo = elm("button", "lg-bt"); de_novo.type = "button";
+  de_novo.append(usar(c.modo === "video" ? "videochamada" : "telefone", "i s"), document.createTextNode(d.perdida ? "Retornar a chamada" : minha ? "Ligar de novo" : "Retornar"));
   de_novo.addEventListener("click", (e) => { e.stopPropagation(); fazerLigacao(c.modo === "video" ? "video" : "audio"); });
-  box.append(ic, tx, de_novo);
+  box.append(cab, de_novo);
   return box;
 }
 

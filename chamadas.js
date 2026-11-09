@@ -463,9 +463,35 @@ addEventListener("pagehide", () => {
   marcarOcupado(false);
 });
 
-// Texto do cartão que fica na conversa depois da ligação.
-export function textoChamada(c) {
-  const qual = c?.modo === "video" ? "Chamada de vídeo" : "Ligação de voz";
-  if (c?.resultado === "encerrada" && c.duracao > 0) return `${qual} · ${c.duracao < 60 ? c.duracao + " s" : Math.round(c.duracao / 60) + " min"}`;
-  return { perdida: `${qual} perdida`, recusada: `${qual} não atendida`, cancelada: `${qual} cancelada` }[c?.resultado] || qual;
+// ---------- como cada ligação aparece (cartão no chat, prévia da conversa e aba Chamadas) ----------
+// Um texto só para os três lugares (antes o cartão dizia "cancelada" e o registro "Não atendida" para a mesma ligação).
+// saiu = eu liguei. Quem recebe vê "perdida" quando não atendeu (cancelada ou sem resposta), como nos celulares.
+export function duracaoTexto(seg) {
+  const s = Math.max(0, Math.round(Number(seg) || 0));
+  if (s < 60) return `${s} s`;
+  if (s < 3600) { const m = Math.floor(s / 60), r = s % 60; return r ? `${m} min ${String(r).padStart(2, "0")} s` : `${m} min`; }
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return m ? `${h} h ${String(m).padStart(2, "0")} min` : `${h} h`;
+}
+// { modo audio|video, resultado encerrada|cancelada|perdida|recusada|aceita|chamando, duracao (s), saiu }
+// → { titulo, estado, tom ok|neutro|perdida, perdida, falou, direcao }
+export function descreverChamada({ modo, resultado, duracao = 0, saiu = true }) {
+  const qual = modo === "video" ? "Chamada de vídeo" : "Chamada de voz";
+  const direcao = saiu ? "Feita" : "Recebida";
+  const res = resultado === "chamando" ? "perdida" : resultado;
+  if (res === "aceita" || (res === "encerrada" && duracao > 0)) {
+    return { titulo: qual, estado: duracao > 0 ? duracaoTexto(duracao) : "Atendida", tom: "ok", perdida: false, falou: true, direcao };
+  }
+  if (res === "encerrada") return { titulo: qual, estado: "Não conectou", tom: "neutro", perdida: false, falou: false, direcao };
+  if (saiu) {
+    const estado = { cancelada: "Cancelada", perdida: "Sem resposta", recusada: "Não atendida" }[res] || "Não atendida";
+    return { titulo: qual, estado, tom: "neutro", perdida: false, falou: false, direcao };
+  }
+  if (res === "recusada") return { titulo: qual, estado: "Recusada por você", tom: "neutro", perdida: false, falou: false, direcao };
+  return { titulo: qual + " perdida", estado: "Perdida", tom: "perdida", perdida: true, falou: false, direcao: "Perdida" };
+}
+// Texto curto (prévia da conversa, registro da equipe): "Chamada de voz · 2 min 05 s", "Chamada de vídeo perdida".
+export function textoChamada(c, saiu = true) {
+  const d = descreverChamada({ modo: c?.modo, resultado: c?.resultado, duracao: c?.duracao, saiu });
+  return d.perdida ? d.titulo : `${d.titulo} · ${d.estado}`;
 }
