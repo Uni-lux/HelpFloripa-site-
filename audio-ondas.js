@@ -111,7 +111,7 @@ function css() {
 .hf-audio.carregando .hf-audio-play svg { margin-left: 0; animation: hfOndaGira .8s linear infinite; }
 @keyframes hfOndaGira { to { transform: rotate(360deg); } }
 .hf-audio-corpo { flex: 1; min-width: 0; display: grid; gap: 4px; }
-.hf-audio-onda { height: 30px; display: flex; align-items: center; gap: 2px; cursor: pointer; touch-action: none; outline: none; border-radius: 6px; }
+.hf-audio-onda { height: 30px; display: flex; align-items: center; gap: 2px; cursor: pointer; touch-action: pan-y; outline: none; border-radius: 6px; }
 .hf-audio-onda:focus-visible { box-shadow: 0 0 0 2px var(--hf-audio-cor, #00adee); }
 .hf-audio-onda i { flex: 1; min-width: 2px; max-width: 4px; border-radius: 99px; background: color-mix(in srgb, currentColor 26%, transparent); transition: height .3s ease, background-color .15s, box-shadow .15s; }
 .hf-audio-onda i.on { background: var(--hf-audio-cor, #00adee); box-shadow: 0 0 6px color-mix(in srgb, var(--hf-audio-cor, #00adee) 55%, transparent); }
@@ -136,7 +136,10 @@ function css() {
 .hf-audio.wa .hf-audio-onda { position: relative; height: 30px; gap: 1.5px; }
 .hf-audio.wa .hf-audio-onda i { min-width: 2px; max-width: 3px; border-radius: 2px; box-shadow: none; background: color-mix(in srgb, currentColor 32%, transparent); }
 .hf-audio.wa .hf-audio-onda i.on { box-shadow: none; background: var(--hf-audio-cor, #00adee); }
-.hf-audio.wa .hf-audio-ponto { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--hf-audio-cor, #00adee); pointer-events: none; will-change: left; }
+.hf-audio.wa .hf-audio-ponto { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--hf-audio-cor, #00adee); pointer-events: auto; touch-action: none; cursor: grab; will-change: left; transition: transform .12s; }
+.hf-audio.wa .hf-audio-ponto::before { content: ""; position: absolute; inset: -16px -12px; }
+.hf-audio.wa.arrastando .hf-audio-ponto { transform: scale(1.35); cursor: grabbing; }
+.hf-audio.wa .hf-audio-onda { cursor: default; }
 .hf-audio.wa .hf-audio-rodape { font-size: 11.5px; }
 .hf-audio.wa .hf-audio-tempo { font-weight: 500; letter-spacing: 0; opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .hf-audio-onda i, .hf-audio-ponto { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
@@ -208,9 +211,10 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
   }
   // Ponto e anel acompanham o áudio quadro a quadro (o "timeupdate" do navegador só chega ~4 vezes por segundo e a
   // bolinha andava aos pulos). As barras continuam pelo progresso().
-  let quadro = 0;
+  let quadro = 0, arrastando = false, posPendente = null;
   const seguir = () => {
     if (!audio || audio.paused) { quadro = 0; return; }
+    if (arrastando) { quadro = requestAnimationFrame(seguir); return; }
     const d = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : dur;
     if (d) box.style.setProperty("--p", String(Math.min(1, audio.currentTime / d)));
     quadro = requestAnimationFrame(seguir);
@@ -228,7 +232,9 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
       audio.preload = "auto";
       audio.playbackRate = vel;
       audio.addEventListener("loadedmetadata", () => { if (Number.isFinite(audio.duration) && audio.duration > 0 && !dur) { dur = audio.duration; pintarTempo(); } });
-      audio.addEventListener("timeupdate", () => { const d = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : dur; if (d) progresso(Math.min(1, audio.currentTime / d)); pintarTempo(); });
+      // Arrastou a bolinha antes de tocar: começa de onde ela ficou.
+      if (posPendente != null) audio.addEventListener("loadedmetadata", () => { if (posPendente != null && Number.isFinite(audio.duration)) { audio.currentTime = posPendente * audio.duration; posPendente = null; } }, { once: true });
+      audio.addEventListener("timeupdate", () => { if (arrastando) return; const d = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : dur; if (d) progresso(Math.min(1, audio.currentTime / d)); pintarTempo(); });
       audio.addEventListener("ended", () => { pararEste(); audio.currentTime = 0; progresso(0); tempo.textContent = mmss(dur); });
       audio.addEventListener("error", () => { pararEste(); box.classList.remove("carregando"); (aoErro || (() => {}))(); });
       prepararOnda();
@@ -274,12 +280,36 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
     audio.currentTime = frac * d;
     progresso(frac); pintarTempo();
   }
-  const fracDe = (e) => { const r = onda.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
-  let arrastando = false;
-  onda.addEventListener("pointerdown", (e) => { e.stopPropagation(); arrastando = true; onda.setPointerCapture?.(e.pointerId); pular(fracDe(e)); });
-  onda.addEventListener("pointermove", (e) => { if (arrastando && audio) pular(fracDe(e)); });
-  ["pointerup", "pointercancel"].forEach((ev) => onda.addEventListener(ev, () => { arrastando = false; }));
-  onda.addEventListener("click", (e) => e.stopPropagation());
+  const fracDe = (e) => { const r = onda.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
+  // Como no WhatsApp: passar o dedo por cima da onda (rolando a conversa) NÃO pula o áudio. No modelo com foto só a
+  // bolinha arrasta (área de toque maior que ela); o pulo acontece ao soltar. Sem a bolinha (chat da equipe), um toque
+  // na onda pula (o "click" não acontece quando o dedo rola).
+  const ponto = box.querySelector(".hf-audio-ponto");
+  const durAgora = () => (audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : dur);
+  if (ponto) {
+    let fracArr = 0;
+    const pintarArr = (f) => { fracArr = f; progresso(f); box.style.setProperty("--p", String(f)); if (durAgora()) tempo.textContent = mmss(f * durAgora()); };
+    ponto.addEventListener("pointerdown", (e) => {
+      e.stopPropagation(); e.preventDefault();
+      arrastando = true; box.classList.add("arrastando");
+      ponto.setPointerCapture?.(e.pointerId);
+      pintarArr(fracDe(e));
+    });
+    ponto.addEventListener("pointermove", (e) => { if (arrastando) { e.preventDefault(); pintarArr(fracDe(e)); } });
+    const soltar = () => {
+      if (!arrastando) return;
+      arrastando = false; box.classList.remove("arrastando");
+      const d = durAgora();
+      if (audio && d) audio.currentTime = fracArr * d;
+      else posPendente = fracArr; // ainda não tocou: começa daqui quando tocar
+      pintarTempo(); if (!audio && d) tempo.textContent = mmss(fracArr * d);
+    };
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((ev) => ponto.addEventListener(ev, soltar));
+    ponto.addEventListener("click", (e) => e.stopPropagation());
+    onda.addEventListener("click", (e) => e.stopPropagation());
+  } else {
+    onda.addEventListener("click", (e) => { e.stopPropagation(); pular(fracDe(e)); });
+  }
   onda.addEventListener("keydown", (e) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
     e.preventDefault();

@@ -1907,6 +1907,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `aberto` (MutationObserver no `hidden`) e entrou nas CAMADAS do voltar.js (v=11): o voltar do celular fecha só o menu;
   `fecharConversa` fecha o menu (antes ele ficava aberto por cima da lista). Teste `t-mensagens-ajustes.mjs` (11);
   `t-registro-chamadas` e `t-mensagens-topo` atualizados.
+  **Mesmo PR: áudio no jeito do WhatsApp** (pedido dele: rolando a conversa com o dedo em cima da onda o áudio pulava):
+  `.hf-audio-onda { touch-action: pan-y }` e nada de pular no `pointerdown` da onda. No modelo com foto (`.wa`) só a
+  BOLINHA arrasta (`.hf-audio-ponto` com área de toque maior `::before`, `.arrastando` aumenta; `pintarArr` mostra o ponto e o
+  tempo; ao soltar muda `currentTime`, ou guarda `posPendente` e o áudio começa dali quando tocar); tocar na onda não faz nada.
+  Sem a bolinha (chat da equipe/denúncias) pula só no `click` (não acontece quando o dedo rola). audio-ondas.js v=5.
+  Teste `t-audio-arrastar.mjs` (7).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
