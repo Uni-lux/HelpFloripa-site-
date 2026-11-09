@@ -11,6 +11,7 @@ const CAMADAS = [
   ".folha.aberta", "div.hfc" /* painel do campos.js (a gaveta do chat, aside.hfc, cuida do próprio passo) */, ".hf-confirma-fundo", ".hf-den-fundo", ".hf-aval-fundo", ".ad-modal-fundo", ".ad-gaveta-fundo",
   ".story-visor", ".fn-visor", ".flash-criar", ".hfe-fundo", ".esc-lista", ".vt-modal", ".vt-local-fundo", ".foto-grande", ".pv-fundo", ".pl-fundo", ".cm-modal", ".pa-pagina",
   "body.selecionando #barraSelecao" /* seleção de conversas no Mensagens: voltar sai da seleção */,
+  "#painelEmoji.aberto", ".pe-menu", ".fg-ed",
   "#menuMsg.aberto" /* menu ⋮ / segurar mensagem no Mensagens: voltar fecha só o menu */
 ].map((x) => x + ":not([data-sem-voltar])").join(", ");
 const pilha = [];

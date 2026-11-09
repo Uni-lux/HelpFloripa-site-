@@ -20,6 +20,8 @@ import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
+import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
+import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=18";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
@@ -714,6 +716,7 @@ function resumoMensagem(m) {
   if (!m) return "";
   if (m.apagada) return "Mensagem apagada";
   if (m.texto) return m.texto;
+  if (ehFigurinha(m)) return "Figurinha";
   if (m.tipoArquivo === "imagem") return "Foto";
   if (m.tipoArquivo === "video") return "Vídeo";
   if (m.tipoArquivo === "audio") return "Mensagem de voz";
@@ -745,7 +748,7 @@ const PREVIAS = [
   [/^💬\s*/, "chat"], [/^📷\s*/, "camera"], [/^🎤\s*/, "mic"]
 ];
 const PREVIAS_TIPO = [
-  [/^Foto$/, "imagem"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
+  [/^Foto$/, "imagem"], [/^Figurinha$/, "figurinha"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
   [/^Pix\b/, "pix"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
   [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
 ];
@@ -1715,6 +1718,7 @@ async function abrirConversa(id, { historico = true } = {}) {
 
 function fecharConversa({ historico = true } = {}) {
   fecharMenu();
+  fecharPainelEmoji();
   pararOuvintes();
   ativa = null;
   document.body.classList.remove("chat-aberto");
@@ -2199,6 +2203,14 @@ function criarLinhaMensagem(m, data, primeira) {
       bolha.appendChild(criarAudioMsg(m, url));
       bolha.classList.remove("so-midia");
       if (!m.texto) bolha.classList.add("so-audio");
+    } else if (ehFigurinha(m)) {
+      // Figurinha: sem balão, como no WhatsApp; tocar mostra e deixa guardar nas suas
+      bolha.classList.add("figurinha-msg"); bolha.classList.remove("midia", "so-midia");
+      const img = document.createElement("img");
+      img.className = "figurinha"; img.decoding = "async"; img.loading = "lazy";
+      img.src = url; img.alt = "Figurinha"; img.dataset.semSuave = "1";
+      img.addEventListener("click", (e) => { e.stopPropagation(); abrirFigurinhaRecebida(url, minha); });
+      bolha.appendChild(img);
     } else {
       const img = document.createElement("img");
       img.className = "foto";
@@ -2217,6 +2229,8 @@ function criarLinhaMensagem(m, data, primeira) {
     bolha.classList.add("cartao-msg", "local-msg");
     bolha.appendChild(cartaoLocal({ tipo: "local", lat: Number(locTexto[1]), lng: Number(locTexto[2]) }, m.remetenteId === eu.uid));
   } else if (m.texto) {
+    const nEmo = !m.tipoArquivo && !m.resposta ? soEmojis(m.texto) : 0;
+    if (nEmo) bolha.classList.add("so-emoji", "e" + nEmo);
     const t = document.createElement("div");
     t.className = "texto";
     t.appendChild(textoComLinks(m.texto));
@@ -4771,3 +4785,233 @@ iniciar().catch((e) => {
   console.error(e);
   falhaGeral("Não foi possível carregar as mensagens agora. Tente novamente em instantes.");
 });
+
+// ======================================================
+// Emojis e figurinhas (09/11/2026): painel no lugar do teclado, como no WhatsApp.
+// Emojis: recentes + categorias + busca em português (emojis.js). Figurinhas (figurinhas.js): criar de uma foto,
+// importar .webp do WhatsApp, favoritas, recentes, as suas e o pacote da Help Floripa. Tocar envia na hora.
+// ======================================================
+const painelE = $("painelEmoji"), corpoE = $("peCorpo"), catsE = $("peCats"), buscaE = $("peBusca");
+let abaE = "emojis", selTexto = null;
+function painelAberto() { return !painelE.hidden; }
+function abrirPainelEmoji(aba) {
+  const campo = $("texto");
+  selTexto = { ini: campo.selectionStart ?? campo.value.length, fim: campo.selectionEnd ?? campo.value.length };
+  if (document.activeElement === campo) campo.blur(); // fecha o teclado
+  if (aba) abaE = aba;
+  painelE.hidden = false; painelE.classList.add("aberto");
+  $("btnEmoji").setAttribute("aria-expanded", "true");
+  pintarPainelE();
+  requestAnimationFrame(() => window.__hfMedirTela?.());
+}
+function fecharPainelEmoji() {
+  if (painelE.hidden) return;
+  painelE.hidden = true; painelE.classList.remove("aberto"); fecharMenuFig();
+  $("btnEmoji").setAttribute("aria-expanded", "false");
+  buscaE.value = "";
+  requestAnimationFrame(() => window.__hfMedirTela?.());
+}
+$("btnEmoji").addEventListener("click", () => { if (painelAberto()) { fecharPainelEmoji(); $("texto").focus(); } else abrirPainelEmoji(); });
+// tocar no campo de texto = volta o teclado (o painel sai)
+$("texto").addEventListener("pointerdown", () => fecharPainelEmoji());
+painelE.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); if (menuFig) fecharMenuFig(); else fecharPainelEmoji(); } });
+painelE.querySelectorAll("[data-pe]").forEach((b) => b.addEventListener("click", () => { abaE = b.dataset.pe; buscaE.value = ""; pintarPainelE(); }));
+buscaE.addEventListener("input", () => pintarCorpoE());
+// Apagar (⌫): tira o último caractere/emoji antes do cursor, sem abrir o teclado
+$("peApagar").addEventListener("click", () => {
+  const campo = $("texto"); const ini = selTexto?.ini ?? campo.value.length, fim = selTexto?.fim ?? ini;
+  let antes = campo.value.slice(0, ini);
+  if (fim === ini && antes) {
+    const partes = typeof Intl !== "undefined" && Intl.Segmenter ? [...new Intl.Segmenter("pt", { granularity: "grapheme" }).segment(antes)].map((x) => x.segment) : [...antes];
+    partes.pop(); antes = partes.join("");
+  }
+  campo.value = antes + campo.value.slice(fim);
+  selTexto = { ini: antes.length, fim: antes.length };
+  campo.dispatchEvent(new Event("input", { bubbles: true }));
+  ajustarAltura(); atualizarBotaoEnviar();
+});
+function porEmoji(e) {
+  const campo = $("texto"); const ini = selTexto?.ini ?? campo.value.length, fim = selTexto?.fim ?? ini;
+  campo.value = campo.value.slice(0, ini) + e + campo.value.slice(fim);
+  selTexto = { ini: ini + e.length, fim: ini + e.length };
+  campo.dispatchEvent(new Event("input", { bubbles: true }));
+  ajustarAltura(); atualizarBotaoEnviar();
+  usarEmoji(eu?.uid, e);
+}
+function pintarPainelE() {
+  painelE.querySelectorAll("[data-pe]").forEach((b) => b.setAttribute("aria-selected", b.dataset.pe === abaE ? "true" : "false"));
+  painelE.classList.toggle("figs", abaE === "figurinhas");
+  buscaE.placeholder = abaE === "emojis" ? "Pesquisar emoji" : "Pesquisar figurinha";
+  buscaE.parentElement.hidden = false;
+  $("peApagar").hidden = abaE !== "emojis";
+  pintarCorpoE();
+}
+function botaoEmoji(e) {
+  const b = elm("button", null, e); b.type = "button"; b.setAttribute("aria-label", e);
+  b.addEventListener("click", () => porEmoji(e));
+  return b;
+}
+function secaoE(id, titulo, extra) {
+  const h = elm("div", "pe-sec", titulo); h.dataset.sec = id;
+  if (extra) h.appendChild(elm("small", null, extra));
+  return h;
+}
+function pintarCorpoE() {
+  fecharMenuFig();
+  if (abaE === "figurinhas") { pintarFigurinhas(); return; }
+  const termo = buscaE.value.trim();
+  corpoE.replaceChildren(); catsE.replaceChildren();
+  if (termo) {
+    const achados = buscarEmojis(termo);
+    if (!achados.length) { corpoE.appendChild(elm("div", "pe-vazio", "Nenhum emoji para “" + termo + "”. Tente outra palavra, como feliz, amor ou festa.")); return; }
+    const g = elm("div", "pe-grade"); achados.forEach((e) => g.appendChild(botaoEmoji(e)));
+    corpoE.append(secaoE("busca", "Resultados"), g);
+    return;
+  }
+  const recentes = emojisRecentes(eu?.uid);
+  const grupos = [];
+  if (recentes.length) grupos.push(["recentes", "Recentes", null, recentes]);
+  EMOJI_CATS.forEach(([id, nome, ic]) => grupos.push([id, nome, ic, listaDa(id)]));
+  for (const [id, nome, , lista] of grupos) {
+    const g = elm("div", "pe-grade");
+    lista.forEach((e) => g.appendChild(botaoEmoji(e)));
+    corpoE.append(secaoE(id, nome), g);
+  }
+  grupos.forEach(([id, nome, ic]) => {
+    const b = elm("button"); b.type = "button"; b.dataset.cat = id; b.setAttribute("aria-label", nome); b.title = nome;
+    if (ic) b.textContent = ic; else b.appendChild(usar("relogio", "i"));
+    b.addEventListener("click", () => { const h = corpoE.querySelector(`[data-sec="${id}"]`); if (h) corpoE.scrollTo({ top: h.offsetTop - 4, behavior: "smooth" }); });
+    catsE.appendChild(b);
+  });
+  marcarCatE();
+}
+// categoria acesa conforme a rolagem
+function marcarCatE() {
+  const secs = [...corpoE.querySelectorAll("[data-sec]")];
+  let atualId = secs[0]?.dataset.sec;
+  for (const h of secs) if (h.offsetTop - corpoE.scrollTop <= 30) atualId = h.dataset.sec;
+  catsE.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.cat === atualId));
+}
+corpoE.addEventListener("scroll", () => requestAnimationFrame(marcarCatE), { passive: true });
+
+// ---------- figurinhas ----------
+let menuFig = null;
+function fecharMenuFig() { menuFig?.remove(); menuFig = null; }
+async function pintarFigurinhas() {
+  const termo = semAcentoCham(buscaE.value.trim());
+  const [minhas, pacote] = await Promise.all([eu ? minhasFigurinhas(eu.uid) : [], pacoteHelp()]);
+  if (abaE !== "figurinhas") return;
+  corpoE.replaceChildren(); catsE.replaceChildren();
+  const doPacote = pacote.itens.filter((x) => !termo || semAcentoCham(x.texto).includes(termo));
+  const daConta = minhas.filter((x) => !x.pacote);
+  const favoritas = minhas.filter((x) => x.fav);
+  const recentes = minhas.filter((x) => x.usadoEm).sort((a, b) => b.usadoEm - a.usadoEm).slice(0, 12);
+  const secoes = [];
+  const grade = (lista, opc = {}) => {
+    const g = elm("div", "pe-figs");
+    if (opc.criar) {
+      const c = elm("button", "pe-criar"); c.type = "button"; c.append(usar("adicionar", "i"), document.createTextNode("Criar ou importar"));
+      c.addEventListener("click", () => $("inputFigurinha").click());
+      g.appendChild(c);
+    }
+    lista.forEach((it) => g.appendChild(tileFig(it)));
+    return g;
+  };
+  if (termo) {
+    if (!doPacote.length) corpoE.appendChild(elm("div", "pe-vazio", "Nenhuma figurinha com “" + buscaE.value.trim() + "”."));
+    else corpoE.append(secaoE("busca", "Resultados"), grade(doPacote));
+    return;
+  }
+  if (recentes.length) secoes.push(["recentes", "Recentes", "relogio", recentes]);
+  if (favoritas.length) secoes.push(["favoritas", "Favoritas", "estrela-c", favoritas]);
+  secoes.push(["minhas", "Suas figurinhas", "figurinha", daConta, true]);
+  secoes.push(["helpfloripa", pacote.nome || "Help Floripa", null, pacote.itens]);
+  for (const [id, nome, , lista, criar] of secoes) {
+    corpoE.append(secaoE(id, nome, id === "minhas" ? `${daConta.length}` : id === "helpfloripa" ? "Pacote" : ""), grade(lista, { criar }));
+    if (id === "minhas" && !daConta.length) corpoE.appendChild(elm("p", "pe-dica", "Crie uma figurinha de uma foto ou importe uma do WhatsApp (arquivo .webp de 512×512). Segure uma figurinha para favoritar ou apagar."));
+  }
+  secoes.forEach(([id, nome, ic]) => {
+    const b = elm("button"); b.type = "button"; b.dataset.cat = id; b.setAttribute("aria-label", nome); b.title = nome;
+    if (ic) b.appendChild(usar(ic, "i")); else { const im = elm("img"); im.src = "figurinhas/capa.png"; im.alt = ""; im.style.cssText = "width:24px;height:24px"; b.appendChild(im); }
+    b.addEventListener("click", () => { const h = corpoE.querySelector(`[data-sec="${id}"]`); if (h) corpoE.scrollTo({ top: h.offsetTop - 4, behavior: "smooth" }); });
+    catsE.appendChild(b);
+  });
+  marcarCatE();
+}
+function tileFig(it) {
+  const b = elm("button", "pe-fig"); b.type = "button"; b.setAttribute("aria-label", it.texto ? `Figurinha ${it.texto}` : "Figurinha");
+  const im = elm("img"); im.src = it.url; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; im.dataset.semSuave = "1";
+  b.appendChild(im);
+  if (it.fav) { const f = usar("estrela-c", "fav"); b.appendChild(f); }
+  let segurou = false, t = null;
+  b.addEventListener("pointerdown", () => { segurou = false; clearTimeout(t); t = setTimeout(() => { segurou = true; navigator.vibrate?.(12); abrirMenuFig(it); }, 450); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(t)));
+  b.addEventListener("contextmenu", (e) => { e.preventDefault(); if (!segurou) { segurou = true; abrirMenuFig(it); } });
+  b.addEventListener("click", () => { if (segurou) { segurou = false; return; } enviarFigurinha(it.url, !it.id || it.pacote); });
+  return b;
+}
+async function abrirMenuFig(it) {
+  fecharMenuFig();
+  const m = elm("div", "pe-menu"); m.setAttribute("role", "menu");
+  const op = (ic, txt, fn, perigo) => { const b = elm("button", perigo ? "perigo" : ""); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(usar(ic, "i"), document.createTextNode(txt)); b.addEventListener("click", async () => { fecharMenuFig(); await fn(); pintarFigurinhas(); }); m.appendChild(b); };
+  op("enviar", "Enviar", () => enviarFigurinha(it.url, !it.id || it.pacote));
+  const guardado = it.id ? it : await usarFigurinhaSemUso(it.url);
+  op("estrela-c", guardado?.fav ? "Tirar das favoritas" : "Favoritar", async () => { const g = guardado || await guardarFigurinha(eu.uid, it.url, { pacote: true }); await atualizarFigurinha(g.id, { fav: !g.fav }); toast(g.fav ? "Tirada das favoritas" : "Adicionada às favoritas"); });
+  if (it.id && !it.pacote) op("lixo", "Apagar figurinha", async () => { await apagarFigurinha(it.id); toast("Figurinha apagada"); }, true);
+  op("fechar", "Fechar", () => {});
+  painelE.appendChild(m); menuFig = m;
+}
+// já está guardada (como recente/favorita)? (não marca uso)
+async function usarFigurinhaSemUso(url) { try { const l = await minhasFigurinhas(eu.uid); return l.find((x) => x.url === url) || null; } catch { return null; } }
+
+async function enviarFigurinha(url, doPacote) {
+  if (!ativa || !eu) return;
+  if (emailPendente(eu)) { mostrarAvisoEmail(eu); toast(MSG_EMAIL); return; }
+  try {
+    const dado = await paraDataUrl(url);
+    const resposta = respondendo;
+    const dados = { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "imagem", arquivoUrl: dado, nomeArquivo: NOME_FIG };
+    if (resposta) dados.resposta = { id: resposta.id, texto: resumoMensagem(resposta).slice(0, 160), remetenteId: resposta.remetenteId };
+    cancelarResposta();
+    usarFigurinha(eu.uid, url, doPacote).then(() => { if (abaE === "figurinhas" && painelAberto()) pintarFigurinhas(); });
+    await publicarMensagem(ativa.id, dados);
+  } catch (e) {
+    console.error("Figurinha:", e);
+    toast(e?.code === "limite-diario" || (e?.message && !e?.code) ? e.message : "Não foi possível enviar a figurinha.");
+  }
+}
+// Escolheu um arquivo: WebP 512×512 (do WhatsApp) entra direto; foto abre o editor.
+$("inputFigurinha").addEventListener("change", async () => {
+  const arq = $("inputFigurinha").files?.[0]; $("inputFigurinha").value = "";
+  if (!arq) return;
+  try {
+    const r = await prepararArquivo(arq);
+    const url = r.pronta ? r.url : await criarFigurinha(r.img);
+    if (!url) return;
+    await guardarFigurinha(eu.uid, url, {});
+    toast(r.pronta ? "Figurinha importada" : "Figurinha criada");
+    abaE = "figurinhas"; if (!painelAberto()) abrirPainelEmoji("figurinhas"); else pintarPainelE();
+  } catch (e) { console.warn(e); toast(e?.message === "Escolha uma imagem." ? e.message : "Não foi possível usar essa imagem."); }
+});
+// Figurinha recebida: ver grande, guardar nas suas e favoritar
+async function abrirFigurinhaRecebida(url, minha) {
+  const { corpo, fechar } = abrirGaveta("Figurinha");
+  const box = elm("div", "fgv");
+  const im = elm("img"); im.src = url; im.alt = "Figurinha"; im.dataset.semSuave = "1";
+  box.appendChild(im);
+  const ja = eu ? await jaGuardada(eu.uid, url) : null;
+  if (ja) {
+    box.appendChild(elm("small", null, "Já está nas suas figurinhas."));
+    const fav = elm("button", "pv-btn"); fav.type = "button"; fav.append(usar("estrela-c", "i s"), document.createTextNode(ja.fav ? "Tirar das favoritas" : "Favoritar"));
+    fav.addEventListener("click", async () => { await atualizarFigurinha(ja.id, { fav: !ja.fav }); toast(ja.fav ? "Tirada das favoritas" : "Adicionada às favoritas"); fechar(); });
+    box.appendChild(fav);
+  } else {
+    box.appendChild(elm("small", null, minha ? "Você enviou esta figurinha." : "Guarde para usar nas suas conversas. Fica salva neste aparelho."));
+    const add = elm("button", "pv-btn pri"); add.type = "button"; add.append(usar("adicionar", "i s"), document.createTextNode("Adicionar às suas figurinhas"));
+    add.addEventListener("click", async () => { try { await guardarFigurinha(eu.uid, url, {}); toast("Figurinha guardada"); } catch { toast("Não foi possível guardar neste aparelho."); } fechar(); });
+    const fav = elm("button", "pv-btn"); fav.type = "button"; fav.append(usar("estrela-c", "i s"), document.createTextNode("Adicionar às favoritas"));
+    fav.addEventListener("click", async () => { try { await guardarFigurinha(eu.uid, url, { fav: true }); toast("Adicionada às favoritas"); } catch { toast("Não foi possível guardar neste aparelho."); } fechar(); });
+    box.append(add, fav);
+  }
+  corpo.appendChild(box);
+}
