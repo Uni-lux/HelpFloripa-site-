@@ -1303,3 +1303,69 @@ body.selecionando .conv-item.marcada .sel-marca { animation: selMarca .18s ease-
 .painel-emoji { grid-template-columns: minmax(0, 1fr); width: 100%; }
 .pe-corpo, .pe-topo, .pe-cats { min-width: 0; }
 .pe-corpo { overflow-x: hidden; }
+
+/* =====================================================================================================
+   09/11/2026 (prints do dono): nome e sobrenome + @ na lista, seleção mais leve (dá para fixar, silenciar e
+   arquivar sem sair) e registro de chamadas com situação, hora e duração organizados.
+   ===================================================================================================== */
+.conv-nome { display: flex; align-items: baseline; gap: 6px; }
+.conv-nome .conv-nm { flex: 0 0 auto; max-width: 72%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-nome .conv-nick { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.conv-nome > svg { flex: none; align-self: center; }
+/* Seleção: fundo leve, sem a barra lateral; a marquinha diz o que está escolhido */
+.conv-item.marcada { background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: none; }
+body.selecionando .conv-item .sel-marca { display: grid; background: var(--panel); border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); width: 20px; height: 20px; left: 48px; top: 48px; }
+body.selecionando .conv-item.marcada .sel-marca { background: var(--accent); border-color: var(--panel); }
+body.selecionando .conv-item.marcada .sel-marca svg { color: #fff; width: 12px; height: 12px; }
+body.selecionando .conv-item .avatar { transition: transform .15s; }
+body.selecionando .conv-item.marcada .avatar { transform: scale(.92); }
+.barra-selecao .icon-btn.on { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+/* Chamadas */
+.rc-tx { gap: 4px; }
+.rc-nome { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.rc-nome .rc-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-item.perdida .rc-tx .rc-nome { color: var(--text); }
+.rc-linha { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.rc-linha .rc-tipo { flex: none; width: 15px; height: 15px; opacity: .75; }
+.rc-sit { font-weight: 650; }
+.rc-sit.perdida { color: #ef4444; }
+.rc-ponto { opacity: .6; }
+.rc-hora { font-variant-numeric: tabular-nums; }
+.rc-dur { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2);
+  font-size: 11.5px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rc-dur svg { flex: none; width: 11px; height: 11px; opacity: .7; }
+.rc-resumo { display: flex; gap: 5px; flex-wrap: wrap; }
+.rc-etq { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--panel-2); }
+.rc-etq.perd { color: #ef4444; background: color-mix(in srgb, #ef4444 12%, transparent); }
+
+/* Painel de emojis e figurinhas: alça para arrastar (cresce como no WhatsApp), humores, grade e menu de criar */
+.painel-emoji { grid-template-rows: auto auto minmax(0, 1fr) auto; height: var(--pe-h, min(320px, 42vh)); transition: height .24s cubic-bezier(.2, .8, .2, 1); }
+.painel-emoji.arrastando { transition: none; }
+.pe-alca { display: grid; place-items: center; height: 18px; width: 100%; border: 0; background: none; padding: 0; cursor: grab; touch-action: none; }
+.pe-alca span { width: 38px; height: 4.5px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 55%, transparent); }
+.pe-topo { touch-action: none; padding-top: 2px; }
+.painel-emoji.expandido { border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, .28); }
+.pe-humor { position: sticky; top: 0; z-index: 2; display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; padding: 4px 4px 8px; margin: 0 -6px; padding-left: 10px; padding-right: 10px; background: var(--panel); }
+.pe-humor::-webkit-scrollbar { display: none; }
+.pe-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px 0 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; }
+.pe-chip .pe-chip-e { font-size: 17px; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.pe-chip.on { background: color-mix(in srgb, var(--accent) 18%, var(--panel-2)); border-color: var(--accent); color: var(--accent); }
+.pe-figs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+@media (min-width: 520px) { .pe-figs { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 760px) { .pe-figs { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.pe-fig { padding: 6px; border-radius: 16px; }
+.pe-criar { display: grid; place-items: center; align-content: center; gap: 1px; padding: 6px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 50%, var(--line)); color: var(--accent); font: inherit; cursor: pointer; }
+.pe-criar .pe-criar-ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #22c3f5, #0093cc); color: #fff; margin-bottom: 3px; box-shadow: 0 4px 12px rgba(0, 173, 238, .3); }
+.pe-criar .pe-criar-ic svg { width: 20px; height: 20px; }
+.pe-criar b { font-size: 13px; line-height: 1.1; } .pe-criar small { font-size: 11px; color: var(--muted); line-height: 1.1; }
+.pe-cats .pe-novo { margin-left: auto; flex: none; width: 38px; height: 34px; border-radius: 10px; filter: none; opacity: 1; color: #fff; background: linear-gradient(135deg, #22c3f5, #0093cc); }
+.pe-sec { padding-top: 12px; }
+.pe-menu { bottom: 54px; min-width: 260px; max-width: calc(100% - 20px); animation: peMenu .16s ease-out; }
+@keyframes peMenu { from { opacity: 0; transform: translate(-50%, 8px); } }
+.pe-menu-tit { padding: 6px 12px 4px; font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.pe-menu button { min-height: 48px; }
+.pe-menu-tx { display: grid; gap: 1px; min-width: 0; }
+.pe-menu-tx b { font-weight: 650; } .pe-menu-tx small { font-size: 11.5px; color: var(--muted); }
+.pe-menu-tx small:empty { display: none; }
+.painel-emoji.expandido .pe-grade { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); }

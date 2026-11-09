@@ -3,6 +3,9 @@
 // do site NÃO abre "Copiar / Baixar / Compartilhar imagem / Abrir no Chrome" (nem arrasta a foto no computador).
 // Campos de texto e links de texto continuam normais. Salvar o próprio flash fica no ⋯ → "Salvar foto".
 // Também tira o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026).
+// No celular (toque), segurar um texto também NÃO seleciona nem abre "Copiar / Selecionar tudo" (pedido do dono,
+// 09/11/2026): só campos de texto (e o que tiver data-selecionavel) continuam selecionáveis. Copiar uma mensagem do
+// chat fica no menu da própria mensagem.
 // Ligado pelo firebase.js, rede.js e categoria.js (uma vez só por página).
 // =====================================================
 const ALVOS = "img, picture, video, canvas, svg, [style*='background-image'], .avatar, .foto, .midia";
@@ -11,10 +14,23 @@ if (!window.__hfSemMenuImagem) {
   const css = document.createElement("style");
   css.textContent = `img, picture, video, canvas, svg { -webkit-touch-callout: none; -webkit-user-drag: none; user-drag: none; }
     img { -webkit-user-select: none; user-select: none; }
-    html, a, button, [role='button'], label, summary { -webkit-tap-highlight-color: transparent; }`;
+    html, a, button, [role='button'], label, summary { -webkit-tap-highlight-color: transparent; }
+    @media (pointer: coarse) {
+      html, body, body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      input, textarea, select, [contenteditable='true'], [contenteditable='true'] *, [data-selecionavel], [data-selecionavel] * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+    }`;
   (document.head || document.documentElement).appendChild(css);
   const naFoto = (e) => { const t = e.target; return t?.closest && !t.closest("input, textarea, [contenteditable='true']") && !!t.closest(ALVOS); };
-  document.addEventListener("contextmenu", (e) => { if (naFoto(e)) e.preventDefault(); }, true);
+  const toque = () => window.matchMedia?.("(pointer: coarse)").matches;
+  const emCampo = (t) => !!t?.closest?.("input, textarea, select, [contenteditable='true'], [data-selecionavel]");
+  document.addEventListener("contextmenu", (e) => { if (naFoto(e) || (toque() && !emCampo(e.target))) e.preventDefault(); }, true);
+  // Seleção que começar fora de um campo (ex.: toque duplo em texto no Android) é desfeita na hora.
+  document.addEventListener("selectionchange", () => {
+    if (!toque()) return;
+    const sel = document.getSelection(); if (!sel || sel.isCollapsed || !sel.anchorNode) return;
+    const no = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+    if (!emCampo(no) && !emCampo(document.activeElement)) sel.removeAllRanges();
+  });
   document.addEventListener("dragstart", (e) => { if (e.target?.closest?.("img, picture, video, canvas, svg")) e.preventDefault(); }, true);
 }
 export {};

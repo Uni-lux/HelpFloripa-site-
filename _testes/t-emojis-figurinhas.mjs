@@ -66,8 +66,10 @@ ok(await esperar(async () => (await bru.locator('.pe-sec[data-sec="minhas"] + .p
 // 3) Criar de uma foto (editor) e importar .webp do WhatsApp
 await ana.setInputFiles("#inputFigurinha", "saida/foto-fig.jpg");
 ok(await esperar(async () => await ana.locator(".fg-ed").isVisible(), 5000), "foto abre o editor de figurinha");
-await ana.fill(".fg-texto input", "Bom dia!");
 await ana.locator(".fg-op", { hasText: "Redonda" }).click();
+await ana.locator(".fg-ferr button", { hasText: "Texto" }).click();
+await ana.locator(".fg-op", { hasText: "Adicionar texto" }).click();
+await ana.fill("input.fg-texto", "Bom dia!");
 await ana.screenshot({ path: "saida/figurinha-editor.png" });
 await ana.click(".fg-topo .ok");
 ok(await esperar(async () => (await ana.locator('.pe-sec[data-sec="minhas"] + .pe-figs .pe-fig').count()) === 1), "figurinha criada vai para Suas figurinhas");
