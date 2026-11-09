@@ -1929,8 +1929,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   e o `contextmenu`/`click` do celular caía na conversa de baixo → `travarToque` ignora os dois até o dedo sair (+350 ms) e a
   barra de seleção fica POR CIMA do topo (a lista não se mexe); "1 selecionada", sino cortado no Silenciar.
   Testes `t-ligacao4.mjs` (27); `t-ligacao` (Silenciar), `t-ligacao-falha` (tira os caminhos do SDP também) e
-  `t-registro-chamadas` (uma linha por pessoa) atualizados. **Próximo pedido dele:** emojis modernos e figurinhas no formato
-  do WhatsApp (WebP 512×512) no chat.
+  `t-registro-chamadas` (uma linha por pessoa) atualizados. PR #176 mesclado.
+- **Emojis e figurinhas no chat (09/11/2026, PR depois do #176, sem regra nova):** pedido dele (prints do WhatsApp).
+  Composer: botão de emoji à esquerda (`#btnEmoji`), clipe foi para a direita. Painel no lugar do teclado (`#painelEmoji`,
+  classe `aberto`, nas CAMADAS do voltar.js com `.pe-menu` e `.fg-ed`): abas Emojis | Figurinhas, busca, ⌫ (apaga o emoji
+  inteiro com Intl.Segmenter). `emojis.js` (sem deps): `EMOJI_CATS` (8 categorias, ~1.400, desenho do próprio celular),
+  `buscarEmojis` (palavras em português), recentes por conta `hf-emojis-<uid>`, `soEmojis` (até 3 = balão sem fundo e grande,
+  `.so-emoji e1..e3`). `figurinhas.js` (sem deps): figurinha = imagem com `nomeArquivo: "figurinha.webp"` (`ehFigurinha`,
+  `NOME_FIG`; SEM regra nova — versão antiga mostra como foto), WebP 512×512 até 100 KB dentro da mensagem (data:);
+  guardadas NO APARELHO (IndexedDB `hf-figurinhas`, por conta: suas, favoritas, recentes), pacote **Help Floripa**
+  (16 figurinhas do mascote, `figurinhas/hf-XX.webp` + `pacote.json` + `capa.png`, gerados por
+  `scripts/arte/gerar-figurinhas.py`), "Criar ou importar" (`#inputFigurinha`: WebP 512×512 do WhatsApp entra direto, inclusive
+  animada ≤500 KB; foto abre o editor `criarFigurinha`: Quadrada/Redonda/Inteira, contorno branco, texto com 5 cores em
+  cima/embaixo, arrastar/pinça/tamanho; Safari grava PNG). Segurar uma figurinha = Enviar/Favoritar/Apagar. No chat
+  `.figurinha-msg` (150 px, sem balão); tocar numa recebida = "Adicionar às suas figurinhas"/favoritas. Prévia "Figurinha".
+  Teste `t-emojis-figurinhas.mjs` (25).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

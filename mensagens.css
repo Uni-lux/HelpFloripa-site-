@@ -1229,3 +1229,77 @@ body.selecionando .conv-item.marcada .sel-marca { animation: selMarca .18s ease-
 .rcd .rcd-t small { font-size: 12.5px; }
 .rcd .rcd-dur { font-weight: 700; color: var(--text); }
 .rcd { grid-auto-rows: max-content; } /* com overflow:hidden a linha do grid encolhia e cortava os números */
+
+/* =====================================================================================================
+   09/11/2026: emojis e figurinhas (painel no lugar do teclado, como no WhatsApp) + figurinha no chat sem balão.
+   ===================================================================================================== */
+.painel-emoji { display: grid; grid-template-rows: auto 1fr auto; height: min(320px, 42vh); margin: 6px -2px 0; border-radius: 18px 18px 0 0;
+  background: var(--panel); border-top: 1px solid var(--line); overflow: hidden; animation: peSobe .18s ease-out; }
+.painel-emoji[hidden] { display: none; }
+@keyframes peSobe { from { transform: translateY(16px); opacity: 0; } }
+.pe-topo { display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px; }
+.pe-abas { display: flex; flex: none; padding: 3px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); }
+.pe-abas button { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.pe-abas button svg { width: 18px; height: 18px; }
+.pe-abas button[aria-selected="true"] { background: var(--accent); color: #001a24; }
+@media (max-width: 380px) { .pe-abas button span { display: none; } .pe-abas button { padding: 0 10px; } }
+.pe-busca { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+.pe-busca input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; outline: none; }
+.pe-busca svg { width: 16px; height: 16px; flex: none; }
+.pe-apagar { flex: none; width: 38px; height: 38px; }
+.pe-corpo { overflow-y: auto; overscroll-behavior: contain; padding: 0 6px 6px; -webkit-overflow-scrolling: touch; }
+.pe-sec { padding: 10px 6px 4px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.pe-sec small { margin-left: auto; font-weight: 600; letter-spacing: 0; }
+.pe-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+.pe-grade button { aspect-ratio: 1; border: 0; background: none; border-radius: 12px; font-size: 28px; line-height: 1; cursor: pointer; padding: 0; display: grid; place-items: center;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; transition: transform .1s; }
+.pe-grade button:active { transform: scale(1.25); background: var(--panel-2); }
+@media (hover: hover) { .pe-grade button:hover { background: var(--panel-2); } }
+.pe-vazio { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+.pe-cats { display: flex; justify-content: space-around; gap: 2px; padding: 4px 6px calc(env(safe-area-inset-bottom, 0px) + 4px); border-top: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.pe-cats::-webkit-scrollbar { display: none; }
+.pe-cats button { flex: none; width: 38px; height: 34px; border: 0; border-radius: 10px; background: none; font-size: 19px; cursor: pointer; filter: grayscale(1); opacity: .7; display: grid; place-items: center; color: var(--muted); }
+.pe-cats button svg { width: 19px; height: 19px; }
+.pe-cats button.on { filter: none; opacity: 1; background: var(--panel-2); color: var(--accent); }
+/* figurinhas no painel */
+.pe-figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; padding: 0 2px; }
+.pe-fig { position: relative; aspect-ratio: 1; border: 0; border-radius: 14px; background: none; padding: 4px; cursor: pointer; -webkit-touch-callout: none; transition: transform .12s, background-color .15s; }
+.pe-fig img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+.pe-fig:active { transform: scale(.92); background: var(--panel-2); }
+@media (hover: hover) { .pe-fig:hover { background: var(--panel-2); } }
+.pe-fig .fav { position: absolute; right: 2px; top: 2px; width: 18px; height: 18px; color: #ffc93c; fill: #ffc93c; filter: drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
+.pe-criar { display: grid; place-items: center; align-content: center; gap: 4px; aspect-ratio: 1; border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); font: inherit; font-size: 11.5px; font-weight: 800; cursor: pointer; text-align: center; line-height: 1.15; padding: 4px; }
+.pe-criar svg { width: 24px; height: 24px; }
+.pe-dica { margin: 4px 8px 8px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+/* menu de uma figurinha */
+.pe-menu { position: absolute; z-index: 20; left: 50%; bottom: 58px; transform: translateX(-50%); display: grid; gap: 2px; min-width: 210px; padding: 6px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+.pe-menu button { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+.pe-menu button:active { background: var(--panel); }
+.pe-menu button.perigo { color: var(--danger); }
+.pe-menu svg { width: 18px; height: 18px; }
+.painel-emoji { position: relative; }
+#btnEmoji[aria-expanded="true"] { color: var(--accent); }
+/* figurinha no chat: sem balão, como no WhatsApp */
+.bolha.figurinha-msg { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+.bolha.figurinha-msg::before, .bolha.figurinha-msg::after { display: none !important; }
+.bolha.figurinha-msg img.figurinha { width: 150px; height: 150px; object-fit: contain; display: block; cursor: pointer; -webkit-touch-callout: none; filter: drop-shadow(0 2px 6px rgba(0,0,0,.18)); }
+.bolha.figurinha-msg .meta { display: inline-flex; margin-top: 2px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--muted) !important; }
+.minha .bolha.figurinha-msg .meta { float: right; }
+.bolha.figurinha-msg .citacao { margin-bottom: 6px; background: var(--panel-2) !important; }
+/* só emojis (até 3): grandes */
+.bolha.so-emoji { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 2px !important; }
+.bolha.so-emoji::before, .bolha.so-emoji::after { display: none !important; }
+.bolha.so-emoji .texto { font-size: 46px; line-height: 1.15; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.bolha.so-emoji.e2 .texto { font-size: 40px; } .bolha.so-emoji.e3 .texto { font-size: 34px; }
+.bolha.so-emoji .meta { display: inline-flex; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--muted) !important; }
+.minha .bolha.so-emoji { text-align: right; }
+/* folha de uma figurinha recebida */
+.fgv { display: grid; justify-items: center; gap: 12px; }
+.fgv img { width: min(240px, 60vw); aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+.fgv small { color: var(--muted); font-size: 12.5px; text-align: center; }
+.fgv .pv-btn { width: 100%; }
+.bolha.so-emoji .meta, .bolha.figurinha-msg .meta { font-family: var(--font); display: inline-block; }
+.painel-emoji { grid-template-columns: minmax(0, 1fr); width: 100%; }
+.pe-corpo, .pe-topo, .pe-cats { min-width: 0; }
+.pe-corpo { overflow-x: hidden; }

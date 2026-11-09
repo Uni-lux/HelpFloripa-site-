@@ -1,0 +1,70 @@
+{
+ "id": "helpfloripa",
+ "nome": "Help Floripa",
+ "itens": [
+  {
+   "arquivo": "hf-01.webp",
+   "texto": "Oi!"
+  },
+  {
+   "arquivo": "hf-02.webp",
+   "texto": "Kkkkk"
+  },
+  {
+   "arquivo": "hf-03.webp",
+   "texto": "Amei!"
+  },
+  {
+   "arquivo": "hf-04.webp",
+   "texto": "Combinado!"
+  },
+  {
+   "arquivo": "hf-05.webp",
+   "texto": "Valeu!"
+  },
+  {
+   "arquivo": "hf-06.webp",
+   "texto": "Sério?!"
+  },
+  {
+   "arquivo": "hf-07.webp",
+   "texto": "Poxa..."
+  },
+  {
+   "arquivo": "hf-08.webp",
+   "texto": "Hmm..."
+  },
+  {
+   "arquivo": "hf-09.webp",
+   "texto": "Bom dia!"
+  },
+  {
+   "arquivo": "hf-10.webp",
+   "texto": "Boa noite"
+  },
+  {
+   "arquivo": "hf-11.webp",
+   "texto": "Tô chegando!"
+  },
+  {
+   "arquivo": "hf-12.webp",
+   "texto": "Obrigado!"
+  },
+  {
+   "arquivo": "hf-13.webp",
+   "texto": "Fechado!"
+  },
+  {
+   "arquivo": "hf-14.webp",
+   "texto": "Pix enviado"
+  },
+  {
+   "arquivo": "hf-15.webp",
+   "texto": "Já volto"
+  },
+  {
+   "arquivo": "hf-16.webp",
+   "texto": "Parabéns!"
+  }
+ ]
+}
