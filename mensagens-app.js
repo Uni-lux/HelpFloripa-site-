@@ -1395,6 +1395,12 @@ function renderizarLista() {
     if (!q) { q = document.createElement("b"); q.className = "pill-n"; pNl.appendChild(q); }
     q.textContent = n > 99 ? "99+" : String(n); q.hidden = !n;
   }
+  const resumo = $("sideResumo");
+  if (resumo) {
+    const nl = conversas.filter((c) => c.naoLida && !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId)).length;
+    resumo.replaceChildren(document.createTextNode("Help Floripa"));
+    if (nl) { const b = document.createElement("b"); b.textContent = ` · ${nl > 99 ? "99+" : nl} não ${nl === 1 ? "lida" : "lidas"}`; resumo.appendChild(b); }
+  }
   lista.replaceChildren();
 
   if (!itens.length) {
@@ -2525,14 +2531,13 @@ function pintarAtendimento() {
     if (forte) { const b = document.createElement("b"); b.textContent = forte; s.append(b, txt ? " " : ""); }
     s.append(txt); box.appendChild(s); return s;
   };
+  // Faixa compacta (pedido do dono, 09/11/2026: não poluir a conversa): só a situação de agora numa pílula;
+  // horário da semana, tempo de resposta e recado ficam na gaveta (tocar).
   const ausente = ausenteAgora(a), sem = semanaDe(a);
-  if (ausente) add("ausente", ms(a.volta) ? `volta ${dataVoltaTxt(a.volta)}` : "", ms(a.volta) ? "Ausente ·" : "Ausente no momento");
-  else if (sem) { const st = situacaoHorario(sem, a.almoco, relogioDe(ufDe(perfilOutroAtual))); add(st.cls, resumoSemana(sem, a.almoco), st.txt + " ·"); }
   const respOutro = respostaDoPerfil(perfilOutroAtual);
-  if (deNegocio && respOutro) add("", `Costuma responder em ${tempoTxt(respOutro.media)}`);
-  if (ausente && a.mensagem) add("aus", a.mensagem);
-  // Ausente com horário: o horário continua aparecendo (quem escreve sabe quando você atende).
-  if (ausente && sem) add("", resumoSemana(sem, a.almoco), "Horário:");
+  if (ausente) add("ausente", ms(a.volta) ? `volta ${dataVoltaTxt(a.volta)}` : "", ms(a.volta) ? "Ausente ·" : "Ausente no momento");
+  else if (sem) { const st = situacaoHorario(sem, a.almoco, relogioDe(ufDe(perfilOutroAtual))); add(st.cls, "", st.txt); }
+  else if (deNegocio && respOutro) add("aberto", `em ${tempoTxt(respOutro.media)}`, "Costuma responder");
   box.hidden = !box.children.length;
   // A faixa é um resumo de uma linha; tocar abre a gaveta com tudo organizado.
   box.setAttribute("role", "button"); box.tabIndex = 0; box.setAttribute("aria-label", "Ver o atendimento: " + box.textContent);

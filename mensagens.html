@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=13" />
+  <link rel="stylesheet" href="mensagens.css?v=14" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -131,7 +131,8 @@
     <!-- ================= LISTA DE CONVERSAS ================= -->
     <aside class="sidebar" aria-label="Conversas">
       <div class="side-top">
-        <h1><span>Help Floripa</span>Mensagens</h1>
+        <img class="side-logo" src="icone-192.png" alt="" width="38" height="38" data-sem-suave />
+        <div class="side-tit"><h1>Mensagens</h1><small id="sideResumo">Help Floripa</small></div>
         <button type="button" class="icon-btn" id="btnSuporte" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg><b class="badge-suporte" id="badgeSuporte" hidden></b></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
@@ -145,14 +146,14 @@
         <button type="button" class="icon-btn perigo" id="selApagar" aria-label="Apagar selecionadas" title="Apagar"><svg class="i"><use href="#i-lixo"/></svg></button>
         <button type="button" class="icon-btn" id="selMais" aria-label="Mais opções" title="Mais"><svg class="i"><use href="#i-mais"/></svg></button>
       </div>
+      <div class="search">
+        <svg class="i s"><use href="#i-lupa"/></svg>
+        <input type="search" id="buscaConversas" placeholder="Pesquisar conversa" autocomplete="off" aria-label="Pesquisar conversa" />
+      </div>
       <div class="modos" role="tablist" aria-label="Tipo de conversa">
         <button type="button" role="tab" data-modo="pessoal" aria-selected="true"><svg class="i"><use href="#i-perfil"/></svg>Pessoal<b class="modo-n" hidden></b></button>
         <button type="button" role="tab" data-modo="negocios" aria-selected="false"><svg class="i"><use href="#i-maleta"/></svg>Negócios<b class="modo-n" hidden></b></button>
         <button type="button" role="tab" data-modo="chamadas" aria-selected="false"><svg class="i"><use href="#i-telefone"/></svg>Chamadas<b class="modo-n" hidden></b></button>
-      </div>
-      <div class="search">
-        <svg class="i s"><use href="#i-lupa"/></svg>
-        <input type="search" id="buscaConversas" placeholder="Pesquisar conversa" autocomplete="off" aria-label="Pesquisar conversa" />
       </div>
       <div class="pills" role="tablist">
         <button type="button" class="pill on" data-filtro="todas" role="tab" aria-selected="true">Todas</button>
@@ -495,6 +496,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=23"></script>
+  <script type="module" src="mensagens-app.js?v=24"></script>
 </body>
 </html>

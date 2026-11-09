@@ -1010,7 +1010,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .dia, .dia-flutuante { border-radius: 999px; padding: 5px 14px; border: 1px solid var(--bubble-borda); background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); }
 /* topo da conversa: foto com anel fino na cor da marca e status mais legível */
 .chat-top { backdrop-filter: blur(12px); background: color-mix(in srgb, var(--panel) 94%, transparent); }
-.chat-top .quem .avatar { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px color-mix(in srgb, var(--accent) 70%, transparent); }
 .quem-txt small { font-size: 12.5px; }
 .quem-txt small.online { color: #2fbf71; font-weight: 600; }
 /* campo de mensagem e botão de enviar */
@@ -1125,3 +1124,41 @@ body.selecionando .conv-item.marcada .sel-marca { display: grid; background: #0a
 /* Filtros das Chamadas: os 4 cabem em 360 px com o estilo novo das pílulas */
 .rc-filtros { gap: 4px; }
 .rc-filtros .pill { padding: 0 4px; font-size: 12.5px; gap: 4px; }
+
+/* =====================================================================================================
+   09/11/2026 (prints do dono): topo da lista no jeito dos mensageiros, faixa do atendimento compacta,
+   citação com contraste e foto do topo da conversa sem anel (o anel parecia um flash não visto).
+   ===================================================================================================== */
+/* Topo: logo + "Mensagens" + "Help Floripa · N não lidas"; Suporte e Configurações em botões redondos */
+.side-top { gap: 10px; padding: 14px 14px 12px 16px; padding-top: max(14px, env(safe-area-inset-top)); }
+.side-logo { flex: none; width: 38px; height: 38px; border-radius: 11px; object-fit: cover; background: #000; box-shadow: 0 0 0 1px var(--line); }
+.side-tit { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.side-tit h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.4px; line-height: 1.1; }
+.side-tit small { font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-tit small b { color: var(--accent); font-weight: 700; }
+.side-top .icon-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--panel-2); color: var(--text); }
+.side-top .icon-btn:hover { background: var(--hover); }
+.side-top .icon-btn svg { width: 20px; height: 20px; }
+.search { margin: 0 14px 6px; }
+/* Abas Pessoal | Negócios | Chamadas sublinhadas (menos peso que o bloco de antes) */
+.modos { display: flex; gap: 0; margin: 2px 0 10px; padding: 0 8px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; }
+.modos button { flex: 1; height: 44px; border-radius: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 700; gap: 6px; position: relative; }
+.modos button svg { width: 17px; height: 17px; }
+.modos button[aria-selected="true"], .modos button[data-modo][aria-selected="true"] { background: none; box-shadow: none; color: var(--accent); }
+.modos button[aria-selected="true"] svg, .modos button[data-modo="chamadas"][aria-selected="true"] svg { color: var(--accent); }
+.modos button[aria-selected="true"]::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.pills { padding: 0 14px 8px; }
+/* Faixa do atendimento: pílula pequena no alto da conversa (tocar abre a gaveta com tudo) */
+.faixa-atend { align-self: center; width: auto; max-width: calc(100% - 24px); margin: 8px auto 2px; padding: 5px 30px 5px 12px; border: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  border-radius: 999px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); font-size: 12px; line-height: 1.35; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); z-index: 3; }
+.faixa-atend::after { right: 13px; width: 6px; height: 6px; margin-top: -3px; border-width: 1.6px; }
+.faixa-atend b { font-weight: 700; }
+.faixa-atend .sep { margin: 0 4px; }
+/* Citação (mensagem respondida) com contraste: caixa mais escura no seu balão e mais clara no da outra pessoa */
+.bolha .citacao { padding: 6px 10px; }
+:root[data-theme="dark"] .minha .bolha .citacao { background: rgba(0, 18, 32, .55); border-left-color: #7fe0ff; }
+:root[data-theme="dark"] .outra .bolha .citacao { background: rgba(255, 255, 255, .07); border-left-color: #00adee; }
+:root[data-theme="dark"] .outra .bolha .citacao strong { color: #3fc4f5; }
+:root[data-theme="light"] .minha .bolha .citacao { background: rgba(0, 90, 130, .1); border-left-color: #0087c2; }
+:root[data-theme="light"] .minha .bolha .citacao strong { color: #0077ad; }
+:root[data-theme="light"] .outra .bolha .citacao { background: rgba(0, 60, 90, .06); }
