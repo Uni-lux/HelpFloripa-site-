@@ -1860,6 +1860,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Papel de parede do Mensagens (mesmo PR):** padrão = Pontilhado (`CONFIG_PADRAO.fundo: "padrao"`, primeiro da lista); a
   Ponte virou só uma opção. Quem tinha "ponte" salvo sem `fundoEscolhido` (era só o padrão antigo) passa para o Pontilhado;
   escolher um fundo grava `fundoEscolhido: true`. Teste `t-papel-parede.mjs` (5).
+- **Balões "vidro e neon" (09/11/2026, PR depois do #171, sem regra nova):** pedido dele ("feios, quero profissional e
+  futurista"). Bloco no fim do mensagens.css (v=7) substituiu o "preto e azul" do #171: seus balões em degradê ciano com
+  brilho de vidro e halo azul, os da outra pessoa em vidro escuro com borda luminosa (branco no claro), cantos de 20 px,
+  hora com números alinhados. Player de áudio (audio-ondas.js v=2, vale também no chat da equipe e nas denúncias): anel de
+  progresso em volta do play (`--p` gravado no `progresso`, conic-gradient com máscara), botão com brilho e pulso tocando,
+  ondas arredondadas que acendem com brilho, velocidade em pílula com borda.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

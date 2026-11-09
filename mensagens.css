@@ -947,46 +947,67 @@ html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { dis
 html { -webkit-tap-highlight-color: transparent; }
 
 /* =====================================================================================================
-   Chat no visual da Help Floripa (09/11/2026, pedido do dono): balões "preto e azul".
-   - Seus balões: degradê ciano da marca (#00ADEE → #0087C2) com letra branca, nos dois temas.
-   - Balões da outra pessoa: quase preto no escuro (painel #111 da marca) e branco no claro, com borda fina.
-   - Cantos de 18 px, "rabinho" só na 1ª mensagem do grupo, sombra suave, hora e confirmação dentro do balão.
+   Balões "vidro e neon" (09/11/2026, pedido do dono: "bem profissional e futurista").
+   - Seus balões: degradê ciano da marca com brilho de vidro na borda de cima e um halo azul suave.
+   - Da outra pessoa: vidro escuro (painel #111 da marca) com borda luminosa fina; no claro, branco com borda.
+   - Cantos de 20 px; "rabinho" (canto de 6 px) só na 1ª mensagem do grupo; hora e confirmação dentro.
+   - Áudio: botão com anel de progresso (audio-ondas.js) e ondas que acendem com brilho.
    Os cartões (pedido, flash, ligação, publicação, Pix...) continuam com o fundo próprio deles.
    ===================================================================================================== */
 :root[data-theme="dark"] {
-  --bubble-me: linear-gradient(135deg, #10b6f2 0%, #0093d0 55%, #0082bd 100%);
+  --bubble-me: linear-gradient(140deg, #22c7ff 0%, #04a3e6 42%, #0078b8 100%);
   --bubble-me-text: #ffffff;
-  --bubble-other: #121a20;
-  --bubble-other-text: #eef3f6;
-  --bubble-borda: rgba(255, 255, 255, .07);
-  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 2px 10px rgba(0, 0, 0, .18);
+  --bubble-other: linear-gradient(160deg, #18212a 0%, #10171d 100%);
+  --bubble-other-text: #eef4f8;
+  --bubble-borda: rgba(120, 210, 255, .11);
+  --bubble-brilho: rgba(255, 255, 255, .06);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 22px -12px rgba(0, 0, 0, .7);
 }
 :root[data-theme="light"] {
-  --bubble-me: linear-gradient(135deg, #12b8f3 0%, #0097d4 55%, #0086c0 100%);
+  --bubble-me: linear-gradient(140deg, #26c8ff 0%, #06a4e6 42%, #007cbd 100%);
   --bubble-me-text: #ffffff;
-  --bubble-other: #ffffff;
+  --bubble-other: linear-gradient(160deg, #ffffff 0%, #f6fafc 100%);
   --bubble-other-text: #0f1b22;
-  --bubble-borda: rgba(15, 27, 34, .08);
-  --shadow: 0 1px 2px rgba(15, 27, 34, .10), 0 2px 8px rgba(15, 27, 34, .06);
+  --bubble-borda: rgba(0, 120, 180, .13);
+  --bubble-brilho: rgba(255, 255, 255, .9);
+  --shadow: 0 1px 2px rgba(15, 27, 34, .08), 0 8px 20px -12px rgba(0, 70, 110, .28);
 }
-.bolha { border-radius: 18px; padding: 7px 11px 7px 12px; border: 1px solid var(--bubble-borda); }
-.minha .bolha { border-color: transparent; box-shadow: 0 1px 2px rgba(0, 60, 90, .25), 0 4px 14px rgba(0, 135, 194, .18); }
+.bolha {
+  border-radius: 20px; padding: 8px 12px 7px 13px; border: 1px solid var(--bubble-borda);
+  box-shadow: inset 0 1px 0 var(--bubble-brilho), var(--shadow);
+  letter-spacing: .005em;
+}
+.minha .bolha {
+  border-color: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), inset 0 -1px 0 rgba(0, 40, 70, .18),
+    0 2px 4px rgba(0, 50, 80, .25), 0 10px 24px -10px rgba(0, 173, 238, .65);
+}
 .primeira.outra .bolha { border-top-left-radius: 6px; }
 .primeira.minha .bolha { border-top-right-radius: 6px; }
 .linha-msg { margin-top: 3px; }
 .linha-msg.primeira { margin-top: 12px; }
-/* hora e confirmação dentro do seu balão: branco (o azul de "lida" sumia no balão ciano) */
-.minha .bolha .meta { opacity: .85; }
-.minha .bolha .meta .check { opacity: .62; }
-.minha .bolha .meta .check.lida { color: #ffffff; opacity: 1; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .55)); }
+/* hora e confirmação: letra pequena com números alinhados; no seu balão, tudo branco */
+.bolha .meta { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.minha .bolha .meta { opacity: .88; }
+.minha .bolha .meta .check { opacity: .6; }
+.minha .bolha .meta .check.lida { color: #ffffff; opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 255, 255, .7)); }
+.outra .bolha .meta .check.lida { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--read) 60%, transparent)); }
 .minha .bolha .texto a { color: #fff; }
-/* citação dentro do seu balão */
-.minha .bolha .citacao { background: rgba(0, 30, 50, .22); border-left-color: #ffffff; }
+/* citação dentro do balão: cartão de vidro */
+.bolha .citacao { border-radius: 12px; border-left-width: 3px; }
+.minha .bolha .citacao { background: rgba(0, 25, 45, .24); border-left-color: #ffffff; }
 .minha .bolha .citacao strong { color: #ffffff; }
-/* áudio no seu balão: botão branco com o ícone azul e ondas brancas */
+/* fotos e vídeos acompanham os cantos novos */
+.bolha.midia { padding: 4px; }
+.bolha img.foto, .bolha video { border-radius: 16px; }
+/* Áudio. Seu balão: botão branco com ícone azul, anel e ondas brancas. Da outra pessoa: ciano com brilho. */
+.bolha { --hf-audio-cor: #12b9f5; }
 .minha .bolha { --hf-audio-cor: #ffffff; }
-.minha .bolha .hf-audio-play { color: #0087c2; }
-.minha .bolha .hf-audio-vel { background: rgba(255, 255, 255, .22); }
+.minha .bolha .hf-audio-play { color: #0084c4; box-shadow: 0 0 0 4px rgba(255, 255, 255, .16), 0 4px 14px -4px rgba(0, 40, 70, .55); }
+.minha .bolha .hf-audio-onda i { background: rgba(255, 255, 255, .38); }
+.minha .bolha .hf-audio-onda i.on { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, .75); }
+.bolha.so-audio { padding: 8px 12px 7px 8px; }
+.bolha.so-audio .meta { right: 12px; bottom: 8px; }
 /* separador do dia e aviso flutuante no mesmo estilo */
 .dia, .dia-flutuante { border-radius: 999px; padding: 5px 14px; border: 1px solid var(--bubble-borda); background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); }
 /* topo da conversa: foto com anel fino na cor da marca e status mais legível */
