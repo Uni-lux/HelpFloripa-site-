@@ -12,7 +12,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=5";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=6";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -142,14 +142,30 @@ function dataLista(d) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
+// Como no WhatsApp: "visto por último hoje às 23:29". Se não couber no topo, o texto desliza (statusTopo).
 function vistoPorUltimo(d) {
   if (!d) return "";
   const hoje = new Date();
   const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
-  // Curto para caber no topo do celular com o horário inteiro.
-  if (mesmoDia(d, hoje)) return `visto hoje às ${hora(d)}`;
-  if (mesmoDia(d, ontem)) return `visto ontem às ${hora(d)}`;
-  return `visto em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} às ${hora(d)}`;
+  if (mesmoDia(d, hoje)) return `visto por último hoje às ${hora(d)}`;
+  if (mesmoDia(d, ontem)) return `visto por último ontem às ${hora(d)}`;
+  if (hoje - d < 6 * 24 * 60 * MINUTO) return `visto por último ${d.toLocaleDateString("pt-BR", { weekday: "long" })} às ${hora(d)}`;
+  return `visto por último em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: hoje.getFullYear() === d.getFullYear() ? undefined : "numeric" })}`;
+}
+// Texto do topo da conversa (online, digitando, visto por último). Quando não cabe, desliza devagar para mostrar o
+// resto e volta (como no WhatsApp), em vez de cortar com "...". Com "reduzir movimento" do aparelho, fica parado.
+function statusTopo(el, texto, cls = "") {
+  el.className = cls;
+  if (el.dataset.texto === texto && el.firstChild) return;
+  el.dataset.texto = texto;
+  const sp = document.createElement("span"); sp.className = "st-rola"; sp.textContent = texto;
+  el.replaceChildren(sp);
+  el.title = texto;
+  requestAnimationFrame(() => {
+    const falta = sp.scrollWidth - el.clientWidth;
+    el.classList.toggle("rolando", falta > 4);
+    if (falta > 4) { sp.style.setProperty("--falta", `-${falta + 6}px`); sp.style.setProperty("--dur", `${Math.max(5, falta / 18 + 4)}s`); }
+  });
 }
 
 // Assunto da conversa: pessoal ou ligado a um perfil de negócio (mesmas cores dos perfis).
@@ -1725,23 +1741,21 @@ function atualizarStatusTopo() {
   const el = $("topStatus");
   clearTimeout(timerDigitando);
   if (config.mostrarDigitando && estaDigitando(ativa.dados, ativa.outroId)) {
-    el.textContent = "digitando...";
-    el.className = "digitando";
+    statusTopo(el, "digitando...", "digitando");
     timerDigitando = setTimeout(atualizarStatusTopo, 2000);
     return;
   }
-  el.className = "";
   if (!config.mostrarOnline) {
-    el.textContent = perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : "";
+    statusTopo(el, perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : "");
     return;
   }
   const ultimo = paraData(perfilOutroAtual.ultimoAcesso);
   if (ultimo && Date.now() - ultimo.getTime() < 9 * MINUTO) {
-    el.textContent = "online";
-    el.className = "online";
+    statusTopo(el, "online", "online");
     timerDigitando = setTimeout(atualizarStatusTopo, 30000);
   } else {
-    el.textContent = ultimo ? vistoPorUltimo(ultimo) : (perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : "");
+    statusTopo(el, ultimo ? vistoPorUltimo(ultimo) : (perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : ""));
+    timerDigitando = setTimeout(atualizarStatusTopo, 60000); // "hoje" vira "ontem" sem precisar reabrir
   }
 }
 
@@ -3512,7 +3526,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=5");
+  const { ligar } = await import("./chamadas.js?v=6");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }
@@ -3601,8 +3615,10 @@ async function renderizarChamadas() {
   const extras = await completarNomes(todas);
   if (modo !== "chamadas") return;
   const quem = (c) => { const p = pessoaDaChamada(c), x = extras.get(p.uid) || {}; return { ...p, nome: p.nome || x.nome || "Usuário", foto: p.foto || x.fotoPerfil || "" }; };
-  const conta = { todas: todas.length, perdidas: 0, recebidas: 0, feitas: 0 };
-  todas.forEach((c) => { const s = situacaoChamada(c); if (s.perdida) conta.perdidas++; if (s.saiu) conta.feitas++; else conta.recebidas++; });
+  // Número na pílula Perdidas = só as perdidas NOVAS (desde a última vez que a aba foi aberta), como um aviso: some
+  // depois de ver (antes ficava o total de perdidas para sempre).
+  const conta = { todas: todas.length, perdidas: 0, recebidas: 0, feitas: 0, novas: 0 };
+  todas.forEach((c) => { const s = situacaoChamada(c); if (s.perdida) { conta.perdidas++; if (ms(c.criadoEm) > visto) conta.novas++; } if (s.saiu) conta.feitas++; else conta.recebidas++; });
   const passa = (c) => { const s = situacaoChamada(c); return filtroChamadas === "perdidas" ? s.perdida : filtroChamadas === "recebidas" ? !s.saiu : filtroChamadas === "feitas" ? s.saiu : true; };
   const termo = semAcentoCham(buscaChamadas.trim());
   const itens = todas.filter(passa).filter((c) => !termo || semAcentoCham(quem(c).nome).includes(termo));
@@ -3626,7 +3642,7 @@ async function renderizarChamadas() {
     const b = elm("button", "pill" + (filtroChamadas === k ? " on" : "") + (k === "perdidas" ? " perd" : "")); b.type = "button";
     b.setAttribute("role", "tab"); b.setAttribute("aria-selected", filtroChamadas === k ? "true" : "false");
     b.append(document.createTextNode(rot));
-    if (k === "perdidas" && conta[k]) b.appendChild(elm("span", "rc-num", String(conta[k])));
+    if (k === "perdidas" && conta.novas) { b.appendChild(elm("span", "rc-num", String(conta.novas))); b.title = `${conta.novas} ${conta.novas === 1 ? "nova" : "novas"} de ${conta.perdidas}`; }
     else if (k !== "todas") b.title = `${conta[k]} ${conta[k] === 1 ? "chamada" : "chamadas"}`;
     b.addEventListener("click", () => { filtroChamadas = k; renderizarChamadas(); });
     filtros.appendChild(b);
@@ -3755,7 +3771,7 @@ function abrirNovaChamada() {
 // (duração, Cancelada, Sem resposta, Perdida) e o botão para ligar de volta (em destaque quando é perdida).
 function cartaoChamada(c, minha) {
   const d = descreverChamada({ modo: c.modo, resultado: c.resultado, duracao: c.duracao, saiu: minha });
-  const box = elm("div", "lg " + d.tom);
+  const box = elm("div", "lig " + d.tom); // "lig" (não "lg": .avatar.lg é o avatar grande)
   const cab = elm("div", "lg-cab");
   const ic = elm("span", "lg-ic"); ic.appendChild(usar(c.modo === "video" ? "videochamada" : "telefone", "i"));
   const tx = elm("div", "lg-tx");

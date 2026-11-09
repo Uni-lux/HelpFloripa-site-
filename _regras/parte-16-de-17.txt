@@ -1,3 +1,22 @@
+      // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
+      //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
+      //   foto: 1 a 4 fotos (mediaUrl + midias), legenda opcional; sem enquete/caixa/vídeo
+      //   video: um vídeo (mediaTipo 'video'), legenda opcional
+      //   enquete / caixa: a enquete ou a caixa de perguntas, com no máximo uma imagem (sem midias e sem vídeo)
+      function tipoOk(d) {
+        let t = d.get('tipo', '');
+        let midia = d.get('mediaUrl', '') != '';
+        let video = d.get('mediaTipo', '') == 'video';
+        let extra = ('enquete' in d) || ('caixa' in d);
+        return (t == '' && !('estilo' in d))
+            || (t == 'texto' && d.get('texto', '').size() >= 1 && !extra && !video && !('midias' in d)
+                && (midia ? (d.get('estilo', '') == 'casada' && d.texto.size() <= 500) : !('estilo' in d)))
+            || (t == 'foto' && midia && !video && !extra && !('estilo' in d))
+            || (t == 'video' && midia && video && !extra && !('midias' in d) && !('estilo' in d))
+            || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
+                && !video && !('midias' in d) && !('estilo' in d));
+      }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
@@ -166,12 +185,4 @@
                 && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
                 && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
       }
-      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
-      allow create: if logado() && statsNovo();
-      allow update: if logado() && statsMais();
-      allow delete: if false;
-    }
-
-  }
-}
-// ===== FIM DA PARTE 16 DE 16 =====
+// ===== FIM DA PARTE 16 DE 17 =====

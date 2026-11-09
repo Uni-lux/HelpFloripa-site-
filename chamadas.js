@@ -11,6 +11,7 @@
 // =====================================================
 import { collection, doc, setDoc, updateDoc, getDoc, onSnapshot, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=3";
+import { criarMini } from "./chamada-mini.js?v=1";
 
 // Servidores que ajudam os aparelhos a se acharem (grátis). O TURN vem do servidor (servidoresIce).
 export const ICE = {
@@ -73,31 +74,52 @@ const porCima = (sim) => { try { casca()?.porCima?.(window, sim); } catch {} };
 const fotoSegura = (f) => (typeof f === "string" && f.length < 900000 && /^(https:\/\/|data:image\/)/.test(f) ? f.replace(/["\\\n\r]/g, "") : "");
 
 // ---------- visual ----------
+// Tela da ligação (09/11/2026, refeita no padrão dos apps grandes, com as cores da Help Floripa): topo com Minimizar,
+// nome, situação e o selo de criptografia; no meio a foto (ou o vídeo); um aviso quando a outra pessoa silencia ou
+// desliga a câmera; embaixo um cartão com Câmera · Silenciar · Virar · Encerrar. Minimizar vira uma pílula no alto
+// (chamada-mini.js) e a pessoa continua usando o site; tocar na pílula volta para a ligação.
 const CSS = `
-.hfl { position: fixed; inset: 0; z-index: 6000; display: grid; grid-template-rows: auto 1fr auto; color: #fff; background: #05080b; font-family: inherit; overflow: hidden; }
-.hfl-fundo { position: absolute; inset: -40px; background: var(--foto, linear-gradient(135deg, #0b3a52, #071017)) center / cover; filter: blur(34px) brightness(.45); transform: scale(1.1); }
-.hfl-topo, .hfl-meio, .hfl-bts { position: relative; z-index: 1; }
+.hfl { position: fixed; inset: 0; z-index: 6000; display: grid; grid-template-rows: auto 1fr auto; color: #fff; background: #03070a; font-family: inherit; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.hfl.minimizada { display: none; }
+.hfl-fundo { position: absolute; inset: -40px; background: var(--foto, radial-gradient(120% 80% at 50% 20%, #0a4a63 0%, #04141c 55%, #020508 100%)) center / cover; filter: blur(36px) brightness(.42) saturate(1.2); transform: scale(1.12); }
+.hfl::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(90% 60% at 50% 0%, rgba(0, 173, 238, .16), transparent 70%); }
+.hfl-topo, .hfl-meio, .hfl-rodape { position: relative; z-index: 2; }
 .hfl audio { display: none; }
 .hfl-remoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; z-index: 0; }
 .hfl-remoto[hidden] { display: none; }
-.hfl-local { position: absolute !important; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 84px); right: 14px; width: 104px; aspect-ratio: 3 / 4; border-radius: 16px; object-fit: cover; background: #111; border: 2px solid rgba(255, 255, 255, .35); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); transform: scaleX(-1); }
+.hfl-local { position: absolute !important; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 92px); right: 14px; width: 104px; aspect-ratio: 3 / 4; border-radius: 18px; object-fit: cover; background: #111; border: 2px solid rgba(255, 255, 255, .5); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); transform: scaleX(-1); touch-action: none; }
 .hfl-local[hidden] { display: none; }
-.hfl-topo { display: grid; justify-items: center; gap: 4px; padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px 10px; text-align: center; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
-.hfl-topo small { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
-.hfl-topo b { font-size: 22px; } .hfl-topo span { font-size: 14px; opacity: .85; font-variant-numeric: tabular-nums; }
-.hfl-meio { display: grid; place-items: center; align-content: center; gap: 14px; }
-.hfl-foto { width: 128px; height: 128px; border-radius: 50%; background: #0b3a52 center / cover; display: grid; place-items: center; font-size: 42px; font-weight: 800; box-shadow: 0 0 0 8px rgba(0, 173, 238, .14), 0 0 0 18px rgba(0, 173, 238, .07); }
+.hfl-topo { display: grid; grid-template-columns: 48px 1fr 48px; align-items: start; gap: 6px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 14px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
+.hfl-min { width: 46px; height: 46px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer; backdrop-filter: blur(10px); }
+.hfl-min svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.hfl-cab { display: grid; justify-items: center; gap: 3px; text-align: center; min-width: 0; }
+.hfl-cab b { font-size: 21px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hfl-cab small { font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #7fe0ff; }
+.hfl-cab .hfl-sit { font-size: 14px; opacity: .9; font-variant-numeric: tabular-nums; }
+.hfl-cripto { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; opacity: .72; }
+.hfl-cripto svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+.hfl-meio { display: grid; place-items: center; align-content: center; gap: 16px; padding: 0 20px; }
+.hfl-foto { position: relative; width: 156px; height: 156px; border-radius: 50%; background: #0b3a52 center / cover; display: grid; place-items: center; font-size: 52px; font-weight: 800;
+  box-shadow: 0 0 0 6px rgba(0, 173, 238, .18), 0 0 0 14px rgba(0, 173, 238, .07), 0 20px 50px rgba(0, 0, 0, .5); }
 .hfl.tocando .hfl-foto { animation: hflPulso 1.6s ease-out infinite; }
-@keyframes hflPulso { 0% { box-shadow: 0 0 0 0 rgba(0, 173, 238, .45), 0 0 0 0 rgba(0, 173, 238, .25); } 100% { box-shadow: 0 0 0 26px rgba(0, 173, 238, 0), 0 0 0 46px rgba(0, 173, 238, 0); } }
+@keyframes hflPulso { 0% { box-shadow: 0 0 0 0 rgba(0, 173, 238, .5), 0 0 0 0 rgba(0, 173, 238, .25), 0 20px 50px rgba(0, 0, 0, .5); } 100% { box-shadow: 0 0 0 26px rgba(0, 173, 238, 0), 0 0 0 48px rgba(0, 173, 238, 0), 0 20px 50px rgba(0, 0, 0, .5); } }
 .hfl.com-video .hfl-meio { visibility: hidden; }
-.hfl-aviso { max-width: 300px; font-size: 13px; line-height: 1.45; text-align: center; opacity: .8; }
-.hfl-bts { display: flex; justify-content: center; align-items: flex-start; gap: 18px; padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 26px); background: linear-gradient(transparent, rgba(0, 0, 0, .6)); }
-.hfl-bt { display: grid; justify-items: center; gap: 6px; padding: 0; border: 0; background: none; color: #fff; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
-.hfl-bt i { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 255, 255, .16); backdrop-filter: blur(8px); font-style: normal; transition: transform .12s, background .15s; }
+.hfl.com-video .hfl-fundo { display: none; }
+.hfl-outro { position: absolute; z-index: 3; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 112px); transform: translateX(-50%); display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; background: rgba(0, 0, 0, .62); backdrop-filter: blur(10px); font-size: 13px; font-weight: 700; white-space: nowrap; border: 1px solid rgba(255, 255, 255, .14); }
+.hfl-outro[hidden] { display: none; }
+.hfl-outro svg { width: 16px; height: 16px; fill: none; stroke: #ff6b6b; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.hfl-aviso { max-width: 320px; font-size: 13px; line-height: 1.45; text-align: center; opacity: .82; }
+.hfl-rodape { padding: 0 14px calc(env(safe-area-inset-bottom, 0px) + 18px); }
+.hfl-bts { display: flex; justify-content: center; align-items: flex-start; gap: 14px; flex-wrap: wrap; max-width: 420px; margin: 0 auto; padding: 18px 14px 16px; border-radius: 28px;
+  background: rgba(14, 22, 28, .78); border: 1px solid rgba(255, 255, 255, .08); backdrop-filter: blur(16px); box-shadow: 0 18px 40px rgba(0, 0, 0, .4); }
+.hfl-bt { display: grid; justify-items: center; gap: 7px; min-width: 64px; padding: 0; border: 0; background: none; color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.hfl-bt i { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: rgba(255, 255, 255, .14); font-style: normal; transition: transform .12s, background .15s; }
 .hfl-bt:active i { transform: scale(.92); }
 .hfl-bt.off i { background: #fff; color: #05080b; }
+.hfl-bt.on i { background: #00adee; color: #fff; }
 .hfl-bt.fim i { background: #e5484d; } .hfl-bt.atender i { background: #22c55e; }
-.hfl-bt svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hfl-bt[hidden] { display: none; }
+.hfl-bt svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hfl-bt.fim svg { transform: rotate(135deg); }
 @media (prefers-reduced-motion: reduce) { .hfl.tocando .hfl-foto { animation: none; } }`;
 let cssOk = false;
@@ -110,7 +132,8 @@ const SVG = {
   cam: '<rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3"/>',
   camOff: '<path d="M3 3l18 18M8 6h5.5A2.5 2.5 0 0116 8.5V11l5-3v9l-3.5-2M16 16v-.5a2.5 2.5 0 01-2.5 2.5h-8A2.5 2.5 0 013 15.5v-7A2.5 2.5 0 015 6.1"/>',
   virar: '<path d="M4 9a8 8 0 0114-3l2 2M20 15a8 8 0 01-14 3l-2-2M20 4v4h-4M4 20v-4h4"/>',
-  som: '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>'
+  minimizar: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
+  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>'
 };
 const svg = (nome) => `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[nome]}</svg>`;
 function botao(cls, icone, rotulo, fn) {
@@ -118,30 +141,38 @@ function botao(cls, icone, rotulo, fn) {
   const i = el("i"); i.innerHTML = svg(icone); b.append(i, el("span", null, rotulo));
   b.addEventListener("click", fn); return b;
 }
+function trocarBotao(b, icone, rotulo) { b.querySelector("i").innerHTML = svg(icone); b.lastChild.textContent = rotulo; b.setAttribute("aria-label", rotulo); }
 const iniciais = (n) => String(n || "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0] || "").join("").toUpperCase();
-const relogio = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+const relogio = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600); const mm = String(Math.floor(s / 60) % 60).padStart(2, "0"), ss = String(s % 60).padStart(2, "0"); return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`; };
 
 // Tela da chamada (a mesma para quem liga e para quem recebe).
 function montarTela({ nome, foto, tipo, recebendo }) {
   css();
+  foto = fotoSegura(foto);
   const t = el("div", "hfl tocando"); t.setAttribute("role", "dialog"); t.setAttribute("aria-modal", "true"); t.setAttribute("aria-label", `Chamada com ${nome}`);
   t.dataset.semVoltar = "1";
-  foto = fotoSegura(foto);
   const fundo = el("div", "hfl-fundo"); if (foto) fundo.style.setProperty("--foto", `url("${foto}")`);
-  const remoto = el("video", "hfl-remoto"); remoto.autoplay = true; remoto.playsInline = true; remoto.hidden = true;
+  const remoto = el("video", "hfl-remoto"); remoto.autoplay = true; remoto.playsInline = true; remoto.muted = true; remoto.hidden = true; // o som vai pelo <audio>
   const somRemoto = el("audio"); somRemoto.autoplay = true;
   const local = el("video", "hfl-local"); local.autoplay = true; local.playsInline = true; local.muted = true; local.hidden = true; // aparece com a câmera ligada
-  const topo = el("div", "hfl-topo"); const rotTipo = el("small", null, tipo === "video" ? "Chamada de vídeo" : "Chamada de voz");
-  const situacao = el("span", null, recebendo ? "Chamando você…" : "Chamando…");
-  topo.append(rotTipo, el("b", null, nome), situacao);
+  const topo = el("div", "hfl-topo");
+  const bMin = el("button", "hfl-min"); bMin.type = "button"; bMin.innerHTML = svg("minimizar"); bMin.setAttribute("aria-label", "Minimizar a ligação"); bMin.title = "Minimizar"; bMin.hidden = true;
+  const cab = el("div", "hfl-cab");
+  const rotTipo = el("small", null, tipo === "video" ? "Chamada de vídeo" : "Chamada de voz");
+  const nomeEl = el("b", null, nome);
+  const situacao = el("span", "hfl-sit", recebendo ? "Chamando você…" : "Chamando…");
+  const cripto = el("span", "hfl-cripto"); cripto.innerHTML = svg("cadeado"); cripto.append("Criptografada de aparelho a aparelho");
+  cab.append(rotTipo, nomeEl, situacao, cripto);
+  topo.append(bMin, cab, el("span"));
+  const outro = el("div", "hfl-outro"); outro.hidden = true; outro.setAttribute("role", "status");
   const meio = el("div", "hfl-meio"); const ft = el("div", "hfl-foto");
   if (foto) ft.style.backgroundImage = `url("${foto}")`; else ft.textContent = iniciais(nome);
   const aviso = el("p", "hfl-aviso", "Ligação pelo Help Floripa: nada é gravado. Não passe senhas nem códigos por ligação.");
   meio.append(ft, aviso);
-  const bts = el("div", "hfl-bts");
-  t.append(fundo, remoto, somRemoto, local, topo, meio, bts);
+  const rodape = el("div", "hfl-rodape"); const bts = el("div", "hfl-bts"); rodape.appendChild(bts);
+  t.append(fundo, remoto, somRemoto, local, topo, outro, meio, rodape);
   document.body.appendChild(t);
-  return { t, remoto, somRemoto, local, situacao, bts, aviso };
+  return { t, remoto, somRemoto, local, situacao, bts, aviso, outro, bMin, nome, foto, ft, nomeEl, fundo };
 }
 
 // Campainha: tom curto repetido (WebAudio) + vibração; para quando atende, recusa ou some.
@@ -173,21 +204,56 @@ function erroMidia(e, tipo) {
   if (e?.name === "NotFoundError") return tipo === "video" ? "Não encontramos câmera ou microfone neste aparelho." : "Não encontramos microfone neste aparelho.";
   return "Não foi possível usar o microfone/câmera agora.";
 }
-const pedirMidia = (tipo, frente = true) => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: tipo === "video" ? { facingMode: frente ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } } : false });
+// Câmera: 720p a 30 quadros e foco/exposição/balanço de branco automáticos e contínuos onde o aparelho deixa (antes a
+// câmera ficava com o foco travado em alguns Android e a imagem "não focava").
+const VIDEO = (frente) => ({ facingMode: frente ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } });
+async function ajustarCamera(track) {
+  try {
+    const c = track?.getCapabilities?.() || {}, adv = {};
+    if (c.focusMode?.includes("continuous")) adv.focusMode = "continuous";
+    if (c.exposureMode?.includes("continuous")) adv.exposureMode = "continuous";
+    if (c.whiteBalanceMode?.includes("continuous")) adv.whiteBalanceMode = "continuous";
+    if (Object.keys(adv).length) await track.applyConstraints({ advanced: [adv] });
+  } catch {}
+}
+const pedirMidia = async (tipo, frente = true) => {
+  const m = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: tipo === "video" ? VIDEO(frente) : false });
+  m.getVideoTracks().forEach(ajustarCamera);
+  return m;
+};
 
 // ---------- motor comum (os dois lados) ----------
-function iniciarConexao(ref, eu, tela, tipo, midia, turn = []) {
+// ctx: a chamada (tela, tipo, estado do outro lado). quemLiga: cria a oferta.
+function iniciarConexao(ref, eu, ctx, midia, turn = [], quemLiga = false) {
+  const tela = ctx.tela, tipo = ctx.tipo;
   const pc = new RTCPeerConnection({ iceServers: [...ICE.stun, ...ICE.turn, ...turn] });
   midia.getTracks().forEach((tr) => pc.addTrack(tr, midia));
+  // Ligação de voz já nasce com um lugar para vídeo (sem câmera): assim dá para ligar a câmera no meio da ligação sem
+  // renegociar pelo banco (replaceTrack). Quem atende abre o mesmo lugar nos dois sentidos (veja receber).
+  if (tipo !== "video" && quemLiga) pc.addTransceiver("video", { direction: "sendrecv" });
+  // Canal direto entre os aparelhos (não passa pelo banco): avisa quando um silencia o microfone ou liga/desliga a câmera.
+  // "negotiated" com o mesmo id dos dois lados (um aparelho antigo sem o canal só não recebe os avisos).
+  try {
+    const canal = pc.createDataChannel("hf", { negotiated: true, id: 0 });
+    canal.onopen = () => ctx.enviarEstado?.();
+    canal.onmessage = (ev) => { try { const d = JSON.parse(ev.data); if (d?.t === "estado") { ctx.outro = { mic: d.mic !== false, cam: !!d.cam }; pintarOutro(ctx); } } catch {} };
+    ctx.canal = canal;
+  } catch {}
   if (tipo === "video") { tela.local.srcObject = midia; tela.local.hidden = false; }
   const remota = new MediaStream();
-  // Alguns navegadores mandam a trilha sem a "stream" junto (ev.streams vazio): usa a própria trilha.
+  ctx.remota = remota;
+  // O som do outro lado vai SEMPRE pelo <audio> (o vídeo fica mudo): antes, na chamada de vídeo, o som ia pelo <video>
+  // e ligar a câmera numa ligação de voz tocaria o som duas vezes. Alguns navegadores mandam a trilha sem a "stream".
   pc.ontrack = (ev) => {
     (ev.streams[0]?.getTracks() || [ev.track]).forEach((tr) => { if (tr && !remota.getTracks().includes(tr)) remota.addTrack(tr); });
-    const alvo = tipo === "video" ? tela.remoto : tela.somRemoto;
-    if (tipo === "video") { tela.remoto.hidden = false; tela.t.classList.add("com-video"); }
-    if (alvo.srcObject !== remota) alvo.srcObject = remota;
-    alvo.play?.().catch(() => {}); // o autoplay sozinho falha no iPhone quando a trilha chega depois
+    if (tela.somRemoto.srcObject !== remota) tela.somRemoto.srcObject = remota;
+    tela.somRemoto.play?.().catch(() => {}); // o autoplay sozinho falha no iPhone quando a trilha chega depois
+    if (ev.track.kind === "video") {
+      if (tela.remoto.srcObject !== remota) tela.remoto.srcObject = remota;
+      ev.track.onunmute = () => pintarOutro(ctx);
+      ev.track.onmute = () => pintarOutro(ctx);
+      pintarOutro(ctx);
+    }
   };
   // Candidatos: os meus vão para a subcoleção; os do outro lado entram na conexão.
   const fila = []; let pronto = false;
@@ -219,48 +285,132 @@ function iniciarConexao(ref, eu, tela, tipo, midia, turn = []) {
     });
   };
   const remotaPronta = () => { temRemota = true; pendentes.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => {})); };
-  return { pc, liberarFila, remotaPronta, ouvirCandidatos, pararCand: () => { parado = true; pararCand(); }, diag };
+  return { pc, liberarFila, remotaPronta, ouvirCandidatos, pararCand: () => { parado = true; pararCand(); }, diag, remota };
 }
 
-// Controles durante a chamada: microfone, câmera, virar a câmera (vídeo) e encerrar.
-function controles(tela, tipo, midiaRef, pc, encerrar) {
-  tela.bts.replaceChildren();
-  const mic = botao("", "mic", "Microfone", () => {
-    const tr = midiaRef.m.getAudioTracks()[0]; if (!tr) return; tr.enabled = !tr.enabled;
-    mic.classList.toggle("off", !tr.enabled); mic.querySelector("i").innerHTML = svg(tr.enabled ? "mic" : "micOff"); mic.lastChild.textContent = tr.enabled ? "Microfone" : "Mudo";
-  });
-  tela.bts.appendChild(mic);
-  if (tipo === "video") {
-    const cam = botao("", "cam", "Câmera", () => {
-      const tr = midiaRef.m.getVideoTracks()[0]; if (!tr) return; tr.enabled = !tr.enabled;
-      cam.classList.toggle("off", !tr.enabled); cam.querySelector("i").innerHTML = svg(tr.enabled ? "cam" : "camOff"); tela.local.style.opacity = tr.enabled ? "1" : ".25";
-    });
-    let frente = true;
-    // Virar: o celular não abre as duas câmeras ao mesmo tempo, então a de agora para ANTES de pedir a outra (antes o
-    // pedido falhava calado na maioria dos Android). Só a câmera é pedida de novo (o microfone continua o mesmo).
-    let virando = false;
-    const virar = botao("", "virar", "Virar", async () => {
-      if (virando) return; virando = true;
-      const velha = midiaRef.m.getVideoTracks()[0], ligada = velha ? velha.enabled : true;
-      const sender = pc.getSenders().find((s) => s.track?.kind === "video" || (!s.track && velha));
-      const trocar = async (paraFrente) => {
-        const nv = (await navigator.mediaDevices.getUserMedia({ video: { facingMode: paraFrente ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } } })).getVideoTracks()[0];
-        nv.enabled = ligada;
-        await sender?.replaceTrack(nv);
-        midiaRef.m.getVideoTracks().forEach((t) => midiaRef.m.removeTrack(t)); midiaRef.m.addTrack(nv);
-        tela.local.srcObject = midiaRef.m; tela.local.style.transform = paraFrente ? "scaleX(-1)" : "none";
-      };
-      try { velha?.stop(); await trocar(!frente); frente = !frente; }
-      catch { try { await trocar(frente); } catch {} tela.situacao.dataset.aviso = "Não foi possível trocar de câmera"; setTimeout(() => delete tela.situacao.dataset.aviso, 2500); }
-      finally { virando = false; }
-    });
-    tela.bts.append(cam, virar);
-  }
-  tela.bts.appendChild(botao("fim", "tel", "Encerrar", () => encerrar("encerrada")));
+// O que a outra pessoa está fazendo: vídeo dela na tela quando a câmera está ligada (e chegando imagem), foto quando
+// está desligada, e o aviso "Fulano silenciou o microfone" / "desligou a câmera".
+function pintarOutro(ctx) {
+  const tela = ctx.tela; if (!tela) return;
+  const o = ctx.outro || {};
+  const vid = ctx.remota?.getVideoTracks()[0];
+  const camOutro = o.cam !== undefined ? o.cam : ctx.tipo === "video";
+  const mostra = !!vid && camOutro && !vid.muted && ctx.conectado !== false;
+  tela.remoto.hidden = !mostra;
+  tela.t.classList.toggle("com-video", mostra);
+  if (mostra) tela.remoto.play?.().catch(() => {});
+  const primeiro = String(tela.nome || "").split(" ")[0] || "A pessoa";
+  const avisos = [];
+  if (o.mic === false) avisos.push(`${primeiro} silenciou o microfone`);
+  else if (ctx.tipo === "video" && o.cam === false) avisos.push(`${primeiro} desligou a câmera`);
+  tela.outro.hidden = !avisos.length;
+  tela.outro.innerHTML = avisos.length ? svg(o.mic === false ? "micOff" : "camOff") : "";
+  if (avisos.length) tela.outro.append(avisos[0]);
+  ctx.mini?.video(mostra ? ctx.remota : null);
 }
+
+// Controles durante a chamada: Câmera · Silenciar · Virar (com a câmera ligada) · Encerrar, e Minimizar no topo.
+// O estado (microfone e câmera) vai para o outro lado pelo canal direto.
+function controles(ctx, encerrar) {
+  const tela = ctx.tela, pc = ctx.conexao.pc, midiaRef = ctx.midia;
+  tela.bts.replaceChildren();
+  const micLigado = () => midiaRef.m.getAudioTracks()[0]?.enabled !== false;
+  const camLigada = () => { const v = midiaRef.m.getVideoTracks()[0]; return !!v && v.readyState === "live" && v.enabled; };
+  ctx.enviarEstado = () => { try { if (ctx.canal?.readyState === "open") ctx.canal.send(JSON.stringify({ t: "estado", mic: micLigado(), cam: camLigada() })); } catch {} };
+  const senderVideo = () => pc.getTransceivers().find((t) => t.receiver?.track?.kind === "video" && t.sender && !t.stopped)?.sender
+    || pc.getSenders().find((s) => s.track?.kind === "video");
+  let frente = true, ocupadoCam = false;
+  const pintar = () => {
+    const m = micLigado(), c = camLigada();
+    mic.classList.toggle("off", !m); trocarBotao(mic, m ? "mic" : "micOff", m ? "Silenciar" : "Mudo");
+    cam.classList.toggle("on", c); trocarBotao(cam, c ? "cam" : "camOff", c ? "Câmera" : "Câmera");
+    cam.setAttribute("aria-label", c ? "Desligar a câmera" : "Ligar a câmera"); cam.setAttribute("aria-pressed", c ? "true" : "false");
+    virar.hidden = !c;
+    tela.local.hidden = !c; tela.local.style.opacity = "1";
+    ctx.mini?.mic(!m);
+  };
+  ctx.alternarMic = () => { const tr = midiaRef.m.getAudioTracks()[0]; if (!tr) return; tr.enabled = !tr.enabled; pintar(); ctx.enviarEstado(); };
+  const mic = botao("", "mic", "Silenciar", () => ctx.alternarMic());
+  // Câmera: na chamada de vídeo liga/desliga a imagem; na ligação de voz pede a câmera e passa a mandar vídeo.
+  const cam = botao("", "camOff", "Câmera", async () => {
+    if (ocupadoCam) return; ocupadoCam = true;
+    try {
+      const v = midiaRef.m.getVideoTracks()[0];
+      if (v && v.readyState === "live") {
+        if (ctx.tipo === "video") v.enabled = !v.enabled;
+        else { v.stop(); midiaRef.m.removeTrack(v); await senderVideo()?.replaceTrack(null); }
+      } else {
+        const nv = (await navigator.mediaDevices.getUserMedia({ video: VIDEO(frente) })).getVideoTracks()[0];
+        await ajustarCamera(nv);
+        const sd = senderVideo();
+        if (!sd) { nv.stop(); throw new Error("sem-video"); }
+        await sd.replaceTrack(nv);
+        midiaRef.m.addTrack(nv);
+        tela.local.srcObject = midiaRef.m; tela.local.style.transform = frente ? "scaleX(-1)" : "none";
+      }
+    } catch (e) {
+      tela.situacao.dataset.aviso = e?.message === "sem-video" ? "A outra pessoa está com uma versão antiga do site" : "Não foi possível ligar a câmera";
+      setTimeout(() => delete tela.situacao.dataset.aviso, 2600);
+    } finally { ocupadoCam = false; pintar(); ctx.enviarEstado(); }
+  });
+  // Virar: o celular não abre as duas câmeras ao mesmo tempo, então a de agora para ANTES de pedir a outra. Só a câmera
+  // é pedida de novo (o microfone continua o mesmo).
+  let virando = false;
+  const virar = botao("", "virar", "Virar", async () => {
+    if (virando) return; virando = true;
+    const velha = midiaRef.m.getVideoTracks()[0], ligada = velha ? velha.enabled : true;
+    const sender = senderVideo();
+    const trocar = async (paraFrente) => {
+      const nv = (await navigator.mediaDevices.getUserMedia({ video: VIDEO(paraFrente) })).getVideoTracks()[0];
+      await ajustarCamera(nv);
+      nv.enabled = ligada;
+      await sender?.replaceTrack(nv);
+      midiaRef.m.getVideoTracks().forEach((t) => midiaRef.m.removeTrack(t)); midiaRef.m.addTrack(nv);
+      tela.local.srcObject = midiaRef.m; tela.local.style.transform = paraFrente ? "scaleX(-1)" : "none";
+    };
+    try { velha?.stop(); await trocar(!frente); frente = !frente; }
+    catch { try { await trocar(frente); } catch {} tela.situacao.dataset.aviso = "Não foi possível trocar de câmera"; setTimeout(() => delete tela.situacao.dataset.aviso, 2500); }
+    finally { virando = false; pintar(); }
+  });
+  tela.bts.append(cam, mic, virar, botao("fim", "tel", "Encerrar", () => encerrar("encerrada")));
+  tela.bMin.hidden = false;
+  tela.bMin.onclick = () => minimizar(ctx);
+  pintar();
+}
+
+// ---------- minimizar (usar o site durante a ligação) ----------
+// Fora da rede: pílula na própria página (a tela da ligação some e a página volta). Na rede (rede.html): a pílula é
+// desenhada pela casca na página de cima, por cima de todas as abas, e o quadro da ligação desce (porCima).
+function minimizar(ctx) {
+  if (ctx.mini || !ctx.tela) return;
+  const tela = ctx.tela;
+  const dados = {
+    nome: tela.nome, foto: tela.foto, mudo: ctx.midia?.m?.getAudioTracks()[0]?.enabled === false,
+    aoAbrir: () => expandir(ctx), aoMic: () => ctx.alternarMic?.(), aoEncerrar: () => ctx.encerrarJa?.()
+  };
+  let mini = null;
+  try { mini = casca()?.chamadaMini?.(dados) || null; } catch {}
+  ctx.mini = mini || criarMini(document, dados);
+  tela.t.classList.add("minimizada");
+  if (ctx.subiu) { ctx.subiu = false; porCima(false); }
+  const texto = () => ctx.mini?.atualizar(tela.situacao.dataset.aviso || tela.situacao.textContent);
+  ctx.miniObs = new MutationObserver(texto); ctx.miniObs.observe(tela.situacao, { childList: true, characterData: true, subtree: true });
+  texto(); pintarOutro(ctx);
+}
+function expandir(ctx) {
+  ctx.miniObs?.disconnect(); ctx.miniObs = null;
+  ctx.mini?.fechar(); ctx.mini = null;
+  ctx.tela?.t.classList.remove("minimizada");
+  // Na rede o quadro da ligação pode estar atrás de outra aba: sobe por cima de novo.
+  if (casca() && !ctx.subiu) { porCima(true); ctx.subiu = true; }
+}
+// Saindo da página com a ligação em andamento, o navegador pergunta antes (sair encerra a ligação).
+function avisoSaida(e) { if (atual?.conectado) { e.preventDefault(); e.returnValue = ""; } }
 
 function finalizarLocal(ctx) {
   ctx.pararCampainha?.(); clearTimeout(ctx.timeout); clearInterval(ctx.cronometro); ctx.pararVigia?.();
+  ctx.miniObs?.disconnect(); ctx.mini?.fechar(); ctx.mini = null; removeEventListener("beforeunload", avisoSaida);
+  try { ctx.canal?.close(); } catch {}
   try { ctx.tela && (ctx.tela.remoto.srcObject = null, ctx.tela.somRemoto.srcObject = null, ctx.tela.local.srcObject = null); } catch {}
   ctx.wake?.release?.().catch(() => {}); ctx.wake = null;
   ctx.pararDoc?.(); ctx.conexao?.pararCand?.();
@@ -278,6 +428,8 @@ function conectou(ctx, inicio) {
   ctx.tela.aviso.textContent = ctx.tipo === "video" ? "" : "Ligação pelo Help Floripa: nada é gravado.";
   const pintar = () => { const s = ctx.tela.situacao; s.textContent = s.dataset.aviso || (ctx.caiu ? "Reconectando…" : relogio(Date.now() - ctx.inicio)); };
   pintar(); ctx.cronometro = setInterval(pintar, 1000);
+  addEventListener("beforeunload", avisoSaida);
+  ctx.enviarEstado?.(); pintarOutro(ctx);
   // Chamada de vídeo: a tela não apaga sozinha enquanto a conversa dura (onde o navegador deixa).
   if (ctx.tipo === "video") navigator.wakeLock?.request?.("screen").then((w) => { if (atual === ctx) ctx.wake = w; else w.release().catch(() => {}); }).catch(() => {});
 }
@@ -344,9 +496,9 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
     const turn = await turnP;
     if (fim) { ctx.midia.m.getTracks().forEach((t) => t.stop()); return; }
     ctx.ref = doc(collection(db(), "chamadas"));
-    ctx.conexao = iniciarConexao(ctx.ref, eu, ctx.tela, tipo, ctx.midia.m, turn);
+    ctx.conexao = iniciarConexao(ctx.ref, eu, ctx, ctx.midia.m, turn, true);
     const { pc } = ctx.conexao;
-    controles(ctx.tela, tipo, ctx.midia, pc, (s) => encerrar(ctx.conectado ? s : "cancelada"));
+    controles(ctx, (s) => encerrar(ctx.conectado ? s : "cancelada"));
     ctx.pararCampainha = campainha(false);
     try {
       const oferta = await pc.createOffer(); await pc.setLocalDescription(oferta);
@@ -398,7 +550,8 @@ async function receber(id, d) {
   ctx.tela = montarTela({ nome: quem.nome, foto: quem.foto, tipo: ctx.tipo, recebendo: true });
   quem.depois?.then((q) => {
     if (atual !== ctx || !ctx.tela) return;
-    ctx.tela.t.querySelector(".hfl-topo b").textContent = q.nome; ctx.tela.t.setAttribute("aria-label", `Chamada com ${q.nome}`);
+    ctx.tela.nomeEl.textContent = q.nome; ctx.tela.nome = q.nome; ctx.tela.t.setAttribute("aria-label", `Chamada com ${q.nome}`);
+    if (q.foto) ctx.tela.foto = q.foto;
     if (q.foto) { ctx.tela.t.querySelector(".hfl-fundo").style.setProperty("--foto", `url("${q.foto}")`); const ft = ctx.tela.t.querySelector(".hfl-foto"); ft.textContent = ""; ft.style.backgroundImage = `url("${q.foto}")`; }
   });
   // Na rede (rede.html) este quadro pode estar escondido atrás de outra aba: sobe por cima enquanto a chamada dura.
@@ -424,13 +577,15 @@ async function receber(id, d) {
     ctx.midia = { m };
     const turn = await turnRecebida;
     if (fim) { m.getTracks().forEach((t) => t.stop()); return; }
-    ctx.conexao = iniciarConexao(ref, eu, ctx.tela, ctx.tipo, ctx.midia.m, turn);
+    ctx.conexao = iniciarConexao(ref, eu, ctx, ctx.midia.m, turn, false);
     ctx.conexao.ouvirCandidatos();
     const { pc } = ctx.conexao;
     clearTimeout(ctx.timeout);
     vigiar(ctx, pc, encerrar);
     try {
       await pc.setRemoteDescription(d.oferta); ctx.conexao.remotaPronta();
+      // O lugar de vídeo da ligação de voz também manda daqui (para ligar a câmera depois sem renegociar).
+      pc.getTransceivers().forEach((t) => { if (t.receiver?.track?.kind === "video" && !t.sender.track && t.direction === "recvonly") t.direction = "sendrecv"; });
       const resp = await pc.createAnswer(); await pc.setLocalDescription(resp);
       if (fim) return;
       await updateDoc(ref, { status: "aceita", resposta: { type: resp.type, sdp: resp.sdp }, aceitaEm: serverTimestamp() });
@@ -441,7 +596,7 @@ async function receber(id, d) {
       ctx.tela.situacao.textContent = e?.code === "permission-denied" ? "A chamada já terminou" : "Não foi possível atender";
       setTimeout(() => encerrar("encerrada", e?.code !== "permission-denied"), 1500); return;
     }
-    controles(ctx.tela, ctx.tipo, ctx.midia, pc, encerrar);
+    controles(ctx, encerrar);
   });
   ctx.tela.bts.append(recusar, atender);
   ctx.timeout = setTimeout(() => { if (!ctx.conectado && !ctx.conexao) encerrar("perdida", false); }, Math.max(3000, TOCANDO_MS - (Date.now() - (d.criadoEm?.toMillis?.() ?? Date.now()))));

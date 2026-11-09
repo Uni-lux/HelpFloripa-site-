@@ -1831,6 +1831,32 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   quando a outra pessoa atende (antes só ao conectar), quem atende perde a animação `.tocando`, aviso de demora aos 9 s e,
   aos 30 s, "Não foi possível conectar" com o motivo (`motivoFalha` pelo `diag` {tipos, remotos}). Sem TURN, redes móveis
   muito fechadas continuam podendo falhar (TURN pronto, espera o Blaze). Teste `t-ligacao-falha.mjs` (bloqueia o ICE).
+- **Ligação profissional, chat "preto e azul", Chamadas e figurinhas (09/11/2026, PR depois do #170, MUDA 1 REGRA — não
+  publicada; 17 partes, 785 testes):** prints dele. **Ligação** (chamadas.js): tela nova (topo com Minimizar, nome, situação e
+  "Criptografada de aparelho a aparelho"; cartão embaixo Câmera · Silenciar · Virar · Encerrar). **Minimizar**
+  (`minimizar`/`expandir`): pílula `chamada-mini.js` (sem deps, `criarMini(doc, {nome, foto, mudo, aoAbrir, aoMic,
+  aoEncerrar})`, arrastável na vertical, `hf-lig-mini-y`); na rede a casca desenha a pílula na página de cima
+  (`__hfShell.chamadaMini`) e o quadro desce (`porCima`), em qualquer aba; tocar volta. Sair da página com ligação
+  conectada pergunta (`beforeunload`). **Canal direto** (DataChannel `negotiated` id 0): estado `{t:"estado", mic, cam}` →
+  `pintarOutro` ("Fulano silenciou o microfone"/"desligou a câmera", vídeo do outro só com a câmera ligada).
+  **Câmera numa ligação de voz:** quem liga cria `addTransceiver("video", sendrecv)` e quem atende muda o recvonly para
+  sendrecv antes da resposta → ligar/desligar a câmera = `replaceTrack` sem renegociar. O som do outro vai SEMPRE pelo
+  `<audio>` (o `<video>` é mudo). Câmera 720p/30 com foco/exposição/balanço contínuos (`ajustarCamera`). Alto-falante NÃO
+  (o navegador do celular não deixa escolher a saída). **Bug do #170:** a classe `.lg` do cartão da ligação colidia com
+  `.avatar.lg` (foto das Configurações do Mensagens encolhida) → cartão agora é `.lig`. **Chat** (fim do mensagens.css):
+  seus balões em degradê ciano (#10b6f2→#0082bd) com letra branca, os da outra pessoa quase pretos (#121a20) no escuro e
+  brancos no claro, cantos de 18 px com "rabinho" na 1ª do grupo, "lida" em branco, áudio com botão branco, botão de enviar
+  em degradê, foto do topo com anel. **"Visto por último"** como no WhatsApp ("visto por último hoje às 23:29"; dia da semana
+  até 6 dias; `statusTopo` desliza o texto quando não cabe). **Chamadas:** número da pílula Perdidas = só as NOVAS (some
+  depois de abrir). **Figurinhas do Flash:** hora/data/lugar/#/@ em pílula com o ícone numa bolinha (`ICONE_FIG` = traço SVG,
+  o canvas desenha com `Path2D`, `MED_FIG`), 5 estilos (`EST_FIG`: Clássico, Vidro, Noite, Help Floripa, Vibrante), texto sem
+  o símbolo (`rotuloFig`). **Pinça em todas:** enquete/teste/caixa/contagem/link aumentam e diminuem (sem girar) → `k` 0,6–1,3
+  no próprio mapa (`kDe`; regra só aceita a chave, o visor prende ao desenhar — conferir o valor estourava o limite de 1.000);
+  escala no MESMO `transform` depois do translate (a propriedade `scale` escorregava a figurinha); visor `encaixar(w, fx, fy,
+  k)`; sem as regras `semCamposNovos` tira o `k`. **Diário de um lugar/#** (`feed.html?local=`/`?tag=`): cabeçalho
+  `#feedLugar` (ícone, nome inteiro, nº de publicações, Como chegar, Publicar aqui, voltar) e sem a fileira do Flash e a linha de
+  filtros (`body.modo-lugar`). Testes `t-ligacao3.mjs` (21), `t-flash-figurinhas2.mjs` (14); `t-ligacao`, `t-ligacao2`,
+  `t-ligacao-falha`, `t-registro-chamadas` usam `.lig`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -1893,7 +1919,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes em `_regras/`, 769 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (17 partes em `_regras/`, 785 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

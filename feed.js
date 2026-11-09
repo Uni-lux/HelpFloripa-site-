@@ -16,12 +16,12 @@ import {
   barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=131";
+} from "./rede.js?v=132";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=103";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=104";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=116";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=117";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -92,7 +92,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=50").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=51").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -140,6 +140,40 @@ function pintarFiltro() {
   $("filtroAtual").textContent = localAtual ? "📍 " + localAtual.nome : tagAtual ? "#" + tagAtual : FILTROS[filtro];
   $("filtroFeedBtn").classList.toggle("com-tag", !!(tagAtual || localAtual));
   definirOrigem(tagAtual || localAtual ? "tag" : filtro);
+  pintarCabLugar();
+}
+// Página de um lugar ou de uma hashtag (tocar no lugar/# de um flash ou de uma publicação), 09/11/2026: antes aparecia só
+// a linha fina de filtros com o nome cortado ("📍 Tapera da Base, Florianóp") e os ícones; agora um cabeçalho próprio
+// (ícone, nome inteiro, quantas publicações, Como chegar / Publicar e Voltar ao Diário). O Flash e os filtros saem.
+function sairDoLugar() { tagAtual = ""; localAtual = null; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); }
+function pintarCabLugar(qtd) {
+  let cab = $("feedLugar");
+  const ativo = !!(localAtual || tagAtual);
+  document.body.classList.toggle("modo-lugar", ativo);
+  if (!ativo) { cab?.remove(); return; }
+  if (!cab) { cab = el("section", "feed-lugar"); cab.id = "feedLugar"; $("listaFeed").before(cab); }
+  const chave = localAtual ? `l:${localAtual.lat},${localAtual.lng}` : `t:${tagAtual}`;
+  if (cab.dataset.chave !== chave) {
+    cab.dataset.chave = chave; cab.replaceChildren();
+    const fechar = el("button", "fl-voltar"); fechar.type = "button"; fechar.setAttribute("aria-label", "Voltar ao Diário"); fechar.appendChild(icone("voltar", "i s"));
+    fechar.addEventListener("click", sairDoLugar);
+    const ic = el("span", "fl-ic " + (localAtual ? "lugar" : "tag")); ic.appendChild(icone(localAtual ? "local" : "hashtag", "i"));
+    const tx = el("div", "fl-tx");
+    tx.append(el("small", null, localAtual ? "Lugar" : "Hashtag"), el("h2", null, localAtual ? localAtual.nome : "#" + tagAtual), el("span", "fl-qtd", "Carregando as publicações…"));
+    const acoes = el("div", "fl-acoes");
+    if (localAtual) {
+      const ir = el("a", "fl-bt"); ir.href = `https://www.google.com/maps/search/?api=1&query=${localAtual.lat},${localAtual.lng}`; ir.target = "_blank"; ir.rel = "noopener";
+      ir.append(icone("bussola", "i s"), "Como chegar");
+      acoes.appendChild(ir);
+    }
+    const pub = el("button", "fl-bt pri"); pub.type = "button"; pub.append(icone("criar", "i s"), localAtual ? "Publicar aqui" : `Publicar com #${tagAtual}`);
+    pub.addEventListener("click", () => compor(tagAtual ? `#${tagAtual} ` : ""));
+    acoes.appendChild(pub);
+    const topo = el("div", "fl-topo"); topo.append(fechar, ic, tx);
+    cab.append(topo, acoes);
+    if (localAtual) cab.appendChild(el("p", "fl-dica", "Publicações marcadas neste lugar ou a até 3 km dele."));
+  }
+  if (qtd !== undefined) cab.querySelector(".fl-qtd").textContent = qtd ? `${qtd} ${qtd === 1 ? "publicação" : "publicações"}` : "Nenhuma publicação ainda";
 }
 $("filtroFeedBtn").addEventListener("click", () => abrirOpcoes("Mostrar no Diário", [
   tagAtual && { rotulo: `Sair de #${tagAtual}`, sub: "Voltar para o Diário", icone: "fechar", fn: () => { tagAtual = ""; history.replaceState(history.state, "", "feed.html"); pintarFiltro(); carregarFeed(); } },
@@ -515,6 +549,7 @@ async function carregarFeed({ forcar = true } = {}) {
     if (g !== geracaoFeed) return;
     todosPosts = bruto.filter((p) => p._emDia || (!escondido(p.autorId) && !postOculto(p)));
     if (localAtual || tagAtual || filtro !== "principais") todosPosts.sort((a, b) => ms(b.agendadoPara || b.criadoEm) - ms(a.agendadoPara || a.criadoEm)); // principais: pela pontuação
+    if (localAtual || tagAtual) pintarCabLugar(todosPosts.filter((p) => !postOculto?.(p)).length);
   } catch (e) {
     console.warn(e);
     primeirasProntas();
@@ -655,7 +690,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=98").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=99").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",

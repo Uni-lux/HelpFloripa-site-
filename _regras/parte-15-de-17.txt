@@ -1,3 +1,28 @@
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
       allow create, update: if logado() && contaCerta();
       // Recalcular (moderação): números inteiros, sem campo estranho.
       allow create, update: if podeModerar()
@@ -171,23 +196,4 @@
       function fotoPubOk(u) {
         return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
       }
-      // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
-      //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
-      //   foto: 1 a 4 fotos (mediaUrl + midias), legenda opcional; sem enquete/caixa/vídeo
-      //   video: um vídeo (mediaTipo 'video'), legenda opcional
-      //   enquete / caixa: a enquete ou a caixa de perguntas, com no máximo uma imagem (sem midias e sem vídeo)
-      function tipoOk(d) {
-        let t = d.get('tipo', '');
-        let midia = d.get('mediaUrl', '') != '';
-        let video = d.get('mediaTipo', '') == 'video';
-        let extra = ('enquete' in d) || ('caixa' in d);
-        return (t == '' && !('estilo' in d))
-            || (t == 'texto' && d.get('texto', '').size() >= 1 && !extra && !video && !('midias' in d)
-                && (midia ? (d.get('estilo', '') == 'casada' && d.texto.size() <= 500) : !('estilo' in d)))
-            || (t == 'foto' && midia && !video && !extra && !('estilo' in d))
-            || (t == 'video' && midia && video && !extra && !('midias' in d) && !('estilo' in d))
-            || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
-                && !video && !('midias' in d) && !('estilo' in d));
-      }
-
-// ===== FIM DA PARTE 15 DE 16 =====
+// ===== FIM DA PARTE 15 DE 17 =====

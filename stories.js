@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=131";
+} from "./rede.js?v=132";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -935,15 +935,31 @@ const FUNDO_VIDRO = "rgba(8,12,16,.55)"; // fundo escuro transparente atrás do 
 // Figurinhas de emoji (desenhadas na foto, como os outros textos).
 const EMOJIS_FIG = ["😍", "😂", "🥰", "😎", "🤩", "🥳", "😮", "😢", "😡", "🙏", "👏", "💪", "🔥", "✨", "💯", "❤️", "💙", "💚", "💛", "💜", "⭐", "🌟", "🎉", "🎂", "☀️", "🌙", "🌊", "🌴", "🏖️", "🍕", "🍔", "☕", "🍺", "⚽", "🎵", "📍", "📸", "🏠", "🐶", "🐱", "🚗", "✈️", "💼", "🛠️", "💡", "✅", "👀", "🤝"];
 
-// Figurinhas (horário, data e localização): 4 estilos, um toque troca.
+// Figurinhas (hora, data, lugar, # e @), refeitas em 09/11/2026 ("mais profissional e sofisticado"): cartão em pílula com
+// o ícone numa bolinha colorida à esquerda e o texto ao lado; 5 estilos (um toque troca), iguais na tela e na foto
+// (o canvas desenha o mesmo ícone com Path2D a partir do MESMO traço do SVG).
+//   0 Clássico (branco, bolinha na cor do tipo e texto em degradê) · 1 Vidro · 2 Noite (escuro com borda ciano)
+//   3 Help Floripa (degradê ciano da marca) · 4 Vibrante (degradê na cor do tipo)
+const ICONE_FIG = {
+  hora: "M12 3a9 9 0 110 18 9 9 0 010-18zM12 7.5V12l3 2",
+  data: "M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4",
+  local: "M12 21s-6.5-6-6.5-11a6.5 6.5 0 1113 0c0 5-6.5 11-6.5 11zM12 12.4a2.4 2.4 0 100-4.8 2.4 2.4 0 000 4.8z",
+  hashtag: "M5 9.5h15M4 15h15M10.5 4l-2 16M16 4l-2 16",
+  mencao: "M15.6 12a3.6 3.6 0 11-7.2 0 3.6 3.6 0 017.2 0zM15.6 12v1.4a2.6 2.6 0 005.2 0V12a8.8 8.8 0 10-3.4 6.9"
+};
+const COR_FIG = { hora: ["#ffb300", "#ff6d00"], data: ["#00c6a7", "#1e9bd7"], local: ["#7c5cff", "#00adee"], hashtag: ["#8e2de2", "#ff3d7f"], mencao: ["#ff8a00", "#ff3d7f"] };
 const EST_FIG = [
-  { fundo: "#ffffff", cor: "#111111" },
-  { fundo: "rgba(255,255,255,.28)", cor: "#ffffff", borda: "rgba(255,255,255,.55)" },
-  { fundo: "rgba(10,14,18,.72)", cor: "#ffffff" },
-  { fundo: ["#ff8a00", "#ff3d7f"], cor: "#ffffff" }
+  { nome: "Clássico", fundo: "#ffffff", cor: "#11161b", chip: "tipo", grad: true, sombra: true },
+  { nome: "Vidro", fundo: "rgba(255,255,255,.18)", cor: "#ffffff", borda: "rgba(255,255,255,.65)", chip: "rgba(255,255,255,.26)" },
+  { nome: "Noite", fundo: "rgba(7,12,16,.88)", cor: "#ffffff", borda: "rgba(0,173,238,.7)", chip: "tipo", sombra: true },
+  { nome: "Help Floripa", fundo: ["#14bdf5", "#0081bb"], cor: "#ffffff", chip: "rgba(255,255,255,.24)", sombra: true },
+  { nome: "Vibrante", fundo: "tipo", cor: "#ffffff", chip: "rgba(255,255,255,.24)", sombra: true }
 ];
-// No 1º estilo (pílula branca), lugar, # e @ têm o texto em degradê (como no Instagram), na tela e na foto.
-const GRAD_FIG = { local: ["#7c5cff", "#00adee"], hashtag: ["#8e2de2", "#ff3d7f"], mencao: ["#ff8a00", "#ff3d7f"] };
+const corFig = (fig) => COR_FIG[fig] || COR_FIG.local;
+// O texto da figurinha sem o símbolo que a bolinha já mostra (📍, # e @ continuam no t.texto para os toques).
+const rotuloFig = (t) => String(t.texto || "").replace(/^📍\s*/u, "").replace(/^[#@]/, "");
+// Medidas do cartão (em px da letra): o mesmo cálculo para a tela e para a foto.
+const MED_FIG = { padE: 0.3, chip: 1.2, gap: 0.36, padD: 0.66, alt: 1.78 };
 const DIAS_SEM = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MESES_C = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 function textoFigurinha(fig, local = "") {
@@ -1441,19 +1457,20 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       return;
     }
     if (t.fig) {
-      const es = EST_FIG[t.estilo];
-      e.className = `flash-txt flash-fig fig-${t.fig}`;
+      t.estilo = (t.estilo || 0) % EST_FIG.length;
+      const es = EST_FIG[t.estilo], ct = corFig(t.fig);
+      e.className = `flash-txt flash-fig fig-${t.fig} est-${t.estilo}`;
       e.style.font = `${t.fig === "hora" ? 800 : 750} ${Math.round(t.tam * W)}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
       e.style.color = es.cor;
-      e.style.background = Array.isArray(es.fundo) ? `linear-gradient(135deg, ${es.fundo[0]}, ${es.fundo[1]})` : es.fundo;
-      e.style.boxShadow = es.borda ? `inset 0 0 0 1.5px ${es.borda}` : "0 4px 14px rgba(0,0,0,.25)";
-      const gr = (t.estilo || 0) === 0 && GRAD_FIG[t.fig];
-      if (gr) {
-        // o 📍 fica com a cor dele (fora do degradê); o resto do texto em degradê
-        const pin = t.texto.startsWith("📍") ? "📍" : "";
-        const sp = el("span", "fig-grad", t.texto.slice(pin.length).trimStart()); sp.style.backgroundImage = `linear-gradient(90deg, ${gr[0]}, ${gr[1]})`;
-        e.replaceChildren(...(pin ? [document.createTextNode(pin + " "), sp] : [sp]));
-      }
+      const fundo = es.fundo === "tipo" ? ct : es.fundo;
+      e.style.background = Array.isArray(fundo) ? `linear-gradient(135deg, ${fundo[0]}, ${fundo[1]})` : fundo;
+      e.style.boxShadow = [es.borda ? `inset 0 0 0 .07em ${es.borda}` : "", es.sombra ? "0 .18em .6em rgba(0,0,0,.28)" : ""].filter(Boolean).join(", ") || "none";
+      const chip = el("span", "fig-chip");
+      chip.style.background = es.chip === "tipo" ? `linear-gradient(135deg, ${ct[0]}, ${ct[1]})` : es.chip;
+      chip.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONE_FIG[t.fig] || ICONE_FIG.local}"/></svg>`;
+      const tx = el("span", "fig-tx" + (es.grad ? " fig-grad" : ""), rotuloFig(t));
+      if (es.grad) tx.style.backgroundImage = `linear-gradient(90deg, ${ct[0]}, ${ct[1]})`;
+      e.replaceChildren(chip, tx);
       // Menção oculta ou "só na lista": fica apagadinha aqui e NÃO vai desenhada no flash.
       e.classList.toggle("oculta", !!(t.oculta || t.soLista));
       e.title = t.oculta ? "Menção oculta: só o aviso, não aparece no flash" : t.soLista ? "Só na lista de mencionados (não vai desenhada)" : "";
@@ -1605,9 +1622,12 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   // pode cair fora dela) aumentam, diminuem e giram. Durante o gesto só a posição/tamanho mudam (nada é redesenhado:
   // antes cada movimento remontava a figurinha embaixo do dedo e o arrasto travava). Guias do meio (vertical e
   // horizontal) encaixam com uma vibração; a lixeira acende quando o DEDO chega nela e a figurinha encolhe por cima.
-  // Enquete, teste, perguntas e contagem ficam inteiras dentro do cartão (do mesmo jeito que o visor mostra) e só
-  // arrastam (no visor elas têm tamanho fixo).
+  // Enquete, teste, perguntas, contagem e link ficam inteiros dentro do cartão (do mesmo jeito que o visor mostra) e,
+  // desde 09/11/2026, também aumentam e diminuem com dois dedos (sem girar): o tamanho vai gravado como `k` (0,6 a 1,3)
+  // e o visor desenha do mesmo tamanho (antes a pinça nelas "bugava": a figurinha só seguia o 1º dedo).
   const LIMITE_TAM = (t) => (t.ft ? [0.15, 1.3] : t.emoji ? [0.05, 0.5] : t.fig ? [0.03, 0.22] : [0.03, 0.3]);
+  const LIMITE_K = [0.6, 1.3]; // 1,3 × 74% do cartão = 96%: a enquete maior ainda cabe inteira
+  const escalavel = (t) => !!(t.enq || t.cx || t.ct || t.lk);
   const giraEsse = (t) => !(t.enq || t.cx || t.lk || t.ct);
   const interativa = (t) => !!(t.enq || t.cx || t.ct);
   const gesto = { t: null, pts: new Map(), base: null, mexeu: false, dois: false, quadro: 0, guiaV: false, guiaH: false, noLixo: false };
@@ -1622,14 +1642,15 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }
   function baseGesto() {
     const t = gesto.t, l = ptsArr();
-    if (l.length >= 2 && giraEsse(t)) {
+    if (l.length >= 2 && (giraEsse(t) || escalavel(t))) {
       const [a, b] = l;
-      gesto.base = { dois: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, tam: t.tam, rot: t.rot || 0, tx: t.x, ty: t.y };
+      gesto.base = { dois: true, escala: !giraEsse(t), d: Math.hypot(a.x - b.x, a.y - b.y) || 1, ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, tam: t.tam, k: t.k || 1, rot: t.rot || 0, tx: t.x, ty: t.y };
       gesto.dois = true;
     } else if (l.length) gesto.base = { dois: false, x: l[0].x, y: l[0].y, tx: t.x, ty: t.y };
   }
   // Só o tamanho (pinça), sem remontar a figurinha.
   function ajustarTam(t) {
+    if (escalavel(t)) { moverFig(t); return; }
     const { W } = medidas(), e = t.el, px = Math.round(t.tam * W) + "px";
     if (t.ft) e.style.width = px;
     else if (t.fig) e.style.fontSize = px;
@@ -1645,15 +1666,17 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     pintarTexto(t); t.el.classList.add("flash-orig");
     const { W, H } = medidas(); if (W && H) limitar(t, W, H); moverFig(t);
   }
+  // A escala vai DEPOIS do translate(-50%, -50%) no mesmo transform (a propriedade `scale` do CSS é aplicada antes e
+  // aumentava junto o deslocamento: a enquete maior escorregava para a esquerda).
   function moverFig(t) {
-    const e = t.el;
+    const e = t.el, k = escalavel(t) ? t.k || 1 : 1;
     e.style.left = t.x * 100 + "%"; e.style.top = t.y * 100 + "%";
-    e.style.transform = `translate(-50%, -50%)${t.rot ? ` rotate(${t.rot}deg)` : ""}`;
+    e.style.transform = `translate(-50%, -50%)${t.rot ? ` rotate(${t.rot}deg)` : ""}${k !== 1 ? ` scale(${k})` : ""}`;
   }
   // Limites do centro: as interativas ficam inteiras e entre as faixas de cima/baixo (igual ao visor, `encaixar`);
   // as outras podem passar um pouco da borda, mas o centro fica no cartão (nunca somem para fora).
   function limitar(t, W, H) {
-    const e = t.el, w = e.offsetWidth || 0, h = e.offsetHeight || 0;
+    const e = t.el, kk = escalavel(t) ? t.k || 1 : 1, w = (e.offsetWidth || 0) * kk, h = (e.offsetHeight || 0) * kk;
     if (interativa(t)) {
       const mx = Math.min(0.5, (w / 2 + 6) / W), cima = Math.min(0.5, 0.11 + h / 2 / H), baixo = Math.max(cima, 1 - Math.max(0.1, 70 / H) - h / 2 / H);
       t.x = Math.min(1 - mx, Math.max(mx, t.x)); t.y = Math.min(baixo, Math.max(cima, t.y));
@@ -1726,6 +1749,15 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const d = Math.hypot(p1.x - p2.x, p1.y - p2.y), ang = Math.atan2(p2.y - p1.y, p2.x - p1.x);
       const [mn, mx] = LIMITE_TAM(t);
       if (!gesto.mexeu) { marcar(`Ajustar ${nomeFig(t)}`); gesto.mexeu = true; palco.classList.add("arrastando-txt"); t.el.classList.add("segurando"); }
+      if (b.escala) {
+        // enquete, perguntas, contagem e link: só o tamanho (e a posição pelo meio dos dedos), sem girar
+        t.k = Math.round(Math.min(LIMITE_K[1], Math.max(LIMITE_K[0], b.k * (d / b.d))) * 100) / 100;
+        t.x = b.tx + ((p1.x + p2.x) / 2 - b.mx) / W;
+        t.y = b.ty + ((p1.y + p2.y) / 2 - b.my) / H;
+        limitar(t, W, H);
+        pedirQuadro();
+        return;
+      }
       t.tam = Math.min(mx, Math.max(mn, b.tam * (d / b.d)));
       let r = b.rot + ((ang - b.ang) * 180) / Math.PI;
       r = ((r + 540) % 360) - 180;
@@ -2882,26 +2914,39 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         return;
       }
       if (t.fig) {
-        const es = EST_FIG[t.estilo];
+        const es = EST_FIG[(t.estilo || 0) % EST_FIG.length], ct = corFig(t.fig), rot = rotuloFig(t), M = MED_FIG;
         g.font = `${t.fig === "hora" ? 800 : 750} ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
-        g.textAlign = "center"; g.textBaseline = "middle";
-        const lw = g.measureText(t.texto).width + px * 0.9, lh = px * 1.5;
+        g.textAlign = "left"; g.textBaseline = "middle";
+        const tw = g.measureText(rot).width;
+        const lw = px * (M.padE + M.chip + M.gap + M.padD) + tw, lh = px * M.alt;
         const ra = ((t.rot || 0) * Math.PI) / 180, bw = Math.abs(lw * Math.cos(ra)) + Math.abs(lh * Math.sin(ra)), bh = Math.abs(lw * Math.sin(ra)) + Math.abs(lh * Math.cos(ra));
         // A figurinha (@, lugar, #, hora) sai INTEIRA na foto: a letra da foto é um pouco mais larga que a do criador e,
         // encostada na beirada, a ponta ficava cortada (o @ aparecia pela metade no visor).
         const folga = OW * 0.015, x = Math.min(OW - bw / 2 - folga, Math.max(bw / 2 + folga, t.x * OW)), y = Math.min(OH - bh / 2 - folga, Math.max(bh / 2 + folga, t.y * OH));
         // Onde a figurinha ficou (fração da foto): quem vê toca ali (localização, hashtag e menção).
         t._area = { x: x / OW, y: y / OH, w: bw / OW, h: bh / OH };
-        if (Array.isArray(es.fundo)) { const gr = g.createLinearGradient(x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2); gr.addColorStop(0, es.fundo[0]); gr.addColorStop(1, es.fundo[1]); g.fillStyle = gr; }
-        else g.fillStyle = es.fundo;
-        g.shadowColor = es.borda ? "transparent" : "rgba(0,0,0,.25)"; g.shadowBlur = es.borda ? 0 : px * 0.4; g.shadowOffsetY = es.borda ? 0 : px * 0.1;
-        g.beginPath(); (g.roundRect ? g.roundRect(x - lw / 2, y - lh / 2, lw, lh, px * 0.32) : g.rect(x - lw / 2, y - lh / 2, lw, lh)); g.fill();
-        g.shadowBlur = 0; g.shadowOffsetY = 0;
-        if (es.borda) { g.strokeStyle = es.borda; g.lineWidth = Math.max(2, px * 0.05); g.stroke(); }
-        const gr = (t.estilo || 0) === 0 && GRAD_FIG[t.fig];
-        if (gr) { const gg = g.createLinearGradient(x - lw / 2 + px * 0.45, 0, x + lw / 2 - px * 0.45, 0); gg.addColorStop(0, gr[0]); gg.addColorStop(1, gr[1]); g.fillStyle = gg; }
-        else g.fillStyle = es.cor;
-        g.fillText(t.texto, x, y + px * 0.04);
+        const grad = (cores, x0, y0, x1, y1) => { const gg = g.createLinearGradient(x0, y0, x1, y1); gg.addColorStop(0, cores[0]); gg.addColorStop(1, cores[1]); return gg; };
+        const fundo = es.fundo === "tipo" ? ct : es.fundo;
+        g.save(); // (o giro já foi aplicado em volta do ponto da figurinha, em desenharCamada)
+        g.fillStyle = Array.isArray(fundo) ? grad(fundo, x - lw / 2, y - lh / 2, x + lw / 2, y + lh / 2) : fundo;
+        if (es.sombra) { g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = px * 0.5; g.shadowOffsetY = px * 0.16; }
+        g.beginPath(); (g.roundRect ? g.roundRect(x - lw / 2, y - lh / 2, lw, lh, lh / 2) : g.rect(x - lw / 2, y - lh / 2, lw, lh)); g.fill();
+        g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetY = 0;
+        if (es.borda) { g.strokeStyle = es.borda; g.lineWidth = Math.max(2, px * 0.07); g.stroke(); }
+        // bolinha com o ícone
+        const cr = (px * M.chip) / 2, cx = x - lw / 2 + px * M.padE + cr;
+        g.fillStyle = es.chip === "tipo" ? grad(ct, cx - cr, y - cr, cx + cr, y + cr) : es.chip;
+        g.beginPath(); g.arc(cx, y, cr, 0, Math.PI * 2); g.fill();
+        try {
+          const ic = new Path2D(ICONE_FIG[t.fig] || ICONE_FIG.local), esc = (cr * 1.16) / 24;
+          g.save(); g.translate(cx - 12 * esc, y - 12 * esc); g.scale(esc, esc);
+          g.strokeStyle = "#ffffff"; g.lineWidth = 2.3; g.lineCap = "round"; g.lineJoin = "round"; g.stroke(ic); g.restore();
+        } catch {}
+        // texto
+        const x0 = x - lw / 2 + px * (M.padE + M.chip + M.gap);
+        g.fillStyle = es.grad ? grad(ct, x0, 0, x0 + tw, 0) : es.cor;
+        g.fillText(rot, x0, y + px * 0.04);
+        g.restore();
         return;
       }
       g.font = LETRAS[t.letra].css.replace("1em", px + "px");
@@ -2976,14 +3021,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         const mencoes = await mencoesParaGravar();
         const comCor = (t) => (t.tema && t.tema !== "branco" && CORES_FIG.some(([k]) => k === t.tema) ? { cor: t.tema } : {});
         const ehTeste = enq && Number.isInteger(enq.certa);
-        const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000,
+        // tamanho escolhido com dois dedos (só quando mudou): o visor desenha igual
+        const kDe = (t) => (t && Math.abs((t.k || 1) - 1) > 0.02 ? { k: Math.round(t.k * 100) / 100 } : {});
+        const enquete = enq ? { pergunta: enq.pergunta, opcoes: enq.opcoes, x: Math.round(enq.x * 1000) / 1000, y: Math.round(enq.y * 1000) / 1000, ...kDe(enq),
           ...(ehTeste ? { certa: enq.certa } : { fimEm: fb.Timestamp.fromMillis(fimEscolhido(enq.duracao || { dur: 1440 }, { maxMin: MAX_FLASH_MIN })) }),
           ...(enq.anonima && !ehTeste ? { anonima: true } : {}), ...comCor(enq) } : null;
         const ctt = textos.find((t) => t.ct);
         if (ctt && ctt.fim < Date.now() + 4 * 6e4) throw Object.assign(new Error("A contagem regressiva já está quase no fim: escolha outro horário."), { amigavel: true });
-        const contagem = ctt ? { titulo: String(ctt.titulo).slice(0, 40), fim: fb.Timestamp.fromMillis(ctt.fim), x: Math.round(ctt.x * 1000) / 1000, y: Math.round(ctt.y * 1000) / 1000, ...comCor(ctt) } : null;
+        const contagem = ctt ? { titulo: String(ctt.titulo).slice(0, 40), fim: fb.Timestamp.fromMillis(ctt.fim), x: Math.round(ctt.x * 1000) / 1000, y: Math.round(ctt.y * 1000) / 1000, ...kDe(ctt), ...comCor(ctt) } : null;
         const cx = textos.find((t) => t.cx);
-        const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000, ...comCor(cx) } : null;
+        const caixa = cx ? { pergunta: cx.pergunta, anonima: !!cx.anonima, x: Math.round(cx.x * 1000) / 1000, y: Math.round(cx.y * 1000) / 1000, ...kDe(cx), ...comCor(cx) } : null;
         // Figurinhas que quem vê pode tocar: localização (vai para as publicações de lá), hashtags e menções à vista.
         const r3 = (n) => Math.round(Math.min(1, Math.max(0, n)) * 1000) / 1000;
         const pos = (a) => [r3(a.x), r3(a.y), r3(a.w), r3(a.h)];
@@ -3004,7 +3051,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
           }
         }
         const lk = textos.find((t) => t.lk);
-        const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000 } : null;
+        const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000, ...kDe(lk) } : null;
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
         const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
         const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(contagem ? { contagem } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
@@ -3202,6 +3249,8 @@ function semCamposNovos(d) {
   if ("alvo" in c) { delete c.alvo; c._semAlvo = true; mudou = true; }
   if ("contagem" in c) { delete c.contagem; c._semContagem = true; mudou = true; }
   ["enquete", "caixa"].forEach((k) => { if (c[k]?.cor) { const { cor, ...resto } = c[k]; c[k] = resto; mudou = true; } });
+  // tamanho das figurinhas interativas (k, 09/11/2026): sem as regras novas vão no tamanho de sempre
+  ["enquete", "caixa", "link"].forEach((k) => { if (c[k] && "k" in c[k]) { const { k: _k, ...resto } = c[k]; c[k] = resto; mudou = true; } });
   // Teste (quiz) sem as regras novas: vai como enquete comum, com prazo de 24 h.
   if (c.enquete && "certa" in c.enquete) { const { certa, ...resto } = c.enquete; c.enquete = { ...resto, fimEm: c.enquete.fimEm || fb.Timestamp.fromMillis(Date.now() + 864e5) }; c._eraTeste = true; mudou = true; }
   return mudou ? c : null;
@@ -3619,12 +3668,15 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   // Onde as figurinhas param embaixo: a faixa de sempre e, se o rodapé ficou por cima da foto, 10 px acima dele.
   let topoRodape = Infinity;
   const baixoFig = (H) => Math.min(H - Math.max(H * 0.1, 70), topoRodape - 10);
-  function encaixar(w, fx, fy) {
+  // escala: o tamanho que o autor escolheu com dois dedos (k, 0,6 a 1,3; sem = 1)
+  function encaixar(w, fx, fy, escala) {
     w.dataset.fx = fx; w.dataset.fy = fy;
+    if (escala !== undefined) w.dataset.k = Math.min(1.3, Math.max(0.6, Number(escala) || 1));
+    const ke = Number(w.dataset.k || 1);
     const W = quadro.offsetWidth, H = quadro.offsetHeight; if (!W || !H) return;
-    const k = (W * FRAC_FIG) / LARG_FIG;
+    const k = ((W * FRAC_FIG) / LARG_FIG) * ke;
     w.style.width = LARG_FIG + "px"; w.style.setProperty("--k", k.toFixed(4));
-    const h = w.offsetHeight * k, lw = W * FRAC_FIG;
+    const h = w.offsetHeight * k, lw = W * FRAC_FIG * ke;
     const cima = H * 0.11 + h / 2, baixo = baixoFig(H) - h / 2;
     const cy = Math.min(Math.max(fy * H, cima), Math.max(cima, baixo));
     const cx = Math.min(Math.max(fx * W, lw / 2 + 6), W - lw / 2 - 6);
@@ -3782,7 +3834,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     }, true);
     if (enq) {
       const w = el("div", "story-enq"); if (fig.enquete === s) paraAtividade(w);
-      w.appendChild(enq); quadro.appendChild(w); encaixar(w, fig.enquete.enquete.x ?? 0.5, fig.enquete.enquete.y ?? 0.6);
+      w.appendChild(enq); quadro.appendChild(w); encaixar(w, fig.enquete.enquete.x ?? 0.5, fig.enquete.enquete.y ?? 0.6, fig.enquete.enquete.k);
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
     }
     // Caixa de perguntas por cima do flash (quem vê responde; o autor vê as respostas).
@@ -3793,7 +3845,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const fimMs = ms(s.contagem.fim);
       const card = cartaoContagem({ titulo: s.contagem.titulo, fim: fimMs, cor: s.contagem.cor });
       const w = el("div", "story-enq story-ct");
-      w.appendChild(card); quadro.appendChild(w); encaixar(w, s.contagem.x ?? 0.5, s.contagem.y ?? 0.32);
+      w.appendChild(card); quadro.appendChild(w); encaixar(w, s.contagem.x ?? 0.5, s.contagem.y ?? 0.32, s.contagem.k);
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       if (meu) {
         const q = el("button", "ctg-lembrar quem"); q.type = "button"; q.append(icone("sino", "i xs"), el("span", null, "Lembretes…"));
@@ -3836,7 +3888,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     const cx = fig.caixa ? blocoCaixa(fig.caixa, { tipo: "f", escura: true }) : null;
     if (cx) {
       const w = el("div", "story-enq story-cx"); if (fig.caixa === s) paraAtividade(w);
-      w.appendChild(cx); quadro.appendChild(w); encaixar(w, fig.caixa.caixa.x ?? 0.5, fig.caixa.caixa.y ?? 0.42);
+      w.appendChild(cx); quadro.appendChild(w); encaixar(w, fig.caixa.caixa.x ?? 0.5, fig.caixa.caixa.y ?? 0.42, fig.caixa.caixa.k);
       ["pointerdown", "pointerup", "click", "keydown"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       // escrever a resposta (ou abrir as respostas) pausa o flash
       const t = cx.querySelector("textarea");
@@ -3947,6 +3999,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       const a = el("a", "story-link"); a.href = linkNegocio(lk);
       a.style.left = `${(lk.x ?? 0.5) * 100}%`; a.style.top = `${(lk.y ?? 0.68) * 100}%`;
       a.dataset.fx = lk.x ?? 0.5; a.dataset.fy = lk.y ?? 0.68;
+      if (lk.k) a.style.transform = `translate(-50%, -50%) scale(${Math.min(1.3, Math.max(0.6, Number(lk.k) || 1))})`;
       a.append(icone(ICONE_NEGOCIO[lk.tipo] || "loja", "i s"), el("span", null, lk.nome || "Ver o negócio"), icone("avancar", "i xs"));
       a.setAttribute("aria-label", `Abrir o perfil de ${lk.nome || "negócio"}`);
       ["pointerdown", "pointerup"].forEach((ev) => a.addEventListener(ev, (e) => e.stopPropagation()));

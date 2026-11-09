@@ -83,7 +83,7 @@
 > (miniatura JPEG até 30 mil letras), criadoEm, atualizadoEm} — os destaques do perfil, como no Instagram. Quem está logado
 > lê; só o dono cria, muda e apaga (a moderação também apaga). Sem a regra publicada, criar um destaque avisa que falta
 > publicar. Junto: criar o índice `stories` (`autorId` + `criadoEm`) do Arquivo do Flash, na lista do `INDICES-LEIA-ME.md`.
-> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 16 partes.
+> Para publicar, o processo é o mesmo: apagar tudo no console e colar as 17 partes.
 
 > **Flash: figurinhas tocáveis, menção oculta e cores (02/11):** `stories.toques` (até 8 textos, conferidos numa expressão
 > só: `h|hashtag|x|y|w|h`, `m|uid|x|y|w|h` e a localização `l|nome|lat|lng|x|y|w|h` com lat/lng no Brasil),
@@ -93,26 +93,32 @@
 > é publicado sem esses campos (a figurinha continua desenhada na foto, só não fica tocável; a pessoa da menção oculta
 > recebe o aviso, mas não pode repostar).
 
+> **Tamanho das figurinhas interativas do Flash (09/11):** `k` (o tamanho que a pessoa escolheu com dois dedos, de 0,6 a 1,3)
+> passa a ser aceito na enquete/teste (`enqueteOk`), na caixa de perguntas (`caixaOk`), no link do negócio (`linkFlashOk`) e
+> na contagem regressiva. O valor não é conferido na regra (não cabia no limite de 1.000 do flash "com TUDO junto"): o visor
+> prende entre 0,6 e 1,3 ao desenhar. Sem a regra publicada, o flash vai sem o `k` e a figurinha aparece no tamanho de sempre.
+> Agora são **17 partes**.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **16 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **17 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (193.508 bytes, 3.167 linhas, sha256 começa com `8c3d7f41432681be`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 16 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (195.495 bytes, 3.198 linhas, sha256 começa com `327830f7c2223ed6`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 17 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **783 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 17 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **785 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-16.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 16 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 16, **em ordem**.
+3. Abra `parte-1-de-17.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 17 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 17, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 16 DE 16 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 17 DE 17 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 16 linhas `FIM DA PARTE` aparecem, de 1 a 16, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 17 linhas `FIM DA PARTE` aparecem, de 1 a 17, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 

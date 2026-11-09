@@ -10,6 +10,7 @@
 // API para os quadros: window.__hfShell (quadro-rede.js e deslizar-flash.js usam).
 // =====================================================
 import { guardarSaida } from "./confirmar.js?v=6";
+import { criarMini } from "./chamada-mini.js?v=1";
 
 const ABAS = ["diario", "explorar", "comunidade", "mensagens", "perfil"];
 const NOMES = { diario: "Diário", explorar: "Explorar", comunidade: "Comunidade", mensagens: "Mensagens", perfil: "Perfil" };
@@ -321,6 +322,8 @@ Object.assign(S, {
   vizinho, comecar, mover, terminar,
   nomeDe: (k) => NOMES[k] || "",
   porCima, abrirFlash,
+  // Ligação minimizada: a pílula fica AQUI, na página de cima, por cima de todas as abas (chamadas.js minimizar).
+  chamadaMini: (dados) => criarMini(document, dados),
 });
 Object.defineProperty(S, "atual", { get: () => atual }); // (Object.assign copiaria só o valor de agora)
 

@@ -67,11 +67,11 @@ await p.locator(".rcd-acao", { hasText: "Mensagem" }).click(); await p.waitForTi
 ok(await p.locator("#btnLigar").isVisible(), "Mensagem abre a conversa");
 
 // Cartões no chat
-await p.waitForSelector(".chamada-msg .lg", { timeout: 10000 });
-const cartoes = (await p.locator(".chamada-msg .lg").allTextContents()).map((t) => t.replace(/\s+/g, " "));
+await p.waitForSelector(".chamada-msg .lig", { timeout: 10000 });
+const cartoes = (await p.locator(".chamada-msg .lig").allTextContents()).map((t) => t.replace(/\s+/g, " "));
 ok(cartoes.some((t) => /Chamada de voz perdida.*Você não atendeu.*Retornar a chamada/.test(t)), "cartão: ligação perdida (Ana ligou, Bruno não atendeu) com Retornar");
 ok(cartoes.some((t) => /Chamada de vídeo.*Você ligou · 2 min 05 s.*Ligar de novo/.test(t)), "cartão: vídeo de 2 min 05 s, \"Você ligou\"");
-ok(await p.locator(".chamada-msg .lg.perdida").count() >= 1 && await p.locator(".minha .chamada-msg .lg.perdida").count() === 0, "vermelho só na ligação que o Bruno não atendeu (as que ele fez sem resposta ficam neutras)");
+ok(await p.locator(".chamada-msg .lig.perdida").count() >= 1 && await p.locator(".minha .chamada-msg .lig.perdida").count() === 0, "vermelho só na ligação que o Bruno não atendeu (as que ele fez sem resposta ficam neutras)");
 const fundo = await p.locator(".minha .chamada-msg").first().evaluate((e) => getComputedStyle(e).backgroundColor);
 const painel = await p.evaluate(() => getComputedStyle(document.body).getPropertyValue("--panel").trim());
 ok(!!fundo && fundo !== "rgba(0, 0, 0, 0)", "cartão neutro (fundo do painel, não o azul do balão): " + fundo + " / " + painel);

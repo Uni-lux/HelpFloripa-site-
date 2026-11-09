@@ -1,4 +1,26 @@
     // ===================================================
+    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
+    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
+    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
+    // ===================================================
+    match /destaques/{id} {
+      function destaqueOk(d) {
+        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
+          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          && d.atualizadoEm == request.time
+          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
+          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+    }
+
+    // ===================================================
     // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
     // ===================================================
     // ===================================================
@@ -173,29 +195,4 @@
       allow write: if false;
     }
 
-    // ===================================================
-    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
-    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
-    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
-    // a nota de antes sai e a nova entra. A moderação pode recalcular.
-    // ===================================================
-    match /diario_notas/{postId} {
-      allow read: if logado();
-
-      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
-      function contaCerta() {
-        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
-        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
-        let r = resource == null ? {} : resource.data;
-        let n = request.resource.data;
-        return a != d
-            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
-            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
-            && n.get('soma', 0) == r.get('soma', 0) + d - a
-            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
-            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
-            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
-            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
-            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
-      }
-// ===== FIM DA PARTE 14 DE 16 =====
+// ===== FIM DA PARTE 14 DE 17 =====
