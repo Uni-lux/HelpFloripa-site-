@@ -1786,6 +1786,30 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Ligado no cadastro (`#senhaRegras`, refaz quando nome/@/e-mail/telefone/nascimento mudam), na senha nova do link do
   e-mail (conta-acao) e em Configurações → Alterar senha. Só vale para senha NOVA (contas antigas entram como antes). O
   servidor só exige 6 (exigir lá = política de senha do Firebase Authentication, console). Teste `t-senha-forte.mjs` (19).
+- **Ligações revisadas + flash direto do Mensagens (09/11/2026, PR depois do #168, sem regra nova):** pedido dele
+  ("ajeite a ligação, procure bugs" e "o flash pela mensagem demora demais, faça ligação direta como o Instagram").
+  **chamadas.js (v=3):** na rede (rede.html) os 4 quadros carregam o firebase.js e cada um ouvia: a ligação tocava 4 vezes
+  (3 em quadros escondidos, tocando 45 s depois de atender). Agora `comum()` = `top.__hfLig {dono, emChamada}`: só UMA
+  janela ouve (a de cima sempre assume; um quadro assume se ninguém ouve e confere de 4 em 4 s), "ocupado" vale para todas
+  (`ocupado()`/`marcarOcupado`, `window.__hfEmChamada`), e o quadro que recebe sobe por cima da aba atual
+  (`__hfShell.porCima(w, sim)` em rede-app.js, classe `.hf-quadro.por-cima`, conta por quadro). Bugs corrigidos: foto de
+  quem liga (lia `foto`, o campo é `fotoPerfil`; `fotoSegura`), nome com limite de 2,5 s (`nomeDe` troca depois),
+  cancelar durante a criação deixava "chamando" 45 s (`ctx.criada`/`fimPendente`), microfone ficava ligado se quem ligou
+  desistiu enquanto o outro atendia, atendida/recusada em OUTRO aparelho da mesma conta continuava tocando ("Atendida em
+  outro aparelho"), `ouvirChamadas` não parava o ouvinte antigo ao trocar de conta, "Conectando…" para sempre (`vigiar`:
+  30 s para conectar, queda = "Reconectando…" e 15 s para voltar, `iceConnectionState` no Safari antigo), trilha sem stream
+  (`ev.track`) e `play()` explícito (iPhone), virar câmera para a câmera atual ANTES de pedir a outra (só vídeo), campainha
+  `resume()` em quadro sem toque e vibração só com `userActivation`, `pagehide` encerra a ligação (avisa o outro lado),
+  tela acesa na chamada de vídeo (`wakeLock`). Sem regra nova (os campos gravados são os de sempre).
+  **Flash direto:** antes, tocar num flash do chat trocava o quadro do Mensagens pela página do Diário inteira e o visor
+  ainda esperava baixar TODOS os flashes da pessoa (com as fotos). Agora `flash-direto.js` (sem deps: `textoDoFlash`/
+  `lerFlashTexto` com as datas marcadas `{__ts}`, `guardarParaAbrir`/`pegarGuardado` na aba por 2 min) e
+  `ligarFlashDireto` (mensagens-app.js: miniatura, cartão da caixa `f` e "Adicionar ao seu flash"): na rede,
+  `__hfShell.abrirFlash(id, texto, {repostar})` abre no quadro do Diário (`window.__hfAbrirFlashId`/`__hfRepostarFlash`
+  do feed.js) por cima do chat — fechar/voltar volta para a conversa como estava (medido: 180 ms); fora da rede troca de
+  página com o flash guardado e fechar volta ao chat (`history.back` quando veio do site). `abrirFlashPorId(id, {texto,
+  aoAbrir, aoFechar, aviso})` abre NA HORA com o flash tocado (ou a lista que o Diário já tem) e os outros entram por trás
+  (`completarLista` → `_trocarLista` do visor, que mantém o flash e o tempo da barra). Teste `t-ligacao2.mjs` (35).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

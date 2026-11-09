@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=130";
+} from "./rede.js?v=131";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -23,6 +23,7 @@ import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
 import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=21";
 import { minhaPosicao } from "./perto.js?v=2";
+import { lerFlashTexto, pegarGuardado } from "./flash-direto.js?v=1";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=7";
 
 const DIA = 24 * 3600e3;
@@ -295,19 +296,48 @@ const PAGINA_NEGOCIO = { servicos: "servicos.html", delivery: "delivery.html", l
 const ICONE_NEGOCIO = { servicos: "servicos", delivery: "delivery", lojinha: "lojinha", imoveis: "imoveis", saude: "saude" };
 const linkNegocio = (l) => `${PAGINA_NEGOCIO[l.tipo] || "servicos.html"}?negocio=${encodeURIComponent(l.negocioId)}&de=flash`;
 
-// Abrir um flash pelo link (feed.html?flash=ID), vindo de uma mensagem.
-export async function abrirFlashPorId(id, { silencioso = false } = {}) {
+// Abrir um flash pelo id: link feed.html?flash=ID e, na rede, direto de dentro do Mensagens (rede-app.js abrirFlash).
+// Como o Instagram (02/11 → 09/11/2026): o visor abre NA HORA com o flash tocado. Antes esperava baixar o flash e
+// depois TODOS os outros da pessoa (com as fotos dentro dos documentos) para só então abrir; agora os outros entram na
+// lista por trás, depois que este já apareceu (`_trocarLista` do visor mantém o flash e a barra em que a pessoa está).
+// - texto: o flash que o chat já leu (flash-direto.js, com as datas marcadas): não baixa de novo;
+// - sem texto, vale também o que o Mensagens guardou na aba antes de trocar de página (pegarGuardado);
+// - aoAbrir/aoFechar/aviso: para quem abriu de fora (a casca da rede põe o quadro por cima e mostra o aviso).
+// Devolve true quando o visor abriu.
+export async function abrirFlashPorId(id, { silencioso = false, texto = "", aoAbrir = null, aoFechar = null, aviso = null } = {}) {
+  const avisar = (m) => (aviso ? aviso(m) : toast(m));
   const sumiu = () => { tirarCapa(); if (silencioso) { try { history.replaceState({ ...(history.state || {}), hfCamadas: 0 }, "", location.href); } catch {} } };
   try {
-    const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
-    if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { sumiu(); toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
-    const x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
-    if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { sumiu(); toast("Esse flash não está disponível."); return; }
-    const docs = await flashesNoArDe(x.autorId).catch(() => null);
-    const lista = (docs || [d]).map((k) => ({ id: k.id, ...k.data({ serverTimestamps: "estimate" }) })).filter((k) => ativo(k) && (k.autorId === eu.uid || podeVer(k))).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
-    porAutor.set(x.autorId, lista.length ? lista : [x]);
-    abrirVisor(x.autorId, { so: true, comecarEm: id });
-  } catch (e) { tirarCapa(); toast("Não foi possível abrir o flash: " + erroAmigavel(e)); }
+    let x = lerFlashTexto(texto || pegarGuardado(id), id, fb.Timestamp);
+    if (!x) {
+      const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
+      if (d.exists()) x = { id: d.id, ...d.data({ serverTimestamps: "estimate" }) };
+    }
+    if (!x || !ativo(x)) { sumiu(); avisar("Esse flash não está mais disponível (passou de 24 horas)."); return false; }
+    if (x.autorId !== eu.uid && (escondido(x.autorId) || !podeVer(x))) { sumiu(); avisar("Esse flash não está disponível."); return false; }
+    // O Diário já tem a lista desta pessoa (fileira do Flash): usa ela, com este flash completo no lugar.
+    const ja = porAutor.get(x.autorId);
+    const noDiario = ja?.find((k) => k.id === id);
+    let lista;
+    if (noDiario) { if (noDiario._leve) { Object.assign(noDiario, x); delete noDiario._leve; } lista = ja; x = noDiario; }
+    else { lista = [x]; porAutor.set(x.autorId, lista); }
+    abrirVisor(x.autorId, { so: true, comecarEm: id, aoFechar });
+    aoAbrir?.();
+    if (!noDiario) setTimeout(() => completarLista(x), 1200);
+    return true;
+  } catch (e) { tirarCapa(); avisar("Não foi possível abrir o flash: " + erroAmigavel(e)); return false; }
+}
+// Os outros flashes da pessoa (no ar) entram na lista do visor aberto por abrirFlashPorId.
+async function completarLista(x) {
+  const docs = await flashesNoArDe(x.autorId).catch(() => null);
+  if (!docs) return;
+  const nova = docs.map((k) => (k.id === x.id ? x : { id: k.id, ...k.data({ serverTimestamps: "estimate" }) }))
+    .filter((k) => k === x || (ativo(k) && (k.autorId === eu.uid || podeVer(k))));
+  if (!nova.includes(x)) nova.push(x);
+  nova.sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+  const visor = document.querySelector(".story-visor");
+  if (visor?._trocarLista) visor._trocarLista(x.autorId, nova);
+  else porAutor.set(x.autorId, nova);
 }
 // Flash no perfil de um negócio, no visor COMPLETO (o mesmo do Diário: enquete/teste, perguntas, contagem, link, lugar,
 // # e @, estrela, responder e reações). n = { id, nome, foto, tipo }. Antes o perfil do negócio tinha um visor à parte
@@ -386,8 +416,8 @@ export function voltarAoFlash(daMemoria = false) {
 // Menção OCULTA: com as regras novas ela fica em `mencoes` (+ `mencoesOcultas`) e o repost funciona. Com as regras de
 // antes o flash é gravado sem a lista das ocultas (semCamposNovos), então quem foi mencionado escondido não aparece em
 // `mencoes` e o servidor recusa o repost: aqui explica o porquê em vez do "só quem foi mencionado".
-export async function repostarFlash(id) {
-  const falhar = (msg) => { tirarCapa(); toast(msg); };
+export async function repostarFlash(id, { aviso = null } = {}) {
+  const falhar = (msg) => { tirarCapa(); (aviso || toast)(msg); };
   try {
     const d = await fb.getDoc(fb.doc(fb.db, "stories", id));
     if (!d.exists() || !ativo(d.data({ serverTimestamps: "estimate" }))) { falhar("Esse flash já saiu do ar (passou de 24 horas)."); return; }
@@ -4048,6 +4078,21 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     };
     passo();
   }
+  // A lista de uma pessoa cresceu por trás (abriu pelo link com um flash só; abrirFlashPorId → completarLista): troca
+  // sem mexer no flash que está na tela; a barra de cima passa a mostrar os outros e o tempo continua de onde estava.
+  fundo._trocarLista = (uid, nova) => {
+    const l = mapa.get(uid);
+    if (fechado || !l) { if (!fechado) mapa.set(uid, nova); return; }
+    const cur = atual();
+    l.splice(0, l.length, ...nova);
+    if (ordem[ai] !== uid) return;
+    const k = l.indexOf(cur);
+    if (k < 0) { l.splice(Math.min(si, l.length), 0, cur); return; }
+    si = k;
+    barras.replaceChildren(...l.map((_, j) => { const b = el("span", "story-barra"); const i = el("i"); if (j < si) i.style.width = "100%"; b.appendChild(i); return b; }));
+    animarBarra(durAtual);
+    adiantar(l[si + 1]);
+  };
   // Flash apagado pela lixeira das Visualizações: sai da lista do visor.
   function tirarDaLista(x) {
     const l = mapa.get(eu.uid) || [], j = l.findIndex((y) => y.id === x.id);

@@ -461,7 +461,7 @@ export function montarChat(el) {
     if (!ehDm(conv)) return;
     const para = conv.split("_").find((u) => u !== C.eu.uid); if (!para) return;
     const daConv = conv;
-    const { ligar, textoChamada } = await import("./chamadas.js?v=2");
+    const { ligar, textoChamada } = await import("./chamadas.js?v=3");
     const r = await ligar({ para, nome: nomeEquipe(para), foto: D.admins.find((a) => a.id === para)?.foto || "", conv: daConv, tipo: modo });
     if (r.status === "erro") { toast(r.erro); return; }
     postarNaConversa(daConv, `${modo === "video" ? "🎥" : "📞"} ${textoChamada({ modo, resultado: r.status, duracao: r.duracaoSeg })}`);

@@ -122,6 +122,71 @@ function ir(k, { historico = true } = {}) {
   if (historico) marcarHistorico(k);
 }
 
+// ---------- quadro por cima das abas ----------
+// Um quadro escondido mostra algo em tela cheia por cima da aba atual, sem trocar de aba: a tela de uma ligação que
+// chegou (chamadas.js ouve num quadro só) e o flash aberto de dentro do Mensagens (abrirFlash). Conta por quadro:
+// o flash e uma ligação podem estar por cima ao mesmo tempo.
+const cimas = new Map(); // id do quadro → quantas coisas por cima
+function porCima(w, sim) {
+  const id = Object.keys(quadros).find((k) => { try { return quadros[k].contentWindow === w; } catch { return false; } });
+  if (!id) return;
+  const n = Math.max(0, (cimas.get(id) || 0) + (sim ? 1 : -1));
+  if (n) cimas.set(id, n); else cimas.delete(id);
+  quadros[id].classList.toggle("por-cima", n > 0);
+  visivel(id, n > 0 || QUADRO_DE[atual] === id);
+}
+
+// ---------- flash aberto de dentro do Mensagens (como o Instagram) ----------
+// Antes, tocar num flash (resposta, reação, menção, enviado) trocava o quadro do Mensagens pela página do Diário
+// inteira (feed.html?flash=ID): baixava tudo de novo, demorava, e para voltar ao chat recarregava o Mensagens.
+// Agora o visor abre no quadro do Diário, que já está carregado, por cima da aba do Mensagens; fechar volta para a
+// conversa como estava. `texto` = o flash que o chat já leu (o visor não precisa baixar de novo).
+// Devolve false quando não deu (o Diário saiu para outra página e não respondeu): o Mensagens abre o link como antes.
+function janelaDoFeed(espera) {
+  const f = quadro("feed", "diario");
+  const pronta = () => { try { const w = f.contentWindow; return emCasa("feed") && w.__hfAbrirFlashId ? w : null; } catch { return null; } };
+  return new Promise((ok) => {
+    const t0 = Date.now();
+    const passo = () => { const w = pronta(); if (w || Date.now() - t0 > espera) ok(w); else setTimeout(passo, 80); };
+    passo();
+  });
+}
+let espera = null;
+function mostrarEspera(sim) {
+  if (!sim) { clearTimeout(espera?.t); espera?.el?.remove(); espera = null; return; }
+  if (espera) return;
+  espera = { t: setTimeout(() => {
+    const e = document.createElement("div"); e.className = "hf-flash-espera"; e.setAttribute("role", "status"); e.setAttribute("aria-label", "Abrindo o flash");
+    e.innerHTML = "<span></span>"; document.body.appendChild(e); if (espera) espera.el = e;
+  }, 140) };
+}
+async function abrirFlash(id, texto, { repostar = false } = {}) {
+  if (!/^[A-Za-z0-9]{1,64}$/.test(String(id || ""))) return false;
+  mostrarEspera(true);
+  const w = await janelaDoFeed(quadros.feed?.dataset.carregou ? 1500 : 12000);
+  if (!w) { mostrarEspera(false); return false; }
+  let subiu = false;
+  const descer = () => { if (subiu) { subiu = false; porCima(w, false); } };
+  try {
+    const ok = repostar
+      ? await w.__hfRepostarFlash?.(id, { aoAbrir: () => { subiu = true; porCima(w, true); mostrarEspera(false); }, aoFechar: descer })
+      : await w.__hfAbrirFlashId(id, {
+        texto,
+        aoAbrir: () => { subiu = true; porCima(w, true); mostrarEspera(false); },
+        aoFechar: descer,
+        aviso: (m) => avisar(m)
+      });
+    mostrarEspera(false);
+    if (!ok) descer(); // não abriu (saiu do ar...): o aviso já apareceu, o chat continua como estava
+    return true;
+  } catch (e) { console.warn("[Rede] flash", e); mostrarEspera(false); descer(); return false; }
+}
+// Aviso curto da casca (quando o flash não abre: saiu do ar, sem permissão...).
+function avisar(m) {
+  const t = document.createElement("div"); t.className = "hf-aviso-rede"; t.setAttribute("role", "status"); t.textContent = m;
+  document.body.appendChild(t); setTimeout(() => t.classList.add("sai"), 2600); setTimeout(() => t.remove(), 3000);
+}
+
 // ---------- deslizar entre abas (chamado de dentro do quadro) ----------
 // As duas abas andam juntas com o dedo (1:1), com uma sombra na beirada. A barra de baixo fica PARADA (como nos apps):
 // uma cópia dela fica por cima dos quadros enquanto eles andam e o item acende quando passa da metade. Ao soltar, a
@@ -255,6 +320,7 @@ Object.assign(S, {
   },
   vizinho, comecar, mover, terminar,
   nomeDe: (k) => NOMES[k] || "",
+  porCima, abrirFlash,
 });
 Object.defineProperty(S, "atual", { get: () => atual }); // (Object.assign copiaria só o valor de agora)
 

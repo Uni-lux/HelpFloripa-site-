@@ -52,6 +52,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-enquete.mjs` | Enquete na publicação (criar, votar, trocar, resultado da autora), Configurações → Diário e Flash (quem marca, quem comenta, Flash) e estatísticas do perfil (`insights.js`). |
 | `t-perfil.mjs` | Perfil no tema escuro: rosinha do duo, botões que cabem na tela, negócios numa linha, enquete na aba Textos, toque duplo no texto (só a barra) e voto único. |
 | `t-enquete2.mjs` | Enquete com duração (compositor e Flash), prazo, voto bloqueado depois do fim, resultado final com troféu, "Ver votos" e o resultado nas notificações (dono e quem votou), no painel do sino. |
+| `t-ligacao2.mjs` | Ligações na rede (toca uma vez, sobe por cima da aba, foto de quem liga), cancelar na hora, mesma conta em 2 aparelhos, e o flash do Mensagens abrindo direto (na rede por cima do chat e fora dela com volta ao chat). |
 | `t-flash3.mjs` | Flash completo: menção como cartão no Mensagens com "Adicionar ao seu flash" (repost com crédito), figurinha de link para negócio, reação/resposta/enviar como cartão com a miniatura e `feed.html?flash=ID`. |
 | `t-flash-neg.mjs` | Flash nos perfis de negócio: "Publicar em" (perfil e/ou negócios), só no negócio não aparece no Diário, anel e visor no perfil do negócio e nas bolinhas de negócio do perfil. |
 | `t-flash-cfg.mjs` | Configurações do Flash em cartões (onde publicar por padrão, câmera direto, respostas), "+" com a cor do Flash e borda neutra sem flash. |
