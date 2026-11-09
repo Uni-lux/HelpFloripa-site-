@@ -43,9 +43,34 @@ export function servidoresIce() {
   }).finally(() => { turnPedido = null; });
   return Promise.race([turnPedido, new Promise((ok) => setTimeout(() => ok([]), 3500))]);
 }
-const TOCANDO_MS = 45000; // sem atender em 45 s = chamada perdida
+const TOCANDO_MS = 45000;   // sem atender em 45 s = chamada perdida
+const CONECTAR_MS = 30000;  // atendeu mas a rede não liga os dois em 30 s = "A rede não deixou conectar"
+const QUEDA_MS = 15000;     // caiu no meio (troca de rede, túnel): espera 15 s voltar antes de encerrar
 const db = () => window.firebaseDb, auth = () => window.firebaseAuth;
-let atual = null; // a chamada em andamento (uma por vez)
+let atual = null; // a chamada em andamento nesta janela (uma por vez)
+
+// ---------- uma campainha por aparelho ----------
+// Na rede numa página só (rede.html) as 4 abas são quadros e cada uma carrega o firebase.js; a gaveta do chat também.
+// Antes cada janela ouvia as chamadas sozinha: uma ligação tocava 4 vezes (3 delas em quadros escondidos, que
+// continuavam tocando por 45 s depois de atender). Agora as janelas do site combinam pela janela de cima:
+// - só UMA ouve (a página de cima quando ela tem o site; senão o 1º quadro, e outro assume se ele sair);
+// - "ocupado" vale para todas (uma ligação em andamento num quadro recusa a que chega em outro);
+// - na rede, o quadro que recebe sobe por cima das abas (__hfShell.porCima) para a tela da chamada aparecer.
+function comum() {
+  const novo = () => ({ dono: null, emChamada: null });
+  try { const t = window.top; void t.location.href; return (t.__hfLig ||= novo()); } catch { return (window.__hfLig ||= novo()); }
+}
+const vivo = (w, campo, valor) => { try { return !!w && !w.closed && w[campo] === valor; } catch { return false; } };
+const ocupado = () => !!atual || (comum().emChamada !== window && vivo(comum().emChamada, "__hfEmChamada", true));
+function marcarOcupado(sim) {
+  window.__hfEmChamada = sim;
+  const R = comum();
+  if (sim) R.emChamada = window; else if (R.emChamada === window) R.emChamada = null;
+}
+const casca = () => { try { return window.parent !== window && window.parent === window.top ? window.top.__hfShell || null : null; } catch { return null; } };
+const porCima = (sim) => { try { casca()?.porCima?.(window, sim); } catch {} };
+// Foto do perfil: só links do site/Storage ou data:image, e sem aspas (vai dentro de url("...") no estilo).
+const fotoSegura = (f) => (typeof f === "string" && f.length < 900000 && /^(https:\/\/|data:image\/)/.test(f) ? f.replace(/["\\\n\r]/g, "") : "");
 
 // ---------- visual ----------
 const CSS = `
@@ -101,6 +126,7 @@ function montarTela({ nome, foto, tipo, recebendo }) {
   css();
   const t = el("div", "hfl tocando"); t.setAttribute("role", "dialog"); t.setAttribute("aria-modal", "true"); t.setAttribute("aria-label", `Chamada com ${nome}`);
   t.dataset.semVoltar = "1";
+  foto = fotoSegura(foto);
   const fundo = el("div", "hfl-fundo"); if (foto) fundo.style.setProperty("--foto", `url("${foto}")`);
   const remoto = el("video", "hfl-remoto"); remoto.autoplay = true; remoto.playsInline = true; remoto.hidden = true;
   const somRemoto = el("audio"); somRemoto.autoplay = true;
@@ -122,8 +148,13 @@ function montarTela({ nome, foto, tipo, recebendo }) {
 function campainha(recebendo) {
   let ctx = null, timer = null;
   try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  // Num quadro que ainda não recebeu toque o navegador cria o som "suspenso": tenta liberar (e de novo a cada toque).
+  const liberar = () => { try { if (ctx?.state === "suspended") ctx.resume().catch(() => {}); } catch {} };
+  liberar(); addEventListener("pointerdown", liberar, true);
   const tocar = () => {
-    if (recebendo && navigator.vibrate) navigator.vibrate([400, 200, 400]);
+    liberar();
+    // Vibrar só depois de algum toque na página (sem isso o navegador recusa e anota erro no console).
+    if (recebendo && navigator.vibrate && navigator.userActivation?.hasBeenActive !== false) navigator.vibrate([400, 200, 400]);
     if (!ctx) return;
     const t0 = ctx.currentTime;
     [0, 0.45].forEach((d) => {
@@ -134,7 +165,7 @@ function campainha(recebendo) {
     });
   };
   tocar(); timer = setInterval(tocar, recebendo ? 2200 : 3000);
-  return () => { clearInterval(timer); try { navigator.vibrate?.(0); } catch {} try { if (ctx && ctx.state !== "closed") ctx.close().catch(() => {}); } catch {} };
+  return () => { clearInterval(timer); removeEventListener("pointerdown", liberar, true); try { navigator.vibrate?.(0); } catch {} try { if (ctx && ctx.state !== "closed") ctx.close().catch(() => {}); } catch {} };
 }
 
 function erroMidia(e, tipo) {
@@ -150,10 +181,13 @@ function iniciarConexao(ref, eu, tela, tipo, midia, turn = []) {
   midia.getTracks().forEach((tr) => pc.addTrack(tr, midia));
   if (tipo === "video") { tela.local.srcObject = midia; tela.local.hidden = false; }
   const remota = new MediaStream();
+  // Alguns navegadores mandam a trilha sem a "stream" junto (ev.streams vazio): usa a própria trilha.
   pc.ontrack = (ev) => {
-    ev.streams[0]?.getTracks().forEach((tr) => { if (!remota.getTracks().includes(tr)) remota.addTrack(tr); });
-    if (tipo === "video") { tela.remoto.srcObject = remota; tela.remoto.hidden = false; tela.t.classList.add("com-video"); }
-    else tela.somRemoto.srcObject = remota;
+    (ev.streams[0]?.getTracks() || [ev.track]).forEach((tr) => { if (tr && !remota.getTracks().includes(tr)) remota.addTrack(tr); });
+    const alvo = tipo === "video" ? tela.remoto : tela.somRemoto;
+    if (tipo === "video") { tela.remoto.hidden = false; tela.t.classList.add("com-video"); }
+    if (alvo.srcObject !== remota) alvo.srcObject = remota;
+    alvo.play?.().catch(() => {}); // o autoplay sozinho falha no iPhone quando a trilha chega depois
   };
   // Candidatos: os meus vão para a subcoleção; os do outro lado entram na conexão.
   const fila = []; let pronto = false;
@@ -186,14 +220,23 @@ function controles(tela, tipo, midiaRef, pc, encerrar) {
       cam.classList.toggle("off", !tr.enabled); cam.querySelector("i").innerHTML = svg(tr.enabled ? "cam" : "camOff"); tela.local.style.opacity = tr.enabled ? "1" : ".25";
     });
     let frente = true;
+    // Virar: o celular não abre as duas câmeras ao mesmo tempo, então a de agora para ANTES de pedir a outra (antes o
+    // pedido falhava calado na maioria dos Android). Só a câmera é pedida de novo (o microfone continua o mesmo).
+    let virando = false;
     const virar = botao("", "virar", "Virar", async () => {
-      try {
-        const nova = await pedirMidia("video", !frente); frente = !frente;
-        const nv = nova.getVideoTracks()[0]; const velha = midiaRef.m.getVideoTracks()[0];
-        await pc.getSenders().find((s) => s.track?.kind === "video")?.replaceTrack(nv);
-        velha?.stop(); midiaRef.m.removeTrack(velha); midiaRef.m.addTrack(nv); nova.getAudioTracks().forEach((t) => t.stop());
-        tela.local.srcObject = midiaRef.m; tela.local.style.transform = frente ? "scaleX(-1)" : "none";
-      } catch {}
+      if (virando) return; virando = true;
+      const velha = midiaRef.m.getVideoTracks()[0], ligada = velha ? velha.enabled : true;
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video" || (!s.track && velha));
+      const trocar = async (paraFrente) => {
+        const nv = (await navigator.mediaDevices.getUserMedia({ video: { facingMode: paraFrente ? "user" : "environment", width: { ideal: 1280 }, height: { ideal: 720 } } })).getVideoTracks()[0];
+        nv.enabled = ligada;
+        await sender?.replaceTrack(nv);
+        midiaRef.m.getVideoTracks().forEach((t) => midiaRef.m.removeTrack(t)); midiaRef.m.addTrack(nv);
+        tela.local.srcObject = midiaRef.m; tela.local.style.transform = paraFrente ? "scaleX(-1)" : "none";
+      };
+      try { velha?.stop(); await trocar(!frente); frente = !frente; }
+      catch { try { await trocar(frente); } catch {} tela.situacao.dataset.aviso = "Não foi possível trocar de câmera"; setTimeout(() => delete tela.situacao.dataset.aviso, 2500); }
+      finally { virando = false; }
     });
     tela.bts.append(cam, virar);
   }
@@ -201,12 +244,15 @@ function controles(tela, tipo, midiaRef, pc, encerrar) {
 }
 
 function finalizarLocal(ctx) {
-  ctx.pararCampainha?.(); clearTimeout(ctx.timeout); clearInterval(ctx.cronometro);
+  ctx.pararCampainha?.(); clearTimeout(ctx.timeout); clearInterval(ctx.cronometro); ctx.pararVigia?.();
+  try { ctx.tela && (ctx.tela.remoto.srcObject = null, ctx.tela.somRemoto.srcObject = null, ctx.tela.local.srcObject = null); } catch {}
+  ctx.wake?.release?.().catch(() => {}); ctx.wake = null;
   ctx.pararDoc?.(); ctx.conexao?.pararCand?.();
   try { ctx.conexao?.pc.close(); } catch {}
   ctx.midia?.m?.getTracks().forEach((t) => t.stop());
   ctx.tela?.t.remove();
-  if (atual === ctx) atual = null;
+  if (atual === ctx) { atual = null; marcarOcupado(false); }
+  if (ctx.subiu) { ctx.subiu = false; porCima(false); }
 }
 
 // Quando conecta: some a campainha, começa o cronômetro.
@@ -214,8 +260,29 @@ function conectou(ctx, inicio) {
   if (ctx.conectado) return; ctx.conectado = true; ctx.inicio = inicio || Date.now();
   ctx.pararCampainha?.(); ctx.tela.t.classList.remove("tocando");
   ctx.tela.aviso.textContent = ctx.tipo === "video" ? "" : "Ligação pelo Help Floripa: nada é gravado.";
-  const pintar = () => { ctx.tela.situacao.textContent = relogio(Date.now() - ctx.inicio); };
+  const pintar = () => { const s = ctx.tela.situacao; s.textContent = s.dataset.aviso || (ctx.caiu ? "Reconectando…" : relogio(Date.now() - ctx.inicio)); };
   pintar(); ctx.cronometro = setInterval(pintar, 1000);
+  // Chamada de vídeo: a tela não apaga sozinha enquanto a conversa dura (onde o navegador deixa).
+  if (ctx.tipo === "video") navigator.wakeLock?.request?.("screen").then((w) => { if (atual === ctx) ctx.wake = w; else w.release().catch(() => {}); }).catch(() => {});
+}
+// Estado da conexão (os dois lados). Antes: atendida mas sem conexão ficava em "Conectando…" para sempre, e uma queda
+// rápida de rede (trocar do Wi-Fi para o 4G) encerrava na hora. Agora: 30 s para conectar; caiu = "Reconectando…" e
+// 15 s para voltar sozinha. O Safari antigo não tem connectionState: usa o estado do ICE.
+function vigiar(ctx, pc, encerrar) {
+  let queda = null;
+  const desistir = (texto) => { if (ctx.desistiu) return; ctx.desistiu = true; ctx.tela.situacao.dataset.aviso = texto; ctx.tela.situacao.textContent = texto; setTimeout(() => encerrar("encerrada"), 1800); };
+  const prazo = setTimeout(() => { if (!ctx.conectado) desistir("A rede não deixou conectar"); }, CONECTAR_MS);
+  ctx.pararVigia = () => { clearTimeout(prazo); clearTimeout(queda); };
+  const mudou = () => {
+    const st = pc.connectionState || ({ completed: "connected", checking: "connecting" }[pc.iceConnectionState] || pc.iceConnectionState);
+    if (st === "connected") { clearTimeout(prazo); clearTimeout(queda); queda = null; ctx.caiu = false; conectou(ctx); }
+    else if (st === "disconnected" && ctx.conectado) {
+      ctx.caiu = true; ctx.tela.situacao.textContent = "Reconectando…";
+      clearTimeout(queda); queda = setTimeout(() => desistir("A ligação caiu"), QUEDA_MS);
+    } else if (st === "failed") desistir(ctx.conectado ? "A ligação caiu" : "A rede não deixou conectar");
+  };
+  pc.onconnectionstatechange = mudou;
+  pc.oniceconnectionstatechange = () => { if (!("connectionState" in pc)) mudou(); };
 }
 
 // ---------- quem liga ----------
@@ -224,18 +291,20 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
   return new Promise(async (resolver) => {
     const eu = auth()?.currentUser?.uid;
     if (!eu || !db()) return resolver({ status: "erro", erro: "Entre na sua conta para ligar." });
-    if (atual) return resolver({ status: "erro", erro: "Você já está numa chamada." });
+    if (ocupado()) return resolver({ status: "erro", erro: "Você já está numa chamada." });
     if (!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia) return resolver({ status: "erro", erro: "Este navegador não faz ligações. Atualize o navegador ou use outro." });
-    const ctx = { tipo, para }; atual = ctx;
+    const ctx = { tipo, para }; atual = ctx; marcarOcupado(true);
     ctx.tela = montarTela({ nome, foto, tipo, recebendo: false });
     let fim = false;
     const encerrar = async (status, porMim = true) => {
       if (fim) return; fim = true;
       const duracaoSeg = ctx.conectado ? Math.round((Date.now() - ctx.inicio) / 1000) : 0;
-      if (porMim && ctx.ref) await updateDoc(ctx.ref, { status, fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {});
+      // A chamada ainda está sendo criada (cancelou logo depois de tocar em Ligar): grava o fim quando ela existir.
+      if (porMim && ctx.ref) { if (ctx.criada) await updateDoc(ctx.ref, { status, fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {}); else ctx.fimPendente = status; }
       finalizarLocal(ctx);
       resolver({ status, duracaoSeg });
     };
+    ctx.encerrarJa = () => encerrar(ctx.conectado ? "encerrada" : "cancelada");
     ctx.tela.bts.appendChild(botao("fim", "tel", "Cancelar", () => encerrar(ctx.conectado ? "encerrada" : "cancelada")));
     const turnP = servidoresIce(); // junto com o pedido do microfone/câmera (não atrasa)
     try { ctx.midia = { m: await pedirMidia(tipo) }; }
@@ -250,43 +319,55 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
     ctx.pararCampainha = campainha(false);
     try {
       const oferta = await pc.createOffer(); await pc.setLocalDescription(oferta);
+      if (fim) return;
       await setDoc(ctx.ref, { de: eu, para, conv, tipo, status: "chamando", oferta: { type: oferta.type, sdp: oferta.sdp }, criadoEm: serverTimestamp() });
+      ctx.criada = true;
     } catch (e) {
       console.warn("[Chamada]", e?.code || e);
+      if (fim) return;
       fim = true; finalizarLocal(ctx);
       return resolver({ status: "erro", erro: e?.code === "permission-denied" ? "As ligações começam a funcionar quando a atualização do sistema for publicada." : "Não foi possível ligar agora." });
     }
+    // Cancelou enquanto a chamada era criada: antes ela ficava "chamando" e a outra pessoa via tocar por 45 s.
+    if (fim) { if (ctx.fimPendente) updateDoc(ctx.ref, { status: ctx.fimPendente, fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {}); return; }
     ctx.conexao.liberarFila();
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "connected") conectou(ctx);
-      if (pc.connectionState === "failed") { ctx.tela.situacao.textContent = "A rede não deixou conectar"; setTimeout(() => encerrar("encerrada"), 1800); }
-    };
     ctx.timeout = setTimeout(() => { if (!ctx.conectado && !ctx.respondida) encerrar("perdida"); }, TOCANDO_MS);
     ctx.pararDoc = onSnapshot(ctx.ref, async (s) => {
       const d = s.data(); if (!d) return;
       if (d.resposta && !ctx.respondida) {
-        ctx.respondida = true; ctx.tela.situacao.textContent = "Conectando…";
+        ctx.respondida = true; clearTimeout(ctx.timeout); ctx.tela.situacao.textContent = "Conectando…";
+        vigiar(ctx, pc, encerrar);
         try { await pc.setRemoteDescription(d.resposta); ctx.conexao.remotaPronta(); } catch (e) { console.warn("[Chamada] resposta", e); }
       }
-      if (d.status === "recusada") { ctx.tela.situacao.textContent = "Não atendeu"; setTimeout(() => encerrar("recusada", false), 1200); }
+      if (d.status === "recusada" && !ctx.conectado) { ctx.tela.situacao.textContent = "Não atendeu"; ctx.pararCampainha?.(); setTimeout(() => encerrar("recusada", false), 1200); }
       else if (d.status === "encerrada" && d.encerradaPor !== eu) encerrar("encerrada", false);
     }, () => {});
   });
 }
 
 // ---------- quem recebe ----------
+// Nome e foto de quem liga (antes lia o campo "foto", que não existe no perfil: a foto nunca aparecia).
+// Com 2,5 s no máximo: a campainha não espera uma internet lenta (toca com "Alguém" e troca quando chegar).
 async function nomeDe(uid) {
-  try { const s = await getDoc(doc(db(), "perfis_publicos", uid)); const d = s.exists() ? s.data() : {}; return { nome: d.nome || d.nickname || "Alguém", foto: typeof d.foto === "string" && d.foto.length < 900000 ? d.foto : "" }; }
-  catch { return { nome: "Alguém", foto: "" }; }
+  const ler = getDoc(doc(db(), "perfis_publicos", uid)).then((s) => { const d = s.exists() ? s.data() : {}; return { nome: d.nome || (d.nickname ? "@" + d.nickname : "Alguém"), foto: fotoSegura(d.fotoPerfil || d.foto) }; })
+    .catch(() => ({ nome: "Alguém", foto: "" }));
+  return Promise.race([ler, new Promise((ok) => setTimeout(() => ok(null), 2500))]).then((r) => r || { nome: "Alguém", foto: "", depois: ler });
 }
 async function receber(id, d) {
   const eu = auth()?.currentUser?.uid;
   const ref = doc(db(), "chamadas", id);
-  if (atual) { updateDoc(ref, { status: "recusada", fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {}); return; } // ocupado
-  const ctx = { tipo: d.tipo === "video" ? "video" : "audio", ref }; atual = ctx;
-  const { nome, foto } = await nomeDe(d.de);
+  if (ocupado()) { updateDoc(ref, { status: "recusada", fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {}); return; } // ocupado
+  const ctx = { tipo: d.tipo === "video" ? "video" : "audio", ref }; atual = ctx; marcarOcupado(true);
+  const quem = await nomeDe(d.de);
   if (atual !== ctx) return;
-  ctx.tela = montarTela({ nome, foto, tipo: ctx.tipo, recebendo: true });
+  ctx.tela = montarTela({ nome: quem.nome, foto: quem.foto, tipo: ctx.tipo, recebendo: true });
+  quem.depois?.then((q) => {
+    if (atual !== ctx || !ctx.tela) return;
+    ctx.tela.t.querySelector(".hfl-topo b").textContent = q.nome; ctx.tela.t.setAttribute("aria-label", `Chamada com ${q.nome}`);
+    if (q.foto) { ctx.tela.t.querySelector(".hfl-fundo").style.setProperty("--foto", `url("${q.foto}")`); const ft = ctx.tela.t.querySelector(".hfl-foto"); ft.textContent = ""; ft.style.backgroundImage = `url("${q.foto}")`; }
+  });
+  // Na rede (rede.html) este quadro pode estar escondido atrás de outra aba: sobe por cima enquanto a chamada dura.
+  porCima(true); ctx.subiu = true;
   ctx.pararCampainha = campainha(true);
   // Credenciais do TURN já pedidas enquanto toca (quando a pessoa atender, estão prontas).
   const turnRecebida = servidoresIce();
@@ -296,24 +377,34 @@ async function receber(id, d) {
     if (porMim) await updateDoc(ref, { status, fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {});
     finalizarLocal(ctx);
   };
+  ctx.encerrarJa = () => encerrar(ctx.conexao ? "encerrada" : "recusada");
   const recusar = botao("fim", "tel", "Recusar", () => encerrar("recusada"));
   const atender = botao("atender", ctx.tipo === "video" ? "cam" : "tel", "Atender", async () => {
     ctx.pararCampainha(); atender.disabled = true; ctx.tela.situacao.textContent = "Conectando…";
-    try { ctx.midia = { m: await pedirMidia(ctx.tipo) }; }
-    catch (e) { ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
+    let m;
+    try { m = await pedirMidia(ctx.tipo); }
+    catch (e) { if (fim) return; ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
+    // Quem ligou desistiu enquanto o celular pedia o microfone: antes o microfone ficava ligado sem chamada nenhuma.
+    if (fim) { m.getTracks().forEach((t) => t.stop()); return; }
+    ctx.midia = { m };
     const turn = await turnRecebida;
+    if (fim) { m.getTracks().forEach((t) => t.stop()); return; }
     ctx.conexao = iniciarConexao(ref, eu, ctx.tela, ctx.tipo, ctx.midia.m, turn);
     const { pc } = ctx.conexao;
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "connected") conectou(ctx);
-      if (pc.connectionState === "failed") { ctx.tela.situacao.textContent = "A rede não deixou conectar"; setTimeout(() => encerrar("encerrada"), 1800); }
-    };
+    clearTimeout(ctx.timeout);
+    vigiar(ctx, pc, encerrar);
     try {
       await pc.setRemoteDescription(d.oferta); ctx.conexao.remotaPronta();
       const resp = await pc.createAnswer(); await pc.setLocalDescription(resp);
+      if (fim) return;
       await updateDoc(ref, { status: "aceita", resposta: { type: resp.type, sdp: resp.sdp }, aceitaEm: serverTimestamp() });
       ctx.conexao.liberarFila();
-    } catch (e) { console.warn("[Chamada] atender", e?.code || e); ctx.tela.situacao.textContent = "Não foi possível atender"; setTimeout(() => encerrar("encerrada"), 1500); return; }
+    } catch (e) {
+      if (fim) return;
+      console.warn("[Chamada] atender", e?.code || e);
+      ctx.tela.situacao.textContent = e?.code === "permission-denied" ? "A chamada já terminou" : "Não foi possível atender";
+      setTimeout(() => encerrar("encerrada", e?.code !== "permission-denied"), 1500); return;
+    }
     controles(ctx.tela, ctx.tipo, ctx.midia, pc, encerrar);
   });
   ctx.tela.bts.append(recusar, atender);
@@ -321,15 +412,38 @@ async function receber(id, d) {
   ctx.pararDoc = onSnapshot(ref, (s) => {
     const x = s.data(); if (!x) return;
     if (["cancelada", "perdida"].includes(x.status) || (x.status === "encerrada" && x.encerradaPor !== eu)) encerrar(x.status, false);
+    // Atendida ou recusada em OUTRO aparelho da mesma conta (celular e computador tocam juntos): este para de tocar.
+    else if (!ctx.conexao && (x.status === "aceita" || (x.status === "recusada" && x.encerradaPor === eu))) {
+      ctx.pararCampainha?.(); ctx.tela.situacao.textContent = x.status === "aceita" ? "Atendida em outro aparelho" : "Recusada";
+      ctx.tela.bts.replaceChildren(); setTimeout(() => encerrar(x.status, false), 1500);
+    }
   }, () => {});
 }
 
 // Fica ouvindo chamadas para esta pessoa (em qualquer página). Uma vez por aba.
+// Só UMA janela do site ouve por aparelho/aba (veja comum()): a página de cima sempre assume; um quadro só assume se
+// ninguém está ouvindo, e confere de 4 em 4 s se quem ouvia saiu (trocou de página, fechou).
 export function ouvirChamadas(uid) {
-  if (!uid || window.__hfChamadas === uid || !db()) return;
-  window.__hfChamadas?.parar?.();
+  if (!uid || !db()) return;
+  if (window.__hfChamadas === uid || window.__hfChamadasEspera === uid) return;
+  window.__hfChamadasParar?.(); window.__hfChamadasParar = null; window.__hfChamadas = null;
+  clearInterval(window.__hfChamadasVigia);
+  window.__hfChamadasEspera = uid;
+  const assumir = () => {
+    const R = comum();
+    if (window.top !== window && R.dono !== window && vivo(R.dono, "__hfChamadas", uid)) return false;
+    R.dono = window;
+    clearInterval(window.__hfChamadasVigia); window.__hfChamadasEspera = null;
+    ligarOuvinte(uid);
+    return true;
+  };
+  if (!assumir()) window.__hfChamadasVigia = setInterval(assumir, 4000);
+}
+function ligarOuvinte(uid) {
   const vistas = new Set();
   const parar = onSnapshot(query(collection(db(), "chamadas"), where("para", "==", uid), where("status", "==", "chamando")), (s) => {
+    // Outra janela assumiu (a página de cima abriu o site): esta para de ouvir e volta a esperar a vez.
+    if (comum().dono !== window) { parar(); window.__hfChamadas = null; window.__hfChamadasParar = null; ouvirChamadas(uid); return; }
     s.docChanges().forEach((ch) => {
       if (ch.type !== "added" || vistas.has(ch.doc.id)) return;
       vistas.add(ch.doc.id);
@@ -341,6 +455,13 @@ export function ouvirChamadas(uid) {
   }, (e) => console.warn("[Chamadas]", e?.code || e));
   window.__hfChamadas = uid; window.__hfChamadasParar = parar;
 }
+// Saiu da página (trocou de página, fechou a aba) no meio da ligação: avisa o outro lado na hora (antes ele ficava
+// falando sozinho até a rede perceber) e libera a vez de ouvir para outra janela.
+addEventListener("pagehide", () => {
+  atual?.encerrarJa?.();
+  const R = comum(); if (R.dono === window) R.dono = null;
+  marcarOcupado(false);
+});
 
 // Texto do cartão que fica na conversa depois da ligação.
 export function textoChamada(c) {

@@ -5,13 +5,14 @@ import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=8";
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
-import { ligarQuadro } from "./quadro-rede.js?v=1";
+import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
+import { textoDoFlash, guardarParaAbrir } from "./flash-direto.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada } from "./chamadas.js?v=2";
+import { textoChamada } from "./chamadas.js?v=3";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -957,6 +958,38 @@ function lerFlash(id) {
   }).catch((e) => (e?.code === "permission-denied" ? null : undefined))); // depois das 24 h o flash vai para o arquivo (só o autor lê)
   return flashesLidos.get(id);
 }
+// Tocar num flash do chat (resposta, reação, menção, enviado, resposta da caixa) abre o visor JÁ, como o Instagram:
+// - na rede (rede.html): no quadro do Diário, que já está carregado, por cima do chat (rede-app.js abrirFlash);
+//   fechar volta para a conversa como estava;
+// - fora da rede: troca de página como antes, mas o flash que o chat já leu vai junto (não baixa de novo) e fechar
+//   volta para cá.
+// Antes: a página do Diário inteira carregava no lugar do chat e o visor ainda esperava baixar todos os flashes da pessoa.
+function ligarFlashDireto(a, id, { repostar = false } = {}) {
+  if (!a || !id) return;
+  const tocar = (e) => {
+    if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || !a.getAttribute("href")) return;
+    e.preventDefault(); e.stopPropagation();
+    abrirFlashDireto(id, a.href, { repostar });
+  };
+  a.addEventListener("click", tocar);
+  // O dedo encostou: já começa a ler (se ainda não leu) para o visor abrir com a foto pronta.
+  a.addEventListener("pointerdown", () => { lerFlash(id); }, { passive: true });
+}
+let abrindoFlash = false;
+async function abrirFlashDireto(id, href, { repostar = false } = {}) {
+  if (abrindoFlash) return;
+  abrindoFlash = true;
+  try {
+    const f = await Promise.race([lerFlash(id), new Promise((ok) => setTimeout(() => ok(undefined), 4000))]);
+    if (f === null) { toast("Esse flash não está mais disponível (passou de 24 horas)."); return; }
+    const texto = f ? textoDoFlash(f) : "";
+    const S = casca();
+    if (S?.abrirFlash && await S.abrirFlash(id, texto, { repostar })) return;
+    if (!repostar) guardarParaAbrir(texto);
+    // Na rede o link abre neste quadro; fora dela, na página de cima (a gaveta do chat fica dentro de outra página).
+    if (S) location.href = href; else (window.top || window).location.href = href;
+  } finally { setTimeout(() => { abrindoFlash = false; }, 600); }
+}
 function rotuloFlash(c, meu) {
   const quem = String(c.nome || "alguém").split(" ")[0];
   switch (c.acao) {
@@ -989,7 +1022,7 @@ function cartaoCaixa(c, m) {
   // O cartão inteiro abre o flash / a publicação (sem botão a mais embaixo).
   const card = document.createElement(id ? "a" : "div"); card.className = "rsp-cx" + (c.cor === "escuro" ? " escuro" : "");
   card.style.setProperty("--cxm", FAIXA_CX[c.cor] || FAIXA_CX.branco);
-  if (id) { card.target = "_top"; card.href = c.itemTipo === "f" ? `feed.html?flash=${encodeURIComponent(id)}` : `feed.html?post=${encodeURIComponent(id)}`; card.setAttribute("aria-label", c.itemTipo === "f" ? "Ver o flash" : "Ver a publicação"); }
+  if (id) { card.target = "_top"; card.href = c.itemTipo === "f" ? `feed.html?flash=${encodeURIComponent(id)}` : `feed.html?post=${encodeURIComponent(id)}`; card.setAttribute("aria-label", c.itemTipo === "f" ? "Ver o flash" : "Ver a publicação"); if (c.itemTipo === "f") ligarFlashDireto(card, id); }
   const perg = document.createElement("strong"); perg.className = "cxm-perg"; perg.textContent = String(c.pergunta || "Caixa de perguntas").slice(0, 120);
   const resp = document.createElement("span"); resp.className = "cxm-resp"; resp.textContent = String(c.resposta || "").slice(0, 300);
   card.append(perg, resp);
@@ -1005,7 +1038,7 @@ function cartaoFlash(c, m) {
   rot.innerHTML = SVG_FC.raio; rot.append(rotuloFlash(c, meu));
   const quadro = document.createElement("div"); quadro.className = "rsp-quadro";
   const mini = document.createElement("a"); mini.className = "rsp-mini carregando"; mini.target = "_top";
-  if (id) mini.href = `feed.html?flash=${encodeURIComponent(id)}`;
+  if (id) { mini.href = `feed.html?flash=${encodeURIComponent(id)}`; ligarFlashDireto(mini, id); }
   mini.setAttribute("aria-label", "Ver o flash");
   const topo = document.createElement("div"); topo.className = "fc-topo";
   const av = document.createElement("span"); av.className = "avatar"; pintarAvatar(av, "", c.nome || "Flash");
@@ -1020,6 +1053,7 @@ function cartaoFlash(c, m) {
   let botao = null;
   if (c.acao === "mencao" && !meu && id) {
     botao = document.createElement("a"); botao.className = "rsp-btn"; botao.target = "_top"; botao.href = `feed.html?repostar=${encodeURIComponent(id)}`;
+    ligarFlashDireto(botao, id, { repostar: true });
     botao.innerHTML = SVG_FC.mais; botao.append("Adicionar ao seu flash"); box.appendChild(botao);
   }
   if (!id) { mini.classList.remove("carregando"); return box; }
@@ -3478,7 +3512,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=2");
+  const { ligar } = await import("./chamadas.js?v=3");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

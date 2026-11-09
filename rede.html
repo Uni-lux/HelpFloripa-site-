@@ -27,6 +27,14 @@
     .hf-quadro.entra { z-index: 3; }
     .hf-quadro.movendo { backface-visibility: hidden; }
     .hf-quadro.ativo { z-index: 1; }
+    /* Quadro por cima da aba atual (ligação que chegou, flash aberto do Mensagens): rede-app.js porCima */
+    .hf-quadro.por-cima { visibility: visible; z-index: 20; }
+    .hf-flash-espera { position: fixed; inset: 0; z-index: 30; background: #000; display: grid; place-items: center; }
+    .hf-flash-espera span { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .25); border-top-color: #fff; animation: hfGira .8s linear infinite; }
+    @keyframes hfGira { to { transform: rotate(360deg); } }
+    .hf-aviso-rede { position: fixed; z-index: 40; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: min(440px, calc(100vw - 32px));
+      padding: 11px 16px; border-radius: 14px; background: rgba(17, 17, 17, .96); color: #fff; font: 600 14px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; text-align: center; text-wrap: balance; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); transition: opacity .3s; }
+    .hf-aviso-rede.sai { opacity: 0; }
     .hf-quadro.anima { transition: transform .24s cubic-bezier(.22, .9, .3, 1); }
     @media (prefers-reduced-motion: reduce) { .hf-quadro.anima { transition: none; } }
     .hf-carregando { position: fixed; inset: 0; display: grid; place-items: center; color: #8a98a3; font: 600 14px/1.4 system-ui, sans-serif; z-index: 0; }
@@ -34,6 +42,6 @@
 </head>
 <body>
   <div class="hf-carregando" id="carregandoRede">Carregando...</div>
-  <script type="module" src="rede-app.js?v=7"></script>
+  <script type="module" src="rede-app.js?v=8"></script>
 </body>
 </html>
