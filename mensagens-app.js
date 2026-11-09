@@ -12,7 +12,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=4";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=5";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -3512,7 +3512,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=4");
+  const { ligar } = await import("./chamadas.js?v=5");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

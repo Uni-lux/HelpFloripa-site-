@@ -191,19 +191,35 @@ function iniciarConexao(ref, eu, tela, tipo, midia, turn = []) {
   };
   // Candidatos: os meus vão para a subcoleção; os do outro lado entram na conexão.
   const fila = []; let pronto = false;
+  // Para explicar uma falha: que caminhos este aparelho achou (host = rede local, srflx = internet pelo STUN,
+  // relay = servidor de repasse/TURN) e se chegou algum do outro lado.
+  const diag = { tipos: new Set(), remotos: 0 };
   pc.onicecandidate = (ev) => {
     if (!ev.candidate) return;
+    const tipo = ev.candidate.type || (/ typ (\w+)/.exec(ev.candidate.candidate || "") || [])[1]; if (tipo) diag.tipos.add(tipo);
     const c = ev.candidate.toJSON(); const dados = { de: eu, c: { candidate: c.candidate, sdpMid: c.sdpMid ?? null, sdpMLineIndex: c.sdpMLineIndex ?? null }, em: serverTimestamp() };
     if (pronto) addDoc(collection(ref, "candidatos"), dados).catch(() => {}); else fila.push(dados);
   };
   const liberarFila = () => { pronto = true; fila.splice(0).forEach((d) => addDoc(collection(ref, "candidatos"), d).catch(() => {})); };
   const pendentes = []; let temRemota = false;
-  const pararCand = onSnapshot(collection(ref, "candidatos"), (s) => s.docChanges().forEach((ch) => {
-    if (ch.type !== "added") return; const d = ch.doc.data(); if (d.de === eu || !d.c) return;
-    if (temRemota) pc.addIceCandidate(d.c).catch(() => {}); else pendentes.push(d.c);
-  }), () => {});
+  // Ouvir os caminhos do outro lado. BUG ANTIGO (09/11/2026): quem ligava começava a ouvir ANTES de a chamada existir
+  // no banco; a regra (que lê a chamada) recusava, a escuta morria calada e quem ligou NUNCA recebia os caminhos de
+  // quem atendeu. No Wi-Fi às vezes conectava assim mesmo; no 4G/5G ficava em "Conectando…". Agora quem liga só começa
+  // a ouvir depois de gravar a chamada (ouvirCandidatos), e uma escuta recusada tenta de novo (até 5 vezes).
+  let pararCand = () => {}, tentativas = 0, parado = false;
+  const ouvirCandidatos = () => {
+    if (parado) return;
+    pararCand = onSnapshot(collection(ref, "candidatos"), (s) => s.docChanges().forEach((ch) => {
+      if (ch.type !== "added") return; const d = ch.doc.data(); if (d.de === eu || !d.c) return;
+      diag.remotos++;
+      if (temRemota) pc.addIceCandidate(d.c).catch(() => {}); else pendentes.push(d.c);
+    }), (e) => {
+      console.warn("[Chamada] caminhos do outro lado:", e?.code || e);
+      if (!parado && ++tentativas <= 5) setTimeout(ouvirCandidatos, 600 * tentativas);
+    });
+  };
   const remotaPronta = () => { temRemota = true; pendentes.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => {})); };
-  return { pc, liberarFila, remotaPronta, pararCand };
+  return { pc, liberarFila, remotaPronta, ouvirCandidatos, pararCand: () => { parado = true; pararCand(); }, diag };
 }
 
 // Controles durante a chamada: microfone, câmera, virar a câmera (vídeo) e encerrar.
@@ -265,21 +281,36 @@ function conectou(ctx, inicio) {
   // Chamada de vídeo: a tela não apaga sozinha enquanto a conversa dura (onde o navegador deixa).
   if (ctx.tipo === "video") navigator.wakeLock?.request?.("screen").then((w) => { if (atual === ctx) ctx.wake = w; else w.release().catch(() => {}); }).catch(() => {});
 }
+// Explicação de uma ligação que não conectou, pelo que cada aparelho achou.
+function motivoFalha(d) {
+  if (!d) return "Confira a internet e tente de novo.";
+  if (!d.remotos) return "O outro aparelho não respondeu à conexão. Confiram a internet dos dois e tentem de novo.";
+  if (d.tipos.has("relay")) return "A conexão não fechou mesmo pelo servidor de repasse. Tentem de novo em instantes.";
+  return "A rede de um de vocês bloqueou a ligação direta (é comum no 4G/5G). Tentem com os dois no Wi-Fi.";
+}
 // Estado da conexão (os dois lados). Antes: atendida mas sem conexão ficava em "Conectando…" para sempre, e uma queda
 // rápida de rede (trocar do Wi-Fi para o 4G) encerrava na hora. Agora: 30 s para conectar; caiu = "Reconectando…" e
 // 15 s para voltar sozinha. O Safari antigo não tem connectionState: usa o estado do ICE.
 function vigiar(ctx, pc, encerrar) {
   let queda = null;
-  const desistir = (texto) => { if (ctx.desistiu) return; ctx.desistiu = true; ctx.tela.situacao.dataset.aviso = texto; ctx.tela.situacao.textContent = texto; setTimeout(() => encerrar("encerrada"), 1800); };
-  const prazo = setTimeout(() => { if (!ctx.conectado) desistir("A rede não deixou conectar"); }, CONECTAR_MS);
-  ctx.pararVigia = () => { clearTimeout(prazo); clearTimeout(queda); };
+  // Não conectou: diz o porquê (o mais provável) e fecha depois de dar tempo de ler.
+  const desistir = (texto) => {
+    if (ctx.desistiu) return; ctx.desistiu = true;
+    ctx.tela.situacao.dataset.aviso = texto; ctx.tela.situacao.textContent = texto;
+    if (!ctx.conectado) ctx.tela.aviso.textContent = motivoFalha(ctx.conexao?.diag);
+    setTimeout(() => encerrar("encerrada"), ctx.conectado ? 1800 : 5000);
+  };
+  const prazo = setTimeout(() => { if (!ctx.conectado) desistir("Não foi possível conectar"); }, CONECTAR_MS);
+  // Demorando: avisa (antes ficava só "Conectando…" sem explicação).
+  const demora = setTimeout(() => { if (!ctx.conectado && !ctx.desistiu) ctx.tela.aviso.textContent = "Está demorando para conectar. Redes móveis (4G/5G) às vezes bloqueiam a ligação direta entre os aparelhos; no Wi-Fi costuma funcionar."; }, 9000);
+  ctx.pararVigia = () => { clearTimeout(prazo); clearTimeout(queda); clearTimeout(demora); };
   const mudou = () => {
     const st = pc.connectionState || ({ completed: "connected", checking: "connecting" }[pc.iceConnectionState] || pc.iceConnectionState);
     if (st === "connected") { clearTimeout(prazo); clearTimeout(queda); queda = null; ctx.caiu = false; conectou(ctx); }
     else if (st === "disconnected" && ctx.conectado) {
       ctx.caiu = true; ctx.tela.situacao.textContent = "Reconectando…";
       clearTimeout(queda); queda = setTimeout(() => desistir("A ligação caiu"), QUEDA_MS);
-    } else if (st === "failed") desistir(ctx.conectado ? "A ligação caiu" : "A rede não deixou conectar");
+    } else if (st === "failed") desistir(ctx.conectado ? "A ligação caiu" : "Não foi possível conectar");
   };
   pc.onconnectionstatechange = mudou;
   pc.oniceconnectionstatechange = () => { if (!("connectionState" in pc)) mudou(); };
@@ -330,12 +361,16 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
     }
     // Cancelou enquanto a chamada era criada: antes ela ficava "chamando" e a outra pessoa via tocar por 45 s.
     if (fim) { if (ctx.fimPendente) updateDoc(ctx.ref, { status: ctx.fimPendente, fimEm: serverTimestamp(), encerradaPor: eu }).catch(() => {}); return; }
+    ctx.conexao.ouvirCandidatos(); // só agora: a chamada já existe no banco (a regra lê ela)
     ctx.conexao.liberarFila();
     ctx.timeout = setTimeout(() => { if (!ctx.conectado && !ctx.respondida) encerrar("perdida"); }, TOCANDO_MS);
     ctx.pararDoc = onSnapshot(ctx.ref, async (s) => {
       const d = s.data(); if (!d) return;
       if (d.resposta && !ctx.respondida) {
-        ctx.respondida = true; clearTimeout(ctx.timeout); ctx.tela.situacao.textContent = "Conectando…";
+        // Atendeu: o "tuu… tuu…" para NA HORA (antes só parava quando a conexão fechava; se a rede não deixava
+        // conectar, quem ligou ficava ouvindo o telefone chamando com "Conectando…" na tela).
+        ctx.respondida = true; clearTimeout(ctx.timeout); ctx.pararCampainha?.(); ctx.tela.t.classList.remove("tocando");
+        ctx.tela.situacao.textContent = "Conectando…";
         vigiar(ctx, pc, encerrar);
         try { await pc.setRemoteDescription(d.resposta); ctx.conexao.remotaPronta(); } catch (e) { console.warn("[Chamada] resposta", e); }
       }
@@ -380,7 +415,7 @@ async function receber(id, d) {
   ctx.encerrarJa = () => encerrar(ctx.conexao ? "encerrada" : "recusada");
   const recusar = botao("fim", "tel", "Recusar", () => encerrar("recusada"));
   const atender = botao("atender", ctx.tipo === "video" ? "cam" : "tel", "Atender", async () => {
-    ctx.pararCampainha(); atender.disabled = true; ctx.tela.situacao.textContent = "Conectando…";
+    ctx.pararCampainha(); ctx.tela.t.classList.remove("tocando"); atender.disabled = true; ctx.tela.situacao.textContent = "Conectando…";
     let m;
     try { m = await pedirMidia(ctx.tipo); }
     catch (e) { if (fim) return; ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
@@ -390,6 +425,7 @@ async function receber(id, d) {
     const turn = await turnRecebida;
     if (fim) { m.getTracks().forEach((t) => t.stop()); return; }
     ctx.conexao = iniciarConexao(ref, eu, ctx.tela, ctx.tipo, ctx.midia.m, turn);
+    ctx.conexao.ouvirCandidatos();
     const { pc } = ctx.conexao;
     clearTimeout(ctx.timeout);
     vigiar(ctx, pc, encerrar);

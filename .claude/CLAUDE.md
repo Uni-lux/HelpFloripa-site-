@@ -1823,6 +1823,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   sinalização (aceitaEm→fimEm), tocar na linha = histórico com a pessoa (`abrirDetalheChamadas`: Mensagem · Voz · Vídeo,
   N chamadas + tempo total, cada ligação, "Tirar do registro" = `tirados[uid]` no aparelho). `t-registro-chamadas.mjs`
   refeito (25, fuso de Brasília no Node); `t-ligacao` com os textos novos.
+- **Ligação presa em "Conectando…" (09/11/2026, mesmo PR #170, sem regra nova):** relato dele (com a irmã, no 4G).
+  **Bug de verdade:** quem ligava começava a ouvir `chamadas/{id}/candidatos` ANTES de gravar a chamada; a regra (que lê a
+  chamada com get) recusava, a escuta morria calada e quem ligou NUNCA recebia os caminhos (ICE) de quem atendeu — no Wi-Fi
+  às vezes conectava por peer-reflexive, no 4G não. Agora `iniciarConexao` devolve `ouvirCandidatos()` (quem liga chama
+  depois do setDoc, quem atende logo) e escuta recusada tenta de novo até 5 vezes. Também: o "tuu… tuu…" de quem ligou para
+  quando a outra pessoa atende (antes só ao conectar), quem atende perde a animação `.tocando`, aviso de demora aos 9 s e,
+  aos 30 s, "Não foi possível conectar" com o motivo (`motivoFalha` pelo `diag` {tipos, remotos}). Sem TURN, redes móveis
+  muito fechadas continuam podendo falhar (TURN pronto, espera o Blaze). Teste `t-ligacao-falha.mjs` (bloqueia o ICE).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
