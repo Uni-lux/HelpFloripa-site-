@@ -30,7 +30,7 @@ const [vb, va] = [await vid(bru), await vid(ana)];
 ok(vb[0] > 0 && va[0] > 0, `os dois recebem o vídeo do outro (${vb[0]}px e ${va[0]}px)`);
 ok(/^\d\d:\d\d$/.test((await bru.textContent(".hfl-topo span")).trim()), "cronômetro rodando: " + (await bru.textContent(".hfl-topo span")).trim());
 await bru.screenshot({ path: "saida/lig-video.png" });
-await bru.locator(".hfl-bt", { hasText: "Microfone" }).click();
+await bru.locator(".hfl-bt", { hasText: "Silenciar" }).click();
 ok(await bru.evaluate(() => document.querySelector(".hfl-bt.off")?.textContent?.includes("Mudo")), "botão de mudo");
 await bru.waitForTimeout(1500);
 await bru.locator(".hfl-bt.fim").click();
