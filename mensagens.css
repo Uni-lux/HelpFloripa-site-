@@ -947,46 +947,86 @@ html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { dis
 html { -webkit-tap-highlight-color: transparent; }
 
 /* =====================================================================================================
-   Chat no visual da Help Floripa (09/11/2026, pedido do dono): balões "preto e azul".
-   - Seus balões: degradê ciano da marca (#00ADEE → #0087C2) com letra branca, nos dois temas.
-   - Balões da outra pessoa: quase preto no escuro (painel #111 da marca) e branco no claro, com borda fina.
-   - Cantos de 18 px, "rabinho" só na 1ª mensagem do grupo, sombra suave, hora e confirmação dentro do balão.
+   Balões "vidro e neon" (09/11/2026, pedido do dono: "bem profissional e futurista").
+   - Seus balões: degradê ciano da marca com brilho de vidro na borda de cima e um halo azul suave.
+   - Da outra pessoa: vidro escuro (painel #111 da marca) com borda luminosa fina; no claro, branco com borda.
+   - Cantos de 20 px; "rabinho" (canto de 6 px) só na 1ª mensagem do grupo; hora e confirmação dentro.
+   - Áudio: botão com anel de progresso (audio-ondas.js) e ondas que acendem com brilho.
    Os cartões (pedido, flash, ligação, publicação, Pix...) continuam com o fundo próprio deles.
    ===================================================================================================== */
 :root[data-theme="dark"] {
-  --bubble-me: linear-gradient(135deg, #10b6f2 0%, #0093d0 55%, #0082bd 100%);
+  --bubble-me: linear-gradient(140deg, #22c7ff 0%, #04a3e6 42%, #0078b8 100%);
   --bubble-me-text: #ffffff;
-  --bubble-other: #121a20;
-  --bubble-other-text: #eef3f6;
-  --bubble-borda: rgba(255, 255, 255, .07);
-  --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 2px 10px rgba(0, 0, 0, .18);
+  --bubble-other: linear-gradient(160deg, #18212a 0%, #10171d 100%);
+  --bubble-other-text: #eef4f8;
+  --bubble-borda: rgba(120, 210, 255, .11);
+  --bubble-brilho: rgba(255, 255, 255, .06);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 22px -12px rgba(0, 0, 0, .7);
 }
 :root[data-theme="light"] {
-  --bubble-me: linear-gradient(135deg, #12b8f3 0%, #0097d4 55%, #0086c0 100%);
+  --bubble-me: linear-gradient(140deg, #26c8ff 0%, #06a4e6 42%, #007cbd 100%);
   --bubble-me-text: #ffffff;
-  --bubble-other: #ffffff;
+  --bubble-other: linear-gradient(160deg, #ffffff 0%, #f6fafc 100%);
   --bubble-other-text: #0f1b22;
-  --bubble-borda: rgba(15, 27, 34, .08);
-  --shadow: 0 1px 2px rgba(15, 27, 34, .10), 0 2px 8px rgba(15, 27, 34, .06);
+  --bubble-borda: rgba(0, 120, 180, .13);
+  --bubble-brilho: rgba(255, 255, 255, .9);
+  --shadow: 0 1px 2px rgba(15, 27, 34, .08), 0 8px 20px -12px rgba(0, 70, 110, .28);
 }
-.bolha { border-radius: 18px; padding: 7px 11px 7px 12px; border: 1px solid var(--bubble-borda); }
-.minha .bolha { border-color: transparent; box-shadow: 0 1px 2px rgba(0, 60, 90, .25), 0 4px 14px rgba(0, 135, 194, .18); }
+.bolha {
+  border-radius: 20px; padding: 8px 12px 7px 13px; border: 1px solid var(--bubble-borda);
+  box-shadow: inset 0 1px 0 var(--bubble-brilho), var(--shadow);
+  letter-spacing: .005em;
+}
+.minha .bolha {
+  border-color: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), inset 0 -1px 0 rgba(0, 40, 70, .18),
+    0 2px 4px rgba(0, 50, 80, .25), 0 10px 24px -10px rgba(0, 173, 238, .65);
+}
 .primeira.outra .bolha { border-top-left-radius: 6px; }
 .primeira.minha .bolha { border-top-right-radius: 6px; }
 .linha-msg { margin-top: 3px; }
 .linha-msg.primeira { margin-top: 12px; }
-/* hora e confirmação dentro do seu balão: branco (o azul de "lida" sumia no balão ciano) */
-.minha .bolha .meta { opacity: .85; }
-.minha .bolha .meta .check { opacity: .62; }
-.minha .bolha .meta .check.lida { color: #ffffff; opacity: 1; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .55)); }
+/* hora e confirmação: letra pequena com números alinhados; no seu balão, tudo branco */
+.bolha .meta { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.minha .bolha .meta { opacity: .88; }
+.minha .bolha .meta .check { opacity: .6; }
+.minha .bolha .meta .check.lida { color: #ffffff; opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 255, 255, .7)); }
+.outra .bolha .meta .check.lida { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--read) 60%, transparent)); }
 .minha .bolha .texto a { color: #fff; }
-/* citação dentro do seu balão */
-.minha .bolha .citacao { background: rgba(0, 30, 50, .22); border-left-color: #ffffff; }
+/* citação dentro do balão: cartão de vidro */
+.bolha .citacao { border-radius: 12px; border-left-width: 3px; }
+.minha .bolha .citacao { background: rgba(0, 25, 45, .24); border-left-color: #ffffff; }
 .minha .bolha .citacao strong { color: #ffffff; }
-/* áudio no seu balão: botão branco com o ícone azul e ondas brancas */
+/* fotos e vídeos acompanham os cantos novos */
+.bolha.midia { padding: 4px; }
+.bolha img.foto, .bolha video { border-radius: 16px; }
+/* Áudio. Seu balão: botão de vidro escuro com ícone branco (o disco branco ficava estranho, pedido do dono),
+   anel e ondas brancas. Da outra pessoa: botão ciano com brilho. */
+.bolha { --hf-audio-cor: #12b9f5; }
 .minha .bolha { --hf-audio-cor: #ffffff; }
-.minha .bolha .hf-audio-play { color: #0087c2; }
-.minha .bolha .hf-audio-vel { background: rgba(255, 255, 255, .22); }
+.minha .bolha .hf-audio-play {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .22), rgba(0, 40, 70, .38) 70%);
+  color: #ffffff; border: 1px solid rgba(255, 255, 255, .38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px -4px rgba(0, 30, 55, .55);
+  backdrop-filter: blur(6px);
+}
+.minha .bolha .hf-audio.tocando .hf-audio-play { animation: none; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .3), rgba(0, 40, 70, .3) 70%); }
+.minha .bolha .hf-audio-onda i { background: rgba(255, 255, 255, .36); }
+.minha .bolha .hf-audio-onda i.on { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, .7); }
+.minha .bolha .hf-audio-vel { background: rgba(0, 40, 70, .22); border-color: rgba(255, 255, 255, .3); }
+/* Cartões que VOCÊ mandou (Pix, localização, avaliação, pedido...): cartão neutro com a borda na cor da marca,
+   em vez de ficarem pintados de ciano pelo balão. */
+.minha .bolha.cartao-msg:not(.chamada-msg, .pub-msg, .flash-msg, .caixa-msg) {
+  background: var(--bubble-other); color: var(--bubble-other-text);
+  border: 1px solid color-mix(in srgb, #00adee 38%, transparent);
+  box-shadow: inset 0 1px 0 var(--bubble-brilho), 0 8px 22px -12px rgba(0, 173, 238, .45);
+}
+.minha .bolha.cartao-msg .meta { opacity: .72; }
+.minha .bolha.cartao-msg .meta .check { opacity: .8; }
+.minha .bolha.cartao-msg .meta .check.lida { color: var(--read); filter: none; }
+.minha .bolha.cartao-msg .texto a { color: var(--accent); }
+.bolha.so-audio { padding: 8px 12px 7px 8px; }
+.bolha.so-audio .meta { right: 12px; bottom: 8px; }
 /* separador do dia e aviso flutuante no mesmo estilo */
 .dia, .dia-flutuante { border-radius: 999px; padding: 5px 14px; border: 1px solid var(--bubble-borda); background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); }
 /* topo da conversa: foto com anel fino na cor da marca e status mais legível */
@@ -998,3 +1038,71 @@ html { -webkit-tap-highlight-color: transparent; }
 .btn-enviar { background: linear-gradient(135deg, #10b6f2, #0087c2); color: #fff; box-shadow: 0 4px 14px rgba(0, 135, 194, .35); }
 .btn-enviar:hover { background: linear-gradient(135deg, #0aa6e0, #0079ae); }
 .btn-enviar.vazio { background: linear-gradient(135deg, #10b6f2, #0087c2); box-shadow: 0 4px 14px rgba(0, 135, 194, .25); }
+/* Deslizar para responder (mensagens-app.js ligarDeslizarResponder): o balão só deixa o navegador rolar
+   para cima/baixo; o ícone aparece atrás, à esquerda, e fica ciano quando já vai responder. */
+.bolha { touch-action: pan-y; }
+.linha-msg.deslizando { overflow: visible; }
+.desliza-resp { position: absolute; left: 2px; top: 50%; z-index: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; opacity: 0; transform: translateY(-50%) scale(.4); color: var(--muted); background: color-mix(in srgb, var(--panel) 85%, transparent); border: 1px solid var(--bubble-borda, var(--line)); pointer-events: none; transition: background-color .15s, color .15s; }
+.desliza-resp svg { width: 18px; height: 18px; }
+.desliza-resp.pronto { color: #fff; background: linear-gradient(135deg, #22c7ff, #0087c2); border-color: transparent; box-shadow: 0 0 14px rgba(0, 173, 238, .5); }
+.linha-msg.minha .desliza-resp { left: 2px; }
+
+/* =====================================================================================================
+   Lista de conversas reorganizada (09/11/2026, pedido do dono: "profissional, organizada e limpa").
+   Cabeçalho com título forte e botões redondos (Nova conversa em destaque), abas Pessoal/Negócios/Chamadas
+   em controle segmentado, busca arredondada, filtros com contorno e número de não lidas, conversas em
+   linhas arredondadas sem divisórias (não lida com fundo levemente ciano) e títulos Fixadas/Conversas.
+   ===================================================================================================== */
+.side-top { gap: 4px; padding: 14px 12px 10px 10px; padding-top: max(14px, env(safe-area-inset-top)); }
+.side-top h1 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; line-height: 1.05; margin-left: 6px; }
+.side-top h1 span { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; margin-bottom: 3px; }
+.side-top .icon-btn { width: 40px; height: 40px; border-radius: 50%; color: var(--muted); transition: background-color .15s, color .15s, transform .12s; }
+.side-top .icon-btn:active { transform: scale(.92); }
+.side-top .icon-btn svg { width: 21px; height: 21px; }
+.side-top > a.icon-btn:first-child { background: var(--panel-2); color: var(--text); }
+#btnNovaConversa { margin-left: 4px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 6px 16px -6px rgba(0, 173, 238, .7); }
+#btnNovaConversa:hover { background: linear-gradient(140deg, #14b8f0, #0079ae); color: #fff; }
+
+.modos { margin: 4px 12px 12px; padding: 4px; gap: 2px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
+.modos button { height: 40px; border-radius: 12px; font-size: 13.5px; font-weight: 700; transition: background-color .18s, color .18s, box-shadow .18s; }
+.modos button[aria-selected="true"] { background: var(--panel); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 2px 10px rgba(0, 0, 0, .22); }
+.modos button[aria-selected="true"] svg { color: var(--accent); }
+.modos button[data-modo="negocios"][aria-selected="true"] { color: var(--text); }
+.modos button[data-modo="chamadas"][aria-selected="true"] { color: var(--text); }
+.modos button[data-modo="chamadas"][aria-selected="true"] svg { color: #2fbf71; }
+
+.search { margin: 0 12px 10px; }
+.search svg { left: 14px; width: 18px; height: 18px; }
+.search input { height: 44px; border-radius: 14px; padding-left: 42px; background: var(--panel-2); border: 1px solid transparent; font-size: 15px; transition: border-color .15s, box-shadow .15s; }
+.search input:focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+
+.pills { gap: 6px; padding: 0 12px 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; transition: background-color .15s, color .15s, border-color .15s; }
+.pill:hover { color: var(--text); }
+.pill.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.pill-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; line-height: 1; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); }
+.pill-n[hidden] { display: none; }
+
+.conv-list { padding: 2px 0 8px; }
+.conv-secao { padding: 10px 22px 4px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.conv-item { width: calc(100% - 16px); margin: 1px 8px; padding: 10px 10px; gap: 13px; border-radius: 16px; transition: background-color .15s; }
+.conv-item:hover { background: var(--hover); }
+.conv-item:active { background: var(--active); }
+.conv-item.ativa { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.conv-item .avatar { width: 52px; height: 52px; font-size: 17px; box-shadow: 0 0 0 1px var(--bubble-borda, var(--line)); }
+.conv-main { border-bottom: 0; padding: 0; margin: 0; }
+.conv-nome { font-size: 15.5px; font-weight: 650; }
+.conv-hora { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.conv-previa { margin-top: 4px; font-size: 13.5px; gap: 5px; }
+.conv-previa .check svg { width: 15px; height: 15px; }
+.conv-item.nao-lida { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.conv-item.nao-lida:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.conv-item.nao-lida .conv-nome { font-weight: 800; }
+.conv-item.nao-lida .conv-previa { color: var(--text); font-weight: 600; }
+.conv-item.nao-lida .conv-hora { color: var(--accent); }
+.conv-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: 0 3px 10px -3px rgba(0, 173, 238, .7); }
+.conv-item.com-assunto::before { left: 0; top: 16px; bottom: 16px; }
+.faixa-suporte { margin: 0 12px 8px; border-radius: 18px; }
+.lista-vazia { padding: 48px 28px; }
+.btn-primario { border-radius: 12px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: 0 6px 16px -6px rgba(0, 173, 238, .7); }
+body.selecionando .conv-secao { display: none; }

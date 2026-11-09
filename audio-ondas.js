@@ -96,24 +96,28 @@ function css() {
   const st = document.createElement("style");
   st.id = "hfOndasCss";
   st.textContent = `
-.hf-audio { display: flex; align-items: center; gap: 10px; width: min(264px, 68vw); padding: 3px 2px 1px 0; color: inherit; }
-.hf-audio-play { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--hf-audio-cor, #00adee); color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.18); transition: transform .12s; }
-.hf-audio-play:active { transform: scale(.94); }
-.hf-audio-play:focus-visible { outline: 2px solid var(--hf-audio-cor, #00adee); outline-offset: 2px; }
-.hf-audio-play svg { margin-left: 2px; }
+.hf-audio { --p: 0; display: flex; align-items: center; gap: 11px; width: min(264px, 68vw); padding: 3px 2px 1px 0; color: inherit; }
+/* Botão com anel de progresso em volta (o anel enche conforme o áudio toca). */
+.hf-audio-play { position: relative; width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: radial-gradient(circle at 32% 28%, color-mix(in srgb, #fff 28%, var(--hf-audio-cor, #00adee)), var(--hf-audio-cor, #00adee) 62%); color: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--hf-audio-cor, #00adee) 14%, transparent), 0 4px 14px -4px color-mix(in srgb, var(--hf-audio-cor, #00adee) 70%, transparent); transition: transform .14s; }
+.hf-audio-play::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(var(--hf-audio-cor, #00adee) calc(var(--p) * 1turn), transparent 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); pointer-events: none; }
+.hf-audio-play:active { transform: scale(.93); }
+.hf-audio-play:focus-visible { outline: 2px solid var(--hf-audio-cor, #00adee); outline-offset: 5px; }
+.hf-audio-play svg { margin-left: 2px; position: relative; }
 .hf-audio.tocando .hf-audio-play svg { margin-left: 0; }
+.hf-audio.tocando .hf-audio-play { animation: hfOndaPulso 1.6s ease-in-out infinite; }
+@keyframes hfOndaPulso { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--hf-audio-cor, #00adee) 8%, transparent), 0 4px 18px -4px color-mix(in srgb, var(--hf-audio-cor, #00adee) 85%, transparent); } }
 .hf-audio.carregando .hf-audio-play svg { margin-left: 0; animation: hfOndaGira .8s linear infinite; }
 @keyframes hfOndaGira { to { transform: rotate(360deg); } }
-.hf-audio-corpo { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.hf-audio-corpo { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .hf-audio-onda { height: 30px; display: flex; align-items: center; gap: 2px; cursor: pointer; touch-action: none; outline: none; border-radius: 6px; }
 .hf-audio-onda:focus-visible { box-shadow: 0 0 0 2px var(--hf-audio-cor, #00adee); }
-.hf-audio-onda i { flex: 1; min-width: 2px; border-radius: 2px; background: color-mix(in srgb, currentColor 30%, transparent); transition: height .3s ease, background-color .12s; }
-.hf-audio-onda i.on { background: var(--hf-audio-cor, #00adee); }
+.hf-audio-onda i { flex: 1; min-width: 2px; max-width: 4px; border-radius: 99px; background: color-mix(in srgb, currentColor 26%, transparent); transition: height .3s ease, background-color .15s, box-shadow .15s; }
+.hf-audio-onda i.on { background: var(--hf-audio-cor, #00adee); box-shadow: 0 0 6px color-mix(in srgb, var(--hf-audio-cor, #00adee) 55%, transparent); }
 .hf-audio-rodape { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11.5px; line-height: 1; }
-.hf-audio-tempo { font-variant-numeric: tabular-nums; opacity: .75; }
-.hf-audio-vel { border: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 999px; color: inherit; background: color-mix(in srgb, currentColor 14%, transparent); min-width: 34px; font-variant-numeric: tabular-nums; }
-.hf-audio-vel:hover { background: color-mix(in srgb, currentColor 22%, transparent); }
-@media (prefers-reduced-motion: reduce) { .hf-audio-onda i { transition: none; } .hf-audio.carregando .hf-audio-play svg { animation: none; } }
+.hf-audio-tempo { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: .02em; opacity: .78; }
+.hf-audio-vel { border: 1px solid color-mix(in srgb, currentColor 22%, transparent); cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; padding: 2px 7px; border-radius: 999px; color: inherit; background: color-mix(in srgb, currentColor 8%, transparent); min-width: 34px; font-variant-numeric: tabular-nums; }
+.hf-audio-vel:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
+@media (prefers-reduced-motion: reduce) { .hf-audio-onda i { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
 `;
   document.head.appendChild(st);
 }
@@ -145,6 +149,7 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
   const progresso = (frac) => {
     const n = Math.round(frac * BARRAS);
     barras.forEach((b, i) => b.classList.toggle("on", i < n));
+    box.style.setProperty("--p", String(Math.max(0, Math.min(1, frac))));
     onda.setAttribute("aria-valuemax", String(Math.round(dur)));
     onda.setAttribute("aria-valuenow", String(Math.round(frac * dur)));
     onda.setAttribute("aria-valuetext", `${mmss(frac * dur)} de ${mmss(dur)}`);
