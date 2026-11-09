@@ -7,7 +7,7 @@
 // - publicação, comentário, perfil e negócio: o conteúdo completo, com foto.
 // =====================================================
 import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=28";
-import { criarPlayerAudio } from "./audio-ondas.js?v=3";
+import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 
 const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado", comunidade: "Anúncio da Comunidade denunciado" };
 const CAT_COMUNIDADE = { doacao: "Doação", troca: "Troca", pedido: "Pedido de ajuda", quarto: "Quarto compartilhado", achados: "Achados e perdidos" };

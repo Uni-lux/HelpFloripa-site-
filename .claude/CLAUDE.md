@@ -1899,6 +1899,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (só a situação de agora: "Atendendo agora · até 18h" / "Ausente · volta..." / "Costuma responder em ~X"); horário, recado e
   tempo de resposta ficam na gaveta (tocar). Foto do topo da conversa SEM anel (parecia flash não visto). Citação no seu balão
   `rgba(0,18,32,.55)` (estava quase da cor do balão), na da outra pessoa clara. Teste `t-mensagens-topo.mjs` (9).
+- **Ajustes do Mensagens (09/11/2026, PR depois do #174, sem regra nova):** prints dele. Citação no seu balão agora OPACA
+  `#0c1f2b` com barra/nome `#4fd2ff` (a semitransparente ainda ficava parecida com o balão). Ponto do áudio quadro a quadro
+  (`seguir`/`comecarSeguir` com requestAnimationFrame em audio-ondas.js v=4; o `timeupdate` só chega ~4×/s e a bolinha pulava).
+  Prévia do perfil (`.pv-perfil .avatar`) sem anel azul. Aba Chamadas usa a MESMA lupa do topo (`#buscaConversas`, placeholder
+  "Pesquisar chamadas" no `trocarModo`; a `.rc-busca` de dentro saiu). Menu ⋮/segurar mensagem (`#menuMsg`) ganha a classe
+  `aberto` (MutationObserver no `hidden`) e entrou nas CAMADAS do voltar.js (v=11): o voltar do celular fecha só o menu;
+  `fecharConversa` fecha o menu (antes ele ficava aberto por cima da lista). Teste `t-mensagens-ajustes.mjs` (11);
+  `t-registro-chamadas` e `t-mensagens-topo` atualizados.
+  **Mesmo PR: áudio no jeito do WhatsApp** (pedido dele: rolando a conversa com o dedo em cima da onda o áudio pulava):
+  `.hf-audio-onda { touch-action: pan-y }` e nada de pular no `pointerdown` da onda. No modelo com foto (`.wa`) só a
+  BOLINHA arrasta (`.hf-audio-ponto` com área de toque maior `::before`, `.arrastando` aumenta; `pintarArr` mostra o ponto e o
+  tempo; ao soltar muda `currentTime`, ou guarda `posPendente` e o áudio começa dali quando tocar); tocar na onda não faz nada.
+  Sem a bolinha (chat da equipe/denúncias) pula só no `click` (não acontece quando o dedo rola). audio-ondas.js v=5.
+  Teste `t-audio-arrastar.mjs` (7).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

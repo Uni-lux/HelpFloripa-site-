@@ -179,7 +179,7 @@ svg.i.s { width: 16px; height: 16px; }
 .pv-btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: none; color: inherit; font: inherit; font-size: 14.5px; font-weight: 800; cursor: pointer; }
 .pv-btn.pri { border: 0; background: var(--accent); color: var(--accent-ink, #001a24); }
 .pv-perfil { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 6px 0 2px; }
-.pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
+.pv-perfil .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: 0 0 0 1px var(--line); }
 .pv-perfil h3 { margin: 8px 0 0; font-size: 19px; display: inline-flex; align-items: center; gap: 6px; }
 .pv-perfil h3 svg { width: 18px; height: 18px; color: #1d9bf0; }
 /* cartão de localização/endereço */
@@ -455,7 +455,7 @@ body.selecionando .barra-rede { display: none; }
 .modos .modo-n[hidden] { display: none; }
 .modos button[data-modo="chamadas"][aria-selected="true"] { color: #2fbf71; }
 /* Aba Chamadas: registro das ligações (sem a busca e os filtros das conversas). */
-body.modo-chamadas .search, body.modo-chamadas .pills, body.modo-chamadas #faixaSuporte { display: none !important; }
+body.modo-chamadas .pills, body.modo-chamadas #faixaSuporte { display: none !important; }
 /* Aba Chamadas (09/11/2026): Nova chamada, filtros com contagem, busca, linhas agrupadas e histórico por pessoa */
 .rc-topo { display: flex; align-items: center; gap: 8px; padding: 2px 12px 10px; }
 .rc-nova { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 8px 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #001a24); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
@@ -1162,3 +1162,12 @@ body.selecionando .conv-item.marcada .sel-marca { display: grid; background: #0a
 :root[data-theme="light"] .minha .bolha .citacao { background: rgba(0, 90, 130, .1); border-left-color: #0087c2; }
 :root[data-theme="light"] .minha .bolha .citacao strong { color: #0077ad; }
 :root[data-theme="light"] .outra .bolha .citacao { background: rgba(0, 60, 90, .06); }
+
+/* 09/11/2026 (prints do dono): citação (mensagem respondida) com cor PRÓPRIA, opaca, bem diferente do balão;
+   foto da prévia do perfil sem anel azul (parecia flash). */
+:root[data-theme="dark"] .minha .bolha .citacao { background: #0c1f2b; border-left-color: #4fd2ff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+:root[data-theme="dark"] .minha .bolha .citacao strong { color: #4fd2ff; }
+:root[data-theme="dark"] .minha .bolha .citacao span { color: #c9d6de; opacity: 1; }
+:root[data-theme="dark"] .outra .bolha .citacao { background: #121a20; border-left-color: #00adee; }
+:root[data-theme="light"] .minha .bolha .citacao { background: #ffffff; border-left-color: #0087c2; }
+:root[data-theme="light"] .outra .bolha .citacao { background: #eef3f6; }

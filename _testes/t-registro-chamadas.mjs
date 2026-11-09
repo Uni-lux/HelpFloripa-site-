@@ -42,7 +42,7 @@ const dias = await p.locator(".rc-dia").allTextContents();
 ok(dias.length === 2 && dias[0] === "Hoje", "separado por dia: " + dias.join(", "));
 const pills = (await p.locator(".rc-filtros .pill").allTextContents()).map((t) => t.replace(/\s+/g, ""));
 ok(pills.join(",") === "Todas,Perdidas2,Recebidas,Feitas", "filtros (número só nas perdidas): " + pills.join(","));
-ok(await p.locator("#buscaConversas").isHidden(), "a busca das conversas some na aba");
+ok((await p.locator("#buscaConversas").getAttribute("placeholder")) === "Pesquisar chamadas", "na aba Chamadas a lupa do topo procura nas chamadas");
 ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sem rolagem para o lado (390 px)");
 await p.setViewportSize({ width: 360, height: 760 }); await p.waitForTimeout(300);
 ok(await p.evaluate(() => [...document.querySelectorAll(".rc-filtros .pill")].every((b) => b.scrollWidth <= b.clientWidth + 1)), "os 4 filtros cabem inteiros em 360 px");
