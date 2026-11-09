@@ -12,7 +12,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=6";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=7";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -1185,6 +1185,15 @@ function conversaOculta(c) {
 }
 // Segurar (celular) seleciona a conversa, como no WhatsApp; clique direito (computador) abre as opções.
 // aoSegurar(x, y, porToque). No Android o segurar também dispara "contextmenu": conta como toque.
+// Depois de um "segurar", o dedo ainda está na tela: a lista muda (entra a seleção) e o "contextmenu"/"click" que o
+// celular manda em seguida caía na conversa de baixo (marcava 2). Até o dedo sair (+350 ms) esses eventos são ignorados.
+let toqueTravadoAte = 0;
+const toqueTravado = () => Date.now() < toqueTravadoAte;
+function travarToque() {
+  toqueTravadoAte = Date.now() + 5000;
+  const soltar = () => { toqueTravadoAte = Date.now() + 350; ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach((ev) => document.removeEventListener(ev, soltar, true)); };
+  ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach((ev) => document.addEventListener(ev, soltar, true));
+}
 function ligarToqueLongo(el, aoSegurar) {
   let timer = null, x0 = 0, y0 = 0, tipo = "mouse";
   const cancelar = () => { clearTimeout(timer); timer = null; };
@@ -1193,14 +1202,15 @@ function ligarToqueLongo(el, aoSegurar) {
     x0 = e.clientX; y0 = e.clientY; tipo = e.pointerType || "mouse";
     delete el.dataset.segurou;
     cancelar();
-    timer = setTimeout(() => { timer = null; el.dataset.segurou = "1"; if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(15); aoSegurar(x0, y0, tipo !== "mouse"); }, 450);
+    timer = setTimeout(() => { timer = null; el.dataset.segurou = "1"; travarToque(); if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(15); aoSegurar(x0, y0, tipo !== "mouse"); }, 450);
   });
   el.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) cancelar(); });
   ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, cancelar));
   el.addEventListener("contextmenu", (e) => {
     e.preventDefault();
+    if (toqueTravado()) return;
     const toque = (e.pointerType && e.pointerType !== "mouse") || (tipo !== "mouse" && !e.button);
-    if (toque) { if (!el.dataset.segurou) { cancelar(); el.dataset.segurou = "1"; aoSegurar(e.clientX, e.clientY, true); } return; }
+    if (toque) { if (!el.dataset.segurou) { cancelar(); el.dataset.segurou = "1"; travarToque(); aoSegurar(e.clientX, e.clientY, true); } return; }
     cancelar(); aoSegurar(e.clientX, e.clientY, false);
   });
 }
@@ -1282,6 +1292,7 @@ function alternarSelecao(id) {
 function pintarSelecao() {
   const n = selecionadas.size;
   $("selConta").textContent = String(n);
+  const rot = $("selRotulo"); if (rot) rot.textContent = n === 1 ? "selecionada" : "selecionadas";
   ["selArquivar", "selApagar", "selFixar", "selSilenciar"].forEach((id) => { $(id).disabled = !n; });
   const arq = filtro === "arquivadas";
   $("selArquivar").setAttribute("aria-label", arq ? "Desarquivar selecionadas" : "Arquivar selecionadas");
@@ -1454,7 +1465,7 @@ function renderizarLista() {
     if (assunto !== "pessoal") item.classList.add("com-assunto");
     if (selecionadas.has(c.id)) item.classList.add("marcada");
     item.addEventListener("click", (e) => {
-      if (item.dataset.segurou) { delete item.dataset.segurou; e.preventDefault(); return; }
+      if (item.dataset.segurou || toqueTravado()) { delete item.dataset.segurou; e.preventDefault(); return; }
       if (selecionando) { alternarSelecao(c.id); return; }
       abrirConversa(c.id);
     });
@@ -3693,7 +3704,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=6");
+  const { ligar } = await import("./chamadas.js?v=7");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }
@@ -3823,32 +3834,40 @@ async function renderizarChamadas() {
     if (!termo && filtroChamadas === "todas") { const b = elm("button", "rc-nova"); b.type = "button"; b.append(usar("telefone", "i s"), document.createTextNode("Fazer uma chamada")); b.addEventListener("click", abrirNovaChamada); vazio.appendChild(b); }
     nos.push(vazio);
   }
-  // Ligações seguidas da mesma pessoa, no mesmo dia, do mesmo jeito (perdidas, feitas ou recebidas) viram uma linha.
-  const grupos = [];
+  // Uma linha por pessoa (pedido do dono, 09/11/2026): todas as ligações com ela viram uma só, na posição da mais
+  // recente, com quantas foram ("(13)"), como foi a última e um resumo (quantas perdidas). Tocar abre o histórico.
+  const porPessoa = new Map();
   for (const c of itens) {
-    const s = situacaoChamada(c), dia = diaDaChamada(ms(c.criadoEm));
-    const g = grupos.at(-1);
-    if (g && g.uid === outroDa(c) && g.dia === dia && g.sit.perdida === s.perdida && g.sit.saiu === s.saiu) { g.lista.push(c); continue; }
-    grupos.push({ uid: outroDa(c), dia, sit: s, lista: [c] });
+    const uid = outroDa(c);
+    if (!porPessoa.has(uid)) porPessoa.set(uid, { uid, lista: [] });
+    porPessoa.get(uid).lista.push(c);
   }
   let ultimoDia = "";
-  for (const g of grupos) {
-    if (g.dia !== ultimoDia) { nos.push(elm("div", "rc-dia", g.dia)); ultimoDia = g.dia; }
-    const c = g.lista[0], sit = g.sit, p = quem(c);
-    const nova = !sit.saiu && sit.perdida && ms(c.criadoEm) > visto;
-    const item = elm("div", "rc-item" + (sit.perdida ? " perdida" : "") + (nova ? " nova" : ""));
+  for (const g of porPessoa.values()) {
+    const c = g.lista[0], sit = situacaoChamada(c), p = quem(c);
+    const dia = diaDaChamada(ms(c.criadoEm));
+    if (dia !== ultimoDia) { nos.push(elm("div", "rc-dia", dia)); ultimoDia = dia; }
+    const perdidas = g.lista.filter((x) => situacaoChamada(x).perdida);
+    const novas = perdidas.filter((x) => x.de !== eu.uid && ms(x.criadoEm) > visto).length;
+    const item = elm("div", "rc-item" + (sit.perdida ? " perdida" : "") + (novas ? " nova" : ""));
     item.tabIndex = 0; item.setAttribute("role", "button");
     const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
     const tx = elm("div", "rc-tx");
     const nome = elm("b"); nome.append(p.nome); if (g.lista.length > 1) nome.appendChild(elm("span", "rc-qtd", `(${g.lista.length})`));
     const linha = elm("small");
     const tipoIc = usar(c.tipo === "video" ? "videochamada" : "telefone", "i rc-tipo");
-    const partes = [hora(new Date(ms(c.criadoEm)))];
-    if (sit.falou) partes.push(sit.estado); else if (!sit.perdida) partes.push(sit.estado);
+    const partes = [sit.perdida ? sit.titulo : `${sit.direcao === "Feita" ? "Feita" : "Recebida"}`, hora(new Date(ms(c.criadoEm)))];
+    if (sit.falou) partes.push(sit.estado);
     linha.append(setaChamada(sit), tipoIc, document.createTextNode(partes.join(" · ")));
     tx.append(nome, linha);
-    item.setAttribute("aria-label", `${p.nome}, ${sit.perdida ? "chamada perdida" : sit.saiu ? "chamada feita" : "chamada recebida"}, ${partes.join(", ")}. Ver detalhes`);
-    item.append(av, tx, botaoLigar(c.tipo, p.nome, p.conv?.id || c.conv, p.uid));
+    if (g.lista.length > 1 && perdidas.length && !(perdidas.length === g.lista.length)) {
+      tx.appendChild(elm("span", "rc-resumo", `${perdidas.length} ${perdidas.length === 1 ? "perdida" : "perdidas"} · ${g.lista.length - perdidas.length} ${g.lista.length - perdidas.length === 1 ? "outra" : "outras"}`));
+    }
+    item.setAttribute("aria-label", `${p.nome}, ${g.lista.length} ${g.lista.length === 1 ? "chamada" : "chamadas"}; a última: ${partes.join(", ")}. Ver histórico`);
+    const lado = elm("div", "rc-lado");
+    if (novas) lado.appendChild(elm("span", "rc-novas", String(novas)));
+    lado.appendChild(botaoLigar(c.tipo, p.nome, p.conv?.id || c.conv, p.uid));
+    item.append(av, tx, lado);
     const abrir = () => abrirDetalheChamadas(p);
     item.addEventListener("click", abrir);
     item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
@@ -3859,15 +3878,15 @@ async function renderizarChamadas() {
 const semAcentoCham = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 // Histórico com uma pessoa: Mensagem · Voz · Vídeo, totais e cada ligação (dia, hora, tipo, situação e duração).
 function abrirDetalheChamadas(p) {
-  const { corpo, fechar } = abrirGaveta("Chamadas");
+  const { corpo, fechar } = abrirGaveta("Histórico de chamadas");
+  corpo.classList.add("rcd");
   const minhas = chamadasVisiveis().filter((c) => outroDa(c) === p.uid);
   const convId = p.conv?.id || minhas[0]?.conv;
+  // Cabeçalho: foto grande, nome e quando foi a última ligação.
   const cab = elm("div", "rcd-cab");
   const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
-  const tot = minhas.reduce((t, c) => t + situacaoChamada(c).dur, 0);
-  const sub = [`${minhas.length} ${minhas.length === 1 ? "chamada" : "chamadas"}`]; if (tot) sub.push(`${duracaoTexto(tot)} em ligação`);
-  const tx = elm("div", "rcd-tx"); tx.append(elm("strong", null, p.nome), elm("small", null, sub.join(" · ")));
-  cab.append(av, tx);
+  const ultima = minhas[0] ? `Última: ${diaDaChamada(ms(minhas[0].criadoEm)).toLowerCase()} às ${hora(new Date(ms(minhas[0].criadoEm)))}` : "";
+  cab.append(av, elm("strong", null, p.nome), elm("small", null, ultima));
   const acoes = elm("div", "rcd-acoes");
   const acao = (icone, rot, fn, off) => { const b = elm("button", "rcd-acao"); b.type = "button"; b.disabled = !!off; const ic = elm("span"); ic.appendChild(usar(icone, "i")); b.append(ic, elm("b", null, rot)); b.addEventListener("click", () => { fechar(); setTimeout(fn, 220); }); acoes.appendChild(b); };
   const sem = !convId || bloqueado(p.uid);
@@ -3876,20 +3895,31 @@ function abrirDetalheChamadas(p) {
   acao("videochamada", "Vídeo", () => ligarPara(convId, "video"), sem);
   corpo.append(cab, acoes);
   if (sem && convId) corpo.appendChild(elm("p", "rcd-aviso", "Não é possível ligar para esta pessoa."));
-  let ultimo = "";
+  // Números: total, feitas, recebidas, perdidas e o tempo em ligação.
+  const sits = minhas.map(situacaoChamada);
+  const tot = sits.reduce((t, s) => t + s.dur, 0);
+  const numeros = elm("div", "rcd-nums");
+  [[minhas.length, minhas.length === 1 ? "Chamada" : "Chamadas", ""], [sits.filter((s) => s.saiu).length, "Feitas", "saiu"], [sits.filter((s) => !s.saiu && !s.perdida).length, "Recebidas", "entrou"], [sits.filter((s) => s.perdida).length, "Perdidas", "perdida"]]
+    .forEach(([n, rot, cls]) => { const d = elm("div", "rcd-num " + cls); d.append(elm("b", null, String(n)), elm("span", null, rot)); numeros.appendChild(d); });
+  corpo.appendChild(numeros);
+  if (tot) { const t = elm("div", "rcd-total"); t.append(usar("relogio", "i s"), document.createTextNode(`${duracaoTexto(tot)} em ligação`)); corpo.appendChild(t); }
+  // Cada ligação, por dia, num cartão.
+  let ultimo = "", cartao = null;
   const box = elm("div", "rcd-lista");
-  for (const c of minhas) {
+  minhas.forEach((c, i) => {
     const dia = diaDaChamada(ms(c.criadoEm));
-    if (dia !== ultimo) { box.appendChild(elm("div", "rc-dia", dia)); ultimo = dia; }
-    const s = situacaoChamada(c);
-    const l = elm("div", "rcd-item" + (s.perdida ? " perdida" : ""));
-    const ic = elm("span", "rcd-ic"); ic.appendChild(usar(c.tipo === "video" ? "videochamada" : "telefone", "i"));
+    if (dia !== ultimo) { box.appendChild(elm("div", "rcd-dia", dia)); cartao = elm("div", "rcd-cartao"); box.appendChild(cartao); ultimo = dia; }
+    const s = sits[i];
+    const tom = s.perdida ? "perdida" : s.saiu ? "saiu" : "entrou";
+    const l = elm("div", "rcd-item " + tom);
+    const ic = elm("span", "rcd-ic"); ic.appendChild(usar(c.tipo === "video" ? "videochamada" : "telefone", "i")); ic.appendChild(setaChamada(s));
     const t = elm("div", "rcd-t");
-    const lin = elm("small"); lin.append(setaChamada(s), document.createTextNode(`${s.direcao} · ${hora(new Date(ms(c.criadoEm)))}`));
-    t.append(elm("b", null, s.perdida ? s.titulo : c.tipo === "video" ? "Chamada de vídeo" : "Chamada de voz"), lin);
-    l.append(ic, t, elm("span", "rcd-dur", s.perdida ? "" : s.estado));
-    box.appendChild(l);
-  }
+    const tipo = c.tipo === "video" ? "vídeo" : "voz";
+    const titulo = s.perdida ? `Chamada de ${tipo} perdida` : `Chamada de ${tipo} ${s.saiu ? "feita" : "recebida"}`;
+    t.append(elm("b", null, titulo), elm("small", null, s.falou ? hora(new Date(ms(c.criadoEm))) : `${hora(new Date(ms(c.criadoEm)))} · ${s.estado}`));
+    l.append(ic, t, elm("span", "rcd-dur", s.falou ? s.estado : ""));
+    cartao.appendChild(l);
+  });
   corpo.appendChild(box);
   const tirar = elm("button", "pv-btn perigo rcd-tirar"); tirar.type = "button"; tirar.append(usar("lixo", "i s"), document.createTextNode("Tirar do registro"));
   tirar.addEventListener("click", async () => {

@@ -1913,6 +1913,24 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   tempo; ao soltar muda `currentTime`, ou guarda `posPendente` e o áudio começa dali quando tocar); tocar na onda não faz nada.
   Sem a bolinha (chat da equipe/denúncias) pula só no `click` (não acontece quando o dedo rola). audio-ondas.js v=5.
   Teste `t-audio-arrastar.mjs` (7).
+- **Ligação parte 4 + seleção (09/11/2026, PR depois do #175, sem regra nova):** prints dele. **Receber ligação**
+  (`montarEntrada` em chamadas.js): atalhos Mensagem (recusa e manda uma resposta pronta `RESPOSTAS` pela conversa,
+  `mandarResposta` com `comRitmo`) e Silenciar (só o toque) + trilho `.hfl-desliza`: arrastar a bola para a direita atende,
+  para a esquerda recusa (≥62% do caminho; menos volta), as pontas (`.hfl-bt.atender`/`.hfl-bt.fim`) também são botões.
+  **Topo espremido:** com o Minimizar `hidden` em página com `[hidden]{display:none!important}` o nome caía na coluna de
+  48 px → `grid-column` fixo. **"Conectando…" quando a outra pessoa liga:** oferta e resposta agora levam os caminhos (ICE)
+  dentro do SDP (`esperarCaminhos` 1,5 s na oferta / 2,5 s na resposta, `sdpDe`), assim funciona mesmo se o aparelho de quem
+  liga tem a versão antiga (app aberto há horas) que não recebia os candidatos. **Pílula** (chamada-mini.js v=2) mais
+  compacta + botão Recolher → **bolha** no canto (foto + tempo, arrasta e gruda no lado mais perto; `hf-lig-mini` na aba).
+  **Chamadas:** UMA linha por pessoa (na posição da mais recente, "(N)", "2 perdidas · 2 outras", número vermelho das novas)
+  e histórico (`abrirDetalheChamadas`) com foto grande, "Última: hoje às", Mensagem/Voz/Vídeo, números Chamadas · Feitas ·
+  Recebidas · Perdidas, tempo total e as ligações por dia em cartões (`.rcd`, `grid-auto-rows: max-content`: com
+  overflow hidden a linha encolhia). **Seleção marcava 2:** ao segurar, a seleção mudava a lista (o topo e as abas sumiam)
+  e o `contextmenu`/`click` do celular caía na conversa de baixo → `travarToque` ignora os dois até o dedo sair (+350 ms) e a
+  barra de seleção fica POR CIMA do topo (a lista não se mexe); "1 selecionada", sino cortado no Silenciar.
+  Testes `t-ligacao4.mjs` (27); `t-ligacao` (Silenciar), `t-ligacao-falha` (tira os caminhos do SDP também) e
+  `t-registro-chamadas` (uma linha por pessoa) atualizados. **Próximo pedido dele:** emojis modernos e figurinhas no formato
+  do WhatsApp (WebP 512×512) no chat.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

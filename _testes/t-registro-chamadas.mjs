@@ -34,12 +34,11 @@ await p.waitForSelector(".modos [data-modo='chamadas']", { timeout: 20000 }); aw
 await p.locator(".modos [data-modo='chamadas']").click();
 await p.waitForSelector(".rc-item", { timeout: 10000 }); await p.waitForTimeout(800);
 const itens = (await p.locator(".rc-item").allTextContents()).map((t) => t.replace(/\s+/g, " "));
-ok(itens.length === 3, "3 linhas (as 2 perdidas seguidas da Ana viraram uma): " + itens.join(" | "));
-ok(itens[0].includes("(2)") && await p.locator(".rc-item").first().evaluate((e) => e.classList.contains("perdida") && e.classList.contains("nova")), "perdidas agrupadas \"(2)\", em vermelho e marcadas como novas");
-ok(itens[1].includes("3 min"), "chamada de vídeo atendida com a duração: " + itens[1]);
-ok(itens[2].includes("Cancelada"), "ligação feita e cancelada antes de atender: " + itens[2]);
+ok(itens.length === 1, "uma linha por pessoa (as 4 ligações com a Ana numa só): " + itens.join(" | "));
+ok(itens[0].includes("(4)") && await p.locator(".rc-item").first().evaluate((e) => e.classList.contains("perdida") && e.classList.contains("nova")), "\"(4)\", a última (perdida) em vermelho e marcada como nova");
+ok(/2 perdidas · 2 outras/.test(itens[0]), "resumo das perdidas na linha: " + itens[0]);
 const dias = await p.locator(".rc-dia").allTextContents();
-ok(dias.length === 2 && dias[0] === "Hoje", "separado por dia: " + dias.join(", "));
+ok(dias.length === 1 && dias[0] === "Hoje", "dia da última ligação: " + dias.join(", "));
 const pills = (await p.locator(".rc-filtros .pill").allTextContents()).map((t) => t.replace(/\s+/g, ""));
 ok(pills.join(",") === "Todas,Perdidas2,Recebidas,Feitas", "filtros (número só nas perdidas): " + pills.join(","));
 ok((await p.locator("#buscaConversas").getAttribute("placeholder")) === "Pesquisar chamadas", "na aba Chamadas a lupa do topo procura nas chamadas");
@@ -51,15 +50,16 @@ await p.screenshot({ path: "saida/registro-chamadas.png" });
 await p.locator(".rc-filtros .pill", { hasText: "Perdidas" }).click(); await p.waitForTimeout(600);
 ok(await p.locator(".rc-item").count() === 1, "filtro Perdidas");
 await p.locator(".rc-filtros .pill", { hasText: "Feitas" }).click(); await p.waitForTimeout(600);
-ok(await p.locator(".rc-item").count() === 2, "filtro Feitas (a cancelada de hoje e a de ontem)");
+ok(await p.locator(".rc-item").count() === 1 && /\(2\)/.test(await p.textContent(".rc-item b")), "filtro Feitas (a cancelada de hoje e a de ontem, na mesma linha)");
 await p.locator(".rc-filtros .pill", { hasText: "Todas" }).click(); await p.waitForTimeout(600);
-ok(await p.locator(".rc-item .rc-ligar:not([disabled])").count() === 3, "botão de ligar de volta em cada linha");
+ok(await p.locator(".rc-item .rc-ligar:not([disabled])").count() === 1, "botão de ligar de volta na linha");
 
 // Histórico com a pessoa
 await p.locator(".rc-item").first().click();
 await p.waitForSelector(".pv-fundo.on .rcd-cab", { timeout: 5000 });
 const cab = (await p.textContent(".rcd-cab")).replace(/\s+/g, " ");
-ok(/Ana/.test(cab) && /4 chamadas/.test(cab) && /3 min em ligação/.test(cab), "histórico: nome, nº de chamadas e tempo total → " + cab);
+const nums = (await p.locator(".rcd-num b").allTextContents()).join(",");
+ok(/Ana/.test(cab) && /Última/.test(cab) && nums === "4,2,0,2" && /3 min em ligação/.test(await p.textContent(".rcd-total")), "histórico: nome, última, números (4,2,0,2 = " + nums + ") e tempo total");
 ok(await p.locator(".rcd-acao").count() === 3 && await p.locator(".rcd-item").count() === 4, "Mensagem · Voz · Vídeo e as 4 ligações");
 ok(await p.locator(".rcd-item.perdida").count() === 2, "as perdidas em vermelho no histórico");
 await p.screenshot({ path: "saida/registro-detalhe.png" });
@@ -88,7 +88,7 @@ await p.locator(".pv-fundo.on .rc-busca input").fill("zzz"); await p.waitForTime
 ok((await p.textContent(".rcn-lista")).includes("Ninguém"), "busca na Nova chamada");
 await p.screenshot({ path: "saida/registro-nova.png" });
 await p.keyboard.press("Escape"); await p.waitForTimeout(500);
-await p.locator(".rc-item").nth(1).click(); await p.waitForSelector(".pv-fundo.on .rcd-tirar");
+await p.locator(".rc-item").first().click(); await p.waitForSelector(".pv-fundo.on .rcd-tirar");
 await p.locator(".rcd-tirar").click(); await p.waitForSelector(".hf-confirma"); await p.locator(".hf-confirma .sim").click(); await p.waitForTimeout(900);
 ok(await p.locator(".rc-item").count() === 0, "Tirar do registro (todas eram com a Ana)");
 await p.evaluate((u) => { const k = "hf-chamadas-" + u; const c = JSON.parse(localStorage.getItem(k) || "{}"); delete c.tirados; localStorage.setItem(k, JSON.stringify(c)); }, U.bruno);

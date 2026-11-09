@@ -11,7 +11,7 @@
 // =====================================================
 import { collection, doc, setDoc, updateDoc, getDoc, onSnapshot, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=3";
-import { criarMini } from "./chamada-mini.js?v=1";
+import { criarMini } from "./chamada-mini.js?v=2";
 
 // Servidores que ajudam os aparelhos a se acharem (grátis). O TURN vem do servidor (servidoresIce).
 export const ICE = {
@@ -121,7 +121,54 @@ const CSS = `
 .hfl-bt[hidden] { display: none; }
 .hfl-bt svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hfl-bt.fim svg { transform: rotate(135deg); }
-@media (prefers-reduced-motion: reduce) { .hfl.tocando .hfl-foto { animation: none; } }`;
+/* Topo sempre em 3 colunas fixas: antes, com o Minimizar escondido (páginas com [hidden]{display:none!important}),
+   o nome caía na 1ª coluna de 48 px e ficava espremido à esquerda. */
+.hfl-min { grid-column: 1; } .hfl-cab { grid-column: 2; }
+.hfl-min[hidden] { display: grid !important; visibility: hidden; }
+/* Recebendo: arrastar para atender (direita) ou recusar (esquerda), como nos celulares; tocar nas pontas também vale. */
+.hfl-entrada { display: grid; gap: 18px; justify-items: center; max-width: 420px; margin: 0 auto; }
+.hfl-entrada[hidden], .hfl-bts[hidden] { display: none !important; }
+.hfl-rapidos { display: flex; gap: 34px; justify-content: center; }
+.hfl-rapido { display: grid; justify-items: center; gap: 6px; border: 0; background: none; color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; opacity: .92; }
+.hfl-rapido i { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .13); backdrop-filter: blur(10px); }
+.hfl-rapido.on i { background: #fff; color: #05080b; }
+.hfl-rapido svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hfl-desliza { --p: 0; position: relative; width: min(340px, calc(100vw - 32px)); height: 78px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(90deg, rgba(229, 72, 77, calc(.15 + max(0, -1 * var(--p)) * .7)), rgba(255, 255, 255, .08) 50%, rgba(34, 197, 94, calc(.15 + max(0, var(--p)) * .7)));
+  border: 1px solid rgba(255, 255, 255, .14); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 16px 40px rgba(0, 0, 0, .4); }
+.hfl-desliza .hfl-bt { position: absolute; top: 7px; min-width: 0; gap: 0; }
+.hfl-desliza .hfl-bt i { width: 62px; height: 62px; }
+.hfl-desliza .hfl-bt span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.hfl-desliza .hfl-bt.fim { left: 7px; } .hfl-desliza .hfl-bt.atender { right: 7px; }
+.hfl-ds-dica { position: absolute; top: 50%; transform: translateY(-50%); font-size: 12.5px; font-weight: 700; color: rgba(255, 255, 255, .75); display: flex; align-items: center; gap: 2px; pointer-events: none; transition: opacity .15s; }
+.hfl-ds-dica.esq { left: 74px; } .hfl-ds-dica.dir { right: 74px; }
+.hfl-ds-dica svg:nth-child(2) { animation-delay: .15s; } .hfl-ds-dica svg:nth-child(3) { animation-delay: .3s; }
+.hfl-ds-dica.esq svg:nth-child(1) { animation-delay: .3s; } .hfl-ds-dica.esq svg:nth-child(3) { animation-delay: 0s; }
+.hfl-ds-dica svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; animation: hflSeta 1.4s ease-in-out infinite; }
+.hfl-ds-dica.esq svg { animation-name: hflSetaE; }
+@keyframes hflSeta { 0%, 100% { transform: translateX(0); opacity: .4; } 50% { transform: translateX(4px); opacity: 1; } }
+@keyframes hflSetaE { 0%, 100% { transform: translateX(0); opacity: .4; } 50% { transform: translateX(-4px); opacity: 1; } }
+.hfl-ds-bola { position: absolute; left: 50%; top: 7px; width: 62px; height: 62px; margin-left: -31px; border-radius: 50%; display: grid; place-items: center; cursor: grab;
+  background: #fff; color: #0a8fd0; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); transform: translateX(var(--x, 0px)); touch-action: none; }
+.hfl-ds-bola.volta { transition: transform .28s cubic-bezier(.3, 1.5, .5, 1); }
+.hfl-ds-bola svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+.hfl.tocando .hfl-ds-bola:not(.mexendo) svg { animation: hflTreme 1.6s ease-in-out infinite; }
+@keyframes hflTreme { 0%, 60%, 100% { transform: rotate(0); } 65% { transform: rotate(-14deg); } 70% { transform: rotate(14deg); } 75% { transform: rotate(-10deg); } 80% { transform: rotate(10deg); } 85% { transform: rotate(0); } }
+.hfl-ds-bola.p-ok { color: #16a34a; } .hfl-ds-bola.p-fim { color: #e5484d; }
+.hfl-ds-bola.p-fim svg { transform: rotate(135deg); }
+.hfl-ds-ajuda { width: min(340px, calc(100vw - 32px)); display: grid; grid-template-columns: 76px 1fr 76px; align-items: center; margin-top: -8px; font-size: 12px; text-align: center; }
+.hfl-ds-ajuda span { opacity: .6; } .hfl-ds-ajuda .fim, .hfl-ds-ajuda .ok { opacity: 1; font-weight: 800; font-size: 12.5px; }
+.hfl-ds-ajuda .fim { color: #ff8a8d; } .hfl-ds-ajuda .ok { color: #6ee7a0; }
+/* Respostas rápidas (recusar e mandar uma mensagem) */
+.hfl-msgs { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; padding: 10px 14px calc(env(safe-area-inset-bottom, 0px) + 16px); border-radius: 24px 24px 0 0;
+  background: rgba(14, 22, 28, .97); border-top: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 -18px 40px rgba(0, 0, 0, .45); animation: hflSobe .2s ease-out; }
+@keyframes hflSobe { from { transform: translateY(30px); opacity: 0; } }
+.hfl-msgs h3 { margin: 6px 4px 10px; font-size: 15px; }
+.hfl-msgs button { display: block; width: 100%; text-align: left; padding: 14px 14px; margin: 0 0 6px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, .07); color: #fff; font: inherit; font-size: 14.5px; cursor: pointer; }
+.hfl-msgs button:active { background: rgba(255, 255, 255, .14); }
+.hfl-msgs .cancelar { text-align: center; background: none; color: #7fe0ff; font-weight: 700; }
+.hfl.recebendo .hfl-aviso { display: none; }
+@media (prefers-reduced-motion: reduce) { .hfl.tocando .hfl-foto { animation: none; } .hfl-ds-dica svg, .hfl.tocando .hfl-ds-bola svg { animation: none !important; } }`;
 let cssOk = false;
 function css() { if (cssOk) return; cssOk = true; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -133,7 +180,11 @@ const SVG = {
   camOff: '<path d="M3 3l18 18M8 6h5.5A2.5 2.5 0 0116 8.5V11l5-3v9l-3.5-2M16 16v-.5a2.5 2.5 0 01-2.5 2.5h-8A2.5 2.5 0 013 15.5v-7A2.5 2.5 0 015 6.1"/>',
   virar: '<path d="M4 9a8 8 0 0114-3l2 2M20 15a8 8 0 01-14 3l-2-2M20 4v4h-4M4 20v-4h4"/>',
   minimizar: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
-  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>'
+  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  msg: '<path d="M4 5.5h16v10H9l-5 4z"/>',
+  sino: '<path d="M6 16.5V11a6 6 0 0112 0v5.5l1.5 1.5h-15zM10 20a2 2 0 004 0"/>',
+  sinoOff: '<path d="M3 3l18 18M8.5 5.6A6 6 0 0118 11v4M6 11v5.5L4.5 18H17M10 20a2 2 0 004 0"/>',
+  seta: '<path d="M9 6l6 6-6 6"/>', setaE: '<path d="M15 6l-6 6 6 6"/>'
 };
 const svg = (nome) => `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[nome]}</svg>`;
 function botao(cls, icone, rotulo, fn) {
@@ -170,10 +221,89 @@ function montarTela({ nome, foto, tipo, recebendo }) {
   const aviso = el("p", "hfl-aviso", "Ligação pelo Help Floripa: nada é gravado. Não passe senhas nem códigos por ligação.");
   meio.append(ft, aviso);
   const rodape = el("div", "hfl-rodape"); const bts = el("div", "hfl-bts"); rodape.appendChild(bts);
+  if (recebendo) t.classList.add("recebendo");
   t.append(fundo, remoto, somRemoto, local, topo, outro, meio, rodape);
   document.body.appendChild(t);
-  return { t, remoto, somRemoto, local, situacao, bts, aviso, outro, bMin, nome, foto, ft, nomeEl, fundo };
+  return { t, remoto, somRemoto, local, situacao, bts, aviso, outro, bMin, nome, foto, ft, nomeEl, fundo, rodape };
 }
+
+// Tela de quem RECEBE: Mensagem · Silenciar o toque em cima e, embaixo, a bola para arrastar: direita atende,
+// esquerda recusa (passou de 62% do caminho = vale; menos que isso a bola volta). As pontas também são botões
+// (tocar nelas atende/recusa), para quem usa leitor de tela ou mouse.
+function montarEntrada(tela, { video, aoAtender, aoRecusar, aoMensagem, aoSilenciar }) {
+  const caixa = el("div", "hfl-entrada");
+  const rapidos = el("div", "hfl-rapidos");
+  const rapido = (icone, rotulo, fn) => { const b = el("button", "hfl-rapido"); b.type = "button"; b.setAttribute("aria-label", rotulo); const i = el("i"); i.innerHTML = svg(icone); b.append(i, el("span", null, rotulo)); b.addEventListener("click", () => fn(b)); return b; };
+  const bMsg = rapido("msg", "Mensagem", () => aoMensagem());
+  const bSil = rapido("sinoOff", "Silenciar", (b) => { aoSilenciar(); b.classList.add("on"); b.lastChild.textContent = "Silenciado"; b.disabled = true; });
+  rapidos.append(bMsg, bSil);
+  const trilho = el("div", "hfl-desliza"); trilho.setAttribute("role", "group"); trilho.setAttribute("aria-label", "Arraste para a direita para atender ou para a esquerda para recusar");
+  const bFim = botao("fim", "tel", "Recusar", () => aoRecusar());
+  const bOk = botao("atender", video ? "cam" : "tel", "Atender", () => aoAtender());
+  const dE = el("span", "hfl-ds-dica esq"); dE.innerHTML = svg("setaE") + svg("setaE") + svg("setaE");
+  const dD = el("span", "hfl-ds-dica dir"); dD.innerHTML = svg("seta") + svg("seta") + svg("seta");
+  const bola = el("div", "hfl-ds-bola"); bola.innerHTML = svg(video ? "cam" : "tel"); bola.setAttribute("aria-hidden", "true");
+  trilho.append(bFim, dE, bola, dD, bOk);
+  const ajuda = el("div", "hfl-ds-ajuda"); ajuda.append(el("span", "fim", "Recusar"), el("span", null, "Arraste para o lado"), el("span", "ok", "Atender"));
+  caixa.append(rapidos, trilho, ajuda);
+  tela.rodape.insertBefore(caixa, tela.bts); tela.bts.hidden = true;
+  // Arrastar a bola
+  let arr = null, feito = false;
+  const max = () => trilho.clientWidth / 2 - 38;
+  const pos = (x) => { bola.style.setProperty("--x", x + "px"); const p = Math.max(-1, Math.min(1, x / max())); trilho.style.setProperty("--p", p.toFixed(3));
+    bola.classList.toggle("p-ok", p > .25); bola.classList.toggle("p-fim", p < -.25); dE.style.opacity = dD.style.opacity = String(1 - Math.min(1, Math.abs(p) * 2)); };
+  bola.addEventListener("pointerdown", (e) => { if (feito) return; arr = { x0: e.clientX, id: e.pointerId }; bola.classList.remove("volta"); bola.classList.add("mexendo"); try { bola.setPointerCapture(e.pointerId); } catch {} });
+  bola.addEventListener("pointermove", (e) => { if (!arr || e.pointerId !== arr.id) return; pos(Math.max(-max(), Math.min(max(), e.clientX - arr.x0))); });
+  const soltar = (e) => {
+    if (!arr || e.pointerId !== arr.id) return;
+    const x = Math.max(-max(), Math.min(max(), e.clientX - arr.x0)); arr = null; bola.classList.remove("mexendo");
+    const p = x / max();
+    if (Math.abs(p) >= .62) { feito = true; pos(p > 0 ? max() : -max()); try { navigator.vibrate?.(20); } catch {} (p > 0 ? aoAtender : aoRecusar)(); return; }
+    bola.classList.add("volta"); pos(0);
+  };
+  bola.addEventListener("pointerup", soltar); bola.addEventListener("pointercancel", soltar);
+  return {
+    // Atendeu: some a entrada e aparecem os controles da ligação (no mesmo cartão de quem ligou).
+    fechar() { caixa.remove(); tela.bts.hidden = false; },
+    travar() { feito = true; trilho.style.pointerEvents = "none"; bMsg.disabled = true; }
+  };
+}
+
+// Recusar com uma mensagem pronta (vai para a conversa, como nos celulares). Só nas conversas do site.
+const RESPOSTAS = ["Não posso falar agora. Te ligo daqui a pouco.", "Agora não consigo atender. Pode mandar mensagem?", "Estou dirigindo, já te retorno.", "Estou numa reunião, falo com você depois."];
+function escolherResposta(tela) {
+  return new Promise((ok) => {
+    const f = el("div", "hfl-msgs"); f.setAttribute("role", "dialog"); f.setAttribute("aria-label", "Recusar com uma mensagem");
+    f.appendChild(el("h3", null, "Recusar com uma mensagem"));
+    const sair = (v) => { f.remove(); ok(v); };
+    RESPOSTAS.forEach((r) => { const b = el("button", null, r); b.type = "button"; b.addEventListener("click", () => sair(r)); f.appendChild(b); });
+    const c = el("button", "cancelar", "Voltar"); c.type = "button"; c.addEventListener("click", () => sair(null)); f.appendChild(c);
+    tela.t.appendChild(f);
+  });
+}
+async function mandarResposta(conv, eu, texto) {
+  const fb = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { comRitmo } = await import("./ritmo.js?v=3");
+  const f = { ...fb, db: db() };
+  const ref = doc(db(), "conversas", conv);
+  await comRitmo(f, eu, "msg", (lote) => lote.set(doc(collection(db(), "conversas", conv, "mensagens")), { remetenteId: eu, texto, criadoEm: serverTimestamp() }));
+  setDoc(ref, { ultimaMensagem: texto.slice(0, 120), ultimaMensagemRemetenteId: eu, atualizadoEm: serverTimestamp(), vistoEm: { [eu]: serverTimestamp() }, falaram: { [eu]: true } }, { merge: true }).catch(() => {});
+}
+
+// Junta os caminhos (ICE) no próprio SDP antes de mandar, por até "ms": assim a outra ponta recebe os caminhos JUNTO com a
+// oferta/resposta, mesmo que a escuta dos candidatos falhe ou o outro aparelho esteja com uma versão antiga do site
+// (09/11/2026: quem ligava com o app aberto há horas ficava preso em "Conectando…" quando a outra pessoa atendia).
+// Os caminhos continuam indo também um a um pela subcoleção (os que chegam depois).
+function esperarCaminhos(pc, ms) {
+  if (pc.iceGatheringState === "complete") return Promise.resolve();
+  return new Promise((ok) => {
+    const t = setTimeout(fim, ms);
+    function fim() { clearTimeout(t); pc.removeEventListener("icegatheringstatechange", ver); ok(); }
+    function ver() { if (pc.iceGatheringState === "complete") fim(); }
+    pc.addEventListener("icegatheringstatechange", ver);
+  });
+}
+const sdpDe = (pc, d) => { const l = pc.localDescription; return l?.sdp && l.sdp.length <= 30000 ? { type: l.type, sdp: l.sdp } : { type: d.type, sdp: d.sdp }; };
 
 // Campainha: tom curto repetido (WebAudio) + vibração; para quando atende, recusa ou some.
 function campainha(recebendo) {
@@ -502,8 +632,9 @@ export function ligar({ para, nome, foto, conv, tipo = "audio" }) {
     ctx.pararCampainha = campainha(false);
     try {
       const oferta = await pc.createOffer(); await pc.setLocalDescription(oferta);
+      await esperarCaminhos(pc, 1500);
       if (fim) return;
-      await setDoc(ctx.ref, { de: eu, para, conv, tipo, status: "chamando", oferta: { type: oferta.type, sdp: oferta.sdp }, criadoEm: serverTimestamp() });
+      await setDoc(ctx.ref, { de: eu, para, conv, tipo, status: "chamando", oferta: sdpDe(pc, oferta), criadoEm: serverTimestamp() });
       ctx.criada = true;
     } catch (e) {
       console.warn("[Chamada]", e?.code || e);
@@ -566,9 +697,11 @@ async function receber(id, d) {
     finalizarLocal(ctx);
   };
   ctx.encerrarJa = () => encerrar(ctx.conexao ? "encerrada" : "recusada");
-  const recusar = botao("fim", "tel", "Recusar", () => encerrar("recusada"));
-  const atender = botao("atender", ctx.tipo === "video" ? "cam" : "tel", "Atender", async () => {
-    ctx.pararCampainha(); ctx.tela.t.classList.remove("tocando"); atender.disabled = true; ctx.tela.situacao.textContent = "Conectando…";
+  let atendendo = false, entrada = null;
+  const atender = async () => {
+    if (atendendo || fim) return; atendendo = true;
+    entrada.travar(); entrada.fechar(); ctx.tela.t.classList.remove("recebendo");
+    ctx.pararCampainha(); ctx.tela.t.classList.remove("tocando"); ctx.tela.situacao.textContent = "Conectando…";
     let m;
     try { m = await pedirMidia(ctx.tipo); }
     catch (e) { if (fim) return; ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
@@ -587,8 +720,9 @@ async function receber(id, d) {
       // O lugar de vídeo da ligação de voz também manda daqui (para ligar a câmera depois sem renegociar).
       pc.getTransceivers().forEach((t) => { if (t.receiver?.track?.kind === "video" && !t.sender.track && t.direction === "recvonly") t.direction = "sendrecv"; });
       const resp = await pc.createAnswer(); await pc.setLocalDescription(resp);
+      await esperarCaminhos(pc, 2500);
       if (fim) return;
-      await updateDoc(ref, { status: "aceita", resposta: { type: resp.type, sdp: resp.sdp }, aceitaEm: serverTimestamp() });
+      await updateDoc(ref, { status: "aceita", resposta: sdpDe(pc, resp), aceitaEm: serverTimestamp() });
       ctx.conexao.liberarFila();
     } catch (e) {
       if (fim) return;
@@ -597,8 +731,21 @@ async function receber(id, d) {
       setTimeout(() => encerrar("encerrada", e?.code !== "permission-denied"), 1500); return;
     }
     controles(ctx, encerrar);
+  };
+  entrada = montarEntrada(ctx.tela, {
+    video: ctx.tipo === "video",
+    aoAtender: atender,
+    aoRecusar: () => { entrada.travar(); encerrar("recusada"); },
+    aoSilenciar: () => ctx.pararCampainha?.(),
+    aoMensagem: async () => {
+      ctx.pararCampainha?.();
+      const texto = await escolherResposta(ctx.tela);
+      if (!texto || fim || atendendo) return;
+      entrada.travar(); ctx.tela.situacao.textContent = "Recusada · mensagem enviada";
+      mandarResposta(d.conv, eu, texto).catch((e) => console.warn("[Chamada] resposta rápida", e?.code || e));
+      setTimeout(() => encerrar("recusada"), 900);
+    }
   });
-  ctx.tela.bts.append(recusar, atender);
   ctx.timeout = setTimeout(() => { if (!ctx.conectado && !ctx.conexao) encerrar("perdida", false); }, Math.max(3000, TOCANDO_MS - (Date.now() - (d.criadoEm?.toMillis?.() ?? Date.now()))));
   ctx.pararDoc = onSnapshot(ref, (s) => {
     const x = s.data(); if (!x) return;
@@ -606,7 +753,7 @@ async function receber(id, d) {
     // Atendida ou recusada em OUTRO aparelho da mesma conta (celular e computador tocam juntos): este para de tocar.
     else if (!ctx.conexao && (x.status === "aceita" || (x.status === "recusada" && x.encerradaPor === eu))) {
       ctx.pararCampainha?.(); ctx.tela.situacao.textContent = x.status === "aceita" ? "Atendida em outro aparelho" : "Recusada";
-      ctx.tela.bts.replaceChildren(); setTimeout(() => encerrar(x.status, false), 1500);
+      entrada?.travar(); setTimeout(() => encerrar(x.status, false), 1500);
     }
   }, () => {});
 }

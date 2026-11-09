@@ -10,7 +10,7 @@
 // API para os quadros: window.__hfShell (quadro-rede.js e deslizar-flash.js usam).
 // =====================================================
 import { guardarSaida } from "./confirmar.js?v=6";
-import { criarMini } from "./chamada-mini.js?v=1";
+import { criarMini } from "./chamada-mini.js?v=2";
 
 const ABAS = ["diario", "explorar", "comunidade", "mensagens", "perfil"];
 const NOMES = { diario: "Diário", explorar: "Explorar", comunidade: "Comunidade", mensagens: "Mensagens", perfil: "Perfil" };

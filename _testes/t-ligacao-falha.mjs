@@ -9,7 +9,12 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 for (const d of (await db.collection("chamadas").get()).docs) await d.ref.delete();
-const bloquear = () => { RTCPeerConnection.prototype.addIceCandidate = function () { return Promise.resolve(); }; };
+// Os caminhos agora também vão dentro da oferta/resposta (SDP): a rede "bloqueada" tira eles de lá também.
+const bloquear = () => {
+  RTCPeerConnection.prototype.addIceCandidate = function () { return Promise.resolve(); };
+  const srd = RTCPeerConnection.prototype.setRemoteDescription;
+  RTCPeerConnection.prototype.setRemoteDescription = function (d) { return srd.call(this, d && d.sdp ? { type: d.type, sdp: d.sdp.split("\r\n").filter((l) => !l.startsWith("a=candidate")).join("\r\n") } : d); };
+};
 const A = await navegador({ mobile: true, camera: true }), B = await navegador({ mobile: true, camera: true });
 await A.ctx.addInitScript(bloquear); await B.ctx.addInitScript(bloquear);
 const ana = await entrar(A.ctx, "ana", "index.html");
