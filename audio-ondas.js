@@ -12,6 +12,8 @@
 //   fonte: URL do áudio ou função async que devolve a URL (data: ou https:)
 //   duracao: segundos, se já souber (mostra antes de tocar)
 //   carregarJa: true para já calcular a onda (ex.: áudio que veio dentro da mensagem)
+//   foto: elemento com a foto de quem gravou (opcional) → modelo do WhatsApp: foto com microfone, play sem disco,
+//         ponto na onda e a velocidade no lugar da foto enquanto toca. lado: "esq" (padrão) ou "dir" (lado da foto).
 // =====================================================
 const BARRAS = 34;
 const VELOCIDADES = [1, 1.5, 2];
@@ -117,12 +119,32 @@ function css() {
 .hf-audio-tempo { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: .02em; opacity: .78; }
 .hf-audio-vel { border: 1px solid color-mix(in srgb, currentColor 22%, transparent); cursor: pointer; font: inherit; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; padding: 2px 7px; border-radius: 999px; color: inherit; background: color-mix(in srgb, currentColor 8%, transparent); min-width: 34px; font-variant-numeric: tabular-nums; }
 .hf-audio-vel:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
-@media (prefers-reduced-motion: reduce) { .hf-audio-onda i { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
+/* Modelo do WhatsApp (opção foto) */
+.hf-audio.wa { --p: 0; gap: 6px; width: min(286px, 70vw); padding: 2px 0 0; }
+.hf-audio.wa .hf-audio-play { width: 34px; height: 40px; border-radius: 10px; background: none; box-shadow: none; color: var(--hf-audio-play, currentColor); animation: none; }
+.hf-audio.wa .hf-audio-play::before { display: none; }
+.hf-audio.wa .hf-audio-play svg { width: 30px; height: 30px; margin-left: 0; }
+.hf-audio.wa .hf-audio-av { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; }
+.hf-audio.wa .hf-audio-av > .hf-audio-foto { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
+.hf-audio.wa .hf-audio-av > .hf-audio-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hf-audio.wa .hf-audio-mic { position: absolute; bottom: -3px; right: -5px; width: 22px; height: 22px; color: var(--hf-audio-mic, var(--hf-audio-cor, #00adee)); filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .45)); }
+.hf-audio.wa.foto-dir .hf-audio-mic { right: auto; left: -5px; }
+.hf-audio.wa .hf-audio-av .hf-audio-vel { display: none; position: absolute; min-width: 44px; height: 28px; padding: 0 8px; border: 0; font-size: 12.5px; background: color-mix(in srgb, currentColor 18%, transparent); }
+.hf-audio.wa.tocando .hf-audio-av .hf-audio-vel { display: grid; place-items: center; }
+.hf-audio.wa.tocando .hf-audio-av > .hf-audio-foto, .hf-audio.wa.tocando .hf-audio-mic { visibility: hidden; }
+.hf-audio.wa .hf-audio-corpo { gap: 1px; }
+.hf-audio.wa .hf-audio-onda { position: relative; height: 30px; gap: 1.5px; }
+.hf-audio.wa .hf-audio-onda i { min-width: 2px; max-width: 3px; border-radius: 2px; box-shadow: none; background: color-mix(in srgb, currentColor 32%, transparent); }
+.hf-audio.wa .hf-audio-onda i.on { box-shadow: none; background: var(--hf-audio-cor, #00adee); }
+.hf-audio.wa .hf-audio-ponto { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--hf-audio-cor, #00adee); pointer-events: none; transition: left .12s linear; }
+.hf-audio.wa .hf-audio-rodape { font-size: 11.5px; }
+.hf-audio.wa .hf-audio-tempo { font-weight: 500; letter-spacing: 0; opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .hf-audio-onda i, .hf-audio-ponto { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
 `;
   document.head.appendChild(st);
 }
 
-export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false, aoErro = null } = {}) {
+export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false, aoErro = null, foto = null, lado = "esq" } = {}) {
   css();
   const box = document.createElement("div"); box.className = "hf-audio";
   const bPlay = document.createElement("button"); bPlay.type = "button"; bPlay.className = "hf-audio-play"; bPlay.setAttribute("aria-label", "Tocar áudio");
@@ -135,9 +157,22 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
   const rod = document.createElement("div"); rod.className = "hf-audio-rodape";
   const tempo = document.createElement("span"); tempo.className = "hf-audio-tempo";
   const bVel = document.createElement("button"); bVel.type = "button"; bVel.className = "hf-audio-vel";
-  rod.append(tempo, bVel);
   corpo.append(onda, rod);
-  box.append(bPlay, corpo);
+  if (foto) {
+    // Modelo do WhatsApp: [foto com microfone] [play] [onda] (ou espelhado com lado "dir"); velocidade no lugar da foto.
+    box.classList.add("wa", lado === "dir" ? "foto-dir" : "foto-esq");
+    rod.append(tempo);
+    const av = document.createElement("div"); av.className = "hf-audio-av";
+    foto.classList.add("hf-audio-foto");
+    const mic = svg("M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z", 22);
+    mic.classList.add("hf-audio-mic");
+    av.append(foto, mic, bVel);
+    const ponto = document.createElement("b"); ponto.className = "hf-audio-ponto"; onda.appendChild(ponto);
+    if (lado === "dir") box.append(bPlay, corpo, av); else box.append(av, bPlay, corpo);
+  } else {
+    rod.append(tempo, bVel);
+    box.append(bPlay, corpo);
+  }
 
   let audio = null, url = typeof fonte === "string" ? fonte : null, dur = duracao || 0, vel = velocidadeSalva(), carregandoOnda = null;
   const guardada = ondaGuardada(chave);

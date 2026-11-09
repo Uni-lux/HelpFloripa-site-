@@ -27,9 +27,9 @@ await p.waitForSelector("body.chat-aberto", { timeout: 15000 }); await p.waitFor
 const bolha = p.locator(".linha-msg.outra .bolha", { hasText: texto }).last();
 await bolha.scrollIntoViewIfNeeded();
 const cx = await p.context().newCDPSession(p);
-const r = await bolha.boundingBox();
 const toque = (type, x, y) => cx.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
 const arrastar = async (dx, dy) => {
+  await bolha.scrollIntoViewIfNeeded(); const r = await bolha.boundingBox();
   const x = r.x + 30, y = r.y + r.height / 2;
   await toque("touchStart", x, y);
   for (let i = 1; i <= 10; i++) { await toque("touchMove", x + dx * i / 10, y + dy * i / 10); await p.waitForTimeout(16); }

@@ -1,5 +1,5 @@
 // Papel de parede do Mensagens (09/11/2026, pedido do dono): a Ponte saiu do padrão. Conta nova = Pontilhado; quem estava
-// com a Ponte só por ser o padrão antigo passa para o Pontilhado; quem escolheu a Ponte continua com ela.
+// com a Ponte só por ser o padrão antigo passa para o Pontilhado; a Ponte saiu de vez (09/11/2026: sem autorização da imagem).
 // Uso: node t-papel-parede.mjs
 import { navegador, entrar } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
@@ -15,5 +15,7 @@ const [nova, primeiro] = await fundo(null);
 ok(nova === "padrao", "conta nova: Pontilhado (" + nova + ")");
 ok(primeiro === "padrao", "Pontilhado é o primeiro da lista");
 ok((await fundo({ fundo: "ponte", tema: "escuro" }))[0] === "padrao", "Ponte do padrão antigo vira Pontilhado");
-ok((await fundo({ fundo: "ponte", fundoEscolhido: true }))[0] === "ponte", "quem escolheu a Ponte continua com ela");
+ok((await fundo({ fundo: "ponte", fundoEscolhido: true }))[0] === "padrao", "a Ponte saiu da lista: quem tinha escolhido vai para o Pontilhado");
+const B2 = await navegador({ mobile: true }); const p2 = await entrar(B2.ctx, "bruno", "mensagens.html"); await p2.waitForTimeout(2000);
+ok(!(await p2.locator('[data-cfg="fundo"] [data-valor="ponte"]').count()), "a Ponte não aparece mais nas opções"); await B2.browser.close();
 ok((await fundo({ fundo: "oceano" }))[0] === "oceano", "outros fundos escolhidos ficam como estão");

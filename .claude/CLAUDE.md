@@ -1876,6 +1876,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   botões redondos (Nova conversa em degradê), abas em controle segmentado, busca 44 px, filtros com contorno e número de não
   lidas da aba (`.pill-n`), conversas em linhas arredondadas sem divisória (não lida com fundo ciano leve), avatar 52 px,
   títulos `.conv-secao` "Fixadas"/"Conversas" e alfinete (`pin`) no nome da fixada. Teste `t-deslizar-responder.mjs` (12).
+- **Mensagens no jeito do WhatsApp (09/11/2026, PR depois do #172, sem regra nova):** prints dele. **Papel de parede Ponte
+  SAIU** (ele não tem autorização da imagem `ponte-help.webp`; quem tinha vai para o Pontilhado; a imagem continua em outras
+  páginas — perguntar se também deve sair de lá). Topo só com Suporte e Configurações (Início, Selecionar e Nova conversa
+  saíram); **"+" flutuante** `.fab-nova` (`#btnNovaConversa`, embaixo à direita acima da barra; na aba Chamadas vira Nova
+  chamada, `pintarFab`). **Segurar a conversa = seleção** (`ligarToqueLongo(el, (x, y, porToque))`: toque → `entrarSelecao`;
+  clique direito do mouse → menu antigo; o `contextmenu` do Android conta como toque): barra `#barraSelecao` com voltar, número,
+  Fixar, Silenciar (`marcarLote`), Arquivar, Apagar e ⋯ (`#selMais`: Selecionar/Desmarcar todas, Classificar e Abrir quando 1);
+  caixinha ✓ na foto (`.sel-marca`); sem nenhuma marcada sai; voltar.js trata `body.selecionando #barraSelecao` como camada
+  (voltar do celular sai da seleção; Esc no `#barraSelecao`). **Nada de selecionar texto ao segurar** (`user-select: none` em
+  `.app`/menus/balões; campos continuam). **Prévias** `previaLista`: ícone no lugar de 📍🏠🎥📞⚡💬 e para Foto, Vídeo,
+  Mensagem de voz, Pix, Pedido, Orçamento..., perdida em vermelho, "Nova conversa" em itálico. **Balões 3ª versão** (ele não
+  gostou do ciano/brilho): seus = azul profundo `#0b7cb3→#096896` no escuro / `#d2effc` no claro, da outra pessoa `#1b252c` /
+  branco, sem halo. **Áudio no modelo do WhatsApp** (`criarPlayerAudio({ foto, lado })` em audio-ondas.js v=3, classe `.wa`):
+  foto de quem gravou com microfone (sua à direita, da outra pessoa à esquerda), play sem disco, onda com ponto `.hf-audio-ponto`
+  (`--p`), velocidade no lugar da foto enquanto toca; chat da equipe e denúncias continuam com o player sem foto. Enviar com
+  **avião de papel** (`i-enviar`). Teste `t-mensagens-whats.mjs` (17); `t-papel-parede` e `t-deslizar-responder` atualizados.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

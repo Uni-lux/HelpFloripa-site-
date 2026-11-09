@@ -19,7 +19,7 @@ import { docComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
-import { criarPlayerAudio } from "./audio-ondas.js?v=2";
+import { criarPlayerAudio } from "./audio-ondas.js?v=3";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=18";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
@@ -35,7 +35,8 @@ let config = { ...CONFIG_PADRAO };
 try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
 // Quem estava com a Ponte só porque era o padrão antigo (nunca escolheu um fundo) passa para o padrão novo; quem escolheu
 // a Ponte de propósito (fundoEscolhido) continua com ela.
-if (config.fundo === "ponte" && !config.fundoEscolhido) config.fundo = CONFIG_PADRAO.fundo;
+// A Ponte saiu da lista (09/11/2026: o dono não tem autorização da imagem): quem estava com ela vai para o Pontilhado.
+if (config.fundo === "ponte") config.fundo = CONFIG_PADRAO.fundo;
 
 const temaEscuroSistema = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
 function aplicarConfig() {
@@ -53,7 +54,7 @@ function aplicarConfig() {
   const acoesFoto = document.getElementById("acoesFundoFoto");
   if (acoesFoto) acoesFoto.hidden = !(config.fundo === "foto" && fotoFundo);
   const veu = document.getElementById("cfgVeu");
-  if (veu) veu.hidden = !(config.fundo === "ponte" || config.fundo === "foto");
+  if (veu) veu.hidden = config.fundo !== "foto";
   const faixa = document.getElementById("veuFundo");
   if (faixa) faixa.value = String(config.veu);
   document.querySelector('meta[name="theme-color"]').content = escuro ? "#10181d" : "#ffffff";
@@ -256,7 +257,12 @@ function blocoSolicitacao(so) {
 // Áudio: player com ondas de voz e velocidade (audio-ondas.js). A onda sai do próprio áudio,
 // calculada quando a mensagem aparece na tela, e fica guardada no aparelho.
 function criarAudioMsg(m, url) {
-  return criarPlayerAudio({ chave: "m:" + m.id, fonte: url, carregarJa: true, aoErro: () => toast("Não foi possível tocar o áudio.") });
+  // Modelo do WhatsApp: foto de quem gravou com o microfone (a sua à direita, a da outra pessoa à esquerda).
+  const minha = m.remetenteId === eu?.uid;
+  const foto = document.createElement("div");
+  if (minha) pintarAvatar(foto, meuPerfil.fotoPerfil, meuPerfil.nome || eu?.displayName || "");
+  else pintarAvatar(foto, ativa?.foto, ativa?.nome || "");
+  return criarPlayerAudio({ chave: "m:" + m.id, fonte: url, carregarJa: true, foto, lado: minha ? "dir" : "esq", aoErro: () => toast("Não foi possível tocar o áudio.") });
 }
 
 // ---------- status do pedido (delivery e lojinha) ----------
@@ -732,6 +738,28 @@ function resumoMensagem(m) {
   return m.arquivoUrl ? "Arquivo" : "";
 }
 
+// Prévia da última mensagem na lista, como no WhatsApp: ícone no lugar do emoji (📍, 📞, 🎥...) e nome do tipo
+// ("Foto", "Mensagem de voz"...). O texto vem do resumoMensagem gravado em conversas.ultimaMensagem.
+const PREVIAS = [
+  [/^📍\s*/, "local"], [/^🏠\s*/, "casa"], [/^🎥\s*/, "videochamada"], [/^📞\s*/, "telefone"], [/^⚡\s*/, "feed"],
+  [/^💬\s*/, "chat"], [/^📷\s*/, "camera"], [/^🎤\s*/, "mic"]
+];
+const PREVIAS_TIPO = [
+  [/^Foto$/, "imagem"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
+  [/^Pix\b/, "pix"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
+  [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
+];
+function previaLista(texto) {
+  const t = String(texto || "").trim();
+  if (!t) return { ic: null, txt: "Nova conversa", cls: "pv-nova" };
+  for (const [re, ic] of PREVIAS) if (re.test(t)) {
+    const txt = t.replace(re, "");
+    return { ic, txt, cls: /perdida|não atendeu/i.test(txt) ? "pv-perdida" : "" };
+  }
+  for (const [re, ic] of PREVIAS_TIPO) if (re.test(t)) return { ic, txt: t, cls: ic === "bloquear" ? "pv-apagada" : "" };
+  return { ic: null, txt: t, cls: "" };
+}
+
 function toast(texto, aoClicar) {
   document.querySelectorAll(".toast").forEach((t) => t.remove());
   const t = document.createElement("div");
@@ -821,6 +849,7 @@ function trocarModo(novo) {
   if (novo === modo) return;
   modo = novo;
   document.body.classList.toggle("modo-chamadas", modo === "chamadas");
+  pintarFab();
   if (modo === "chamadas") { pintarModos(); renderizarChamadas(); return; }
   try { localStorage.setItem("hf-chat-modo", modo); } catch {}
   if (filtro.startsWith("assunto:")) filtro = "todas";
@@ -1149,20 +1178,28 @@ function conversaOculta(c) {
   const t = ms(c.dados?.ocultaPara?.[eu?.uid]);
   return !!t && ms(c.dados?.atualizadoEm) <= t;
 }
-// Segurar (celular) ou clique direito (computador) abre as opções da conversa.
+// Segurar (celular) seleciona a conversa, como no WhatsApp; clique direito (computador) abre as opções.
+// aoSegurar(x, y, porToque). No Android o segurar também dispara "contextmenu": conta como toque.
 function ligarToqueLongo(el, aoSegurar) {
-  let timer = null, x0 = 0, y0 = 0;
+  let timer = null, x0 = 0, y0 = 0, tipo = "mouse";
   const cancelar = () => { clearTimeout(timer); timer = null; };
   el.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
-    x0 = e.clientX; y0 = e.clientY;
+    x0 = e.clientX; y0 = e.clientY; tipo = e.pointerType || "mouse";
+    delete el.dataset.segurou;
     cancelar();
-    timer = setTimeout(() => { timer = null; el.dataset.segurou = "1"; navigator.vibrate?.(15); aoSegurar(x0, y0); }, 480);
+    timer = setTimeout(() => { timer = null; el.dataset.segurou = "1"; if (navigator.userActivation?.hasBeenActive !== false) navigator.vibrate?.(15); aoSegurar(x0, y0, tipo !== "mouse"); }, 450);
   });
   el.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) cancelar(); });
   ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => el.addEventListener(ev, cancelar));
-  el.addEventListener("contextmenu", (e) => { e.preventDefault(); cancelar(); aoSegurar(e.clientX, e.clientY); });
+  el.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const toque = (e.pointerType && e.pointerType !== "mouse") || (tipo !== "mouse" && !e.button);
+    if (toque) { if (!el.dataset.segurou) { cancelar(); el.dataset.segurou = "1"; aoSegurar(e.clientX, e.clientY, true); } return; }
+    cancelar(); aoSegurar(e.clientX, e.clientY, false);
+  });
 }
+
 function abrirMenuItemConversa(c, x, y) {
   const menu = $("menuMsg");
   menu.replaceChildren();
@@ -1170,7 +1207,7 @@ function abrirMenuItemConversa(c, x, y) {
   [
     { rotulo: "Selecionar", icone: "selecionar", acao: () => entrarSelecao(c.id) },
     { rotulo: modoDe(c) === "pessoal" ? "Classificar: Pessoal" : `Classificar: ${ASSUNTOS[assuntoDe(c.dados)].nome}`, icone: "etiqueta", acao: () => setTimeout(() => abrirMenuAssunto(c, x, y), 0) },
-    { rotulo: fixada(c) ? "Desafixar" : "Fixar no topo", icone: "seta-cima", acao: () => marcarConversa(c, "fixadaPara", !fixada(c)) },
+    { rotulo: fixada(c) ? "Desafixar" : "Fixar no topo", icone: "pin", acao: () => marcarConversa(c, "fixadaPara", !fixada(c)) },
     { rotulo: silenciada(c) ? "Reativar avisos" : "Silenciar avisos", icone: "relogio", acao: () => marcarConversa(c, "silenciadaPara", !silenciada(c)) },
     { rotulo: arquivada ? "Desarquivar" : "Arquivar", icone: "arquivo", acao: () => arquivarConversa(c, !arquivada) },
     { rotulo: "Apagar conversa", icone: "lixo", perigo: true, acao: () => apagarConversaParaMim(c) }
@@ -1234,17 +1271,22 @@ function sairSelecao() {
 }
 function alternarSelecao(id) {
   if (selecionadas.has(id)) selecionadas.delete(id); else selecionadas.add(id);
+  if (!selecionadas.size) { sairSelecao(); return; }
   renderizarLista();
 }
 function pintarSelecao() {
   const n = selecionadas.size;
-  $("selConta").textContent = n ? `${n} ${n === 1 ? "selecionada" : "selecionadas"}` : "Toque nas conversas";
-  $("selArquivar").disabled = $("selApagar").disabled = !n;
+  $("selConta").textContent = String(n);
+  ["selArquivar", "selApagar", "selFixar", "selSilenciar"].forEach((id) => { $(id).disabled = !n; });
   const arq = filtro === "arquivadas";
   $("selArquivar").setAttribute("aria-label", arq ? "Desarquivar selecionadas" : "Arquivar selecionadas");
   $("selArquivar").title = arq ? "Desarquivar" : "Arquivar";
-  const todas = visiveisNaLista.length && visiveisNaLista.every((c) => selecionadas.has(c.id));
-  $("selTodas").textContent = todas ? "Nenhuma" : "Todas";
+  const sel = conversas.filter((c) => selecionadas.has(c.id));
+  const todasFix = sel.length && sel.every(fixada), todasSil = sel.length && sel.every(silenciada);
+  $("selFixar").title = todasFix ? "Desafixar" : "Fixar"; $("selFixar").setAttribute("aria-label", $("selFixar").title);
+  $("selFixar").classList.toggle("on", !!todasFix);
+  $("selSilenciar").title = todasSil ? "Reativar avisos" : "Silenciar"; $("selSilenciar").setAttribute("aria-label", $("selSilenciar").title);
+  $("selSilenciar").classList.toggle("on", !!todasSil);
 }
 // Uma conversa com bloqueio não pode ser alterada (regras): faz as outras e avisa.
 function avisarLote(resultados, acao) {
@@ -1257,12 +1299,46 @@ function avisarLote(resultados, acao) {
   else toast("Não foi possível alterar: conversas com contas bloqueadas não podem ser mexidas.");
   sairSelecao();
 }
-$("btnSelecionar").addEventListener("click", () => entrarSelecao());
 $("selSair").addEventListener("click", sairSelecao);
-$("selTodas").addEventListener("click", () => {
-  const todas = visiveisNaLista.every((c) => selecionadas.has(c.id));
-  visiveisNaLista.forEach((c) => (todas ? selecionadas.delete(c.id) : selecionadas.add(c.id)));
-  renderizarLista();
+// "Voltar" do celular / Esc saem da seleção (voltar.js trata a barra como uma janela aberta).
+$("barraSelecao").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); sairSelecao(); } });
+// Fixar / silenciar em lote: se todas já estão, desfaz; senão liga em todas.
+async function marcarLote(campo, teste, acao) {
+  const lista = conversas.filter((c) => selecionadas.has(c.id));
+  if (!lista.length) return;
+  const ligar = !lista.every(teste);
+  const r = await Promise.allSettled(lista.map((c) => fb.setDoc(refConversa(c.id), { [campo]: { [eu.uid]: ligar ? true : null } }, { merge: true })));
+  avisarLote(r, ligar ? acao[0] : acao[1]);
+}
+$("selFixar").addEventListener("click", () => marcarLote("fixadaPara", fixada, ["fixada", "desafixada"]));
+$("selSilenciar").addEventListener("click", () => marcarLote("silenciadaPara", silenciada, ["silenciada", "reativada"]));
+$("selMais").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const r = $("selMais").getBoundingClientRect();
+  const sel = conversas.filter((c) => selecionadas.has(c.id));
+  const todas = visiveisNaLista.length && visiveisNaLista.every((c) => selecionadas.has(c.id));
+  const ops = [{ rotulo: todas ? "Desmarcar todas" : "Selecionar todas", icone: "selecionar", acao: () => {
+    visiveisNaLista.forEach((c) => (todas ? selecionadas.delete(c.id) : selecionadas.add(c.id)));
+    if (!selecionadas.size) sairSelecao(); else renderizarLista();
+  } }];
+  if (sel.length === 1) {
+    const c = sel[0];
+    ops.push({ rotulo: modoDe(c) === "pessoal" ? "Classificar: Pessoal" : `Classificar: ${ASSUNTOS[assuntoDe(c.dados)].nome}`, icone: "etiqueta", acao: () => { sairSelecao(); setTimeout(() => abrirMenuAssunto(c, r.right - 220, r.bottom + 4), 0); } });
+    ops.push({ rotulo: "Abrir conversa", icone: "chat", acao: () => { sairSelecao(); abrirConversa(c.id); } });
+  }
+  const menu = $("menuMsg");
+  menu.replaceChildren();
+  ops.forEach((op) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.setAttribute("role", "menuitem");
+    b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
+    b.addEventListener("click", (ev) => { ev.stopPropagation(); fecharMenu(); op.acao(); });
+    menu.appendChild(b);
+  });
+  menu.hidden = false;
+  const m = menu.getBoundingClientRect();
+  menu.style.left = Math.max(8, Math.min(r.right - m.width, innerWidth - m.width - 8)) + "px";
+  menu.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - m.height - 8)) + "px";
 });
 $("selArquivar").addEventListener("click", async () => {
   const lista = conversas.filter((c) => selecionadas.has(c.id));
@@ -1371,7 +1447,11 @@ function renderizarLista() {
       if (selecionando) { alternarSelecao(c.id); return; }
       abrirConversa(c.id);
     });
-    ligarToqueLongo(item, (x, y) => { if (selecionando) alternarSelecao(c.id); else abrirMenuItemConversa(c, x, y); });
+    ligarToqueLongo(item, (x, y, toque) => {
+      if (selecionando) alternarSelecao(c.id);
+      else if (toque) entrarSelecao(c.id);
+      else abrirMenuItemConversa(c, x, y);
+    });
 
     const av = document.createElement("div");
     av.className = "avatar";
@@ -1415,8 +1495,11 @@ function renderizarLista() {
         chk.appendChild(icone(lida ? "check2" : "check"));
         previa.appendChild(chk);
       }
+      const pv = previaLista(c.dados.ultimaMensagem);
+      if (pv.ic) { const ic = icone(pv.ic, "i xs pv-ic"); if (pv.cls) ic.classList.add(pv.cls); previa.appendChild(ic); }
       const t = document.createElement("span");
-      t.textContent = c.dados.ultimaMensagem || "Nova conversa";
+      t.textContent = pv.txt;
+      if (pv.cls) t.className = pv.cls;
       previa.appendChild(t);
     }
     l2.appendChild(previa);
@@ -3893,7 +3976,14 @@ function voltarDoPainel() {
   else fecharPaineis();
 }
 document.querySelectorAll("[data-fechar-painel]").forEach((b) => b.addEventListener("click", voltarDoPainel));
-$("btnNovaConversa").addEventListener("click", () => abrirPainel("painelNova"));
+// Botão "+" flutuante (como o WhatsApp): nova conversa; na aba Chamadas, nova chamada.
+$("btnNovaConversa").addEventListener("click", () => (modo === "chamadas" ? abrirNovaChamada() : abrirPainel("painelNova")));
+function pintarFab() {
+  const b = $("btnNovaConversa"); if (!b) return;
+  const ch = modo === "chamadas";
+  b.querySelector("use")?.setAttribute("href", ch ? "#i-telefone" : "#i-nova");
+  b.setAttribute("aria-label", ch ? "Nova chamada" : "Nova conversa"); b.title = b.getAttribute("aria-label");
+}
 $("btnConfig").addEventListener("click", () => abrirPainel("painelConfig"));
 
 // Busca no Firebase só quem combina com o que foi digitado (pessoas.js).
