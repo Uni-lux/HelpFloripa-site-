@@ -1,5 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
-import "./sem-menu-imagem.js?v=2";
+import "./sem-menu-imagem.js?v=3";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
@@ -21,7 +21,7 @@ import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
-import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=1";
+import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=18";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
@@ -80,6 +80,17 @@ aplicarConfig();
 // Utilitários
 // ======================================================
 const $ = (id) => document.getElementById(id);
+// Nome e sobrenome (primeira e última palavra, sem "da/de/dos"): "Bianca suelane da Silva Dantas" → "Bianca Dantas".
+// Usado na lista, nas Chamadas e no topo da conversa; o nome completo continua no perfil e na prévia.
+const PARTICULAS = /^(d[aeo]s?|e|del|van|von|di)$/i;
+function nomeCurto(nome) {
+  const p = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (p.length <= 2) return p.join(" ") || "Usuário";
+  const cap = (w) => (w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1) : w);
+  let ult = p[p.length - 1];
+  if (PARTICULAS.test(ult)) ult = p[p.length - 2];
+  return `${p[0]} ${cap(ult)}`;
+}
 // Na gaveta de mensagens de outra página, ir para outra página troca a página inteira (não só a gaveta).
 const embutido = document.documentElement.classList.contains("embutido");
 function irPara(url) { (embutido ? window.top : window).location.href = url; }
@@ -1306,9 +1317,11 @@ function pintarSelecao() {
   $("selFixar").classList.toggle("on", !!todasFix);
   $("selSilenciar").title = todasSil ? "Reativar avisos" : "Silenciar"; $("selSilenciar").setAttribute("aria-label", $("selSilenciar").title);
   $("selSilenciar").classList.toggle("on", !!todasSil);
+  $("selSilenciar").querySelector("use")?.setAttribute("href", todasSil ? "#i-sino" : "#i-sino-off");
+  $("selFixar").querySelector("use")?.setAttribute("href", todasFix ? "#i-pin-off" : "#i-pin");
 }
 // Uma conversa com bloqueio não pode ser alterada (regras): faz as outras e avisa.
-function avisarLote(resultados, acao) {
+function avisarLote(resultados, acao, sair = true) {
   const ok = resultados.filter((x) => x.status === "fulfilled").length;
   const falhou = resultados.length - ok;
   resultados.filter((x) => x.status === "rejected").forEach((x) => console.warn("Conversa não alterada:", x.reason?.code || x.reason));
@@ -1316,7 +1329,7 @@ function avisarLote(resultados, acao) {
   if (!falhou) toast(plural(ok));
   else if (ok) toast(`${plural(ok)}. ${falhou} não ${falhou === 1 ? "pôde" : "puderam"} ser alterada${falhou === 1 ? "" : "s"} (conta bloqueada).`);
   else toast("Não foi possível alterar: conversas com contas bloqueadas não podem ser mexidas.");
-  sairSelecao();
+  if (sair) sairSelecao(); else renderizarLista();
 }
 $("selSair").addEventListener("click", sairSelecao);
 // "Voltar" do celular / Esc saem da seleção (voltar.js trata a barra como uma janela aberta).
@@ -1326,8 +1339,12 @@ async function marcarLote(campo, teste, acao) {
   const lista = conversas.filter((c) => selecionadas.has(c.id));
   if (!lista.length) return;
   const ligar = !lista.every(teste);
+  // Fixar e silenciar NÃO saem da seleção (pedido do dono): dá para fixar, silenciar e arquivar as mesmas de uma vez.
+  // Muda na hora na lista (sem esperar o servidor), o que falhar volta quando a conversa atualizar.
+  lista.forEach((c) => { c.dados[campo] = { ...(c.dados[campo] || {}), [eu.uid]: ligar ? true : null }; });
+  renderizarLista();
   const r = await Promise.allSettled(lista.map((c) => fb.setDoc(refConversa(c.id), { [campo]: { [eu.uid]: ligar ? true : null } }, { merge: true })));
-  avisarLote(r, ligar ? acao[0] : acao[1]);
+  avisarLote(r, ligar ? acao[0] : acao[1], false);
 }
 $("selFixar").addEventListener("click", () => marcarLote("fixadaPara", fixada, ["fixada", "desafixada"]));
 $("selSilenciar").addEventListener("click", () => marcarLote("silenciadaPara", silenciada, ["silenciada", "reativada"]));
@@ -1488,9 +1505,12 @@ function renderizarLista() {
     l1.className = "conv-linha";
     const nome = document.createElement("div");
     nome.className = "conv-nome";
-    nome.textContent = c.nome;
+    nome.title = c.nome;
+    const nm = document.createElement("span"); nm.className = "conv-nm"; nm.textContent = nomeCurto(c.nome);
+    nome.appendChild(nm);
+    if (c.nick) { const k = document.createElement("span"); k.className = "conv-nick"; k.textContent = "@" + String(c.nick).replace(/^@/, ""); nome.appendChild(k); }
     if (fixada(c)) { const f = icone("pin", "i xs"); f.setAttribute("aria-label", "Fixada"); f.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px"; nome.appendChild(f); }
-    if (silenciada(c)) { const m = icone("relogio", "i xs"); m.setAttribute("aria-label", "Silenciada"); m.style.cssText = "margin-left:4px;opacity:.6;vertical-align:-2px"; nome.appendChild(m); }
+    if (silenciada(c)) { const m = icone("sino-off", "i xs"); m.setAttribute("aria-label", "Silenciada"); m.style.cssText = "margin-left:4px;opacity:.6;vertical-align:-2px"; nome.appendChild(m); }
     const quando = document.createElement("div");
     quando.className = "conv-hora";
     quando.textContent = dataLista(paraData(c.dados.atualizadoEm));
@@ -1688,7 +1708,7 @@ async function abrirConversa(id, { historico = true } = {}) {
   $("faixaAtend").classList.remove("aberta");
   primeiraRender = true;
   novasAbaixo = 0;
-  $("topNome").textContent = c.nome;
+  $("topNome").textContent = nomeCurto(c.nome); $("topNome").title = c.nome;
   $("topStatus").textContent = "";
   $("topStatus").className = "";
   pintarAvatar($("topAvatar"), c.foto, c.nome);
@@ -1854,7 +1874,7 @@ function ouvirPresenca() {
     perfilOutroAtual = s.exists() ? s.data() : {};
     if (perfilOutroAtual.nome) {
       ativa.nome = perfilOutroAtual.nome;
-      $("topNome").textContent = perfilOutroAtual.nome;
+      $("topNome").textContent = nomeCurto(perfilOutroAtual.nome); $("topNome").title = perfilOutroAtual.nome;
       pintarAvatar($("topAvatar"), perfilOutroAtual.fotoPerfil, perfilOutroAtual.nome);
     }
     aplicarBloqueio();
@@ -3867,15 +3887,22 @@ async function renderizarChamadas() {
     item.tabIndex = 0; item.setAttribute("role", "button");
     const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
     const tx = elm("div", "rc-tx");
-    const nome = elm("b"); nome.append(p.nome); if (g.lista.length > 1) nome.appendChild(elm("span", "rc-qtd", `(${g.lista.length})`));
-    const linha = elm("small");
+    // Linha 1: nome e sobrenome. Linha 2: seta + ícone, situação (cor própria), hora e duração numa pílula.
+    // Linha 3 (várias ligações): "13 chamadas" e "2 perdidas" em etiquetas pequenas.
+    const nome = elm("b", "rc-nome"); nome.title = p.nome; nome.append(elm("span", "rc-nm", nomeCurto(p.nome)));
+    const linha = elm("small", "rc-linha");
     const tipoIc = usar(c.tipo === "video" ? "videochamada" : "telefone", "i rc-tipo");
-    const partes = [sit.perdida ? sit.titulo : `${sit.direcao === "Feita" ? "Feita" : "Recebida"}`, hora(new Date(ms(c.criadoEm)))];
-    if (sit.falou) partes.push(sit.estado);
-    linha.append(setaChamada(sit), tipoIc, document.createTextNode(partes.join(" · ")));
+    const sitTx = sit.perdida ? "Perdida" : sit.direcao === "Feita" ? (sit.falou ? "Feita" : sit.estado) : (sit.falou ? "Recebida" : sit.estado);
+    const cls = sit.perdida ? "perdida" : sit.saiu ? "saiu" : "entrou";
+    linha.append(setaChamada(sit), tipoIc, elm("span", "rc-sit " + cls, sitTx), elm("span", "rc-ponto", "·"), elm("span", "rc-hora", hora(new Date(ms(c.criadoEm)))));
+    if (sit.falou && sit.dur) { const d = elm("span", "rc-dur"); d.append(usar("relogio", "i"), document.createTextNode(duracaoTexto(sit.dur))); linha.appendChild(d); }
+    const partes = [sitTx, hora(new Date(ms(c.criadoEm)))]; if (sit.falou && sit.dur) partes.push(duracaoTexto(sit.dur));
     tx.append(nome, linha);
-    if (g.lista.length > 1 && perdidas.length && !(perdidas.length === g.lista.length)) {
-      tx.appendChild(elm("span", "rc-resumo", `${perdidas.length} ${perdidas.length === 1 ? "perdida" : "perdidas"} · ${g.lista.length - perdidas.length} ${g.lista.length - perdidas.length === 1 ? "outra" : "outras"}`));
+    if (g.lista.length > 1) {
+      const res = elm("span", "rc-resumo");
+      res.appendChild(elm("span", "rc-etq", `${g.lista.length} chamadas`));
+      if (perdidas.length) res.appendChild(elm("span", "rc-etq perd", `${perdidas.length} ${perdidas.length === 1 ? "perdida" : "perdidas"}`));
+      tx.appendChild(res);
     }
     item.setAttribute("aria-label", `${p.nome}, ${g.lista.length} ${g.lista.length === 1 ? "chamada" : "chamadas"}; a última: ${partes.join(", ")}. Ver histórico`);
     const lado = elm("div", "rc-lado");
@@ -3900,7 +3927,7 @@ function abrirDetalheChamadas(p) {
   const cab = elm("div", "rcd-cab");
   const av = elm("div", "avatar"); pintarAvatar(av, p.foto, p.nome);
   const ultima = minhas[0] ? `Última: ${diaDaChamada(ms(minhas[0].criadoEm)).toLowerCase()} às ${hora(new Date(ms(minhas[0].criadoEm)))}` : "";
-  cab.append(av, elm("strong", null, p.nome), elm("small", null, ultima));
+  cab.append(av, elm("strong", null, nomeCurto(p.nome)), elm("small", null, ultima));
   const acoes = elm("div", "rcd-acoes");
   const acao = (icone, rot, fn, off) => { const b = elm("button", "rcd-acao"); b.type = "button"; b.disabled = !!off; const ic = elm("span"); ic.appendChild(usar(icone, "i")); b.append(ic, elm("b", null, rot)); b.addEventListener("click", () => { fechar(); setTimeout(fn, 220); }); acoes.appendChild(b); };
   const sem = !convId || bloqueado(p.uid);
@@ -3961,7 +3988,7 @@ function abrirNovaChamada() {
     for (const c of l) {
       const li = elm("div", "rcn-item");
       const av = elm("div", "avatar"); pintarAvatar(av, c.foto || "", c.nome || "Usuário");
-      const tx = elm("div", "rc-tx"); tx.append(elm("b", null, c.nome || "Usuário"));
+      const tx = elm("div", "rc-tx"); tx.append(elm("b", null, nomeCurto(c.nome)));
       if (bloqueado(c.outroId)) tx.appendChild(elm("small", null, "Não é possível ligar"));
       const ligar = (tipo) => { const b = botaoLigar(tipo, c.nome, c.id, c.outroId); b.addEventListener("click", () => fechar(), true); return b; };
       li.append(av, tx, ligar("audio"), ligar("video"));
@@ -4806,11 +4833,71 @@ function abrirPainelEmoji(aba) {
 }
 function fecharPainelEmoji() {
   if (painelE.hidden) return;
-  painelE.hidden = true; painelE.classList.remove("aberto"); fecharMenuFig();
+  painelE.hidden = true; painelE.classList.remove("aberto", "expandido"); painelE.style.removeProperty("--pe-h"); fecharMenuFig();
   $("btnEmoji").setAttribute("aria-expanded", "false");
   buscaE.value = "";
   requestAnimationFrame(() => window.__hfMedirTela?.());
 }
+// Arrastar para cima = painel maior (como no WhatsApp); para baixo = volta ao tamanho normal ou fecha.
+// Vale pela alça, pelo topo do painel e pela própria lista (puxando para cima no começo, ou para baixo no topo dela).
+(() => {
+  const normal = () => Math.round(Math.min(320, innerHeight * 0.42));
+  const maximo = () => Math.max(normal() + 60, Math.round((window.visualViewport?.height || innerHeight) - 150));
+  let ar = null, semClique = false;
+  const altura = () => painelE.getBoundingClientRect().height;
+  const aplicar = (h) => { painelE.style.setProperty("--pe-h", Math.round(h) + "px"); window.__hfMedirTela?.(); };
+  const comecar = (y) => { ar = { y0: y, h0: altura(), ult: y, t: performance.now(), v: 0, ativo: false }; };
+  const mover = (y) => {
+    if (!ar) return false;
+    if (!ar.ativo) { if (Math.abs(y - ar.y0) < 8) return false; ar.ativo = true; painelE.classList.add("arrastando"); }
+    const agora = performance.now(); ar.v = (y - ar.ult) / Math.max(1, agora - ar.t); ar.ult = y; ar.t = agora;
+    aplicar(Math.max(110, Math.min(maximo(), ar.h0 + (ar.y0 - y))));
+    return true;
+  };
+  const terminar = () => {
+    if (!ar) return; const a = ar; ar = null;
+    painelE.classList.remove("arrastando");
+    if (!a.ativo) return;
+    semClique = true; setTimeout(() => { semClique = false; }, 60);
+    const h = altura(), n = normal(), mx = maximo(), estava = painelE.classList.contains("expandido");
+    if (a.v < -0.45 || (a.v <= 0.45 && h > (n + mx) / 2)) expandir(true);
+    else if ((a.v > 0.45 && !estava) || h < n * 0.62) { fecharPainelEmoji(); }
+    else expandir(false);
+  };
+  function expandir(sim) {
+    painelE.classList.toggle("expandido", sim);
+    aplicar(sim ? maximo() : normal());
+    $("peAlca").setAttribute("aria-label", sim ? "Arraste para baixo para diminuir" : "Arraste para cima para ver mais");
+  }
+  window.__hfPeExpandir = expandir;
+  painelE.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest(".pe-alca, .pe-topo") || e.target.closest("input")) return;
+    comecar(e.clientY);
+    const mv = (ev) => { if (mover(ev.clientY)) ev.preventDefault(); };
+    const up = () => { terminar(); removeEventListener("pointermove", mv); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); };
+    addEventListener("pointermove", mv, { passive: false }); addEventListener("pointerup", up); addEventListener("pointercancel", up);
+  });
+  painelE.addEventListener("click", (e) => { if (semClique) { e.preventDefault(); e.stopPropagation(); } }, true);
+  $("peAlca").addEventListener("click", () => expandir(!painelE.classList.contains("expandido")));
+  // pela lista: puxar para cima quando ainda não está grande; puxar para baixo estando no topo
+  let tq = null;
+  corpoE.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) { tq = null; return; } tq = { y: e.touches[0].clientY, x: e.touches[0].clientX, decidido: false, painel: false }; }, { passive: true });
+  corpoE.addEventListener("touchmove", (e) => {
+    if (!tq) return;
+    const y = e.touches[0].clientY, dy = y - tq.y, dx = e.touches[0].clientX - tq.x;
+    if (!tq.decidido) {
+      if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+      tq.decidido = true;
+      const exp = painelE.classList.contains("expandido");
+      tq.painel = Math.abs(dy) > Math.abs(dx) && ((!exp && dy < 0) || (corpoE.scrollTop <= 0 && dy > 0));
+      if (tq.painel) comecar(tq.y);
+    }
+    if (tq.painel) { e.preventDefault(); mover(y); }
+  }, { passive: false });
+  const fimToque = () => { if (tq?.painel) terminar(); tq = null; };
+  corpoE.addEventListener("touchend", fimToque); corpoE.addEventListener("touchcancel", fimToque);
+  addEventListener("resize", () => { if (!painelE.hidden && painelE.classList.contains("expandido")) aplicar(maximo()); });
+})();
 $("btnEmoji").addEventListener("click", () => { if (painelAberto()) { fecharPainelEmoji(); $("texto").focus(); } else abrirPainelEmoji(); });
 // tocar no campo de texto = volta o teclado (o painel sai)
 $("texto").addEventListener("pointerdown", () => fecharPainelEmoji());
@@ -4889,7 +4976,8 @@ function pintarCorpoE() {
 function marcarCatE() {
   const secs = [...corpoE.querySelectorAll("[data-sec]")];
   let atualId = secs[0]?.dataset.sec;
-  for (const h of secs) if (h.offsetTop - corpoE.scrollTop <= 30) atualId = h.dataset.sec;
+  const off = 30 + (corpoE.querySelector(".pe-humor")?.offsetHeight || 0);
+  for (const h of secs) if (h.offsetTop - corpoE.scrollTop <= off) atualId = h.dataset.sec;
   catsE.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.cat === atualId));
 }
 corpoE.addEventListener("scroll", () => requestAnimationFrame(marcarCatE), { passive: true });
@@ -4897,46 +4985,86 @@ corpoE.addEventListener("scroll", () => requestAnimationFrame(marcarCatE), { pas
 // ---------- figurinhas ----------
 let menuFig = null;
 function fecharMenuFig() { menuFig?.remove(); menuFig = null; }
+// Atalhos de humor (como "Oi", "Haha", "Amor" do WhatsApp): filtram pelo texto das figurinhas.
+const HUMORES = [["👋", "Oi", /\boi\b|ol[aá]|bom dia|boa (noite|tarde)|e a[ií]/], ["😂", "Haha", /k{3,}|haha|rs\b|rindo/], ["❤️", "Amor", /ame[il]|amo|amor|lind/],
+  ["🙏", "Valeu", /valeu|obrigad|parab[eé]ns/], ["👍", "Ok", /combinado|fechado|\bok\b|beleza|pix|chegando|volto/], ["😮", "Uau", /s[eé]rio|uau|nossa|hmm/], ["😢", "Triste", /poxa|triste|chor/]];
+let humorE = null;
 async function pintarFigurinhas() {
   const termo = semAcentoCham(buscaE.value.trim());
   const [minhas, pacote] = await Promise.all([eu ? minhasFigurinhas(eu.uid) : [], pacoteHelp()]);
   if (abaE !== "figurinhas") return;
+  const topoAntes = corpoE.scrollTop;
   corpoE.replaceChildren(); catsE.replaceChildren();
-  const doPacote = pacote.itens.filter((x) => !termo || semAcentoCham(x.texto).includes(termo));
   const daConta = minhas.filter((x) => !x.pacote);
   const favoritas = minhas.filter((x) => x.fav);
-  const recentes = minhas.filter((x) => x.usadoEm).sort((a, b) => b.usadoEm - a.usadoEm).slice(0, 12);
-  const secoes = [];
+  const recentes = minhas.filter((x) => x.usadoEm).sort((a, b) => b.usadoEm - a.usadoEm).slice(0, 15);
   const grade = (lista, opc = {}) => {
     const g = elm("div", "pe-figs");
     if (opc.criar) {
-      const c = elm("button", "pe-criar"); c.type = "button"; c.append(usar("adicionar", "i"), document.createTextNode("Criar ou importar"));
-      c.addEventListener("click", () => $("inputFigurinha").click());
+      const c = elm("button", "pe-criar"); c.type = "button";
+      const ic = elm("span", "pe-criar-ic"); ic.appendChild(usar("adicionar", "i"));
+      c.append(ic, elm("b", null, "Criar"), elm("small", null, "figurinha"));
+      c.addEventListener("click", (e) => { e.stopPropagation(); abrirMenuCriar(); });
       g.appendChild(c);
     }
     lista.forEach((it) => g.appendChild(tileFig(it)));
     return g;
   };
-  if (termo) {
-    if (!doPacote.length) corpoE.appendChild(elm("div", "pe-vazio", "Nenhuma figurinha com “" + buscaE.value.trim() + "”."));
-    else corpoE.append(secaoE("busca", "Resultados"), grade(doPacote));
+  // fileira de humores (fica presa no alto ao rolar)
+  const hum = elm("div", "pe-humor"); hum.setAttribute("role", "toolbar"); hum.setAttribute("aria-label", "Filtrar por humor");
+  HUMORES.forEach(([e, n, re]) => {
+    const b = elm("button", "pe-chip" + (humorE === n ? " on" : "")); b.type = "button"; b.append(elm("span", "pe-chip-e", e), document.createTextNode(n));
+    b.addEventListener("click", () => { humorE = humorE === n ? null : n; buscaE.value = ""; corpoE.scrollTop = 0; pintarFigurinhas(); });
+    hum.appendChild(b);
+  });
+  corpoE.appendChild(hum);
+  const re = humorE ? HUMORES.find((h) => h[1] === humorE)?.[2] : null;
+  if (termo || re) {
+    const todas = [...pacote.itens, ...daConta];
+    const achadas = todas.filter((x) => { const t = semAcentoCham(x.texto || ""); return termo ? t.includes(termo) : re.test(t); });
+    if (!achadas.length) corpoE.appendChild(elm("div", "pe-vazio", termo ? "Nenhuma figurinha com “" + buscaE.value.trim() + "”." : `Nenhuma figurinha de “${humorE}” ainda. Crie uma com texto!`));
+    else corpoE.append(secaoE("busca", termo ? "Resultados" : `${HUMORES.find((h) => h[1] === humorE)[0]} ${humorE}`, `${achadas.length}`), grade(achadas));
+    pintarCatsFig([]);
     return;
   }
+  const secoes = [];
   if (recentes.length) secoes.push(["recentes", "Recentes", "relogio", recentes]);
   if (favoritas.length) secoes.push(["favoritas", "Favoritas", "estrela-c", favoritas]);
   secoes.push(["minhas", "Suas figurinhas", "figurinha", daConta, true]);
   secoes.push(["helpfloripa", pacote.nome || "Help Floripa", null, pacote.itens]);
   for (const [id, nome, , lista, criar] of secoes) {
-    corpoE.append(secaoE(id, nome, id === "minhas" ? `${daConta.length}` : id === "helpfloripa" ? "Pacote" : ""), grade(lista, { criar }));
-    if (id === "minhas" && !daConta.length) corpoE.appendChild(elm("p", "pe-dica", "Crie uma figurinha de uma foto ou importe uma do WhatsApp (arquivo .webp de 512×512). Segure uma figurinha para favoritar ou apagar."));
+    corpoE.append(secaoE(id, nome, id === "minhas" ? `${daConta.length}` : id === "helpfloripa" ? `Pacote · ${lista.length}` : ""), grade(lista, { criar }));
+    if (id === "minhas" && !daConta.length) corpoE.appendChild(elm("p", "pe-dica", "Crie figurinhas das suas fotos (recortar, tirar o fundo, contorno, texto, emojis e desenho) ou importe do WhatsApp (.webp 512×512). Segure uma figurinha para favoritar, editar ou apagar."));
   }
+  pintarCatsFig(secoes);
+  corpoE.scrollTop = topoAntes;
+  marcarCatE();
+}
+// Barra de baixo das figurinhas: uma por seção + "Criar" sempre à mão
+function pintarCatsFig(secoes) {
+  catsE.replaceChildren();
   secoes.forEach(([id, nome, ic]) => {
     const b = elm("button"); b.type = "button"; b.dataset.cat = id; b.setAttribute("aria-label", nome); b.title = nome;
-    if (ic) b.appendChild(usar(ic, "i")); else { const im = elm("img"); im.src = "figurinhas/capa.png"; im.alt = ""; im.style.cssText = "width:24px;height:24px"; b.appendChild(im); }
-    b.addEventListener("click", () => { const h = corpoE.querySelector(`[data-sec="${id}"]`); if (h) corpoE.scrollTo({ top: h.offsetTop - 4, behavior: "smooth" }); });
+    if (ic) b.appendChild(usar(ic, "i")); else { const im = elm("img"); im.src = "figurinhas/capa.png"; im.alt = ""; im.dataset.semSuave = "1"; im.style.cssText = "width:24px;height:24px;object-fit:contain"; b.appendChild(im); }
+    b.addEventListener("click", () => { const h = corpoE.querySelector(`[data-sec="${id}"]`); if (h) corpoE.scrollTo({ top: h.offsetTop - 50, behavior: "smooth" }); });
     catsE.appendChild(b);
   });
-  marcarCatE();
+  const novo = elm("button", "pe-novo"); novo.type = "button"; novo.setAttribute("aria-label", "Criar figurinha"); novo.title = "Criar figurinha";
+  novo.appendChild(usar("adicionar", "i"));
+  novo.addEventListener("click", (e) => { e.stopPropagation(); abrirMenuCriar(); });
+  catsE.appendChild(novo);
+}
+// Criar: da galeria, da câmera (selfie) ou importar uma pronta
+function abrirMenuCriar() {
+  fecharMenuFig();
+  const m = elm("div", "pe-menu"); m.setAttribute("role", "menu");
+  m.appendChild(elm("div", "pe-menu-tit", "Nova figurinha"));
+  const op = (ic, txt, sub, fn) => { const b = elm("button"); b.type = "button"; b.setAttribute("role", "menuitem"); const t = elm("span", "pe-menu-tx"); t.append(elm("b", null, txt), elm("small", null, sub)); b.append(usar(ic, "i"), t); b.addEventListener("click", () => { fecharMenuFig(); fn(); }); m.appendChild(b); };
+  op("imagem", "Criar de uma foto", "Recorte, tire o fundo, escreva e desenhe", () => $("inputFigurinha").click());
+  op("camera", "Tirar uma foto", "Abre a câmera e depois o editor", () => $("inputFigCamera").click());
+  op("baixar", "Importar figurinha", "Arquivo .webp do WhatsApp (animada também)", () => $("inputFigurinha").click());
+  op("fechar", "Cancelar", "", () => {});
+  painelE.appendChild(m); menuFig = m;
 }
 function tileFig(it) {
   const b = elm("button", "pe-fig"); b.type = "button"; b.setAttribute("aria-label", it.texto ? `Figurinha ${it.texto}` : "Figurinha");
@@ -4957,6 +5085,7 @@ async function abrirMenuFig(it) {
   op("enviar", "Enviar", () => enviarFigurinha(it.url, !it.id || it.pacote));
   const guardado = it.id ? it : await usarFigurinhaSemUso(it.url);
   op("estrela-c", guardado?.fav ? "Tirar das favoritas" : "Favoritar", async () => { const g = guardado || await guardarFigurinha(eu.uid, it.url, { pacote: true }); await atualizarFigurinha(g.id, { fav: !g.fav }); toast(g.fav ? "Tirada das favoritas" : "Adicionada às favoritas"); });
+  op("lapis", "Editar (salva uma nova)", async () => { await editarFigurinha(it.url); });
   if (it.id && !it.pacote) op("lixo", "Apagar figurinha", async () => { await apagarFigurinha(it.id); toast("Figurinha apagada"); }, true);
   op("fechar", "Fechar", () => {});
   painelE.appendChild(m); menuFig = m;
@@ -4981,18 +5110,28 @@ async function enviarFigurinha(url, doPacote) {
   }
 }
 // Escolheu um arquivo: WebP 512×512 (do WhatsApp) entra direto; foto abre o editor.
-$("inputFigurinha").addEventListener("change", async () => {
-  const arq = $("inputFigurinha").files?.[0]; $("inputFigurinha").value = "";
+async function editarFigurinha(url) {
+  try {
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
+    const r = await criarFigurinha(img, { forma: "livre", contorno: false, titulo: "Editar figurinha" });
+    if (!r) return;
+    await guardarFigurinha(eu.uid, r.url, r.texto ? { texto: r.texto } : {});
+    toast("Nova figurinha salva");
+  } catch (e) { console.warn(e); toast("Não foi possível editar esta figurinha."); }
+}
+["inputFigurinha", "inputFigCamera"].forEach((id) => $(id).addEventListener("change", async () => {
+  const arq = $(id).files?.[0]; $(id).value = "";
   if (!arq) return;
   try {
     const r = await prepararArquivo(arq);
-    const url = r.pronta ? r.url : await criarFigurinha(r.img);
+    const feito = r.pronta ? { url: r.url } : await criarFigurinha(r.img);
+    const url = feito?.url;
     if (!url) return;
-    await guardarFigurinha(eu.uid, url, {});
+    await guardarFigurinha(eu.uid, url, feito.texto ? { texto: feito.texto } : {});
     toast(r.pronta ? "Figurinha importada" : "Figurinha criada");
-    abaE = "figurinhas"; if (!painelAberto()) abrirPainelEmoji("figurinhas"); else pintarPainelE();
+    abaE = "figurinhas"; humorE = null; if (!painelAberto()) abrirPainelEmoji("figurinhas"); else pintarPainelE();
   } catch (e) { console.warn(e); toast(e?.message === "Escolha uma imagem." ? e.message : "Não foi possível usar essa imagem."); }
-});
+}));
 // Figurinha recebida: ver grande, guardar nas suas e favoritar
 async function abrirFigurinhaRecebida(url, minha) {
   const { corpo, fechar } = abrirGaveta("Figurinha");

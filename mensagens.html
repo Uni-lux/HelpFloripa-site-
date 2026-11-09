@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=17" />
+  <link rel="stylesheet" href="mensagens.css?v=18" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -66,7 +66,9 @@
     <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M3.5 12.3V5a1.5 1.5 0 011.5-1.5h7.3l8.2 8.2a1.5 1.5 0 010 2.1l-7 7a1.5 1.5 0 01-2.1 0z"/><circle cx="8" cy="8" r="1.6"/></symbol>
     <symbol id="i-suporte" viewBox="0 0 24 24"><path d="M4.5 13v-1.5a7.5 7.5 0 0115 0V13"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.4-1.6 2-4 2h-1.5"/></symbol>
     <symbol id="i-selecionar" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><path d="M5.3 7l1.3 1.3L9 5.8"/><path d="M14 6h6.5M14 17h6.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/></symbol>
-    <symbol id="i-sino-off" viewBox="0 0 24 24"><path d="M9.5 19.5a2.6 2.6 0 005 0M6.5 9.5a5.5 5.5 0 019.4-3.9M18 10.5c0 4.5 1.5 6 1.5 6h-12M4 4l16 16"/></symbol>
+    <symbol id="i-sino-off" viewBox="0 0 24 24"><path d="M10 20a2.1 2.1 0 004 0M8.3 5.3A6 6 0 0118 10.5v3.6l1.6 2.4H16.5M6 10.5v3.6l-1.6 2.4H13M3.5 3.5l17 17"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M10 20a2.1 2.1 0 004 0M6 10.5a6 6 0 0112 0v3.6l1.6 2.4H4.4L6 14.1z"/></symbol>
+    <symbol id="i-pin-off" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 4 3v2H6v-2l4-3-1-6zM12 15v6M3.5 3.5l17 17"/></symbol>
     <symbol id="i-adicionar" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-emoji" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4.2 4.2 0 007 0"/><circle cx="9.2" cy="10" r=".9" fill="currentColor"/><circle cx="14.8" cy="10" r=".9" fill="currentColor"/></symbol>
     <symbol id="i-figurinha" viewBox="0 0 24 24"><path d="M20 12.5V7a3.5 3.5 0 00-3.5-3.5h-9A3.5 3.5 0 004 7v10a3.5 3.5 0 003.5 3.5H12"/><path d="M20 12.5L12 20.5V16a3.5 3.5 0 013.5-3.5z"/></symbol>
@@ -269,6 +271,7 @@
               <input type="file" id="inputArquivo" accept="image/*" hidden />
               <input type="file" id="inputCamera" accept="image/*" capture="environment" hidden />
               <input type="file" id="inputFigurinha" accept="image/*" hidden />
+              <input type="file" id="inputFigCamera" accept="image/*" capture="user" hidden />
               <textarea id="texto" rows="1" maxlength="4000" placeholder="Mensagem" aria-label="Mensagem"></textarea>
               <button type="button" class="icon-btn" id="btnAnexar" aria-label="Anexar foto" title="Anexar"><svg class="i"><use href="#i-clipe"/></svg></button>
               <button type="button" class="icon-btn" id="btnAudio" aria-label="Gravar mensagem de voz" title="Gravar áudio"><svg class="i"><use href="#i-mic"/></svg></button>
@@ -282,6 +285,7 @@
           </div>
           <!-- Emojis e figurinhas (emojis.js + figurinhas.js) -->
           <div class="painel-emoji" id="painelEmoji" hidden role="dialog" aria-label="Emojis e figurinhas">
+            <button type="button" class="pe-alca" id="peAlca" aria-label="Arraste para cima para ver mais" title="Arraste para cima para ver mais"><span></span></button>
             <div class="pe-topo">
               <div class="pe-abas" role="tablist">
                 <button type="button" role="tab" data-pe="emojis" aria-selected="true"><svg class="i"><use href="#i-emoji"/></svg><span>Emojis</span></button>
@@ -517,6 +521,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=28"></script>
+  <script type="module" src="mensagens-app.js?v=29"></script>
 </body>
 </html>

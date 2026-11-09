@@ -7,7 +7,7 @@
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=132";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=133";
 import { CAT_COM, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";

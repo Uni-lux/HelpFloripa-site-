@@ -1944,6 +1944,24 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   cima/embaixo, arrastar/pinça/tamanho; Safari grava PNG). Segurar uma figurinha = Enviar/Favoritar/Apagar. No chat
   `.figurinha-msg` (150 px, sem balão); tocar numa recebida = "Adicionar às suas figurinhas"/favoritas. Prévia "Figurinha".
   Teste `t-emojis-figurinhas.mjs` (25).
+- **Mensagens: nome curto, seleção, chamadas, figurinhas e sem copiar (09/11/2026, PR depois do #177, sem regra nova):**
+  prints dele. `nomeCurto` (mensagens-app.js: 1ª + última palavra, pula da/de/dos; "Bianca suelane da Silva Dantas" →
+  "Bianca Dantas") na lista (`.conv-nm` + `.conv-nick` "@nick" que encolhe primeiro), Chamadas, histórico e topo da conversa
+  (nome completo no `title`). Seleção: Fixar e Silenciar NÃO saem mais (`avisarLote(..., sair=false)`, muda na hora na lista),
+  botões mostram o desfazer (`#i-sino`/`#i-pin-off`), `#i-sino-off` redesenhado, marcada só com fundo leve (sem barra
+  lateral). Chamadas: linha = seta + ícone + situação (`.rc-sit`, vermelho só "Perdida") · hora + pílula da duração
+  (`.rc-dur`); várias ligações = etiquetas "4 chamadas" e "2 perdidas" (`.rc-etq`). Painel de emojis/figurinhas: alça
+  `#peAlca` + topo + a lista arrastam (cresce até a tela quase toda `.expandido`, `--pe-h`; para baixo volta/fecha; tocar na
+  alça alterna), humores nas figurinhas (`HUMORES`: Oi, Haha, Amor, Valeu, Ok, Uau, Triste, pelo `texto`), grade 4/5/6
+  colunas, "+" na barra de baixo e tile Criar → menu Nova figurinha (foto, câmera `#inputFigCamera`, importar), "Editar (salva
+  uma nova)" no segurar. **Editor novo** (`criarFigurinha(img, {forma, contorno, titulo})` resolve `{url, texto}`):
+  Recortar (quadrada, redonda, coração, estrela, balão, inteira, girar, espelhar, centralizar, tamanho), Fundo (remover fundo
+  liso pelas bordas, varinha mágica com sensibilidade, borracha e restaurar com pincel), Contorno (cor/nenhum, espessura,
+  sombra), Texto (até 4, 5 fontes, 3 estilos, 9 cores, tamanho, arrastar/pinça/girar), Emoji (até 10), Desenhar (cores,
+  pincel, neon), Ajustes (brilho, contraste, saturação), desfazer/refazer (Ctrl+Z), fundo da prévia claro/escuro e
+  "Descartar a figurinha?". **Celular sem "Copiar / Selecionar tudo"** em todo o site (`sem-menu-imagem.js`, `pointer:
+  coarse`): user-select none fora de campos/`[data-selecionavel]`, contextmenu bloqueado e seleção fora de campo desfeita.
+  Testes `t-figurinhas-pro.mjs` (25), `t-emojis-figurinhas`, `t-mensagens-whats`, `t-registro-chamadas` atualizados.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

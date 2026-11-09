@@ -43,7 +43,13 @@ ok(await p.locator("#menuMsg").isHidden(), "não abre o menu antigo");
 await p.screenshot({ path: "saida/whats-selecao.png" });
 await p.locator("#selFixar").tap(); await p.waitForTimeout(1200);
 ok(!!(await db.doc(`conversas/${CONV}`).get()).data().fixadaPara?.[U.ana], "Fixar na barra fixa a conversa");
-ok(!(await p.evaluate(() => document.body.classList.contains("selecionando"))), "depois da ação sai da seleção");
+ok(await p.evaluate(() => document.body.classList.contains("selecionando")) && await p.locator(".conv-item.marcada").count() === 1, "Fixar NÃO sai da seleção (dá para usar outra função)");
+await p.locator("#selSilenciar").tap(); await p.waitForTimeout(1200);
+ok(!!(await db.doc(`conversas/${CONV}`).get()).data().silenciadaPara?.[U.ana] && await p.evaluate(() => document.body.classList.contains("selecionando")), "Silenciar em seguida, ainda na seleção");
+ok(await p.locator("#selSilenciar use").getAttribute("href") === "#i-sino" && await p.locator("#selFixar use").getAttribute("href") === "#i-pin-off", "botões mostram a ação de desfazer (sino / alfinete cortado)");
+await p.screenshot({ path: "saida/whats-selecao2.png" });
+await p.locator("#selSair").tap(); await p.waitForTimeout(400);
+await db.doc(`conversas/${CONV}`).set({ silenciadaPara: { [U.ana]: FieldValue.delete() } }, { merge: true });
 // voltar sai da seleção sem sair da página
 await cx.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] }); await p.waitForTimeout(700);
 await cx.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(500);
