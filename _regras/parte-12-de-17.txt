@@ -1,3 +1,31 @@
+    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
+    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
+    function apagarEquipeOk(id) {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
+          && !('apagada' in a)
+          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
+          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
+          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
+          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
+    }
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin() && msgEquipeOk('equipe');
+      allow update: if admin() && reacaoValida();
+      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
+      allow delete: if false;
+    }
+    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
+    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
+    // os donos escrevem.
+    function canalEquipeOk(canal) {
+      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
+          && (canal != 'avisos' || papel() == 'dono');
+    }
     match /equipe_canais/{canal} {
       allow read: if admin();
       allow create, update: if admin() && canalEquipeOk(canal)
@@ -180,22 +208,4 @@
             && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
                             : (janelaNova() ? 0 : resource.data.get(k, 0)));
       }
-      allow get: if logado() && request.auth.uid == uid;
-      allow read: if admin();
-      allow create, update: if logado()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
-                    && request.resource.data.ultimaEm == request.time
-                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
-                    && contaOk('msg', request.resource.data.ultimoTipo)
-                    && contaOk('pub', request.resource.data.ultimoTipo)
-                    && contaOk('com', request.resource.data.ultimoTipo)
-                    && contaOk('parc', request.resource.data.ultimoTipo)
-                    && contaOk('flash', request.resource.data.ultimoTipo)
-                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
-      allow delete: if false;
-    }
-
-
-// ===== FIM DA PARTE 12 DE 16 =====
+// ===== FIM DA PARTE 12 DE 17 =====

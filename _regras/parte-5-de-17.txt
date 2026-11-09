@@ -1,3 +1,27 @@
+      function comunidadeOk() {
+        let d = request.resource.data;
+        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
+        return d.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
+            && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
+            && textoAte('descricao', 1000)
+            && textoAte('tipoItem', 20)
+            && textoAte('cidade', 60)
+            && localOk()
+            && textoAte('bairro', 60)
+            && geoOk(d.get('geo', null))
+            && listaAte('fotos', 4)
+            && listaAte('busca', 100)
+            && d.get('estado', 'usado') in ['novo', 'seminovo', 'usado', 'reparo']
+            && d.get('entrega', 'combinar') in ['combinar', 'retirar', 'entrego']
+            && d.status in ['disponivel', 'reservado', 'concluido']
+            && d.aceiteRegras == true
+            && (d.categoria == 'quarto' ? quartoOk(d.get('quarto', null)) : !('quarto' in d))
+            && (d.categoria == 'achados' ? achadoOk(d.get('achado', null)) : !('achado' in d))
+            // Sem venda: nada de "vendo/venda/vende..." e, fora do quarto, nada de "R$".
+            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas)\\b.*')
+            && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
+            && dataOuNulo('ocultoAte');
+      }
       allow read: if logado();
       allow create: if logado() && emailOk()
                     && request.resource.data.donoId == request.auth.uid
@@ -149,46 +173,4 @@
                     && contextoOk()
                     && textoAte('ultimaMensagem', 200);
 
-      // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
-      // pelo resumo da última mensagem).
-      allow update: if logado()
-                    && request.auth.uid in resource.data.participantes
-                    && request.resource.data.participantes == resource.data.participantes
-                    && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada'])
-                    // o resumo da última mensagem só pode ser escrito por quem mandou
-                    && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
-                        || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
-                    && soMinhaChave('lidoEm')
-                    && soMinhaChave('vistoEm')
-                    && soMinhaChave('digitando')
-                    // arquivar / apagar "só para mim": cada um mexe só na própria marca
-                    && soMinhaChave('arquivadaPara')
-                    && soMinhaChave('ocultaPara')
-                    // fixar no topo / silenciar avisos: cada um só a própria marca
-                    && soMinhaChave('fixadaPara')
-                    && soMinhaChave('silenciadaPara')
-                    // falaram: cada um marca só que ELE escreveu (usado para liberar avaliação e reclamação)
-                    && soMinhaChave('falaram')
-                    && (!mudou().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
-                    && (!mudou().hasAny(['contexto']) || contextoOk())
-                    // mensagem fixada no topo da conversa (qualquer um dos dois fixa ou tira)
-                    && (!mudou().hasAny(['mensagemFixada'])
-                        || request.resource.data.mensagemFixada == null
-                        || (request.resource.data.mensagemFixada is map
-                            && request.resource.data.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
-                            && request.resource.data.mensagemFixada.id is string
-                            && request.resource.data.mensagemFixada.por == request.auth.uid
-                            && valorTextoAte(request.resource.data.mensagemFixada.get('texto', ''), 200)))
-                    && textoAte('ultimaMensagem', 200);
-
-      allow delete: if logado()
-                    && request.auth.uid in resource.data.participantes;
-
-
-      // ===================================================
-      // MENSAGENS DA CONVERSA
-      // ===================================================
-      match /mensagens/{mensagemId} {
-
-// ===== FIM DA PARTE 5 DE 16 =====
+// ===== FIM DA PARTE 5 DE 17 =====

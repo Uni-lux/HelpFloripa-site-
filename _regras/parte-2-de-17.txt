@@ -1,8 +1,33 @@
+    // Flash novo (stories/{id}). Numa função com "d" (em vez de repetir request.resource.data) para gastar menos do
+    // limite de 1.000 expressões: o flash com TUDO junto (repost, link, negócios, enquete, caixa, menções, figurinhas
+    // tocáveis) estava no limite.
+    function flashNovoOk(d) {
+      let k = d.keys();
+      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo'])
+          // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
+          // (+ contagem regressiva e público do flash, 02/11/2026)
+          && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || extrasFlashOk(d))
+          // enquete (no flash acaba junto com ele: até 24 h, com 10 min de folga), menções e escolhas do autor
+          && (!('enquete' in k) || enqueteOk(d.enquete, request.time, 1450))
+          && (!('mencoes' in k) || uidsOk(d.mencoes, 10))
+          && d.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
+          && d.get('publico', 'todos') in ['todos', 'amigos']
+          && (!('lista' in k) || uidsOk(d.lista, 150))
+          && (!('ocultoPara' in k) || uidsOk(d.ocultoPara, 100))
+          && d.autorId == request.auth.uid
+          && d.criadoEm == request.time
+          && d.tipo in ['imagem', 'video']
+          && d.midia is string && d.midia.size() <= 950000
+          && d.midia.matches(d.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
+          && valorTextoAte(d.get('texto', ''), 150)
+          && valorTextoAte(d.get('nome', ''), 80)
+          && (!('duracao' in k) || (d.duracao is number && d.duracao <= 60));
+    }
     // Contagem regressiva (título e quando termina: de 5 min a 1 ano) e público do flash (direcionamento, conferido de
     // leve: quem vê filtra no aparelho; a forma completa é a mesma do público da publicação).
     function flashNovos2Ok(d) {
       // (cor e posição não são conferidas: o site só usa as cores da lista e prende a posição no cartão ao desenhar)
-      return (!('contagem' in d) || (d.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y'])
+      return (!('contagem' in d) || (d.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y', 'k'])
                 && d.contagem.titulo.size() >= 1 && d.contagem.titulo.size() <= 40
                 && d.contagem.fim > request.time + duration.value(4, 'm') && d.contagem.fim <= request.time + duration.value(366, 'd')))
           && (!('alvo' in d) || d.alvo.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores']));
@@ -212,48 +237,4 @@
     // =====================================================
     match /perfis_publicos/{userId} {
 
-      // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
-      // próprio usuário. getAfter enxerga a reserva feita na mesma transação
-      // (cadastro) ou numa escrita anterior (edição do perfil).
-      function nickDoDono() {
-        let d = request.resource.data;
-        return !('nickname' in d)
-            || d.nickname == null
-            || d.nickname == ''
-            || getAfter(/databases/$(database)/documents/nicknames/$(d.nickname)).data.uid == request.auth.uid;
-      }
-
-      // Trocou de @: o antigo tem que ser liberado na mesma gravação (ninguém guarda vários @).
-      function liberouNickAntigo() {
-        let antigo = resource.data.get('nickname', '');
-        return antigo == null || antigo == '' || antigo == request.resource.data.get('nickname', '')
-            || !existsAfter(/databases/$(database)/documents/nicknames/$(antigo));
-      }
-
-      function tamanhosOk() {
-        return textoAte('nome', 80)
-            && textoAte('bio', 400)
-            && textoAte('cidade', 80)
-            && localOk()
-            && listaAte('busca', 12)
-            && dataOuNulo('desativadaAte');
-      }
-
-      // Campos que o site grava no perfil público. Qualquer outro é recusado.
-      function camposPerfil() {
-        return ['uid', 'nome', 'nickname', 'cidade', 'uf', 'cidadeIbge', 'bio', 'fotoPerfil', 'fotoCapa',
-                'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
-                'busca',   // palavras do nome e do @ (minúsculas, sem acento) para a busca de pessoas
-                'desativadaAte',   // conta desativada até esta data (ou exclusão pedida)
-                'atendimento'];    // negócios: horário, modo ausente e tempo médio de resposta
-      }
-
-      function opcoesOk() {
-        let d = request.resource.data;
-        return (!('socialVisibilidade' in d) || d.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
-            && (!('duoCapa' in d) || d.duoCapa in ['clicavel', 'foto', 'rosa', 'ocultar'])
-            && (!('nickname' in d) || valorTextoAte(d.nickname, 20))
-            && atendimentoOk();
-      }
-
-// ===== FIM DA PARTE 2 DE 16 =====
+// ===== FIM DA PARTE 2 DE 17 =====

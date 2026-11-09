@@ -1,3 +1,21 @@
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
+                    && request.resource.data.ultimaEm == request.time
+                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
+                    && contaOk('msg', request.resource.data.ultimoTipo)
+                    && contaOk('pub', request.resource.data.ultimoTipo)
+                    && contaOk('com', request.resource.data.ultimoTipo)
+                    && contaOk('parc', request.resource.data.ultimoTipo)
+                    && contaOk('flash', request.resource.data.ultimoTipo)
+                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
+      allow delete: if false;
+    }
+
+
     // =====================================================
     // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
     // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
@@ -155,26 +173,4 @@
       }
     }
 
-    // ===================================================
-    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
-    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
-    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
-    // ===================================================
-    match /destaques/{id} {
-      function destaqueOk(d) {
-        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
-          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
-          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
-          && d.atualizadoEm == request.time
-          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
-          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
-      }
-      allow read: if logado();
-      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
-      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
-      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
-    }
-
-// ===== FIM DA PARTE 13 DE 16 =====
+// ===== FIM DA PARTE 13 DE 17 =====

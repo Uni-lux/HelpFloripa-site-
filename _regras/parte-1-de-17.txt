@@ -100,7 +100,7 @@ service cloud.firestore {
     // No flash, x e y dizem onde a enquete fica na tela (0 a 1).
     // fimEm: quando a votação acaba (depois de inicio, até maxMin minutos depois; sem fimEm = enquete antiga, sem fim).
     function enqueteOk(e, inicio, maxMin) {
-      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'fimEm', 'anonima', 'cor', 'certa'])
+      return e is map && e.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'k', 'fimEm', 'anonima', 'cor', 'certa'])
           && e.get('anonima', false) is bool
           // Teste (quiz): a resposta certa = índice de uma das opções
           && (!('certa' in e) || (e.certa is int && e.certa >= 0 && e.certa < e.opcoes.size()))
@@ -111,7 +111,8 @@ service cloud.firestore {
           // garante de 2 a 4 linhas)
           && e.opcoes.size() <= 4 && e.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
           // posição x e y entre 0 e 1, conferidas num regex só (economiza expressões: o flash com tudo junto
-          // estava no limite de 1.000)
+          // estava no limite de 1.000). O tamanho k (dois dedos, 09/11/2026) não é conferido aqui: não cabia no limite e
+          // o visor já prende entre 0,6 e 1,3 ao desenhar.
           && (string(e.get('x', 0)) + ' ' + string(e.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
     // Cor da enquete / caixa de perguntas no flash (branco é o padrão e não vai gravado).
@@ -121,16 +122,16 @@ service cloud.firestore {
     // Caixa de perguntas (publicação ou flash): o autor pergunta e quem vê responde com texto.
     // anonima: quem responde não aparece para o autor (só a moderação sabe, em caixa_autoria).
     function caixaOk(c) {
-      return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'cor'])
+      return c is map && c.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'k', 'cor'])
           && (!('cor' in c) || corFigOk(c.cor))
           && c.pergunta.size() >= 1 && c.pergunta.size() <= 120
           && c.anonima is bool
-          // posição x e y entre 0 e 1 num regex só (como na enquete), para caber no limite de 1.000
+          // posição x e y entre 0 e 1 num regex só (como na enquete), para caber no limite de 1.000 (k: veja a enquete)
           && (string(c.get('x', 0)) + ' ' + string(c.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
     // Flash: figurinha que leva ao perfil de um negócio (qualquer negócio que exista).
     function linkFlashOk(l) {
-      return l is map && l.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y'])
+      return l is map && l.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y', 'k'])
           && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
@@ -186,29 +187,4 @@ service cloud.firestore {
           && (!('repostDe' in d) || repostOk(d.repostDe))
           && (!('postDe' in d) || postFlashOk(d.postDe));
     }
-    // Flash novo (stories/{id}). Numa função com "d" (em vez de repetir request.resource.data) para gastar menos do
-    // limite de 1.000 expressões: o flash com TUDO junto (repost, link, negócios, enquete, caixa, menções, figurinhas
-    // tocáveis) estava no limite.
-    function flashNovoOk(d) {
-      let k = d.keys();
-      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo'])
-          // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
-          // (+ contagem regressiva e público do flash, 02/11/2026)
-          && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || extrasFlashOk(d))
-          // enquete (no flash acaba junto com ele: até 24 h, com 10 min de folga), menções e escolhas do autor
-          && (!('enquete' in k) || enqueteOk(d.enquete, request.time, 1450))
-          && (!('mencoes' in k) || uidsOk(d.mencoes, 10))
-          && d.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
-          && d.get('publico', 'todos') in ['todos', 'amigos']
-          && (!('lista' in k) || uidsOk(d.lista, 150))
-          && (!('ocultoPara' in k) || uidsOk(d.ocultoPara, 100))
-          && d.autorId == request.auth.uid
-          && d.criadoEm == request.time
-          && d.tipo in ['imagem', 'video']
-          && d.midia is string && d.midia.size() <= 950000
-          && d.midia.matches(d.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
-          && valorTextoAte(d.get('texto', ''), 150)
-          && valorTextoAte(d.get('nome', ''), 80)
-          && (!('duracao' in k) || (d.duracao is number && d.duracao <= 60));
-    }
-// ===== FIM DA PARTE 1 DE 16 =====
+// ===== FIM DA PARTE 1 DE 17 =====

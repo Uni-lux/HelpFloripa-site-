@@ -1,0 +1,9 @@
+      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create: if logado() && statsNovo();
+      allow update: if logado() && statsMais();
+      allow delete: if false;
+    }
+
+  }
+}
+// ===== FIM DA PARTE 17 DE 17 =====
