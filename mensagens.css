@@ -1000,12 +1000,31 @@ html { -webkit-tap-highlight-color: transparent; }
 /* fotos e vídeos acompanham os cantos novos */
 .bolha.midia { padding: 4px; }
 .bolha img.foto, .bolha video { border-radius: 16px; }
-/* Áudio. Seu balão: botão branco com ícone azul, anel e ondas brancas. Da outra pessoa: ciano com brilho. */
+/* Áudio. Seu balão: botão de vidro escuro com ícone branco (o disco branco ficava estranho, pedido do dono),
+   anel e ondas brancas. Da outra pessoa: botão ciano com brilho. */
 .bolha { --hf-audio-cor: #12b9f5; }
 .minha .bolha { --hf-audio-cor: #ffffff; }
-.minha .bolha .hf-audio-play { color: #0084c4; box-shadow: 0 0 0 4px rgba(255, 255, 255, .16), 0 4px 14px -4px rgba(0, 40, 70, .55); }
-.minha .bolha .hf-audio-onda i { background: rgba(255, 255, 255, .38); }
-.minha .bolha .hf-audio-onda i.on { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, .75); }
+.minha .bolha .hf-audio-play {
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .22), rgba(0, 40, 70, .38) 70%);
+  color: #ffffff; border: 1px solid rgba(255, 255, 255, .38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px -4px rgba(0, 30, 55, .55);
+  backdrop-filter: blur(6px);
+}
+.minha .bolha .hf-audio.tocando .hf-audio-play { animation: none; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .3), rgba(0, 40, 70, .3) 70%); }
+.minha .bolha .hf-audio-onda i { background: rgba(255, 255, 255, .36); }
+.minha .bolha .hf-audio-onda i.on { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, .7); }
+.minha .bolha .hf-audio-vel { background: rgba(0, 40, 70, .22); border-color: rgba(255, 255, 255, .3); }
+/* Cartões que VOCÊ mandou (Pix, localização, avaliação, pedido...): cartão neutro com a borda na cor da marca,
+   em vez de ficarem pintados de ciano pelo balão. */
+.minha .bolha.cartao-msg:not(.chamada-msg, .pub-msg, .flash-msg, .caixa-msg) {
+  background: var(--bubble-other); color: var(--bubble-other-text);
+  border: 1px solid color-mix(in srgb, #00adee 38%, transparent);
+  box-shadow: inset 0 1px 0 var(--bubble-brilho), 0 8px 22px -12px rgba(0, 173, 238, .45);
+}
+.minha .bolha.cartao-msg .meta { opacity: .72; }
+.minha .bolha.cartao-msg .meta .check { opacity: .8; }
+.minha .bolha.cartao-msg .meta .check.lida { color: var(--read); filter: none; }
+.minha .bolha.cartao-msg .texto a { color: var(--accent); }
 .bolha.so-audio { padding: 8px 12px 7px 8px; }
 .bolha.so-audio .meta { right: 12px; bottom: 8px; }
 /* separador do dia e aviso flutuante no mesmo estilo */

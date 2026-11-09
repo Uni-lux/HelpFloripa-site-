@@ -1866,6 +1866,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   hora com números alinhados. Player de áudio (audio-ondas.js v=2, vale também no chat da equipe e nas denúncias): anel de
   progresso em volta do play (`--p` gravado no `progresso`, conic-gradient com máscara), botão com brilho e pulso tocando,
   ondas arredondadas que acendem com brilho, velocidade em pílula com borda.
+  2ª versão (mesmo PR, prints dele: "o play branco ficou estranho"): no SEU balão o play é vidro escuro com ícone branco
+  (sem disco branco) e os cartões que você manda (Pix, localização, avaliação, pedido...) ficam neutros com borda ciano
+  (`.minha .bolha.cartao-msg:not(...)`), em vez de pintados de ciano pelo balão. mensagens.css v=8.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
