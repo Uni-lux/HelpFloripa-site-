@@ -37,7 +37,7 @@ ok(anel === "none", `foto do topo sem anel (${anel})`);
 const cit = p.locator(".linha-msg.minha .citacao").last();
 await cit.scrollIntoViewIfNeeded();
 const [fc, fb] = await cit.evaluate((e) => [getComputedStyle(e).backgroundColor, getComputedStyle(e.closest(".bolha")).backgroundImage]);
-ok(/rgba\(0, 18, 32, 0\.55\)/.test(fc), `citação no seu balão bem mais escura (${fc})`);
+ok(fc === "rgb(12, 31, 43)", `citação no seu balão com cor própria, opaca (${fc})`);
 await p.screenshot({ path: "saida/topo-conversa.png" });
 ok(!erros.length, "sem erros" + (erros.length ? ": " + erros.join(" | ") : ""));
 await A.browser.close();

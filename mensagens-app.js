@@ -19,7 +19,7 @@ import { docComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
-import { criarPlayerAudio } from "./audio-ondas.js?v=3";
+import { criarPlayerAudio } from "./audio-ondas.js?v=4";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=18";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
@@ -850,6 +850,11 @@ function trocarModo(novo) {
   modo = novo;
   document.body.classList.toggle("modo-chamadas", modo === "chamadas");
   pintarFab();
+  // A lupa do topo serve às duas listas: conversas ou chamadas.
+  const bc = $("buscaConversas");
+  bc.value = modo === "chamadas" ? buscaChamadas : "";
+  bc.placeholder = modo === "chamadas" ? "Pesquisar chamadas" : "Pesquisar conversa";
+  bc.setAttribute("aria-label", bc.placeholder);
   if (modo === "chamadas") { pintarModos(); renderizarChamadas(); return; }
   try { localStorage.setItem("hf-chat-modo", modo); } catch {}
   if (filtro.startsWith("assunto:")) filtro = "todas";
@@ -1698,6 +1703,7 @@ async function abrirConversa(id, { historico = true } = {}) {
 }
 
 function fecharConversa({ historico = true } = {}) {
+  fecharMenu();
   pararOuvintes();
   ativa = null;
   document.body.classList.remove("chat-aberto");
@@ -2382,6 +2388,10 @@ $("irFim").addEventListener("click", () => irParaFim(true));
 // Menu da mensagem
 // ======================================================
 function fecharMenu() { $("menuMsg").hidden = true; }
+// O menu (⋮ da conversa, segurar mensagem...) vira "janela aberta" para o voltar.js: o voltar do celular fecha só o
+// menu, como no WhatsApp (antes voltava para a lista com o menu ainda aberto por cima). A classe acompanha o hidden.
+new MutationObserver(() => $("menuMsg").classList.toggle("aberto", !$("menuMsg").hidden))
+  .observe($("menuMsg"), { attributes: true, attributeFilter: ["hidden"] });
 
 function abrirMenuMensagem(m, x, y) {
   const menu = $("menuMsg");
@@ -3805,12 +3815,6 @@ async function renderizarChamadas() {
     filtros.appendChild(b);
   });
   const nos = [topo, filtros];
-  if (todas.length > 6) {
-    const busca = elm("label", "rc-busca"); busca.appendChild(usar("lupa", "i s"));
-    const campo = elm("input"); campo.type = "search"; campo.placeholder = "Buscar pelo nome"; campo.value = buscaChamadas; campo.setAttribute("aria-label", "Buscar nas chamadas");
-    campo.addEventListener("input", () => { buscaChamadas = campo.value; clearTimeout(campo._t); campo._t = setTimeout(async () => { await renderizarChamadas(); const c = document.querySelector(".rc-busca input"); if (c) { c.focus(); c.setSelectionRange(c.value.length, c.value.length); } }, 250); });
-    busca.appendChild(campo); nos.push(busca);
-  }
   if (!itens.length) {
     const vazio = elm("div", "rc-vazio");
     const ic = elm("span", "rc-vazio-ic"); ic.appendChild(usar(filtroChamadas === "perdidas" ? "check" : "telefone", "i"));
@@ -4637,7 +4641,11 @@ $("btnFecharConversa").addEventListener("click", () => {
 });
 $("btnQuem").addEventListener("click", verPerfil);
 $("btnMenuConversa").addEventListener("click", (e) => { e.stopPropagation(); abrirMenuConversa(); });
-$("buscaConversas").addEventListener("input", renderizarLista);
+$("buscaConversas").addEventListener("input", () => {
+  // Na aba Chamadas a mesma lupa procura nas ligações (pelo nome).
+  if (modo === "chamadas") { buscaChamadas = $("buscaConversas").value; clearTimeout(window.__hfBuscaCham); window.__hfBuscaCham = setTimeout(renderizarChamadas, 200); return; }
+  renderizarLista();
+});
 document.querySelectorAll(".pill").forEach((p) => p.addEventListener("click", () => {
   filtro = p.dataset.filtro;
   document.querySelectorAll(".pill").forEach((x) => {

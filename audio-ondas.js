@@ -136,7 +136,7 @@ function css() {
 .hf-audio.wa .hf-audio-onda { position: relative; height: 30px; gap: 1.5px; }
 .hf-audio.wa .hf-audio-onda i { min-width: 2px; max-width: 3px; border-radius: 2px; box-shadow: none; background: color-mix(in srgb, currentColor 32%, transparent); }
 .hf-audio.wa .hf-audio-onda i.on { box-shadow: none; background: var(--hf-audio-cor, #00adee); }
-.hf-audio.wa .hf-audio-ponto { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--hf-audio-cor, #00adee); pointer-events: none; transition: left .12s linear; }
+.hf-audio.wa .hf-audio-ponto { position: absolute; top: 50%; left: calc(var(--p) * 100%); width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--hf-audio-cor, #00adee); pointer-events: none; will-change: left; }
 .hf-audio.wa .hf-audio-rodape { font-size: 11.5px; }
 .hf-audio.wa .hf-audio-tempo { font-weight: 500; letter-spacing: 0; opacity: .8; }
 @media (prefers-reduced-motion: reduce) { .hf-audio-onda i, .hf-audio-ponto { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
@@ -206,7 +206,18 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
     }).catch((e) => { console.warn("Onda do áudio:", e?.message || e); });
     return carregandoOnda;
   }
+  // Ponto e anel acompanham o áudio quadro a quadro (o "timeupdate" do navegador só chega ~4 vezes por segundo e a
+  // bolinha andava aos pulos). As barras continuam pelo progresso().
+  let quadro = 0;
+  const seguir = () => {
+    if (!audio || audio.paused) { quadro = 0; return; }
+    const d = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : dur;
+    if (d) box.style.setProperty("--p", String(Math.min(1, audio.currentTime / d)));
+    quadro = requestAnimationFrame(seguir);
+  };
+  const comecarSeguir = () => { if (!quadro) quadro = requestAnimationFrame(seguir); };
   function pararEste() {
+    if (quadro) { cancelAnimationFrame(quadro); quadro = 0; }
     if (!audio) return;
     audio.pause();
     box.classList.remove("tocando"); icone(ICONE_PLAY); bPlay.setAttribute("aria-label", "Tocar áudio");
@@ -237,6 +248,7 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
     try {
       await audio.play();
       box.classList.add("tocando"); icone(ICONE_PAUSA); bPlay.setAttribute("aria-label", "Pausar áudio");
+      comecarSeguir();
     } catch (e) {
       // Baixou o áudio depois do toque e o navegador bloqueou: o próximo toque já toca.
       console.warn("Não tocou:", e?.message || e);
