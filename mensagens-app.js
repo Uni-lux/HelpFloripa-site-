@@ -20,6 +20,7 @@ import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
+import { lerConversa, guardarConversa, juntar, maisRecente, FOLGA_MS, CHEIO_MS } from "./cache-msgs.js?v=1";
 import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
@@ -160,27 +161,36 @@ function dataLista(d) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
-// Como no WhatsApp: "visto por último hoje às 23:29". Se não couber no topo, o texto desliza (statusTopo).
+// "Visto": de 1 min a 1 h mostra quanto tempo faz ("há 5 min"); depois disso a hora ("18:16"), "ontem 18:16",
+// o dia da semana ("seg. 18:16") ou a data. O olho na frente (statusTopo) diz que é a última vez que a pessoa esteve aqui.
 function vistoPorUltimo(d) {
   if (!d) return "";
-  const hoje = new Date();
-  const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
-  if (mesmoDia(d, hoje)) return `visto por último hoje às ${hora(d)}`;
-  if (mesmoDia(d, ontem)) return `visto por último ontem às ${hora(d)}`;
-  if (hoje - d < 6 * 24 * 60 * MINUTO) return `visto por último ${d.toLocaleDateString("pt-BR", { weekday: "long" })} às ${hora(d)}`;
-  return `visto por último em ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: hoje.getFullYear() === d.getFullYear() ? undefined : "numeric" })}`;
+  const agora = new Date(), dif = agora - d;
+  if (dif < MINUTO) return "agora";
+  if (dif < 60 * MINUTO) return `há ${Math.floor(dif / MINUTO)} min`;
+  const ontem = new Date(); ontem.setDate(agora.getDate() - 1);
+  if (mesmoDia(d, agora)) return hora(d);
+  if (mesmoDia(d, ontem)) return `ontem ${hora(d)}`;
+  if (dif < 6 * 24 * 60 * MINUTO) return `${d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}. ${hora(d)}`;
+  return `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: agora.getFullYear() === d.getFullYear() ? undefined : "2-digit" })}`;
 }
-// Texto do topo da conversa (online, digitando, visto por último). Quando não cabe, desliza devagar para mostrar o
-// resto e volta (como no WhatsApp), em vez de cortar com "...". Com "reduzir movimento" do aparelho, fica parado.
-function statusTopo(el, texto, cls = "") {
+// Texto do topo da conversa (online, digitando, visto). Com um símbolo na frente: bolinha verde (online), três
+// pontinhos (digitando) ou o olho (visto). Quando não cabe, desliza devagar; com "reduzir movimento", fica parado.
+function statusTopo(el, texto, cls = "", simbolo = "") {
   el.className = cls;
-  if (el.dataset.texto === texto && el.firstChild) return;
-  el.dataset.texto = texto;
+  const chave = simbolo + "|" + texto;
+  if (el.dataset.texto === chave && el.firstChild) return;
+  el.dataset.texto = chave;
   const sp = document.createElement("span"); sp.className = "st-rola"; sp.textContent = texto;
-  el.replaceChildren(sp);
-  el.title = texto;
+  const nos = [];
+  if (simbolo === "online") nos.push(Object.assign(document.createElement("i"), { className: "st-ponto" }));
+  else if (simbolo === "visto") nos.push(icone("olho-visto", "i st-ic"));
+  el.replaceChildren(...nos, sp);
+  el.title = simbolo === "visto" ? `Visto por último: ${texto}` : texto;
+  if (simbolo === "visto") sp.setAttribute("aria-label", `Visto por último ${texto}`); else sp.removeAttribute("aria-label");
   requestAnimationFrame(() => {
-    const falta = sp.scrollWidth - el.clientWidth;
+    if (!sp.isConnected) return;
+    const falta = sp.scrollWidth - el.clientWidth + (nos.length ? 18 : 0);
     el.classList.toggle("rolando", falta > 4);
     if (falta > 4) { sp.style.setProperty("--falta", `-${falta + 6}px`); sp.style.setProperty("--dur", `${Math.max(5, falta / 18 + 4)}s`); }
   });
@@ -197,6 +207,8 @@ const ASSUNTOS = {
   comunidade: { nome: "Comunidade", cor: "#e5487f" },
   publicacao: { nome: "Publicação", cor: "#f5b301" }
 };
+// Ícone do selinho no canto da foto, por tipo de negócio
+const ICONE_ASSUNTO = { servicos: "maleta", delivery: "pedido", lojinha: "loja", imoveis: "casa", saude: "saude", comunidade: "comunidade", publicacao: "feed" };
 const reais = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 // Lista do pedido (itens, unidades e total) dentro do cartão.
 function blocoPedido(p) {
@@ -1498,6 +1510,14 @@ function renderizarLista() {
     const av = document.createElement("div");
     av.className = "avatar";
     pintarAvatar(av, c.foto, c.nome);
+    let avBox = av;
+    if (assunto !== "pessoal") {
+      // Negócio: o tipo vai num selinho no canto da foto (cor + ícone), sem anel e sem faixa do lado
+      avBox = document.createElement("div"); avBox.className = "conv-av";
+      const sl = document.createElement("span"); sl.className = "conv-tipo-ic"; sl.appendChild(icone(ICONE_ASSUNTO[assunto] || "maleta", "i"));
+      sl.setAttribute("aria-hidden", "true");
+      avBox.append(av, sl);
+    }
 
     const main = document.createElement("div");
     main.className = "conv-main";
@@ -1508,7 +1528,7 @@ function renderizarLista() {
     nome.title = c.nome;
     const nm = document.createElement("span"); nm.className = "conv-nm"; nm.textContent = nomeCurto(c.nome);
     nome.appendChild(nm);
-    if (c.nick) { const k = document.createElement("span"); k.className = "conv-nick"; k.textContent = "@" + String(c.nick).replace(/^@/, ""); nome.appendChild(k); }
+    if (c.verificado) { const v = icone("selo", "i selo-v"); v.setAttribute("aria-label", "Perfil verificado"); nome.appendChild(v); }
     if (fixada(c)) { const f = icone("pin", "i xs"); f.setAttribute("aria-label", "Fixada"); f.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px"; nome.appendChild(f); }
     if (silenciada(c)) { const m = icone("sino-off", "i xs"); m.setAttribute("aria-label", "Silenciada"); m.style.cssText = "margin-left:4px;opacity:.6;vertical-align:-2px"; nome.appendChild(m); }
     const quando = document.createElement("div");
@@ -1520,13 +1540,6 @@ function renderizarLista() {
     l2.className = "conv-linha";
     const previa = document.createElement("div");
     previa.className = "conv-previa";
-    if (assunto !== "pessoal") {
-      const tag = document.createElement("span");
-      tag.className = "conv-assunto";
-      tag.textContent = ASSUNTOS[assunto].nome;
-      tag.title = c.dados.contexto?.titulo || ASSUNTOS[assunto].nome;
-      previa.appendChild(tag);
-    }
     if (config.mostrarDigitando && estaDigitando(c.dados, c.outroId)) {
       const d = document.createElement("span");
       d.className = "digitando";
@@ -1559,15 +1572,23 @@ function renderizarLista() {
     }
     main.append(l1, l2);
     const etq = modoDe(c) === "negocios" ? notasClientes.get(c.outroId)?.etiquetas : null;
-    if (etq?.length) {
-      const box = document.createElement("div"); box.className = "conv-etiquetas";
-      etq.slice(0, 3).forEach((t) => { const e = document.createElement("span"); e.textContent = t; box.appendChild(e); });
-      main.appendChild(box);
+    if (assunto !== "pessoal" || etq?.length) {
+      // Linha do negócio: tipo na cor dele · nome do perfil/anúncio · etiquetas do cliente
+      const meta = document.createElement("div"); meta.className = "conv-meta";
+      if (assunto !== "pessoal") {
+        const t = document.createElement("span"); t.className = "conv-tipo"; t.textContent = ASSUNTOS[assunto].nome; meta.appendChild(t);
+        const tit = String(c.dados.contexto?.titulo || "").trim();
+        if (tit && semAcentoCham(tit) !== semAcentoCham(c.nome) && semAcentoCham(tit) !== semAcentoCham(ASSUNTOS[assunto].nome)) {
+          const x = document.createElement("span"); x.className = "conv-ctx"; x.textContent = tit; meta.appendChild(x);
+        }
+      }
+      (etq || []).slice(0, 2).forEach((t) => { const e = document.createElement("span"); e.className = "conv-etq"; e.textContent = t; meta.appendChild(e); });
+      main.appendChild(meta);
     }
     const marca = document.createElement("span");
     marca.className = "sel-marca";
     marca.appendChild(icone("check", "i"));
-    item.append(marca, av, main);
+    item.append(marca, avBox, main);
     lista.appendChild(item);
   });
 }
@@ -1602,7 +1623,7 @@ function ouvirConversas() {
       const outroId = (dados.participantes || []).find((p) => p !== eu.uid) || eu.uid;
       const perfil = await obterPerfil(outroId);
       const naoLida = calcularNaoLida(dados) && !(ativa?.id === d.id && !escondida());
-      return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", foto: perfil.fotoPerfil || "", naoLida };
+      return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", verificado: !!perfil.verificado, foto: perfil.fotoPerfil || "", naoLida };
     }));
     // Fixadas primeiro; depois a mais recente.
     lista.sort((a, b) => (Number(!!b.dados.fixadaPara?.[eu.uid]) - Number(!!a.dados.fixadaPara?.[eu.uid])) || (ms(b.dados.atualizadoEm) - ms(a.dados.atualizadoEm)));
@@ -1648,7 +1669,7 @@ function ligarPuxarConversas() {
         const r = await docsPorIds(fb, "perfis_publicos", ids, 0).catch(() => null);
         if (r) {
           perfisRenovadosEm = Date.now();
-          ids.forEach((u) => { const p = r.get(u); if (!p) return; perfis.set(u, Promise.resolve(p)); conversas.filter((c) => c.outroId === u).forEach((c) => { c.nome = p.nome || c.nome; c.nick = p.nickname || ""; c.foto = p.fotoPerfil || ""; }); });
+          ids.forEach((u) => { const p = r.get(u); if (!p) return; perfis.set(u, Promise.resolve(p)); conversas.filter((c) => c.outroId === u).forEach((c) => { c.nome = p.nome || c.nome; c.nick = p.nickname || ""; c.verificado = !!p.verificado; c.foto = p.fotoPerfil || ""; }); });
         }
       }
       renderizarLista(); atualizarTitulo();
@@ -1688,7 +1709,7 @@ async function abrirConversa(id, { historico = true } = {}) {
       if (!(dados.participantes || []).includes(eu.uid)) { toast("Você não participa desta conversa."); return; }
       const outroId = dados.participantes.find((p) => p !== eu.uid) || eu.uid;
       const perfil = await obterPerfil(outroId);
-      c = { id, dados, outroId, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "" };
+      c = { id, dados, outroId, nome: perfil.nome || "Usuário", foto: perfil.fotoPerfil || "", verificado: !!perfil.verificado };
     } catch (erro) {
       console.error(erro);
       toast("Não foi possível abrir esta conversa.");
@@ -1709,6 +1730,7 @@ async function abrirConversa(id, { historico = true } = {}) {
   primeiraRender = true;
   novasAbaixo = 0;
   $("topNome").textContent = nomeCurto(c.nome); $("topNome").title = c.nome;
+  $("topSelo").toggleAttribute("hidden", !c.verificado);
   $("topStatus").textContent = "";
   $("topStatus").className = "";
   pintarAvatar($("topAvatar"), c.foto, c.nome);
@@ -1875,6 +1897,7 @@ function ouvirPresenca() {
     if (perfilOutroAtual.nome) {
       ativa.nome = perfilOutroAtual.nome;
       $("topNome").textContent = nomeCurto(perfilOutroAtual.nome); $("topNome").title = perfilOutroAtual.nome;
+      $("topSelo").toggleAttribute("hidden", !perfilOutroAtual.verificado);
       pintarAvatar($("topAvatar"), perfilOutroAtual.fotoPerfil, perfilOutroAtual.nome);
     }
     aplicarBloqueio();
@@ -1893,16 +1916,16 @@ function atualizarStatusTopo() {
     return;
   }
   if (!config.mostrarOnline) {
-    statusTopo(el, perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : "");
+    statusTopo(el, "");
     return;
   }
   const ultimo = paraData(perfilOutroAtual.ultimoAcesso);
   if (ultimo && Date.now() - ultimo.getTime() < 9 * MINUTO) {
-    statusTopo(el, "online", "online");
+    statusTopo(el, "online", "online", "online");
     timerDigitando = setTimeout(atualizarStatusTopo, 30000);
   } else {
-    statusTopo(el, ultimo ? vistoPorUltimo(ultimo) : (perfilOutroAtual.nickname ? `@${perfilOutroAtual.nickname}` : ""));
-    timerDigitando = setTimeout(atualizarStatusTopo, 60000); // "hoje" vira "ontem" sem precisar reabrir
+    statusTopo(el, ultimo ? vistoPorUltimo(ultimo) : "", "", ultimo ? "visto" : "");
+    timerDigitando = setTimeout(atualizarStatusTopo, 30000); // "há 4 min" → "há 5 min" e "hoje" → "ontem" sem reabrir
   }
 }
 
@@ -1919,23 +1942,46 @@ function carregarAnteriores() {
   pararMensagens?.();
   ouvirMensagens();
 }
-function ouvirMensagens() {
+// Mensagens guardadas no aparelho (cache-msgs.js): aparecem na hora e o servidor só manda o que é novo desde a última
+// guardada (com folga de 15 min). Uma vez por dia, ou ao carregar anteriores, a leitura é completa (como antes).
+async function ouvirMensagens() {
   const id = ativa.id;
-  const q = fb.query(fb.collection(fb.db, "conversas", id, "mensagens"), fb.orderBy("criadoEm", "asc"), fb.limitToLast(limiteMsgs));
+  const dono = eu.uid;
+  const guardada = limiteMsgs === MSGS_INICIAIS ? await lerConversa(dono, id, fb.Timestamp) : null;
+  if (!ativa || ativa.id !== id) return;
+  const apagadaEm0 = ms(ativa.dados?.ocultaPara?.[eu.uid]);
+  const filtrar = (lista, apagadaEm) => lista.filter((m) => (!apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente) && !ocultaParaMim(id, m.id));
+  if (guardada && primeiraRender && !mensagens.length) {
+    temMaisMsgs = guardada.temMais;
+    mensagens = filtrar(guardada.msgs, apagadaEm0);
+    if (mensagens.length) renderizarMensagens(false);
+  }
+  const soNovas = !!guardada && Date.now() - guardada.cheioEm < CHEIO_MS;
+  const corte = soNovas ? maisRecente(guardada.msgs) - FOLGA_MS : 0;
+  const col = fb.collection(fb.db, "conversas", id, "mensagens");
+  const q = soNovas
+    ? fb.query(col, fb.where("criadoEm", ">", fb.Timestamp.fromMillis(corte)), fb.orderBy("criadoEm", "asc"))
+    : fb.query(col, fb.orderBy("criadoEm", "asc"), fb.limitToLast(limiteMsgs));
+  let primeiroDoServidor = true;
+  pararMensagens?.();
   pararMensagens = fb.onSnapshot(q, { includeMetadataChanges: true }, (snap) => {
     if (!ativa || ativa.id !== id) return;
-    temMaisMsgs = snap.size >= limiteMsgs;
+    const doServidor = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }), pendente: d.metadata.hasPendingWrites }));
+    const todas = soNovas ? juntar(guardada.msgs, doServidor, corte) : doServidor;
+    if (!soNovas) temMaisMsgs = snap.size >= limiteMsgs;
     const antes = voltarAoPonto != null ? Infinity : mensagens.length;
-    const apagadaEm = ms(ativa.dados?.ocultaPara?.[eu.uid]);
-    mensagens = snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }), pendente: d.metadata.hasPendingWrites }))
-      .filter((m) => (!apagadaEm || ms(m.criadoEm) > apagadaEm || m.pendente) && !ocultaParaMim(id, m.id));
+    mensagens = filtrar(todas, ms(ativa.dados?.ocultaPara?.[eu.uid]));
     limparApagadasVencidas(id);
-    const chegouDoOutro = !primeiraRender && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
+    // a 1ª resposta do servidor traz o que chegou enquanto a conversa estava fechada: sem som
+    const chegouDoOutro = !primeiraRender && !primeiroDoServidor && mensagens.length > antes && mensagens[mensagens.length - 1]?.remetenteId !== eu.uid;
+    if (!snap.metadata.fromCache) primeiroDoServidor = false;
     renderizarMensagens(chegouDoOutro);
     if (chegouDoOutro && !escondida() && !restritos.has(ativa.outroId) && !ativa.dados?.silenciadaPara?.[eu.uid]) tocarSom();
     marcarComoLida();
+    if (!snap.metadata.fromCache && limiteMsgs === MSGS_INICIAIS) guardarConversa(dono, id, todas, { cheio: !soNovas, temMais: temMaisMsgs });
   }, (erro) => {
     console.error("Erro no chat:", erro);
+    if (mensagens.length) { toast("Sem conexão: mostrando as mensagens guardadas no aparelho."); return; }
     const s = document.createElement("div");
     s.className = "msgs-status erro";
     s.textContent = "Não foi possível carregar as mensagens desta conversa.";
@@ -2781,8 +2827,8 @@ async function abrirPreviaPerfil() {
 function pintarAssuntoTopo() {
   pintarFixada();
   pintarAtendimento();
-  const nome = $("topNome");
-  nome.parentNode.querySelector(".assunto-topo")?.remove();
+  const sub = $("topSub");
+  sub.querySelector(".assunto-topo")?.remove();
   if (!ativa) return;
   const k = assuntoDe(ativa.dados);
   if (k === "pessoal") return;
@@ -2792,7 +2838,7 @@ function pintarAssuntoTopo() {
   tag.textContent = ASSUNTOS[k].nome;
   const titulo = ativa.dados?.contexto?.titulo;
   if (titulo) tag.title = titulo;
-  nome.after(tag);
+  sub.prepend(tag);
 }
 
 // alvo: a conversa (padrão: a aberta). x/y: posição do menu (toque longo na lista).

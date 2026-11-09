@@ -26,7 +26,7 @@ await p.waitForSelector(".conv-item", { timeout: 20000 }); await p.waitForTimeou
 const nome = await p.locator(".conv-item .conv-nm").first().textContent();
 const nick = await p.locator(".conv-item .conv-nick").first().textContent().catch(() => "");
 ok(nome.trim().split(/\s+/).length <= 2, `lista com nome e sobrenome (${nome})`);
-ok(/^@/.test(nick || ""), `@ ao lado do nome (${nick})`);
+ok(!nick, "sem o @ ao lado do nome (agora só o selo de verificado)");
 const curto = await p.evaluate(async () => {
   // a mesma regra do mensagens-app.js
   const PARTICULAS = /^(d[aeo]s?|e|del|van|von|di)$/i;

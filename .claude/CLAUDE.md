@@ -1962,6 +1962,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Descartar a figurinha?". **Celular sem "Copiar / Selecionar tudo"** em todo o site (`sem-menu-imagem.js`, `pointer:
   coarse`): user-select none fora de campos/`[data-selecionavel]`, contextmenu bloqueado e seleção fora de campo desfeita.
   Testes `t-figurinhas-pro.mjs` (25), `t-emojis-figurinhas`, `t-mensagens-whats`, `t-registro-chamadas` atualizados.
+- **Selo no lugar do @, Negócios, visto e mensagens no aparelho (09/11/2026, PR depois do #178, sem regra nova):** prints
+  dele. Lista: o @ saiu, entra o selo de verificado (`perfis_publicos.verificado` → `c.verificado`, `.selo-v` com `#i-selo`);
+  Negócios sem o anel na foto e sem a faixa do lado: selinho do tipo no canto da foto (`.conv-tipo-ic`, `ICONE_ASSUNTO`,
+  ícone novo `i-saude`) e linha `.conv-meta` "● Freelances · título do contexto · etiquetas" (a pílula da prévia saiu).
+  Topo da conversa em 2 linhas: `strong.quem-nome` (`#topNome` + `#topSelo`, use `toggleAttribute("hidden")` — `.hidden` não
+  funciona em SVG) e `#topSub` (tipo `.assunto-topo` + `#topStatus`). Visto (`vistoPorUltimo` + `statusTopo(el, texto, cls,
+  simbolo)`): olho `i-olho-visto` + "agora" / "há N min" (1–59 min) / "18:16" / "ontem 18:16" / "seg. 18:16" / data; online =
+  bolinha verde; atualiza a cada 30 s. Botões do topo 38 px no celular. **Mensagens guardadas no aparelho** (`cache-msgs.js`,
+  sem deps): IndexedDB `hf-msgs` (por conta|conversa, últimas 200, até 80 conversas, datas `{__ts}`); `ouvirMensagens` (async)
+  desenha a cópia na hora e escuta só `criadoEm > última guardada − 15 min` (editar/apagar só valem até 10 min), juntando com
+  `juntar`; leitura completa (limitToLast 150) 1×/dia (`CHEIO_MS`) e ao "carregar anteriores"; 1ª resposta do servidor sem som;
+  sem conexão mantém as guardadas. Medido: conversa aparece em ~0,1 s com o servidor atrasado 3,5 s. Teste
+  `t-mensagens-cache.mjs` (14); `t-figurinhas-pro` atualizado.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
