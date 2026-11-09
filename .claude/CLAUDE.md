@@ -1810,6 +1810,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   página com o flash guardado e fechar volta ao chat (`history.back` quando veio do site). `abrirFlashPorId(id, {texto,
   aoAbrir, aoFechar, aviso})` abre NA HORA com o flash tocado (ou a lista que o Diário já tem) e os outros entram por trás
   (`completarLista` → `_trocarLista` do visor, que mantém o flash e o tempo da barra). Teste `t-ligacao2.mjs` (35).
+- **Registro de chamadas e cartão da ligação refeitos (09/11/2026, PR depois do #169, sem regra nova):** prints dele.
+  chamadas.js: `descreverChamada({modo, resultado, duracao, saiu})` = um texto só para o cartão do chat, a prévia da
+  conversa e a aba Chamadas (antes o cartão dizia "cancelada" e o registro "Não atendida" para a mesma ligação): quem ligou
+  vê Cancelada / Sem resposta / Não atendida; quem recebeu e não atendeu vê "Chamada de voz perdida" (vermelho); atendida =
+  duração `duracaoTexto` ("2 min 05 s", "1 h 03 min"); "Ligação de voz" virou **"Chamada de voz"** em todo lugar.
+  `textoChamada(c, saiu)`. Cartão (`cartaoChamada`, `.chamada-msg`): neutro dos dois lados (fundo do painel), ícone na cor
+  da situação, "Você ligou · 2 min 05 s" / "Ligou para você" / "Você não atendeu" e botão largo (perdida = "Retornar a
+  chamada" em azul). Aba Chamadas: "Nova chamada" (`abrirNovaChamada`: suas conversas com busca, voz/vídeo), "Limpar",
+  filtros Todas · Perdidas (com número) · Recebidas · Feitas (grade de 4, cabem em 360 px), busca com 7+ ligações,
+  ligações seguidas da mesma pessoa/dia/jeito numa linha "(2)", bolinha vermelha nas perdidas novas, duração pela
+  sinalização (aceitaEm→fimEm), tocar na linha = histórico com a pessoa (`abrirDetalheChamadas`: Mensagem · Voz · Vídeo,
+  N chamadas + tempo total, cada ligação, "Tirar do registro" = `tirados[uid]` no aparelho). `t-registro-chamadas.mjs`
+  refeito (25, fuso de Brasília no Node); `t-ligacao` com os textos novos.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
