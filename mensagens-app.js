@@ -28,10 +28,14 @@ import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPra
 // Configurações (salvas no aparelho)
 // ======================================================
 const CHAVE_CONFIG = "hf-chat-config";
-const CONFIG_PADRAO = { tema: "sistema", fundo: "ponte", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
+// Papel de parede padrão: Pontilhado (09/11/2026, pedido do dono: a Ponte saiu do padrão e virou só uma opção).
+const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
 const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
 let config = { ...CONFIG_PADRAO };
 try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
+// Quem estava com a Ponte só porque era o padrão antigo (nunca escolheu um fundo) passa para o padrão novo; quem escolheu
+// a Ponte de propósito (fundoEscolhido) continua com ela.
+if (config.fundo === "ponte" && !config.fundoEscolhido) config.fundo = CONFIG_PADRAO.fundo;
 
 const temaEscuroSistema = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
 function aplicarConfig() {
@@ -3905,6 +3909,7 @@ document.querySelectorAll("[data-cfg]").forEach((grupo) => {
       if (!temFoto) { $("inputFundoFoto").click(); return; }
     }
     config[grupo.dataset.cfg] = b.dataset.valor;
+    if (grupo.dataset.cfg === "fundo") config.fundoEscolhido = true;
     salvarConfig();
   });
 });
@@ -3913,7 +3918,7 @@ $("btnTrocarFundoFoto").addEventListener("click", () => $("inputFundoFoto").clic
 $("btnRemoverFundoFoto").addEventListener("click", () => {
   try { localStorage.removeItem(CHAVE_FUNDO_FOTO); } catch {}
   document.documentElement.style.removeProperty("--papel");
-  config.fundo = "ponte";
+  config.fundo = CONFIG_PADRAO.fundo;
   salvarConfig();
 });
 $("inputFundoFoto").addEventListener("change", async () => {
