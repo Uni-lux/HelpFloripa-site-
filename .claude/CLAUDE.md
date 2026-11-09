@@ -1869,6 +1869,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   2ª versão (mesmo PR, prints dele: "o play branco ficou estranho"): no SEU balão o play é vidro escuro com ícone branco
   (sem disco branco) e os cartões que você manda (Pix, localização, avaliação, pedido...) ficam neutros com borda ciano
   (`.minha .bolha.cartao-msg:not(...)`), em vez de pintados de ciano pelo balão. mensagens.css v=8.
+  **Deslizar para responder (mesmo PR):** `ligarDeslizarResponder(bolha, msgAtual)` em mensagens-app.js: só toque, para a
+  direita (decide nos primeiros 10 px; mais para o lado que para cima ×1,4), balão com resistência depois de `LIMITE_RESP`
+  58 px, ícone `.desliza-resp` atrás (fica ciano `.pronto` e vibra), soltar depois do ponto chama `responder(m)`; apagada e
+  pendente não deslizam; `.bolha { touch-action: pan-y }`. **Lista de conversas reorganizada:** cabeçalho com título 26 px e
+  botões redondos (Nova conversa em degradê), abas em controle segmentado, busca 44 px, filtros com contorno e número de não
+  lidas da aba (`.pill-n`), conversas em linhas arredondadas sem divisória (não lida com fundo ciano leve), avatar 52 px,
+  títulos `.conv-secao` "Fixadas"/"Conversas" e alfinete (`pin`) no nome da fixada. Teste `t-deslizar-responder.mjs` (12).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

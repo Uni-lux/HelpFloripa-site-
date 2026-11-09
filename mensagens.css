@@ -1038,3 +1038,71 @@ html { -webkit-tap-highlight-color: transparent; }
 .btn-enviar { background: linear-gradient(135deg, #10b6f2, #0087c2); color: #fff; box-shadow: 0 4px 14px rgba(0, 135, 194, .35); }
 .btn-enviar:hover { background: linear-gradient(135deg, #0aa6e0, #0079ae); }
 .btn-enviar.vazio { background: linear-gradient(135deg, #10b6f2, #0087c2); box-shadow: 0 4px 14px rgba(0, 135, 194, .25); }
+/* Deslizar para responder (mensagens-app.js ligarDeslizarResponder): o balão só deixa o navegador rolar
+   para cima/baixo; o ícone aparece atrás, à esquerda, e fica ciano quando já vai responder. */
+.bolha { touch-action: pan-y; }
+.linha-msg.deslizando { overflow: visible; }
+.desliza-resp { position: absolute; left: 2px; top: 50%; z-index: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; opacity: 0; transform: translateY(-50%) scale(.4); color: var(--muted); background: color-mix(in srgb, var(--panel) 85%, transparent); border: 1px solid var(--bubble-borda, var(--line)); pointer-events: none; transition: background-color .15s, color .15s; }
+.desliza-resp svg { width: 18px; height: 18px; }
+.desliza-resp.pronto { color: #fff; background: linear-gradient(135deg, #22c7ff, #0087c2); border-color: transparent; box-shadow: 0 0 14px rgba(0, 173, 238, .5); }
+.linha-msg.minha .desliza-resp { left: 2px; }
+
+/* =====================================================================================================
+   Lista de conversas reorganizada (09/11/2026, pedido do dono: "profissional, organizada e limpa").
+   Cabeçalho com título forte e botões redondos (Nova conversa em destaque), abas Pessoal/Negócios/Chamadas
+   em controle segmentado, busca arredondada, filtros com contorno e número de não lidas, conversas em
+   linhas arredondadas sem divisórias (não lida com fundo levemente ciano) e títulos Fixadas/Conversas.
+   ===================================================================================================== */
+.side-top { gap: 4px; padding: 14px 12px 10px 10px; padding-top: max(14px, env(safe-area-inset-top)); }
+.side-top h1 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; line-height: 1.05; margin-left: 6px; }
+.side-top h1 span { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; margin-bottom: 3px; }
+.side-top .icon-btn { width: 40px; height: 40px; border-radius: 50%; color: var(--muted); transition: background-color .15s, color .15s, transform .12s; }
+.side-top .icon-btn:active { transform: scale(.92); }
+.side-top .icon-btn svg { width: 21px; height: 21px; }
+.side-top > a.icon-btn:first-child { background: var(--panel-2); color: var(--text); }
+#btnNovaConversa { margin-left: 4px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 6px 16px -6px rgba(0, 173, 238, .7); }
+#btnNovaConversa:hover { background: linear-gradient(140deg, #14b8f0, #0079ae); color: #fff; }
+
+.modos { margin: 4px 12px 12px; padding: 4px; gap: 2px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
+.modos button { height: 40px; border-radius: 12px; font-size: 13.5px; font-weight: 700; transition: background-color .18s, color .18s, box-shadow .18s; }
+.modos button[aria-selected="true"] { background: var(--panel); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 2px 10px rgba(0, 0, 0, .22); }
+.modos button[aria-selected="true"] svg { color: var(--accent); }
+.modos button[data-modo="negocios"][aria-selected="true"] { color: var(--text); }
+.modos button[data-modo="chamadas"][aria-selected="true"] { color: var(--text); }
+.modos button[data-modo="chamadas"][aria-selected="true"] svg { color: #2fbf71; }
+
+.search { margin: 0 12px 10px; }
+.search svg { left: 14px; width: 18px; height: 18px; }
+.search input { height: 44px; border-radius: 14px; padding-left: 42px; background: var(--panel-2); border: 1px solid transparent; font-size: 15px; transition: border-color .15s, box-shadow .15s; }
+.search input:focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
+
+.pills { gap: 6px; padding: 0 12px 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; transition: background-color .15s, color .15s, border-color .15s; }
+.pill:hover { color: var(--text); }
+.pill.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+.pill-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: grid; place-items: center; font-size: 10.5px; font-weight: 800; line-height: 1; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); }
+.pill-n[hidden] { display: none; }
+
+.conv-list { padding: 2px 0 8px; }
+.conv-secao { padding: 10px 22px 4px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.conv-item { width: calc(100% - 16px); margin: 1px 8px; padding: 10px 10px; gap: 13px; border-radius: 16px; transition: background-color .15s; }
+.conv-item:hover { background: var(--hover); }
+.conv-item:active { background: var(--active); }
+.conv-item.ativa { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.conv-item .avatar { width: 52px; height: 52px; font-size: 17px; box-shadow: 0 0 0 1px var(--bubble-borda, var(--line)); }
+.conv-main { border-bottom: 0; padding: 0; margin: 0; }
+.conv-nome { font-size: 15.5px; font-weight: 650; }
+.conv-hora { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.conv-previa { margin-top: 4px; font-size: 13.5px; gap: 5px; }
+.conv-previa .check svg { width: 15px; height: 15px; }
+.conv-item.nao-lida { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.conv-item.nao-lida:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.conv-item.nao-lida .conv-nome { font-weight: 800; }
+.conv-item.nao-lida .conv-previa { color: var(--text); font-weight: 600; }
+.conv-item.nao-lida .conv-hora { color: var(--accent); }
+.conv-badge { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: 0 3px 10px -3px rgba(0, 173, 238, .7); }
+.conv-item.com-assunto::before { left: 0; top: 16px; bottom: 16px; }
+.faixa-suporte { margin: 0 12px 8px; border-radius: 18px; }
+.lista-vazia { padding: 48px 28px; }
+.btn-primario { border-radius: 12px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: 0 6px 16px -6px rgba(0, 173, 238, .7); }
+body.selecionando .conv-secao { display: none; }

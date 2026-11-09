@@ -1311,6 +1311,14 @@ function renderizarLista() {
   $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
   $("pillArquivadas").hidden = !conversas.some((c) => conversaArquivada(c) && !conversaOculta(c)) && filtro !== "arquivadas";
   pintarPillsAssunto();
+  // Número de não lidas na pílula (da aba atual)
+  const pNl = document.querySelector('.pill[data-filtro="naoLidas"]');
+  if (pNl) {
+    const n = conversas.filter((c) => c.naoLida && !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId) && modoDe(c) === modo).length;
+    let q = pNl.querySelector(".pill-n");
+    if (!q) { q = document.createElement("b"); q.className = "pill-n"; pNl.appendChild(q); }
+    q.textContent = n > 99 ? "99+" : String(n); q.hidden = !n;
+  }
   lista.replaceChildren();
 
   if (!itens.length) {
@@ -1345,7 +1353,12 @@ function renderizarLista() {
     return;
   }
 
-  itens.forEach((c) => {
+  // Com conversa fixada: títulos "Fixadas" e "Conversas" separando os dois grupos.
+  const temFixada = filtro !== "arquivadas" && itens.some(fixada);
+  const secao = (txt) => { const h = document.createElement("div"); h.className = "conv-secao"; h.textContent = txt; lista.appendChild(h); };
+  itens.forEach((c, i) => {
+    if (temFixada && i === 0) secao("Fixadas");
+    if (temFixada && !fixada(c) && fixada(itens[i - 1] || c)) secao("Conversas");
     const item = document.createElement("button");
     item.type = "button";
     item.className = "conv-item" + (c.naoLida ? " nao-lida" : "") + (ativa?.id === c.id ? " ativa" : "");
@@ -1371,7 +1384,7 @@ function renderizarLista() {
     const nome = document.createElement("div");
     nome.className = "conv-nome";
     nome.textContent = c.nome;
-    if (fixada(c)) { const f = icone("seta-cima", "i xs"); f.setAttribute("aria-label", "Fixada"); f.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px"; nome.appendChild(f); }
+    if (fixada(c)) { const f = icone("pin", "i xs"); f.setAttribute("aria-label", "Fixada"); f.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px"; nome.appendChild(f); }
     if (silenciada(c)) { const m = icone("relogio", "i xs"); m.setAttribute("aria-label", "Silenciada"); m.style.cssText = "margin-left:4px;opacity:.6;vertical-align:-2px"; nome.appendChild(m); }
     const quando = document.createElement("div");
     quando.className = "conv-hora";
@@ -2188,6 +2201,58 @@ function ligarMenuBolha(bolha, m) {
     }, 480);
   }, { passive: true });
   ["touchend", "touchmove", "touchcancel"].forEach((ev) => bolha.addEventListener(ev, () => clearTimeout(timerToque), { passive: true }));
+  ligarDeslizarResponder(bolha, msgAtual);
+}
+
+// Deslizar o balão para a direita responde a mensagem (como no WhatsApp). O balão acompanha o dedo com
+// resistência, o ícone de responder aparece atrás e cresce; passou de LIMITE_RESP vibra uma vez e, ao soltar,
+// abre a resposta. Só no toque; o gesto só "pega" se o dedo andar mais para o lado do que para cima/baixo
+// (rolar a conversa continua igual). Balão com touch-action: pan-y para o navegador não roubar o gesto.
+const LIMITE_RESP = 58;
+function ligarDeslizarResponder(bolha, msgAtual) {
+  const linha = () => bolha.closest(".linha-msg");
+  let x0 = 0, y0 = 0, dx = 0, estado = "", passou = false, ic = null;
+  const soltar = (responde) => {
+    if (estado === "lado") {
+      bolha.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)";
+      bolha.style.transform = "";
+      if (ic) { ic.style.transition = "opacity .18s, transform .18s"; ic.style.opacity = "0"; ic.style.transform = "translateY(-50%) scale(.4)"; }
+      const i = ic; setTimeout(() => { i?.remove(); bolha.style.transition = ""; }, 240);
+      linha()?.classList.remove("deslizando");
+      if (responde && passou) { const m = msgAtual(); if (m && !m.apagada) responder(m); }
+    }
+    estado = ""; ic = null; passou = false; dx = 0;
+  };
+  bolha.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || bolha.classList.contains("apagada") || msgAtual()?.pendente) { estado = "nao"; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; estado = "?"; dx = 0; passou = false;
+  }, { passive: true });
+  bolha.addEventListener("touchmove", (e) => {
+    if (!estado || estado === "nao" || estado === "vertical") return;
+    const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+    if (estado === "?") {
+      if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+      if (mx > 0 && Math.abs(mx) > Math.abs(my) * 1.4) {
+        estado = "lado";
+        ic = document.createElement("span");
+        ic.className = "desliza-resp"; ic.setAttribute("aria-hidden", "true");
+        ic.appendChild(icone("responder"));
+        linha()?.classList.add("deslizando");
+        linha()?.prepend(ic);
+        bolha.style.transition = "";
+      } else { estado = "vertical"; return; }
+    }
+    // resistência: anda igual ao dedo até o limite e depois cada vez menos (máximo ~96 px)
+    const d = Math.max(0, mx);
+    dx = d <= LIMITE_RESP ? d : LIMITE_RESP + Math.min(38, (d - LIMITE_RESP) * 0.35);
+    bolha.style.transform = `translateX(${dx}px)`;
+    const f = Math.min(1, dx / LIMITE_RESP);
+    if (ic) { ic.style.opacity = String(f); ic.style.transform = `translateY(-50%) scale(${0.4 + f * 0.6})`; ic.classList.toggle("pronto", f >= 1); }
+    if (f >= 1 && !passou) { passou = true; if (navigator.vibrate && navigator.userActivation?.hasBeenActive !== false) navigator.vibrate(12); }
+    else if (f < 1 && passou) passou = false;
+  }, { passive: true });
+  bolha.addEventListener("touchend", () => soltar(true), { passive: true });
+  bolha.addEventListener("touchcancel", () => soltar(false), { passive: true });
 }
 
 function irParaMensagem(id) {
