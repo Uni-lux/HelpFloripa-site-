@@ -947,86 +947,65 @@ html.embutido .side-top > a.icon-btn:first-child, html.embutido #barraRede { dis
 html { -webkit-tap-highlight-color: transparent; }
 
 /* =====================================================================================================
-   Balões "vidro e neon" (09/11/2026, pedido do dono: "bem profissional e futurista").
-   - Seus balões: degradê ciano da marca com brilho de vidro na borda de cima e um halo azul suave.
-   - Da outra pessoa: vidro escuro (painel #111 da marca) com borda luminosa fina; no claro, branco com borda.
-   - Cantos de 20 px; "rabinho" (canto de 6 px) só na 1ª mensagem do grupo; hora e confirmação dentro.
-   - Áudio: botão com anel de progresso (audio-ondas.js) e ondas que acendem com brilho.
+   Balões no padrão dos mensageiros (09/11/2026, 3ª versão; o dono não gostou do ciano forte nem do brilho):
+   - Seus balões: azul profundo da marca (escuro) ou azul claro (claro), sem halo; da outra pessoa: grafite / branco.
+   - Cantos de 18 px; "rabinho" (6 px) só na 1ª mensagem do grupo; hora e confirmação dentro.
+   - Áudio no modelo do WhatsApp (audio-ondas.js, opção `foto`): foto com microfone, play sem disco, ondas com ponto.
    Os cartões (pedido, flash, ligação, publicação, Pix...) continuam com o fundo próprio deles.
    ===================================================================================================== */
 :root[data-theme="dark"] {
-  --bubble-me: linear-gradient(140deg, #22c7ff 0%, #04a3e6 42%, #0078b8 100%);
+  --bubble-me: linear-gradient(170deg, #0b7cb3 0%, #096896 100%);
   --bubble-me-text: #ffffff;
-  --bubble-other: linear-gradient(160deg, #18212a 0%, #10171d 100%);
-  --bubble-other-text: #eef4f8;
-  --bubble-borda: rgba(120, 210, 255, .11);
-  --bubble-brilho: rgba(255, 255, 255, .06);
-  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 22px -12px rgba(0, 0, 0, .7);
+  --bubble-other: #1b252c;
+  --bubble-other-text: #e9eff3;
+  --bubble-borda: transparent;
+  --bubble-brilho: rgba(255, 255, 255, .03);
+  --shadow: 0 1px 1.5px rgba(0, 0, 0, .35);
 }
 :root[data-theme="light"] {
-  --bubble-me: linear-gradient(140deg, #26c8ff 0%, #06a4e6 42%, #007cbd 100%);
-  --bubble-me-text: #ffffff;
-  --bubble-other: linear-gradient(160deg, #ffffff 0%, #f6fafc 100%);
+  --bubble-me: #d2effc;
+  --bubble-me-text: #0b2533;
+  --bubble-other: #ffffff;
   --bubble-other-text: #0f1b22;
-  --bubble-borda: rgba(0, 120, 180, .13);
-  --bubble-brilho: rgba(255, 255, 255, .9);
-  --shadow: 0 1px 2px rgba(15, 27, 34, .08), 0 8px 20px -12px rgba(0, 70, 110, .28);
+  --bubble-borda: transparent;
+  --bubble-brilho: transparent;
+  --shadow: 0 1px 1.5px rgba(15, 27, 34, .14);
 }
-.bolha {
-  border-radius: 20px; padding: 8px 12px 7px 13px; border: 1px solid var(--bubble-borda);
-  box-shadow: inset 0 1px 0 var(--bubble-brilho), var(--shadow);
-  letter-spacing: .005em;
-}
-.minha .bolha {
-  border-color: rgba(255, 255, 255, .14);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), inset 0 -1px 0 rgba(0, 40, 70, .18),
-    0 2px 4px rgba(0, 50, 80, .25), 0 10px 24px -10px rgba(0, 173, 238, .65);
-}
+.bolha { border-radius: 18px; padding: 7px 11px 7px 12px; border: 0; box-shadow: var(--shadow); }
+.minha .bolha { box-shadow: var(--shadow); }
 .primeira.outra .bolha { border-top-left-radius: 6px; }
 .primeira.minha .bolha { border-top-right-radius: 6px; }
-.linha-msg { margin-top: 3px; }
-.linha-msg.primeira { margin-top: 12px; }
-/* hora e confirmação: letra pequena com números alinhados; no seu balão, tudo branco */
-.bolha .meta { font-size: 10.5px; font-weight: 600; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
-.minha .bolha .meta { opacity: .88; }
-.minha .bolha .meta .check { opacity: .6; }
-.minha .bolha .meta .check.lida { color: #ffffff; opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 255, 255, .7)); }
-.outra .bolha .meta .check.lida { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--read) 60%, transparent)); }
-.minha .bolha .texto a { color: #fff; }
-/* citação dentro do balão: cartão de vidro */
-.bolha .citacao { border-radius: 12px; border-left-width: 3px; }
-.minha .bolha .citacao { background: rgba(0, 25, 45, .24); border-left-color: #ffffff; }
-.minha .bolha .citacao strong { color: #ffffff; }
-/* fotos e vídeos acompanham os cantos novos */
+.linha-msg { margin-top: 2px; }
+.linha-msg.primeira { margin-top: 10px; }
+.bolha .meta { font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.minha .bolha .meta { opacity: .78; }
+:root[data-theme="dark"] .minha .bolha .meta .check { opacity: .7; }
+:root[data-theme="dark"] .minha .bolha .meta .check.lida { color: #7fe0ff; opacity: 1; }
+:root[data-theme="dark"] .minha .bolha .texto a { color: #fff; }
+/* citação dentro do balão */
+.bolha .citacao { border-radius: 10px; border-left-width: 4px; }
+:root[data-theme="dark"] .minha .bolha .citacao { background: rgba(0, 20, 35, .28); border-left-color: #7fe0ff; }
+:root[data-theme="dark"] .minha .bolha .citacao strong { color: #bff0ff; }
+/* fotos e vídeos acompanham os cantos */
 .bolha.midia { padding: 4px; }
-.bolha img.foto, .bolha video { border-radius: 16px; }
-/* Áudio. Seu balão: botão de vidro escuro com ícone branco (o disco branco ficava estranho, pedido do dono),
-   anel e ondas brancas. Da outra pessoa: botão ciano com brilho. */
-.bolha { --hf-audio-cor: #12b9f5; }
-.minha .bolha { --hf-audio-cor: #ffffff; }
-.minha .bolha .hf-audio-play {
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .22), rgba(0, 40, 70, .38) 70%);
-  color: #ffffff; border: 1px solid rgba(255, 255, 255, .38);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 12px -4px rgba(0, 30, 55, .55);
-  backdrop-filter: blur(6px);
-}
-.minha .bolha .hf-audio.tocando .hf-audio-play { animation: none; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .3), rgba(0, 40, 70, .3) 70%); }
-.minha .bolha .hf-audio-onda i { background: rgba(255, 255, 255, .36); }
-.minha .bolha .hf-audio-onda i.on { background: #ffffff; box-shadow: 0 0 6px rgba(255, 255, 255, .7); }
-.minha .bolha .hf-audio-vel { background: rgba(0, 40, 70, .22); border-color: rgba(255, 255, 255, .3); }
+.bolha img.foto, .bolha video { border-radius: 14px; }
+/* Áudio: cores do play, das ondas e do ponto em cada balão */
+.bolha { --hf-audio-cor: #00adee; --hf-audio-play: color-mix(in srgb, currentColor 70%, transparent); }
+:root[data-theme="dark"] .minha .bolha { --hf-audio-cor: #ffffff; --hf-audio-play: #ffffff; --hf-audio-mic: #7fe0ff; }
+:root[data-theme="light"] .minha .bolha { --hf-audio-cor: #0087c2; --hf-audio-play: #2c4655; }
+.bolha.so-audio { padding: 6px 10px 6px 8px; }
+.bolha.so-audio .meta { right: 11px; bottom: 6px; }
 /* Cartões que VOCÊ mandou (Pix, localização, avaliação, pedido...): cartão neutro com a borda na cor da marca,
    em vez de ficarem pintados de ciano pelo balão. */
 .minha .bolha.cartao-msg:not(.chamada-msg, .pub-msg, .flash-msg, .caixa-msg) {
   background: var(--bubble-other); color: var(--bubble-other-text);
-  border: 1px solid color-mix(in srgb, #00adee 38%, transparent);
-  box-shadow: inset 0 1px 0 var(--bubble-brilho), 0 8px 22px -12px rgba(0, 173, 238, .45);
+  border: 1px solid color-mix(in srgb, #00adee 30%, transparent);
+  box-shadow: var(--shadow);
 }
 .minha .bolha.cartao-msg .meta { opacity: .72; }
 .minha .bolha.cartao-msg .meta .check { opacity: .8; }
 .minha .bolha.cartao-msg .meta .check.lida { color: var(--read); filter: none; }
 .minha .bolha.cartao-msg .texto a { color: var(--accent); }
-.bolha.so-audio { padding: 8px 12px 7px 8px; }
-.bolha.so-audio .meta { right: 12px; bottom: 8px; }
 /* separador do dia e aviso flutuante no mesmo estilo */
 .dia, .dia-flutuante { border-radius: 999px; padding: 5px 14px; border: 1px solid var(--bubble-borda); background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); }
 /* topo da conversa: foto com anel fino na cor da marca e status mais legível */
@@ -1035,9 +1014,10 @@ html { -webkit-tap-highlight-color: transparent; }
 .quem-txt small { font-size: 12.5px; }
 .quem-txt small.online { color: #2fbf71; font-weight: 600; }
 /* campo de mensagem e botão de enviar */
-.btn-enviar { background: linear-gradient(135deg, #10b6f2, #0087c2); color: #fff; box-shadow: 0 4px 14px rgba(0, 135, 194, .35); }
-.btn-enviar:hover { background: linear-gradient(135deg, #0aa6e0, #0079ae); }
-.btn-enviar.vazio { background: linear-gradient(135deg, #10b6f2, #0087c2); box-shadow: 0 4px 14px rgba(0, 135, 194, .25); }
+.btn-enviar { background: #0a8fd0; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.btn-enviar:hover { background: #0a7fba; }
+.btn-enviar.vazio { background: #0a8fd0; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+.btn-enviar svg#iconeEnviar { width: 21px; height: 21px; margin-left: 3px; } /* avião de papel */
 /* Deslizar para responder (mensagens-app.js ligarDeslizarResponder): o balão só deixa o navegador rolar
    para cima/baixo; o ícone aparece atrás, à esquerda, e fica ciano quando já vai responder. */
 .bolha { touch-action: pan-y; }
@@ -1059,9 +1039,6 @@ html { -webkit-tap-highlight-color: transparent; }
 .side-top .icon-btn { width: 40px; height: 40px; border-radius: 50%; color: var(--muted); transition: background-color .15s, color .15s, transform .12s; }
 .side-top .icon-btn:active { transform: scale(.92); }
 .side-top .icon-btn svg { width: 21px; height: 21px; }
-.side-top > a.icon-btn:first-child { background: var(--panel-2); color: var(--text); }
-#btnNovaConversa { margin-left: 4px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 6px 16px -6px rgba(0, 173, 238, .7); }
-#btnNovaConversa:hover { background: linear-gradient(140deg, #14b8f0, #0079ae); color: #fff; }
 
 .modos { margin: 4px 12px 12px; padding: 4px; gap: 2px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
 .modos button { height: 40px; border-radius: 12px; font-size: 13.5px; font-weight: 700; transition: background-color .18s, color .18s, box-shadow .18s; }
@@ -1106,3 +1083,45 @@ html { -webkit-tap-highlight-color: transparent; }
 .lista-vazia { padding: 48px 28px; }
 .btn-primario { border-radius: 12px; color: #fff; background: linear-gradient(140deg, #22c7ff, #0087c2); box-shadow: 0 6px 16px -6px rgba(0, 173, 238, .7); }
 body.selecionando .conv-secao { display: none; }
+
+/* =====================================================================================================
+   09/11/2026 (prints do dono): topo só com Suporte e Configurações, botão "+" flutuante como o WhatsApp,
+   seleção de várias conversas ao segurar (caixinha na foto), prévias com ícone e nada de selecionar texto ao segurar.
+   ===================================================================================================== */
+/* Segurar não seleciona texto nem abre "Copiar / Selecionar tudo" (campos de digitar continuam normais). */
+.app, .menu, .bolha, .conv-item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.app input, .app textarea, .app [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+.side-top h1 { margin-left: 4px; }
+/* "+" flutuante, acima da barra de baixo */
+.fab-nova { position: absolute; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 6; width: 56px; height: 56px; border: 0; border-radius: 18px;
+  display: grid; place-items: center; cursor: pointer; color: #fff; background: #0a8fd0; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); transition: transform .12s, background-color .15s; }
+.fab-nova:hover { background: #0a7fba; }
+.fab-nova:active { transform: scale(.94); }
+.fab-nova svg { width: 26px; height: 26px; }
+html.embutido .fab-nova { bottom: 18px; }
+body.selecionando .fab-nova { display: none; }
+.conv-list { padding-bottom: 84px; }
+/* Seleção: barra no lugar do topo; caixinha com ✓ na foto da conversa marcada */
+.barra-selecao { margin: 8px 8px 10px; padding: 6px 4px; gap: 2px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
+.barra-selecao strong { flex: 1; font-size: 19px; font-weight: 800; padding-left: 6px; }
+.barra-selecao .icon-btn { width: 42px; height: 42px; border-radius: 50%; }
+.barra-selecao .icon-btn.on { color: var(--accent); }
+.conv-item { position: relative; }
+.conv-item .sel-marca { position: absolute; left: 46px; top: 46px; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--panel); background: var(--muted); }
+body.selecionando .conv-item .sel-marca { display: none; }
+body.selecionando .conv-item.marcada .sel-marca { display: grid; background: #0a8fd0; }
+.conv-item.marcada .sel-marca svg { opacity: 1; width: 13px; height: 13px; }
+.conv-item.marcada { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+/* prévias com ícone */
+.conv-previa .pv-ic { flex: none; width: 16px; height: 16px; color: var(--muted); }
+.conv-previa .pv-perdida, .conv-previa .pv-ic.pv-perdida { color: var(--danger); }
+.conv-previa .pv-apagada { font-style: italic; }
+.conv-previa .pv-nova { font-style: italic; opacity: .85; }
+.conv-item.nao-lida .conv-previa .pv-ic { color: var(--text); }
+/* Seu áudio tem a foto à direita: a hora fica antes dela */
+.bolha.so-audio:has(.hf-audio.foto-dir) .meta { right: 68px; }
+.bolha.so-audio:has(.hf-audio.foto-dir) .hf-audio-rodape { padding-right: 52px; }
+.bolha.so-audio:has(.hf-audio.wa) { padding: 6px 8px 6px 8px; }
+/* Filtros das Chamadas: os 4 cabem em 360 px com o estilo novo das pílulas */
+.rc-filtros { gap: 4px; }
+.rc-filtros .pill { padding: 0 4px; font-size: 12.5px; gap: 4px; }

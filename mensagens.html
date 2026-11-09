@@ -43,7 +43,7 @@
       var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
       var r = document.documentElement;
       r.dataset.theme = escuro ? "dark" : "light";
-      r.dataset.fundo = c.fundo || "ponte";
+      r.dataset.fundo = !c.fundo || c.fundo === "ponte" ? "padrao" : c.fundo;
       r.dataset.fonte = c.fonte || "media";
       r.style.setProperty("--veu", String(c.veu != null ? c.veu : 0.55));
       if (c.fundo === "foto") {
@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=10" />
+  <link rel="stylesheet" href="mensagens.css?v=13" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -78,7 +78,7 @@
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/></symbol>
-    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 19.5V5M5.5 11.2L12 4.7l6.5 6.5" stroke-width="2.4"/></symbol>
+    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a1 1 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" style="fill:currentColor;stroke:none"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 016.5 6h1.8l1.5-2h4.4l1.5 2h1.8A2.5 2.5 0 0120 8.5v9a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>
     <symbol id="i-telefone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2"/></symbol>
     <symbol id="i-videochamada" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10.5l5-3v9l-5-3"/></symbol>
@@ -131,20 +131,19 @@
     <!-- ================= LISTA DE CONVERSAS ================= -->
     <aside class="sidebar" aria-label="Conversas">
       <div class="side-top">
-        <a href="index.html" class="icon-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
         <h1><span>Help Floripa</span>Mensagens</h1>
-        <button type="button" class="icon-btn" id="btnSelecionar" aria-label="Selecionar conversas" title="Selecionar conversas"><svg class="i"><use href="#i-selecionar"/></svg></button>
         <button type="button" class="icon-btn" id="btnSuporte" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg><b class="badge-suporte" id="badgeSuporte" hidden></b></button>
-        <button type="button" class="icon-btn" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
       <!-- Seleção de várias conversas (arquivar ou apagar de uma vez) -->
       <div class="barra-selecao" id="barraSelecao" hidden>
-        <button type="button" class="icon-btn" id="selSair" aria-label="Cancelar seleção" title="Cancelar"><svg class="i"><use href="#i-fechar"/></svg></button>
-        <strong id="selConta">0 selecionadas</strong>
-        <button type="button" class="sel-todas" id="selTodas">Todas</button>
+        <button type="button" class="icon-btn" id="selSair" aria-label="Cancelar seleção" title="Cancelar"><svg class="i"><use href="#i-voltar"/></svg></button>
+        <strong id="selConta">1</strong>
+        <button type="button" class="icon-btn" id="selFixar" aria-label="Fixar" title="Fixar"><svg class="i"><use href="#i-pin"/></svg></button>
+        <button type="button" class="icon-btn" id="selSilenciar" aria-label="Silenciar" title="Silenciar"><svg class="i"><use href="#i-relogio"/></svg></button>
         <button type="button" class="icon-btn" id="selArquivar" aria-label="Arquivar selecionadas" title="Arquivar"><svg class="i"><use href="#i-arquivo"/></svg></button>
         <button type="button" class="icon-btn perigo" id="selApagar" aria-label="Apagar selecionadas" title="Apagar"><svg class="i"><use href="#i-lixo"/></svg></button>
+        <button type="button" class="icon-btn" id="selMais" aria-label="Mais opções" title="Mais"><svg class="i"><use href="#i-mais"/></svg></button>
       </div>
       <div class="modos" role="tablist" aria-label="Tipo de conversa">
         <button type="button" role="tab" data-modo="pessoal" aria-selected="true"><svg class="i"><use href="#i-perfil"/></svg>Pessoal<b class="modo-n" hidden></b></button>
@@ -169,6 +168,7 @@
         <b class="fs-n" id="fsQtd"></b>
       </button>
       <div class="conv-list" id="listaConversas"></div>
+      <button type="button" class="fab-nova" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
       <!-- Barra da rede (a mesma do Diário e do Perfil) -->
       <nav class="barra-rede" id="barraRede" aria-label="Rede social">
         <a href="feed.html"><svg class="i"><use href="#i-feed"/></svg><span>Diário</span></a>
@@ -303,7 +303,7 @@
         </div>
         <div class="cfg-linha"><div class="txt">Papel de parede</div></div>
         <div class="fundos" data-cfg="fundo">
-          <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Pontilhado</span></button><button type="button" class="fundo-op" data-valor="ponte" style="background:url(ponte-help.webp) center/cover"><span>Ponte</span></button>
+          <button type="button" class="fundo-op" data-valor="padrao" style="background:radial-gradient(#8aa 1px,transparent 1.3px) 0 0/8px 8px,#9fb2bd"><span>Pontilhado</span></button>
           <button type="button" class="fundo-op foto" data-valor="foto" id="opFundoFoto"><svg class="i s"><use href="#i-camera"/></svg><span>Sua foto</span></button>
           
           <button type="button" class="fundo-op" data-valor="liso" style="background:#8fa1ab"><span>Liso</span></button>
@@ -495,6 +495,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=22"></script>
+  <script type="module" src="mensagens-app.js?v=23"></script>
 </body>
 </html>
