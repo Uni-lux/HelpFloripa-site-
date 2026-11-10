@@ -21,7 +21,12 @@
     @font-face { font-family: "HF Marca"; src: url("fonte-marca.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
     /* cópia do topo (rede-app.js): links herdam a cor do topo, não o azul padrão de link */
     body > header a { color: inherit; text-decoration: none; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; overscroll-behavior: none; }
+    /* faixa do slogan na cópia do topo (os ::before/::after não vão no estilo copiado) */
+    body > header .marca small::before { content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(-18deg); border-radius: 2px;
+      background: linear-gradient(180deg, #0d1a22, #04080b); border: 1px solid #00adee; box-shadow: 0 0 6px rgba(0, 173, 238, .45); }
+    body > header .marca small::after { content: ""; position: absolute; z-index: -2; top: 50%; left: -16px; right: -16px; height: 1px;
+      background: linear-gradient(90deg, transparent, #00adee 18%, transparent 30%, transparent 70%, #00adee 82%, transparent); opacity: .8; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #070b0e; overscroll-behavior: none; }
     @media (prefers-color-scheme: light) { html, body { background: #f4f6f8; } }
     /* atrás do cubo (troca de aba deslizando) */
     body.girando { background: #000; }

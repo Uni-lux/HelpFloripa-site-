@@ -1490,8 +1490,3 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 #painelNova .online-agora { margin: 10px -4px 0; }
 .oa-pessoa.contato .oa-nome { color: var(--text); font-weight: 700; }
 
-/* Mensagens em preto como as outras abas da rede (10/11/2026, pedido dele, só no tema escuro). */
-:root[data-theme="dark"] {
-  --bg: #000000; --panel: #000000; --panel-2: #16181c; --line: #26292d;
-}
-:root[data-theme="dark"] .barra-rede { background: rgba(0, 0, 0, .9); border-color: #26292d; }

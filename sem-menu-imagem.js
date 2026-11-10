@@ -6,6 +6,7 @@
 // No celular (toque), segurar um texto também NÃO seleciona nem abre "Copiar / Selecionar tudo" (pedido do dono,
 // 09/11/2026): só campos de texto (e o que tiver data-selecionavel) continuam selecionáveis. Copiar uma mensagem do
 // chat fica no menu da própria mensagem.
+// No celular, as barrinhas de rolagem também ficam escondidas em todas as páginas (pedido do dono, 10/11/2026).
 // Ligado pelo firebase.js, rede.js e categoria.js (uma vez só por página).
 // =====================================================
 const ALVOS = "img, picture, video, canvas, svg, [style*='background-image'], .avatar, .foto, .midia";
@@ -18,6 +19,9 @@ if (!window.__hfSemMenuImagem) {
     @media (pointer: coarse) {
       html, body, body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
       input, textarea, select, [contenteditable='true'], [contenteditable='true'] *, [data-selecionavel], [data-selecionavel] * { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+      /* sem a barrinha de rolagem do lado (que acompanha subindo/descendo), como nos apps (10/11/2026) */
+      html, body, body * { scrollbar-width: none; }
+      html::-webkit-scrollbar, body::-webkit-scrollbar, body *::-webkit-scrollbar { display: none; width: 0; height: 0; }
     }`;
   (document.head || document.documentElement).appendChild(css);
   const naFoto = (e) => { const t = e.target; return t?.closest && !t.closest("input, textarea, [contenteditable='true']") && !!t.closest(ALVOS); };

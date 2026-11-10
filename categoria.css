@@ -295,14 +295,28 @@ body.pg-compacta .classes-painel .classe-link svg { width: 15px; height: 15px; }
 html { -webkit-tap-highlight-color: transparent; }
 
 /* ===================================================================================================
-   Marca no topo (10/11/2026, pedido dele: "como no X, letras agressivas"): Saira Black Itálico (SIL OFL,
-   fonte-marca-OFL.txt), apertada e inclinada para frente; cores de sempre (branco + ciano).
+   Marca no topo (10/11/2026, 2ª versão, pedido dele com a arte "HELP FLORIPA / TUDO EM UM SÓ LUGAR"): letras Saira Black
+   itálico (SIL OFL, fonte-marca-OFL.txt) com efeito metálico — HELP em prata e FLORIPA no ciano da marca (#00ADEE) —,
+   contorno escuro e brilho leve; o slogan numa faixa inclinada escura com filete ciano e "riscos de velocidade" dos lados.
    =================================================================================================== */
 @font-face { font-family: "HF Marca"; src: url("fonte-marca.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
-.marca { line-height: 1; }
+.marca { line-height: 1; display: grid; justify-items: center; align-content: center; gap: 3px; }
 .marca strong { display: inline-block; font-family: "HF Marca", "Arial Black", system-ui, sans-serif; font-style: italic; font-weight: 900; font-size: 24px;
-  letter-spacing: -.04em; line-height: .92; text-transform: uppercase; color: var(--text); }
-.marca strong span { color: var(--accent); margin-left: .06em; }
-.marca small { margin-top: 4px; font-family: "HF Marca", system-ui, sans-serif; font-style: italic; font-weight: 900; font-size: 7.5px;
-  letter-spacing: .42em; margin-right: -.42em; color: var(--muted); }
-@media (max-width: 360px) { .marca strong { font-size: 21px; } }
+  letter-spacing: -.035em; line-height: .95; text-transform: uppercase; padding: 0 .08em;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3f7 38%, #9eabb7 52%, #e3e9ee 70%, #ffffff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .75)) drop-shadow(0 0 6px rgba(0, 173, 238, .28)); }
+.marca strong span { margin-left: .06em;
+  background: linear-gradient(180deg, #b9efff 0%, #3cc8f7 36%, #00adee 52%, #0087c2 66%, #2fc2f5 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.marca small { position: relative; isolation: isolate; display: inline-block; margin: 0; padding: 2px 11px 2px 10px; font-family: "HF Marca", system-ui, sans-serif;
+  font-style: italic; font-weight: 900; font-size: 7.5px; letter-spacing: .3em; line-height: 1.25; color: #ffffff; text-transform: uppercase; }
+.marca small::before { content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(-18deg); border-radius: 2px;
+  background: linear-gradient(180deg, #0d1a22, #04080b); border: 1px solid #00adee; box-shadow: 0 0 6px rgba(0, 173, 238, .45); }
+.marca small::after { content: ""; position: absolute; z-index: -2; top: 50%; left: -16px; right: -16px; height: 1px;
+  background: linear-gradient(90deg, transparent, #00adee 18%, transparent 30%, transparent 70%, #00adee 82%, transparent); opacity: .8; }
+:root[data-theme="light"] .marca strong { background: linear-gradient(180deg, #3b4a57 0%, #1a2631 45%, #0a121a 55%, #2a3846 100%);
+  -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .8)); }
+:root[data-theme="light"] .marca strong span { background: linear-gradient(180deg, #2fc2f5 0%, #00adee 45%, #0087c2 60%, #00a2e0 100%);
+  -webkit-background-clip: text; background-clip: text; }
+@media (max-width: 360px) { .marca strong { font-size: 21px; } .marca small { font-size: 7px; letter-spacing: .24em; } }

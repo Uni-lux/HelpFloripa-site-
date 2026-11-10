@@ -12,7 +12,7 @@ const quadro = (re) => p.frames().find((f) => f.parentFrame() && re.test(f.url()
 const tema = (re) => quadro(re).evaluate(() => document.documentElement.dataset.theme);
 ok(await tema(/mensagens/) === "dark", "Mensagens começa escuro");
 const fundo = await quadro(/feed/).evaluate(() => getComputedStyle(document.body).backgroundColor);
-ok(fundo === "rgb(0, 0, 0)", "abas da rede com fundo preto no escuro: " + fundo);
+ok(fundo === "rgb(7, 11, 14)", "abas da rede com o fundo escuro de sempre (o preto puro foi desfeito): " + fundo);
 await p.evaluate(() => window.__hfShell.ir("comunidade")); await p.waitForTimeout(1200);
 await p.screenshot({ path: "saida/tema-comunidade-escuro.png" });
 // troca o tema pelo menu de outra aba (grava hf-chat-config) — como em Configurações → Tema
