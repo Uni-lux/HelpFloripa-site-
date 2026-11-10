@@ -973,8 +973,6 @@ async function pintarLateral() {
   // O sino (e as marcações em publicações com foto) espera as primeiras publicações aparecerem.
   primeirasPublicacoes.then(() => ouvirAvisos());
   $("btnComporFeed").addEventListener("click", () => compor());
-  // Botão "+" (como no X): fica translúcido enquanto a página rola e volta quando para.
-  { const fab = $("btnComporFeed"); let t = 0; addEventListener("scroll", () => { fab.classList.add("rolando"); clearTimeout(t); t = setTimeout(() => fab.classList.remove("rolando"), 260); }, { passive: true }); }
   // Saiu do app no meio de uma publicação: o Diário avisa e "Continuar" abre o formulário com ela.
   primeirasPublicacoes.then(() => setTimeout(() => avisarPublicacaoGuardada(() => compor()), 600));
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.

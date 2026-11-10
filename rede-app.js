@@ -44,6 +44,9 @@ function visivel(id, sim) {
   try { const w = quadros[id]?.contentWindow; if (!w) return; w.__hfGavetaAberta = sim; w.dispatchEvent(new Event("hf:gaveta")); } catch {}
 }
 
+// rede.html?aba=comunidade&item=ID / &novo=TIPO (links da Comunidade): só na 1ª carga do Mural, que abre a janela.
+let paramsCom = (() => { const q = new URLSearchParams(location.search), r = new URLSearchParams(); ["item", "novo"].forEach((k) => { if (q.get(k)) r.set(k, q.get(k)); }); return r.toString(); })();
+const paramsComunidade = () => { const x = paramsCom; paramsCom = ""; return x ? "?" + x : ""; };
 function quadro(id, aba) {
   if (quadros[id]) return quadros[id];
   const f = document.createElement("iframe");
@@ -52,7 +55,7 @@ function quadro(id, aba) {
   f.title = id === "feed" ? "Diário" : NOMES[Object.keys(QUADRO_DE).find((k) => QUADRO_DE[k] === id)];
   f.setAttribute("allow", "camera; microphone; geolocation; clipboard-read; clipboard-write; fullscreen; autoplay; web-share");
   f.setAttribute("allowfullscreen", "");
-  f.src = PAGINA[id] + (aba === "explorar" ? "?aba=explorar" : "");
+  f.src = PAGINA[id] + (aba === "explorar" ? "?aba=explorar" : "") + (id === "mural" ? paramsComunidade() : "");
   f.addEventListener("load", () => carregou(id));
   quadros[id] = f;
   document.body.appendChild(f);
@@ -392,6 +395,19 @@ addEventListener("popstate", () => {
   if (k !== atual) ir(k, { historico: false });
 });
 
+// Tema da casca: as barras do celular (status e navegação) e o fundo atrás das abas seguem o tema escolhido. A troca é
+// gravada por uma das abas (Configurações, Mensagens, menu) e chega aqui pelo evento storage.
+const escuroAgora = () => { let t = "sistema"; try { t = JSON.parse(localStorage.getItem("hf-chat-config") || "{}").tema || "sistema"; } catch {} return t === "escuro" || (t === "sistema" && matchMedia("(prefers-color-scheme: dark)").matches); };
+function pintarTemaCasca() {
+  const e = escuroAgora(), h = document.documentElement;
+  h.dataset.theme = e ? "dark" : "light"; h.style.colorScheme = e ? "dark" : "light";
+  let m = document.querySelector('meta[name="theme-color"]');
+  if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
+  m.content = e ? "#0f161b" : "#ffffff";
+}
+pintarTemaCasca();
+addEventListener("storage", (e) => { if (e.key === "hf-chat-config") pintarTemaCasca(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", pintarTemaCasca);
 history.replaceState({ ...(history.state || {}), hfAba: primeira }, "", `rede.html?aba=${primeira}`);
 ir(primeira, { historico: false });
 guardarSaida();

@@ -251,6 +251,43 @@ async function trocarLugar() {
   await carregar(); pintarTudo();
 }
 
+// ---------- a Comunidade numa página só (10/11/2026, pedido dele) ----------
+// O anúncio inteiro e o formulário de publicar abrem aqui mesmo, por cima do Mural (comunidade.js exporta as janelas),
+// em vez de trocar para a página comunidade.html. Os links antigos (comunidade.html?item=ID / ?novo=TIPO) continuam nos
+// cartões para "abrir em nova aba" e compartilhar, mas o toque é tratado aqui.
+let com = null;
+const carregarCom = () => (com ||= import("./comunidade.js?v=55").then(async (m) => {
+  await m.prepararEmbutido({ fb, eu, perfil: dados, aoMudar: () => { buscarDeNovo(); carregar().then(pintarTudo).catch(() => {}); } });
+  return m;
+}));
+async function abrirNaComunidade(href) {
+  let u; try { u = new URL(href, location.href); } catch { return false; }
+  const item = u.searchParams.get("item"), novo = u.searchParams.get("novo");
+  if (!item && !novo) return false;
+  try {
+    const m = await carregarCom();
+    if (item) m.abrirItemPorId(item, todos.find((x) => x.id === item)); else m.novoAnuncio(novo);
+    return true;
+  } catch (e) { console.warn("Comunidade:", e); location.href = href; return true; }
+}
+function ligarComunidadeAqui() {
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    const a = e.target.closest?.("a[href*='comunidade.html']"); if (!a) return;
+    const u = new URL(a.href, location.href);
+    if (!/\/comunidade\.html$/.test(u.pathname) || !(u.searchParams.has("item") || u.searchParams.has("novo"))) return;
+    e.preventDefault(); abrirNaComunidade(u.href);
+  }, true);
+  // Chegou com ?item= / ?novo= (link compartilhado, comunidade.html antiga, rede.html?aba=comunidade&item=): abre aqui.
+  const q = new URLSearchParams(location.search);
+  if (q.get("item") || q.get("novo")) {
+    abrirNaComunidade(`comunidade.html?${q.get("item") ? "item=" + encodeURIComponent(q.get("item")) : "novo=" + encodeURIComponent(q.get("novo"))}`);
+    history.replaceState(history.state, "", "mural.html");
+  }
+  // Prepara as janelas por trás, com a tela parada, para o 1º toque abrir na hora.
+  (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => carregarCom().catch(() => {}));
+}
+
 (async function iniciar() {
   pintarTipos();
   try { await iniciarRede(); }
@@ -258,10 +295,9 @@ async function trocarLugar() {
   montarBarraRede("comunidade"); pintarBarraRede(); ouvirAvisos();
   pintarAvatar($("muAvatar"), dados.fotoPerfil, dados.nome);
   pintarLocal();
-  $("muCompor").addEventListener("click", () => { location.href = link(filtro || "doacao"); });
-  { const fab = $("muFab"); let t = 0;
-    fab?.addEventListener("click", () => { location.href = link(filtro || "doacao"); });
-    addEventListener("scroll", () => { fab?.classList.add("rolando"); clearTimeout(t); t = setTimeout(() => fab?.classList.remove("rolando"), 260); }, { passive: true }); }
+  $("muCompor").addEventListener("click", () => abrirNaComunidade(link(filtro || "doacao")));
+  $("btnPublicarMural")?.addEventListener("click", () => abrirNaComunidade(link(filtro || "doacao")));
+  ligarComunidadeAqui();
   $("muMais").addEventListener("click", verMais);
   // Busca: filtra o que já está na tela na hora e, com 3 letras ou mais, procura em todo o Brasil (busca.js).
   $("muBusca").addEventListener("input", () => {
