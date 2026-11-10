@@ -178,6 +178,7 @@ function vistoPorUltimo(d) {
 // pontinhos (digitando) ou o olho (visto). Quando não cabe, desliza devagar; com "reduzir movimento", fica parado.
 function statusTopo(el, texto, cls = "", simbolo = "") {
   el.className = cls;
+  if (!texto) { el.replaceChildren(); el.dataset.texto = ""; el.removeAttribute("title"); return; }
   const chave = simbolo + "|" + texto;
   if (el.dataset.texto === chave && el.firstChild) return;
   el.dataset.texto = chave;
@@ -1572,17 +1573,16 @@ function renderizarLista() {
     }
     main.append(l1, l2);
     const etq = modoDe(c) === "negocios" ? notasClientes.get(c.outroId)?.etiquetas : null;
-    if (assunto !== "pessoal" || etq?.length) {
-      // Linha do negócio: tipo na cor dele · nome do perfil/anúncio · etiquetas do cliente
+    if (assunto !== "pessoal") {
+      // Negócio em 2 linhas (pedido do dono): "Nome ✓ · Delivery" + hora / prévia. O nome do perfil/anúncio fica no title.
+      const t = document.createElement("span"); t.className = "conv-tipo-nm"; t.textContent = ASSUNTOS[assunto].nome;
+      const tit = String(c.dados.contexto?.titulo || "").trim();
+      t.title = tit ? `${ASSUNTOS[assunto].nome} · ${tit}` : ASSUNTOS[assunto].nome;
+      nome.appendChild(t);
+    }
+    if (etq?.length) {
       const meta = document.createElement("div"); meta.className = "conv-meta";
-      if (assunto !== "pessoal") {
-        const t = document.createElement("span"); t.className = "conv-tipo"; t.textContent = ASSUNTOS[assunto].nome; meta.appendChild(t);
-        const tit = String(c.dados.contexto?.titulo || "").trim();
-        if (tit && semAcentoCham(tit) !== semAcentoCham(c.nome) && semAcentoCham(tit) !== semAcentoCham(ASSUNTOS[assunto].nome)) {
-          const x = document.createElement("span"); x.className = "conv-ctx"; x.textContent = tit; meta.appendChild(x);
-        }
-      }
-      (etq || []).slice(0, 2).forEach((t) => { const e = document.createElement("span"); e.className = "conv-etq"; e.textContent = t; meta.appendChild(e); });
+      etq.slice(0, 3).forEach((t) => { const e = document.createElement("span"); e.className = "conv-etq"; e.textContent = t; meta.appendChild(e); });
       main.appendChild(meta);
     }
     const marca = document.createElement("span");
@@ -3862,16 +3862,27 @@ function botaoLigar(tipo, nome, convId, outro, cls = "rc-ligar") {
   bt.addEventListener("click", (e) => { e.stopPropagation(); ligarPara(convId, tipo); });
   return bt;
 }
-async function renderizarChamadas() {
+// Ao trocar para Chamadas a lista de conversas some NA HORA (antes ficava alguns segundos até o servidor responder):
+// com chamadas já lidas, desenha com elas primeiro e depois atualiza; sem elas, mostra o esqueleto.
+let geracaoCham = 0;
+async function renderizarChamadas(ler = true) {
   const lista = $("listaConversas");
-  if (!chamadasLidas) lista.replaceChildren(elm("div", "lista-vazia", "Carregando as chamadas..."));
-  await lerChamadas();
+  const minha = ler ? ++geracaoCham : geracaoCham;
+  if (ler) {
+    if (chamadasLidas) renderizarChamadas(false).catch(() => {});
+    else {
+      const esq = elm("div", "rc-esqueleto"); for (let i = 0; i < 5; i++) { const l = elm("div", "rc-sk"); l.append(elm("i", "sk-av"), elm("i", "sk-l1"), elm("i", "sk-l2")); esq.appendChild(l); }
+      esq.setAttribute("aria-label", "Carregando as chamadas"); lista.replaceChildren(esq);
+    }
+    await lerChamadas();
+    if (minha !== geracaoCham) return;
+  }
   if (modo !== "chamadas") return;
   const visto = lerCfgCham().visto || 0;
   gravarCfgCham({ visto: Date.now() }); pintarModos();
   const todas = chamadasVisiveis();
   const extras = await completarNomes(todas);
-  if (modo !== "chamadas") return;
+  if (modo !== "chamadas" || minha !== geracaoCham) return;
   const quem = (c) => { const p = pessoaDaChamada(c), x = extras.get(p.uid) || {}; return { ...p, nome: p.nome || x.nome || "Usuário", foto: p.foto || x.fotoPerfil || "" }; };
   // Número na pílula Perdidas = só as perdidas NOVAS (desde a última vez que a aba foi aberta), como um aviso: some
   // depois de ver (antes ficava o total de perdidas para sempre).
@@ -5030,7 +5041,12 @@ corpoE.addEventListener("scroll", () => requestAnimationFrame(marcarCatE), { pas
 
 // ---------- figurinhas ----------
 let menuFig = null;
-function fecharMenuFig() { menuFig?.remove(); menuFig = null; }
+function fecharMenuFig() {
+  if (!menuFig) return;
+  const m = menuFig; menuFig = null;
+  document.querySelectorAll(".pe-fig.segurada").forEach((x) => x.classList.remove("segurada"));
+  m.classList.add("saindo"); setTimeout(() => m.remove(), 160);
+}
 // Atalhos de humor (como "Oi", "Haha", "Amor" do WhatsApp): filtram pelo texto das figurinhas.
 const HUMORES = [["👋", "Oi", /\boi\b|ol[aá]|bom dia|boa (noite|tarde)|e a[ií]/], ["😂", "Haha", /k{3,}|haha|rs\b|rindo/], ["❤️", "Amor", /ame[il]|amo|amor|lind/],
   ["🙏", "Valeu", /valeu|obrigad|parab[eé]ns/], ["👍", "Ok", /combinado|fechado|\bok\b|beleza|pix|chegando|volto/], ["😮", "Uau", /s[eé]rio|uau|nossa|hmm/], ["😢", "Triste", /poxa|triste|chor/]];
@@ -5118,23 +5134,41 @@ function tileFig(it) {
   b.appendChild(im);
   if (it.fav) { const f = usar("estrela-c", "fav"); b.appendChild(f); }
   let segurou = false, t = null;
-  b.addEventListener("pointerdown", () => { segurou = false; clearTimeout(t); t = setTimeout(() => { segurou = true; navigator.vibrate?.(12); abrirMenuFig(it); }, 450); });
+  b.addEventListener("pointerdown", () => { segurou = false; clearTimeout(t); t = setTimeout(() => { segurou = true; navigator.vibrate?.(12); abrirMenuFig(it, b); }, 450); });
   ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearTimeout(t)));
-  b.addEventListener("contextmenu", (e) => { e.preventDefault(); if (!segurou) { segurou = true; abrirMenuFig(it); } });
+  b.addEventListener("contextmenu", (e) => { e.preventDefault(); if (!segurou) { segurou = true; abrirMenuFig(it, b); } });
   b.addEventListener("click", () => { if (segurou) { segurou = false; return; } enviarFigurinha(it.url, !it.id || it.pacote); });
   return b;
 }
-async function abrirMenuFig(it) {
+// Segurar uma figurinha (como no WhatsApp): a figurinha fica marcada na grade e abre uma folha por cima do painel com
+// ela grande, de onde ela vem e as opções. Tocar fora (no fundo escurecido), em Fechar ou voltar fecha.
+async function abrirMenuFig(it, tile) {
   fecharMenuFig();
-  const m = elm("div", "pe-menu"); m.setAttribute("role", "menu");
-  const op = (ic, txt, fn, perigo) => { const b = elm("button", perigo ? "perigo" : ""); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(usar(ic, "i"), document.createTextNode(txt)); b.addEventListener("click", async () => { fecharMenuFig(); await fn(); pintarFigurinhas(); }); m.appendChild(b); };
+  document.querySelector(".pe-folha-fundo")?.remove();
+  tile?.classList.add("segurada");
+  const fundo = elm("div", "pe-menu pe-folha-fundo"); fundo.setAttribute("role", "dialog"); fundo.setAttribute("aria-label", "Opções da figurinha");
+  const folha = elm("div", "pe-folha");
+  const fechar = elm("button", "pe-folha-x"); fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar"); fechar.appendChild(usar("fechar", "i"));
+  fechar.addEventListener("click", fecharMenuFig);
+  const prev = elm("div", "pe-folha-fig"); const im = elm("img"); im.src = it.url; im.alt = it.texto ? `Figurinha ${it.texto}` : "Figurinha"; im.dataset.semSuave = "1"; prev.appendChild(im);
+  const origem = it.pacote || !it.id ? "Pacote Help Floripa" : "Suas figurinhas";
+  const leg = elm("div", "pe-folha-leg"); leg.append(elm("b", null, it.texto || "Figurinha"), elm("span", null, " · " + origem));
+  const topo = elm("div", "pe-folha-topo"); topo.append(fechar, prev, leg);
+  const lista = elm("div", "pe-folha-ops"); lista.setAttribute("role", "menu");
+  const op = (ic, txt, fn, perigo) => { const b = elm("button", perigo ? "perigo" : ""); b.type = "button"; b.setAttribute("role", "menuitem"); b.append(usar(ic, "i"), document.createTextNode(txt)); b.addEventListener("click", async () => { fecharMenuFig(); await fn(); pintarFigurinhas(); }); lista.appendChild(b); };
   op("enviar", "Enviar", () => enviarFigurinha(it.url, !it.id || it.pacote));
   const guardado = it.id ? it : await usarFigurinhaSemUso(it.url);
-  op("estrela-c", guardado?.fav ? "Tirar das favoritas" : "Favoritar", async () => { const g = guardado || await guardarFigurinha(eu.uid, it.url, { pacote: true }); await atualizarFigurinha(g.id, { fav: !g.fav }); toast(g.fav ? "Tirada das favoritas" : "Adicionada às favoritas"); });
+  op("estrela-c", guardado?.fav ? "Tirar das favoritas" : "Adicionar às favoritas", async () => { const g = guardado || await guardarFigurinha(eu.uid, it.url, { pacote: true }); await atualizarFigurinha(g.id, { fav: !g.fav }); toast(g.fav ? "Tirada das favoritas" : "Adicionada às favoritas"); });
   op("lapis", "Editar (salva uma nova)", async () => { await editarFigurinha(it.url); });
-  if (it.id && !it.pacote) op("lixo", "Apagar figurinha", async () => { await apagarFigurinha(it.id); toast("Figurinha apagada"); }, true);
-  op("fechar", "Fechar", () => {});
-  painelE.appendChild(m); menuFig = m;
+  if (it.id && !it.pacote) op("lixo", "Remover das suas figurinhas", async () => { await apagarFigurinha(it.id); toast("Figurinha removida"); }, true);
+  folha.append(elm("span", "pe-folha-alca"), topo, lista);
+  fundo.appendChild(folha);
+  // tocar fora da folha (no fundo) fecha
+  fundo.addEventListener("pointerdown", (e) => { if (e.target === fundo) { e.preventDefault(); fecharMenuFig(); } });
+  // folha na tela toda (como no WhatsApp): o fundo escuro cobre a conversa e o painel; tocar em qualquer parte fora fecha
+  fundo.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fecharMenuFig(); } });
+  document.body.appendChild(fundo); menuFig = fundo;
+  requestAnimationFrame(() => fechar.focus({ preventScroll: true }));
 }
 // já está guardada (como recente/favorita)? (não marca uso)
 async function usarFigurinhaSemUso(url) { try { const l = await minhasFigurinhas(eu.uid); return l.find((x) => x.url === url) || null; } catch { return null; } }
