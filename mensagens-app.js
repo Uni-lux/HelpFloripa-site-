@@ -15,7 +15,7 @@ import { relogioDe, ufDe } from "./fuso.js?v=1";
 import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=7";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { docComValidade, docsPorIds } from "./leituras.js?v=4";
+import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -1417,6 +1417,69 @@ function pintarModos() {
 }
 document.querySelectorAll(".modos [data-modo]").forEach((b) => b.addEventListener("click", () => trocarModo(b.dataset.modo)));
 
+// ---------- Online agora (como o chat do antigo Facebook, 10/11/2026) ----------
+// Uma consulta só: perfis_publicos com ultimoAcesso nos últimos 10 min (até 80; presenca.js grava a cada 4 min com a página
+// à vista), relida de 2 em 2 min enquanto a lista aparece. Na lista de conversas entram só os SEUS contatos (as pessoas das
+// suas conversas e quem você segue); em "Nova conversa", todos os online (os contatos primeiro). Quem escondeu o online
+// (ultimoAcesso null, Configurações) não aparece, e quem escondeu o próprio não vê o dos outros (como no WhatsApp).
+const ONLINE_MS = 10 * 60000;
+let onlineTodos = [], onlineEm = 0, onlineLendo = null, seguindoChat = null;
+const onlineSet = () => new Set(onlineTodos.filter((p) => Date.now() - ms(p.ultimoAcesso) < ONLINE_MS).map((p) => p.uid));
+function lerOnline(forcar = false) {
+  if (!eu || config.mostrarOnline === false) { onlineTodos = []; return Promise.resolve(onlineTodos); }
+  if (!forcar && Date.now() - onlineEm < 2 * 60000) return Promise.resolve(onlineTodos);
+  if (onlineLendo) return onlineLendo;
+  seguindoChat ||= docsComValidade(fb, "seguindo-" + eu.uid, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("seguidorId", "==", eu.uid), fb.limit(500)), 15 * 60000)
+    .then((s) => new Set(s.docs.map((d) => d.data().alvoId))).catch(() => new Set());
+  const desde = fb.Timestamp.fromMillis(Date.now() - ONLINE_MS);
+  onlineLendo = Promise.all([
+    fb.getDocs(fb.query(fb.collection(fb.db, "perfis_publicos"), fb.where("ultimoAcesso", ">=", desde), fb.orderBy("ultimoAcesso", "desc"), fb.limit(80))),
+    seguindoChat
+  ]).then(([s, seg]) => {
+    const contatos = new Set([...conversas.map((c) => c.outroId), ...seg]);
+    onlineTodos = s.docs.map((d) => ({ uid: d.id, ...d.data() }))
+      .filter((p) => p.uid !== eu.uid && p.nome && !bloqueado(p.uid) && !restritos.has(p.uid))
+      .map((p) => ({ ...p, contato: contatos.has(p.uid), conv: conversas.find((c) => c.outroId === p.uid && !conversaOculta(c)) }))
+      .sort((a, b) => (b.conv ? 1 : 0) - (a.conv ? 1 : 0) || (b.contato ? 1 : 0) - (a.contato ? 1 : 0) || ms(b.conv?.dados.atualizadoEm) - ms(a.conv?.dados.atualizadoEm) || ms(b.ultimoAcesso) - ms(a.ultimoAcesso));
+    onlineEm = Date.now();
+    return onlineTodos;
+  }).catch((e) => { console.warn("Online agora:", e); return onlineTodos; }).finally(() => { onlineLendo = null; });
+  return onlineLendo;
+}
+function pintarOnline() {
+  const box = $("onlineAgora"); if (!box) return;
+  const termo = $("buscaPessoas").value.trim();
+  const vivos = onlineSet();
+  const lista = onlineTodos.filter((p) => vivos.has(p.uid));
+  box.hidden = !lista.length || !!termo || config.mostrarOnline === false;
+  if (box.hidden) return;
+  const topo = document.createElement("div"); topo.className = "oa-topo";
+  const t = document.createElement("strong"); t.append(Object.assign(document.createElement("i"), { className: "oa-pt" }), document.createTextNode("Online agora"));
+  const nc = lista.filter((p) => p.contato).length;
+  const n = document.createElement("small"); n.textContent = (lista.length === 1 ? "1 pessoa" : `${lista.length} pessoas`) + (nc ? ` · ${nc} ${nc === 1 ? "contato" : "contatos"}` : "");
+  topo.append(t, n);
+  const trilho = document.createElement("div"); trilho.className = "oa-trilho";
+  lista.slice(0, 30).forEach((p) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "oa-pessoa";
+    b.setAttribute("aria-label", `Conversar com ${p.nome} (online agora)`);
+    if (p.contato) b.classList.add("contato");
+    const av = document.createElement("div"); av.className = "avatar"; pintarAvatar(av, p.fotoPerfil, p.nome);
+    const f = document.createElement("span"); f.className = "oa-foto"; f.append(av, Object.assign(document.createElement("i"), { className: "oa-on" }));
+    const nm = document.createElement("span"); nm.className = "oa-nome"; nm.textContent = nomeCurto(p.nome).split(" ")[0];
+    b.append(f, nm);
+    b.addEventListener("click", () => (p.conv ? abrirConversa(p.conv.id) : iniciarConversaCom(p.uid)));
+    trilho.appendChild(b);
+  });
+  box.replaceChildren(topo, trilho);
+}
+// Relê de 2 em 2 min com a lista à vista (e na hora em que a página volta a aparecer).
+setInterval(() => { if (eu && !document.hidden && !escondida()) lerOnline().then(() => { if ($("painelNova")?.classList.contains("aberto")) pintarOnline(); renderizarListaLeve(); }); }, 60000);
+document.addEventListener("visibilitychange", () => { if (eu && !document.hidden) lerOnline().then(() => renderizarListaLeve()); });
+// Só a bolinha verde nas fotos da lista (sem desenhar a lista de novo).
+function renderizarListaLeve() {
+  const vivos = onlineSet();
+  document.querySelectorAll("#listaConversas .conv-item[data-outro]").forEach((it) => it.classList.toggle("on", vivos.has(it.dataset.outro) && config.mostrarOnline !== false));
+}
 function renderizarLista() {
   if (modo === "chamadas") { pintarModos(); return; }
   const lista = $("listaConversas");
@@ -1451,6 +1514,7 @@ function renderizarLista() {
     if (nl) { const b = document.createElement("b"); b.textContent = ` · ${nl > 99 ? "99+" : nl} não ${nl === 1 ? "lida" : "lidas"}`; resumo.appendChild(b); }
   }
   lista.replaceChildren();
+  const vivosLista = config.mostrarOnline === false ? new Set() : onlineSet();
 
   if (!itens.length) {
     const vazio = document.createElement("div");
@@ -1493,6 +1557,8 @@ function renderizarLista() {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "conv-item" + (c.naoLida ? " nao-lida" : "") + (ativa?.id === c.id ? " ativa" : "");
+    item.dataset.outro = c.outroId;
+    if (vivosLista.has(c.outroId)) item.classList.add("on");
     const assunto = assuntoDe(c.dados);
     item.style.setProperty("--assunto", ASSUNTOS[assunto].cor);
     if (assunto !== "pessoal") item.classList.add("com-assunto");
@@ -1642,6 +1708,7 @@ function ouvirConversas() {
     primeiraCarga = false;
     conversas = lista;
     renderizarLista();
+    if (!onlineEm) lerOnline().then(() => renderizarLista());
     atualizarTitulo();
   }, (erro) => {
     console.error("Erro ao carregar conversas:", erro);
@@ -4189,9 +4256,14 @@ async function carregarPessoas() {
     s.textContent = "Carregando pessoas...";
     lista.replaceChildren(s);
   }
-  const achados = await buscarPessoas(fb, termo, { limite: 30 });
+  const [achados] = await Promise.all([buscarPessoas(fb, termo, { limite: 30 }), termo ? null : lerOnline()]);
   if ($("buscaPessoas").value.trim() !== termo) return;
-  pessoasCache = achados.filter((p) => p.uid !== eu.uid);
+  const vivos = onlineSet();
+  // Sem busca: quem está online agora vem primeiro (os seus contatos antes), depois quem esteve ativo.
+  // Sem busca: quem está online fica na fileira "Online agora" em cima; a lista mostra o resto.
+  const ja = new Set(termo || config.mostrarOnline === false ? [] : onlineTodos.filter((p) => vivos.has(p.uid)).map((p) => p.uid));
+  pessoasCache = achados.filter((p) => p.uid !== eu.uid && !ja.has(p.uid) && !bloqueado(p.uid)).map((p) => ({ ...p, _on: vivos.has(p.uid) }));
+  pintarOnline();
   renderizarPessoas();
 }
 function renderizarPessoas() {
@@ -4199,6 +4271,7 @@ function renderizarPessoas() {
   const termo = $("buscaPessoas").value.trim();
   const itens = pessoasCache.slice(0, 60);
   lista.replaceChildren();
+  if (!itens.length && !termo && !$("onlineAgora").hidden) return;
   if (!itens.length) {
     const v = document.createElement("div");
     v.className = "lista-vazia";
@@ -4206,10 +4279,11 @@ function renderizarPessoas() {
     lista.appendChild(v);
     return;
   }
+  if (!termo && !$("onlineAgora").hidden) { const h = document.createElement("div"); h.className = "conv-secao"; h.textContent = "Pessoas no Help Floripa"; lista.appendChild(h); }
   itens.forEach((p) => {
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "conv-item";
+    item.className = "conv-item" + (p._on && config.mostrarOnline !== false ? " on" : "");
     const av = document.createElement("div");
     av.className = "avatar";
     pintarAvatar(av, p.fotoPerfil, p.nome);
@@ -4220,7 +4294,8 @@ function renderizarPessoas() {
     nome.textContent = p.nome || "Usuário";
     const sub = document.createElement("div");
     sub.className = "conv-previa";
-    sub.textContent = p.nickname ? `@${p.nickname}` : (p.cidade || "");
+    sub.textContent = p._on && config.mostrarOnline !== false ? (p.contato ? "Online agora · seu contato" : "Online agora") : p.nickname ? `@${p.nickname}` : (p.cidade || "");
+    if (p._on && config.mostrarOnline !== false) sub.classList.add("oa-sub");
     main.append(nome, sub);
     item.append(av, main);
     item.addEventListener("click", () => iniciarConversaCom(p.uid));

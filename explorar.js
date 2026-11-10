@@ -143,7 +143,8 @@ async function buscar() {
   pintarRecentes();
   $("exploraConteudo").hidden = !!termo;
   $("abasBusca").hidden = !termo;
-  if (!termo) { ultimoTermo = ""; $("titPessoas").textContent = "Ativos recentemente"; return carregarAtivos(); }
+  $("titPessoas").hidden = $("listaPessoas").hidden = !termo; // sem busca: só o conteúdo do Explorar ("Ativos recentemente" saiu)
+  if (!termo) { ultimoTermo = ""; return; }
   $("titPessoas").textContent = "Resultados";
   if (termo !== ultimoTermo) abaBusca = termo.startsWith("#") ? "tags" : "tudo";
   ultimoTermo = termo;
@@ -276,21 +277,6 @@ function pintarNota(alvo, r) {
   if (r?.total) box.append(icone("estrela", "i xs"), document.createTextNode(media(r).toFixed(1).replace(".", ",")));
 }
 
-// ---------- "Ativos recentemente" (sem busca) ----------
-async function carregarAtivos() {
-  const corpo = $("listaPessoas");
-  if (!corpo.querySelector(".linha")) corpo.replaceChildren(el("div", "lista-vazia", "Carregando pessoas..."));
-  const lista = (await pessoasRecentes(fb, { limite: 40 })).filter((p) => p.uid !== eu.uid && !escondido(p.uid));
-  if ($("buscaPessoas").value.trim()) return;
-  const ordem = [...lista.filter((p) => !meusSeguindo.has(p.uid)), ...lista.filter((p) => meusSeguindo.has(p.uid))];
-  corpo.replaceChildren();
-  if (!ordem.length) { corpo.appendChild(el("div", "lista-vazia", "Ninguém por aqui ainda.")); return; }
-  ordem.slice(0, 8).forEach((p) => corpo.appendChild(linhaPessoa({
-    uid: p.uid, nome: p.nome, foto: p.fotoPerfil,
-    sub: [p.nickname ? "@" + p.nickname : "", nomeCidade(p.cidade || p.cidadeNome)].filter(Boolean).join(" · ")
-  })));
-}
-
 // ---------- início do Explorar ----------
 let feitoEm = 0;
 // Puxar para atualizar no Explorar: monta tudo de novo com o que há de novo no servidor.
@@ -317,23 +303,27 @@ export async function abrirExplorar() {
   feitoEm = Date.now();
   const lista = await postsRecentes();
   pintarAlta(lista);
-  vigiarFlashes();
   pintarEnquetes(lista);
-  lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarDestaques(); pintarHall(lista); }).catch(() => {});
+  // Com as estrelas lidas, o Em alta conta também o engajamento de cada publicação.
+  lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarAlta(lista); pintarDestaques(); pintarHall(lista); }).catch(() => {});
   pintarNegocios().catch((e) => console.warn("Explorar (negócios):", e));
   pintarComunidade().catch((e) => console.warn("Explorar (comunidade):", e));
   pintarPostsPerto(lista).catch((e) => console.warn("Explorar (perto):", e));
   pintarSugestoes().catch((e) => console.warn("Explorar (sugestões):", e));
 }
 
-// ---------- Em alta: Top 20 de assuntos do Help Floripa (10/11/2026) ----------
-// Hashtags e lugares das publicações recentes (as mesmas que o Explorar já leu) E das figurinhas dos flashes que já estão
-// na página (# e 📍 do Flash, stories.toques). Peso maior para os mais novos e para a sua região; "Subindo" = metade ou mais
-// do uso nas últimas 24 h. Só dados do próprio site: nada inventado e nada "da internet".
+// ---------- Em alta: Top 20 de assuntos do Help Floripa (10/11/2026, revisto no mesmo dia) ----------
+// Só as hashtags e os lugares das PUBLICAÇÕES (as mesmas que o Explorar já leu). As # e os lugares dos flashes aparecem no
+// Flash e na página do assunto ("Nos flashes agora"), mas não entram na contagem.
+// Nota de cada assunto: cada publicação vale pela recência (meia-vida ~2 dias), pela sua região e pelas estrelas que recebeu;
+// de cada pessoa só as 2 melhores publicações contam cheio (as outras ¼: repetir a mesma # não põe ninguém no topo);
+// mais pessoas usando = nota maior, assunto de uma pessoa só vale menos. "Subindo" = mais uso nas últimas 24 h do que no dia
+// anterior; "Novo" = apareceu nas últimas 24 h e já tem 2 pessoas. Hashtags iguais sem acento e lugares a menos de 800 m
+// viram um assunto só. Nada inventado: só dados do próprio site.
 const ALTA_MAX = 20;
 let assuntos = [], filtroAlta = "tudo", altaAberta = false;
 const chaveLugar = (nome) => semAcento(String(nome || "").split(",")[0]).trim();
-// Figurinhas tocáveis do flash: "h|tag|x|y|w|h" e "l|nome|lat|lng|x|y|w|h".
+// Figurinhas tocáveis do flash: "h|tag|x|y|w|h" e "l|nome|lat|lng|x|y|w|h" (só para "Nos flashes agora" da página do assunto).
 function toquesDoFlash(f) {
   const tags = [], lugares = [];
   (Array.isArray(f?.toques) ? f.toques : []).forEach((t) => {
@@ -345,47 +335,50 @@ function toquesDoFlash(f) {
 }
 const flashesDaPagina = () => { try { return flashesCarregados().filter((f) => !escondido(f.autorId) && !silenciado(f.autorId)); } catch { return []; } };
 function contarAssuntos(lista) {
-  const m = new Map(), agora = Date.now();
-  const somar = (k, base, item, flash) => {
-    const x = m.get(k) || { ...base, k, n: 0, f: 0, p: 0, hoje: 0, autores: new Set(), flashes: [] };
-    const idade = Math.max(0, agora - ms(item.criadoEm));
-    if (flash) { x.f++; x.flashes.push(item); } else x.n++;
-    x.autores.add(item.autorId);
-    x.p += (flash ? 1.2 : pesoRegiao(item, regiaoEu())) / (1 + idade / (3 * DIA)); // a sua região pesa mais
-    if (idade < DIA) x.hoje++;
-    m.set(k, x);
+  const m = new Map(), agora = Date.now(), reg = regiaoEu(), lugares = [];
+  const somar = (k, base, p, nomeVisto) => {
+    let x = m.get(k);
+    if (!x) { x = { ...base, k, n: 0, hoje: 0, ontem: 0, notas: 0, primeiro: agora, porAutor: new Map(), formas: new Map(), capa: "", capaW: -1 }; m.set(k, x); }
+    const idade = Math.max(0, agora - (ms(p.criadoEm) || agora));
+    const r = resumosPosts.get(p.id) || { total: 0, soma: 0 };
+    const eng = 1 + 0.45 * Math.log1p(r.total + Math.max(0, r.soma - 3 * r.total) * 0.5);
+    const w = pesoRegiao(p, reg) * eng / (1 + idade / (2 * DIA));
+    (x.porAutor.get(p.autorId) || x.porAutor.set(p.autorId, []).get(p.autorId)).push(w);
+    x.n++; x.notas += r.total;
+    if (idade < DIA) x.hoje++; else if (idade < 2 * DIA) x.ontem++;
+    x.primeiro = Math.min(x.primeiro, agora - idade);
+    x.formas.set(nomeVisto, (x.formas.get(nomeVisto) || 0) + 1);
+    const foto = fotosDoPost(p)[0];
+    if (foto && w > x.capaW) { x.capa = foto; x.capaW = w; }
   };
   lista.forEach((p) => {
-    (p.tags || []).forEach((t) => somar("t:" + String(t).toLowerCase(), { tipo: "tag", nome: String(t).toLowerCase() }, p, false));
-    if (p.local?.nome && Number.isFinite(p.local.lat)) somar("l:" + chaveLugar(p.local.nome), { tipo: "lugar", nome: p.local.nome, lat: p.local.lat, lng: p.local.lng }, p, false);
+    if (p.autorId && escondido(p.autorId)) return;
+    new Set((p.tags || []).map((t) => String(t).toLowerCase())).forEach((t) => somar("t:" + semAcento(t), { tipo: "tag", nome: t }, p, t));
+    const l = p.local;
+    if (l?.nome && Number.isFinite(l.lat) && Number.isFinite(l.lng)) {
+      // Lugar: o mesmo nome ou outro a menos de 800 m é o mesmo assunto.
+      let k = "l:" + chaveLugar(l.nome);
+      if (!m.has(k)) { const perto = lugares.find((y) => distanciaKm(y, l) <= 0.8); if (perto) k = perto.k; else lugares.push({ k, lat: l.lat, lng: l.lng }); }
+      somar(k, { tipo: "lugar", nome: l.nome, lat: l.lat, lng: l.lng }, p, l.nome);
+    }
   });
-  flashesDaPagina().forEach((f) => {
-    const { tags, lugares } = toquesDoFlash(f);
-    new Set(tags).forEach((t) => somar("t:" + t, { tipo: "tag", nome: t }, f, true));
-    lugares.forEach((l) => somar("l:" + chaveLugar(l.nome), { tipo: "lugar", nome: l.nome, lat: l.lat, lng: l.lng }, f, true));
-  });
-  // Mais pessoas usando conta mais do que uma pessoa repetindo o mesmo assunto.
-  return [...m.values()].map((x) => ({ ...x, p: x.p * (1 + Math.log1p(x.autores.size - 1) * 0.6), pessoas: x.autores.size }))
-    .sort((a, b) => b.p - a.p || b.n + b.f - a.n - a.f);
+  return [...m.values()].map((x) => {
+    let p = 0;
+    x.porAutor.forEach((ws) => ws.sort((a, b) => b - a).forEach((w, i) => { p += i < 2 ? w : w * 0.25; }));
+    const pessoas = x.porAutor.size;
+    p *= (1 + Math.log1p(pessoas - 1) * 0.7) * (pessoas === 1 ? 0.6 : 1);
+    const nome = [...x.formas.entries()].sort((a, b) => b[1] - a[1])[0][0]; // a forma mais usada (com ou sem acento)
+    return { ...x, nome: x.tipo === "tag" ? nome : x.nome, p, pessoas, novo: agora - x.primeiro < DIA && pessoas >= 2, subindo: x.hoje >= 2 && x.hoje > x.ontem * 1.5 };
+  }).sort((a, b) => b.p - a.p || b.pessoas - a.pessoas || b.n - a.n);
 }
 const nomeAssunto = (x) => (x.tipo === "tag" ? "#" + x.nome : String(x.nome).split(",")[0]);
-const metaAssunto = (x) => [x.n ? plural(x.n, "publicação", "publicações") : "", x.f ? plural(x.f, "flash", "flashes") : "", x.pessoas > 1 ? `${x.pessoas} pessoas` : ""].filter(Boolean).join(" · ");
-const subindo = (x) => x.hoje >= 2 && x.hoje * 2 >= x.n + x.f;
-const posicaoEmAlta = (k) => { const i = assuntos.findIndex((x) => x.k === k); return i >= 0 && i < ALTA_MAX ? i + 1 : 0; };
+const metaAssunto = (x) => plural(x.n, "publicação", "publicações") + (x.pessoas > 1 && x.pessoas < x.n ? ` de ${x.pessoas} pessoas` : "");
+const posicaoEmAlta = (k, local) => {
+  const i = assuntos.findIndex((x) => x.k === k || (x.tipo === "tag" && x.k === "t:" + semAcento(String(k).slice(2))) || (local && x.tipo === "lugar" && distanciaKm(x, local) <= 0.8));
+  return i >= 0 && i < ALTA_MAX ? i + 1 : 0;
+};
 let listaAlta = [];
-// O Flash chega depois (feed.js chama quando a fileira terminar de carregar): conta as figurinhas dele também.
 export function atualizarAlta() { if (listaAlta.length) pintarAlta(listaAlta); }
-// A fileira do Flash termina de carregar por trás: confere por até 15 s e conta as figurinhas quando os flashes chegam.
-let vigiaFlash = 0;
-function vigiarFlashes() {
-  clearInterval(vigiaFlash);
-  let antes = flashesDaPagina().length, voltas = 0;
-  vigiaFlash = setInterval(() => {
-    const n = flashesDaPagina().length;
-    if (n !== antes) { antes = n; atualizarAlta(); }
-    if (++voltas >= 10) clearInterval(vigiaFlash);
-  }, 1500);
-}
 function pintarAlta(lista) {
   listaAlta = lista;
   assuntos = contarAssuntos(lista);
@@ -393,6 +386,7 @@ function pintarAlta(lista) {
   sec.hidden = !assuntos.length;
   if (!assuntos.length) return;
   const temLugar = assuntos.some((x) => x.tipo === "lugar"), temTag = assuntos.some((x) => x.tipo === "tag");
+  if (filtroAlta !== "tudo" && !(filtroAlta === "tag" ? temTag : temLugar)) filtroAlta = "tudo";
   const filtrados = assuntos.filter((x) => filtroAlta === "tudo" || x.tipo === filtroAlta).slice(0, ALTA_MAX);
   const abas = el("div", "alta-abas"); abas.setAttribute("role", "tablist");
   [["tudo", "Tudo"], ["tag", "Hashtags"], ["lugar", "Lugares"]].filter(([k]) => k === "tudo" || (k === "tag" ? temTag : temLugar)).forEach(([k, nome]) => {
@@ -406,11 +400,15 @@ function pintarAlta(lista) {
     const b = el("button", "alta-item" + (i < 3 ? " top" + (i + 1) : "")); b.type = "button";
     b.setAttribute("aria-label", `${i + 1}º em alta: ${nomeAssunto(x)}, ${metaAssunto(x)}`);
     const pos = el("span", "alta-pos", String(i + 1));
-    const ic = el("span", "alta-ic " + x.tipo); ic.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i s"));
-    const tx = el("span", "alta-tx"); tx.append(el("strong", null, nomeAssunto(x)), el("small", null, metaAssunto(x)));
+    const ic = el("span", "alta-ic " + x.tipo);
+    if (x.capa) { ic.classList.add("foto"); ic.style.backgroundImage = `url("${x.capa}")`; const s = el("span", "alta-ic-selo"); s.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i xs")); ic.appendChild(s); }
+    else ic.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i s"));
+    const meta = el("small"); meta.appendChild(document.createTextNode(metaAssunto(x)));
+    if (x.notas) { const e = el("span", "alta-est"); e.append(icone("estrela", "i xs"), document.createTextNode(numeroCurto(x.notas))); meta.append(document.createTextNode(" · "), e); }
+    const tx = el("span", "alta-tx"); tx.append(el("strong", null, nomeAssunto(x)), meta);
     b.append(pos, ic, tx);
-    if (subindo(x)) { const t = el("span", "alta-tend sobe"); t.append(document.createTextNode("↑ Subindo")); b.appendChild(t); }
-    else if (i < 3) b.appendChild(el("span", "alta-tend fogo", "🔥"));
+    if (x.novo) b.appendChild(el("span", "alta-tend novo", "Novo"));
+    else if (x.subindo) b.appendChild(el("span", "alta-tend sobe", "↑ Subindo"));
     b.addEventListener("click", () => abrirTopico(x.tipo === "tag" ? { tag: x.nome } : { local: { nome: x.nome, lat: x.lat, lng: x.lng } }));
     li.appendChild(b); ol.appendChild(li);
   });
@@ -420,61 +418,94 @@ function pintarAlta(lista) {
     mais.addEventListener("click", () => { altaAberta = !altaAberta; pintarAlta(lista); if (!altaAberta) sec.scrollIntoView({ block: "start", behavior: "smooth" }); });
     corpo.push(mais);
   }
-  corpo.push(el("p", "alta-nota", "Pelas hashtags e lugares usados nas publicações e nos flashes dos últimos dias, com peso maior para a sua região."));
+  corpo.push(el("p", "alta-nota", "Pelas hashtags e lugares das publicações dos últimos dias: conta quantas pessoas usam, as estrelas que receberam e se está crescendo, com peso maior para a sua região. Os flashes não entram na contagem."));
   $("exploraTags").replaceChildren(...corpo);
 }
 
-// ---------- Hall da fama: quem mais recebeu estrelas nos últimos 7 dias (10/11/2026) ----------
-// Soma das estrelas (as notas de 1 a 5) nas publicações recentes que o Explorar leu, com os resumos diario_notas já lidos
-// para os destaques. 1º com coroa, 2º prata, 3º bronze e do 4º ao 10º em lista. Sem número inventado: só quem recebeu estrelas.
-async function pintarHall(lista) {
-  const sec = $("secHall"); if (!sec) return;
-  const desde = Date.now() - 7 * DIA, por = new Map();
+// ---------- Hall da fama (10/11/2026, revisto no mesmo dia) ----------
+// Abas: Semana (soma das estrelas nos últimos 7 dias), Hoje (últimas 24 h) e Melhor média (média com pelo menos 5 notas,
+// puxada para 3,5 enquanto há poucas notas: 2 notas 5 não passam na frente de 40 notas 4,8). De cada pessoa contam só as
+// 5 publicações com mais estrelas (publicar sem parar não compra lugar). 1º com coroa, 2º prata, 3º bronze, do 4º ao 10º em
+// lista com a melhor publicação ao lado, e "Você está em Nº · faltam N estrelas para o Nº". Só quem recebeu estrelas.
+const ABAS_HALL = [["semana", "Semana"], ["hoje", "Hoje"], ["media", "Melhor média"]];
+let abaHall = "semana", listaHall = [];
+const perfisHall = new Map();
+const perfilHall = (u) => (perfisHall.has(u) ? perfisHall.get(u) : (perfisHall.set(u, obterPerfil(u).catch(() => ({}))), perfisHall.get(u)));
+function rankingHall(lista, aba) {
+  const agora = Date.now(), desde = agora - (aba === "hoje" ? DIA : 7 * DIA), por = new Map();
   lista.forEach((p) => {
     if (ms(p.criadoEm) < desde || escondido(p.autorId)) return;
     const r = resumosPosts.get(p.id);
-    const x = por.get(p.autorId) || { uid: p.autorId, nome: p.nome, foto: p.fotoPerfil, soma: 0, total: 0, posts: 0 };
-    x.posts++; if (r?.total) { x.soma += r.soma; x.total += r.total; }
+    const x = por.get(p.autorId) || { uid: p.autorId, nome: p.nome, foto: p.fotoPerfil, itens: [] };
+    x.itens.push({ p, soma: r?.soma || 0, total: r?.total || 0 });
     por.set(p.autorId, x);
   });
-  const ranking = [...por.values()].filter((x) => x.total > 0).sort((a, b) => b.soma - a.soma || b.soma / b.total - a.soma / a.total || b.posts - a.posts);
-  sec.hidden = !ranking.length;
-  if (!ranking.length) return;
+  const lst = [...por.values()].map((x) => {
+    const melhores = x.itens.sort((a, b) => b.soma - a.soma).slice(0, 5);
+    const soma = melhores.reduce((s, i) => s + i.soma, 0), total = melhores.reduce((s, i) => s + i.total, 0);
+    const capa = melhores.find((i) => fotosDoPost(i.p)[0]);
+    return { ...x, soma, total, posts: x.itens.length, media: total ? soma / total : 0, bayes: (soma + 3.5 * 8) / (total + 8), melhor: melhores[0]?.p, capa: capa ? fotosDoPost(capa.p)[0] : "" };
+  }).filter((x) => x.total > 0);
+  return aba === "media" ? lst.filter((x) => x.total >= 5).sort((a, b) => b.bayes - a.bayes || b.total - a.total)
+    : lst.sort((a, b) => b.soma - a.soma || b.media - a.media || b.posts - a.posts);
+}
+async function pintarHall(lista = listaHall) {
+  listaHall = lista;
+  const sec = $("secHall"); if (!sec) return;
+  const abas = ABAS_HALL.filter(([k]) => rankingHall(lista, k).length);
+  sec.hidden = !abas.length;
+  if (!abas.length) return;
+  if (!abas.some(([k]) => k === abaHall)) abaHall = abas[0][0];
+  const ranking = rankingHall(lista, abaHall);
   const top = ranking.slice(0, 10);
-  const perfis = new Map(await Promise.all(top.map((x) => obterPerfil(x.uid).then((pp) => [x.uid, pp || {}]).catch(() => [x.uid, {}]))));
+  const perfis = new Map(await Promise.all(top.map((x) => perfilHall(x.uid).then((pp) => [x.uid, pp || {}]))));
   const nomeDe = (x) => perfis.get(x.uid)?.nome || x.nome || "Usuário";
-  const mediaDe = (x) => (x.soma / x.total).toFixed(1).replace(".", ",");
+  const virg = (n) => n.toFixed(1).replace(".", ",");
+  const valor = (x) => (abaHall === "media" ? virg(x.media) : numeroCurto(x.soma));
+  const detalhe = (x) => (abaHall === "media" ? plural(x.total, "nota", "notas") : `média ${virg(x.media)}`);
   const COROA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.6-10 4.9 4.2L12 5l2.5 7.2L19.4 8 21 18z" fill="currentColor"/><rect x="3" y="19" width="18" height="2.4" rx="1.2" fill="currentColor"/></svg>';
   const lugar = (x, i) => {
     const pp = perfis.get(x.uid) || {};
-    const b = el("button", "hall-lugar p" + (i + 1)); b.type = "button"; b.setAttribute("aria-label", `${i + 1}º lugar: ${nomeDe(x)}, ${x.soma} estrelas`);
+    const b = el("button", "hall-lugar p" + (i + 1)); b.type = "button"; b.setAttribute("aria-label", `${i + 1}º lugar: ${nomeDe(x)}, ${valor(x)} ${abaHall === "media" ? "de média" : "estrelas"}`);
     const av = el("div", "avatar"); pintarAvatar(av, pp.fotoPerfil || x.foto, nomeDe(x));
     const fr = el("div", "hall-foto"); fr.appendChild(av);
     if (i === 0) { const c = el("span", "hall-coroa"); c.innerHTML = COROA; fr.appendChild(c); }
     fr.appendChild(el("span", "hall-medalha", String(i + 1)));
-    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(numeroCurto(x.soma)));
-    b.append(fr, el("strong", "hall-nome", nomeDe(x).split(" ").slice(0, 2).join(" ")), est, el("small", null, `média ${mediaDe(x)}`), el("span", "hall-base"));
+    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(valor(x)));
+    b.append(fr, el("strong", "hall-nome", nomeDe(x).split(" ").slice(0, 2).join(" ")), est, el("small", null, detalhe(x)), el("span", "hall-base"));
     b.addEventListener("click", () => ganchos.abrirPerfil(x.uid));
     return b;
   };
-  const podio = el("div", "hall-podio");
+  const tabs = el("div", "alta-abas hall-abas"); tabs.setAttribute("role", "tablist");
+  abas.forEach(([k, nome]) => {
+    const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(abaHall === k));
+    b.addEventListener("click", () => { abaHall = k; pintarHall(); });
+    tabs.appendChild(b);
+  });
+  const podio = el("div", "hall-podio" + (top.length < 3 ? " poucos" : ""));
   [1, 0, 2].forEach((i) => { if (top[i]) podio.appendChild(lugar(top[i], i)); });
   const resto = el("ol", "hall-resto"); resto.start = 4;
   top.slice(3).forEach((x, k) => {
     const pp = perfis.get(x.uid) || {};
     const li = el("li"); const b = el("button", "hall-linha"); b.type = "button";
     const av = el("div", "avatar"); pintarAvatar(av, pp.fotoPerfil || x.foto, nomeDe(x));
-    const tx = el("span", "hall-tx"); tx.append(el("strong", null, nomeDe(x)), el("small", null, [pp.nickname ? "@" + pp.nickname : "", plural(x.posts, "publicação", "publicações")].filter(Boolean).join(" · ")));
-    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(numeroCurto(x.soma)));
+    const tx = el("span", "hall-tx"); tx.append(el("strong", null, nomeDe(x)), el("small", null, [detalhe(x), plural(x.posts, "publicação", "publicações")].join(" · ")));
+    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(valor(x)));
     b.append(el("span", "hall-n", String(k + 4)), av, tx, est);
+    if (x.capa) { const t = el("span", "hall-capa"); t.style.backgroundImage = `url("${x.capa}")`; b.appendChild(t); }
     b.addEventListener("click", () => ganchos.abrirPerfil(x.uid));
     li.appendChild(b); resto.appendChild(li);
   });
-  const corpo = [podio];
+  const corpo = [tabs, podio];
   if (resto.children.length) corpo.push(resto);
   const minha = ranking.findIndex((x) => x.uid === eu.uid);
-  if (minha >= 0) corpo.push(el("p", "hall-voce", minha < 10 ? `Você está em ${minha + 1}º lugar. Continue assim!` : `Você está em ${minha + 1}º lugar esta semana.`));
-  corpo.push(el("p", "alta-nota", "Pela soma das estrelas recebidas nas publicações dos últimos 7 dias. Atualiza sozinho."));
+  if (minha === 0) corpo.push(el("p", "hall-voce", "Você é o 1º lugar! A coroa é sua."));
+  else if (minha > 0 && abaHall !== "media") {
+    const falta = ranking[minha - 1].soma - ranking[minha].soma + 1;
+    corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º lugar · faltam ${plural(falta, "estrela", "estrelas")} para o ${minha}º.`));
+  } else if (minha > 0) corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º lugar na melhor média.`));
+  corpo.push(el("p", "alta-nota", abaHall === "media" ? "Média das notas com pelo menos 5 notas recebidas nos últimos 7 dias; quem tem poucas notas fica perto de 3,5 até ter mais."
+    : `Pela soma das estrelas recebidas nas publicações ${abaHall === "hoje" ? "das últimas 24 horas" : "dos últimos 7 dias"}. De cada pessoa contam as 5 publicações com mais estrelas.`));
   $("exploraHall").replaceChildren(...corpo);
 }
 const numeroCurto = (n) => (n >= 1e4 ? (n / 1e3).toFixed(1).replace(".", ",").replace(",0", "") + " mil" : n.toLocaleString("pt-BR"));
@@ -530,8 +561,8 @@ export async function abrirTopico({ tag = "", local = null } = {}, { daUrl = fal
   tx.append(el("h1", null, nome), el("small", null, ehLugar ? (String(local.nome).split(",").slice(1).join(",").trim() || "Lugar marcado nas publicações") : "Hashtag do Help Floripa"), nPosts);
   cab.append(ic, tx);
   hero.appendChild(cab);
-  const pos = posicaoEmAlta(k);
-  if (pos) { const sel = el("span", "tp-alta" + (pos <= 3 ? " top" : "")); sel.textContent = `🔥 ${pos}º em alta no Help Floripa`; hero.appendChild(sel); }
+  const pos = posicaoEmAlta(k, ehLugar ? local : null);
+  if (pos) { const sel = el("span", "tp-alta" + (pos <= 3 ? " top" : "")); sel.textContent = `${pos}º em alta no Help Floripa`; hero.appendChild(sel); }
   const acoes = el("div", "tp-acoes");
   const pub = el("button", "tp-bt pri"); pub.type = "button"; pub.append(icone("criar", "i s"), document.createTextNode(ehLugar ? "Publicar aqui" : "Publicar com " + nome));
   pub.addEventListener("click", () => abrirCompositor({ aoPublicar: ganchos.aoPublicar, ...(ehLugar ? { local } : { texto: `\n\n#${tag}` }) }));
@@ -729,40 +760,95 @@ async function pintarNegocios() {
   }));
 }
 
-// Sugestões: quem é da sua rede (seguido por quem você segue), quem segue você, gente da sua cidade e quem esteve ativo.
+// ---------- Sugestões para você (Explorar e no meio do Diário, como no Instagram) ----------
+// Quem é da sua rede (seguido por quem você segue), quem segue você, quem está online agora, gente da sua cidade e quem
+// esteve ativo. A lista é montada uma vez (5 min) e serve às duas telas; dispensar (X) vale para sempre no aparelho.
+// Com 3 ou mais: cartões que deslizam (capa, foto, nome, motivo com a foto de quem liga vocês e Seguir).
+// Com 1 ou 2: linhas largas (um cartão sozinho no canto ficava feio).
 const CHAVE_DISPENSADOS = "hf-sug-dispensados";
-async function pintarSugestoes() {
+const ONLINE_MS = 10 * 60000;
+const estaOn = (p) => !!p?.ultimoAcesso && Date.now() - ms(p.ultimoAcesso) < ONLINE_MS;
+let sugP = null, sugEm = 0;
+function listaSugestoes() {
+  if (sugP && Date.now() - sugEm < 5 * 60000) return sugP;
+  sugEm = Date.now();
+  return (sugP = (async () => {
+    const pode = (u) => u && u !== eu.uid && !meusSeguindo.has(u) && !escondido(u);
+    const [recentes, rede, seguidores] = await Promise.all([pessoasRecentes(fb, { limite: 40 }), minhaRede().catch(() => new Map()), meusSeguidores()]);
+    const cand = new Map();
+    recentes.forEach((p) => { if (pode(p.uid) && p.nome) cand.set(p.uid, p); });
+    // Da rede e quem segue você, mesmo sem ter entrado agora (até 14 perfis a mais).
+    const extras = [...new Set([...seguidores, ...rede.keys()])].filter((u) => pode(u) && !cand.has(u)).slice(0, 14);
+    (await Promise.all(extras.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => null)))).forEach((p) => { if (p?.nome) cand.set(p.uid, p); });
+    const cid = minhaCidade();
+    const pontes = new Map();
+    await Promise.all([...cand.keys()].filter((u) => rede.has(u)).map((u) => obterPerfil(rede.get(u)).then((p) => pontes.set(u, { nome: String(p.nome || "").split(" ")[0], foto: p.fotoPerfil, nomeTodo: p.nome })).catch(() => {})));
+    const motivo = (p) => {
+      const mesmaCid = cid && chaveCidade(p.cidade || p.cidadeNome) === cid;
+      if (seguidores.has(p.uid)) return { txt: "Segue você", peso: 5, tipo: "segue" };
+      if (pontes.get(p.uid)) return { txt: `Seguido por ${pontes.get(p.uid).nome}`, peso: 4 + (mesmaCid ? 0.5 : 0), tipo: "rede", ponte: pontes.get(p.uid) };
+      if (estaOn(p) && mesmaCid) return { txt: `Online · ${nomeCid(p.cidade || p.cidadeNome)}`, peso: 2.4, tipo: "online" };
+      if (mesmaCid) return { txt: `Em ${nomeCid(p.cidade || p.cidadeNome)}`, peso: 2, tipo: "cidade" };
+      if (estaOn(p)) return { txt: "Online agora", peso: 1.6, tipo: "online" };
+      return { txt: "Novo por aqui", peso: 1, tipo: "ativo" };
+    };
+    return [...cand.values()].map((p) => ({ p, m: motivo(p), segueVoce: seguidores.has(p.uid) }))
+      .sort((a, b) => b.m.peso - a.m.peso || (b.p.fotoPerfil ? 1 : 0) - (a.p.fotoPerfil ? 1 : 0) || ms(b.p.ultimoAcesso) - ms(a.p.ultimoAcesso))
+      .slice(0, 24);
+  })().catch((e) => { sugP = null; throw e; }));
+}
+function cartaoSugestao(s, linha, aoTirar) {
+  const { p, m } = s;
+  const c = el("div", linha ? "sug-linha" : "sug-cartao");
+  c.dataset.uid = p.uid;
+  const abrir = () => ganchos.abrirPerfil(p.uid);
+  const x = el("button", "sug-tirar"); x.type = "button"; x.setAttribute("aria-label", `Não sugerir ${p.nome || "esta pessoa"}`); x.appendChild(icone("fechar", "i xs"));
+  x.addEventListener("click", (e) => { e.stopPropagation(); aoTirar(c, p.uid); });
+  const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
+  const foto = el("button", "sug-foto"); foto.type = "button"; foto.setAttribute("aria-label", `Ver o perfil de ${p.nome || "Usuário"}`);
+  foto.appendChild(av);
+  if (estaOn(p)) foto.appendChild(el("i", "sug-on"));
+  foto.addEventListener("click", abrir);
+  const nome = el("strong", "sug-nome"); nome.append(document.createTextNode(p.nome || "Usuário"));
+  if (p.verificado) { const v = icone("selo", "i xs sug-selo"); v.setAttribute("aria-label", "Verificado"); nome.appendChild(v); }
+  nome.addEventListener("click", abrir);
+  const nick = el("small", "sug-nick", p.nickname ? "@" + p.nickname : nomeCid(p.cidade || p.cidadeNome) || "Help Floripa");
+  const mot = el("span", "sug-motivo " + m.tipo);
+  if (m.ponte) { const mini = el("span", "avatar sug-mini"); pintarAvatar(mini, m.ponte.foto, m.ponte.nomeTodo); mot.appendChild(mini); }
+  else if (m.tipo === "online") mot.appendChild(el("i", "sug-pt"));
+  else mot.appendChild(icone(m.tipo === "segue" ? "pessoa" : m.tipo === "cidade" ? "local" : "estrela", "i xs"));
+  mot.appendChild(el("span", null, m.txt));
+  const seg = botaoSeguir(p.uid, { meSegue: s.segueVoce });
+  if (linha) {
+    const tx = el("div", "sug-tx"); tx.append(nome, nick, mot);
+    c.append(foto, tx, seg, x);
+  } else {
+    const capa = el("div", "sug-capa");
+    const capaUrl = urlSegura(p.fotoCapa);
+    if (capaUrl) capa.style.backgroundImage = `url("${capaUrl}")`; else capa.classList.add("vazia");
+    c.append(capa, x, foto, nome, nick, mot, seg);
+  }
+  return c;
+}
+// Monta as sugestões dentro de `alvo`. Devolve quantas apareceram (0 = nada para sugerir).
+export async function montarSugestoes(alvo, { max = 12, aoEsvaziar = null } = {}) {
   const fora = new Set(lerLocal(CHAVE_DISPENSADOS, []));
-  const pode = (u) => u && u !== eu.uid && !meusSeguindo.has(u) && !escondido(u) && !fora.has(u);
-  const [recentes, rede, seguidores] = await Promise.all([pessoasRecentes(fb, { limite: 40 }), minhaRede().catch(() => new Map()), meusSeguidores()]);
-  const cand = new Map();
-  recentes.forEach((p) => { if (pode(p.uid)) cand.set(p.uid, p); });
-  // Da rede e quem segue você, mesmo sem ter entrado agora (até 10 perfis a mais).
-  const extras = [...new Set([...seguidores, ...rede.keys()])].filter((u) => pode(u) && !cand.has(u)).slice(0, 10);
-  (await Promise.all(extras.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => null)))).forEach((p) => { if (p?.nome) cand.set(p.uid, p); });
-  const cid = minhaCidade();
-  const pontes = new Map();
-  await Promise.all([...cand.keys()].filter((u) => rede.has(u)).map((u) => obterPerfil(rede.get(u)).then((p) => pontes.set(u, String(p.nome || "").split(" ")[0])).catch(() => {})));
-  const motivo = (p) => seguidores.has(p.uid) ? ["Segue você", 4] : pontes.get(p.uid) ? [`Seguido por ${pontes.get(p.uid)}`, 3]
-    : cid && chaveCidade(p.cidade || p.cidadeNome) === cid ? [`Em ${nomeCid(p.cidade || p.cidadeNome)}`, 1.5] : ["Ativo recentemente", 1];
-  const sug = [...cand.values()].map((p) => ({ p, m: motivo(p) })).sort((a, b) => b.m[1] - a.m[1] || ms(b.p.ultimoAcesso) - ms(a.p.ultimoAcesso)).slice(0, 12);
-  $("secSugestoes").hidden = !sug.length;
-  $("exploraSugestoes").replaceChildren(...sug.map(({ p, m }) => {
-    const c = el("div", "exp-pessoa");
-    const x = el("button", "sug-tirar"); x.type = "button"; x.setAttribute("aria-label", `Não sugerir ${p.nome || "esta pessoa"}`); x.appendChild(icone("fechar", "i xs"));
-    x.addEventListener("click", () => {
-      gravarLocal(CHAVE_DISPENSADOS, [p.uid, ...lerLocal(CHAVE_DISPENSADOS, []).filter((u) => u !== p.uid)].slice(0, 200));
-      c.classList.add("saindo"); setTimeout(() => { c.remove(); if (!$("exploraSugestoes").children.length) $("secSugestoes").hidden = true; }, 200);
-    });
-    const av = el("div", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
-    const nome = el("strong", null, p.nome || "Usuário");
-    const sub = el("small", null, p.nickname ? "@" + p.nickname : "Help Floripa");
-    const mot = el("span", "sug-motivo" + (m[1] >= 3 ? " forte" : ""), m[0]);
-    const abrir = () => ganchos.abrirPerfil(p.uid);
-    av.addEventListener("click", abrir); nome.addEventListener("click", abrir);
-    c.append(x, av, nome, sub, mot, botaoSeguir(p.uid, { meSegue: seguidores.has(p.uid) }));
-    return c;
-  }));
+  const sug = (await listaSugestoes()).filter((s) => !fora.has(s.p.uid) && !meusSeguindo.has(s.p.uid) && !escondido(s.p.uid)).slice(0, max);
+  if (!sug.length) { alvo.replaceChildren(); return 0; }
+  const linha = sug.length < 3;
+  alvo.classList.toggle("sug-poucas", linha);
+  alvo.classList.toggle("sug-trilho", !linha);
+  const tirar = (c, uid) => {
+    gravarLocal(CHAVE_DISPENSADOS, [uid, ...lerLocal(CHAVE_DISPENSADOS, []).filter((u) => u !== uid)].slice(0, 200));
+    c.classList.add("saindo");
+    setTimeout(() => { c.remove(); if (!alvo.children.length) aoEsvaziar?.(); }, 200);
+  };
+  alvo.replaceChildren(...sug.map((s) => cartaoSugestao(s, linha, tirar)));
+  return sug.length;
+}
+async function pintarSugestoes() {
+  const n = await montarSugestoes($("exploraSugestoes"), { max: 16, aoEsvaziar: () => { $("secSugestoes").hidden = true; } });
+  $("secSugestoes").hidden = !n;
 }
 
 // Destaques: mosaico pelo engajamento e pelo seu gosto, com filtros e "Ver mais".

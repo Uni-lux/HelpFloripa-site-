@@ -1466,3 +1466,26 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 #menuMsg .menu-reacoes button:hover { transform: scale(1.18); background: var(--hover); }
 #menuMsg .menu-reacoes button.eu { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: inset 0 0 0 2px var(--accent); }
 #menuMsg { min-width: 296px; }
+
+/* ===== Online agora (10/11/2026): fileira dos contatos online + bolinha verde nas conversas ===== */
+.online-agora { padding: 4px 0 6px; }
+.oa-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 18px 8px; }
+.oa-topo strong { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; letter-spacing: .02em; }
+.oa-topo small { color: var(--muted); font-size: 12px; }
+.oa-pt { width: 8px; height: 8px; border-radius: 50%; background: #2fbf71; box-shadow: 0 0 0 4px rgba(47, 191, 113, .18); animation: oaPulso 2.4s ease-in-out infinite; }
+@keyframes oaPulso { 50% { box-shadow: 0 0 0 6px rgba(47, 191, 113, .06); } }
+.oa-trilho { display: flex; gap: 4px; overflow-x: auto; padding: 0 12px 4px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.oa-trilho::-webkit-scrollbar { display: none; }
+.oa-pessoa { flex: 0 0 68px; display: grid; justify-items: center; gap: 6px; padding: 4px 0; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.oa-pessoa:active .oa-foto { transform: scale(.94); }
+.oa-foto { position: relative; transition: transform .12s; }
+.oa-foto .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 1px var(--line); }
+.oa-on, .conv-item.on::after { position: absolute; width: 15px; height: 15px; border-radius: 50%; background: #2fbf71; box-shadow: 0 0 0 3px var(--bg, #000); }
+.oa-on { right: 0; bottom: 1px; }
+.oa-nome { max-width: 66px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.conv-item.on::after { content: ""; left: 51px; top: calc(50% + 12px); z-index: 1; }
+.online-agora + .conv-list { border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .oa-pt { animation: none; } }
+.conv-previa.oa-sub { color: #2fbf71; font-weight: 700; }
+#painelNova .online-agora { margin: 10px -4px 0; }
+.oa-pessoa.contato .oa-nome { color: var(--text); font-weight: 700; }

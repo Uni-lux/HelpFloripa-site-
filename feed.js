@@ -21,7 +21,7 @@ import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=
 import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=107";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, atualizarAlta } from "./explorar.js?v=121";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=122";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=3";
@@ -85,7 +85,7 @@ async function buscarLocal(l) {
 const FILTROS = { principais: "Principais", seguindo: "Seguindo", amigos: "Amigos" };
 let aba = "diario", filtro = "principais";
 let marcoFeed = null, pilula = null; // a mais nova da tela e a pílula "Novas publicações" (atualizarDiario)
-let posts = [], todosPosts = [], mostrados = 0;
+let posts = [], todosPosts = [], mostrados = 0, sugNaLista = false; // sugNaLista: o bloco de sugestões já entrou nesta lista
 
 // ---------- abas ----------
 // O Diário é um só: fotos, vídeos, textos, enquetes e perguntas juntos ("Registros" virou o filtro Textos).
@@ -524,7 +524,7 @@ async function carregarFeed({ forcar = true } = {}) {
   if (g !== geracaoFeed) return;
   const comCopia = copia.length >= 2;
   if (comCopia) {
-    posts = copia; todosPosts = copia.slice(); mostrados = 0;
+    posts = copia; todosPosts = copia.slice(); mostrados = 0; sugNaLista = true; // cópia rápida: sem sugestões (entram com a lista completa)
     lista.replaceChildren(); mostrarMais(); $("maisFeed").hidden = true;
   } else {
     lista.replaceChildren(el("div", "esqueleto-post"), el("div", "esqueleto-post"));
@@ -547,7 +547,7 @@ async function carregarFeed({ forcar = true } = {}) {
         const r = sn.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((p) => !escondido(p.autorId) && !postOculto(p) && doTipo(p));
         if (r.length) {
           copia = r; mostrouRapida = true;
-          posts = r; todosPosts = r.slice(); mostrados = 0;
+          posts = r; todosPosts = r.slice(); mostrados = 0; sugNaLista = true;
           lista.replaceChildren(); mostrarMais(); $("maisFeed").hidden = true;
           y0 = scrollY;
         }
@@ -588,7 +588,7 @@ async function carregarFeed({ forcar = true } = {}) {
 function mostrarFiltrados() {
   const lista = $("listaFeed");
   posts = todosPosts.filter(daAba);
-  mostrados = 0;
+  mostrados = 0; sugNaLista = false;
   lista.replaceChildren();
   if (!posts.length) {
     const nomeTipo = TIPOS_FEED.find((t) => t[0] === tipoFeed)?.[1].toLowerCase();
@@ -604,9 +604,31 @@ function mostrarFiltrados() {
 }
 function mostrarMais() {
   const lista = $("listaFeed");
-  posts.slice(mostrados, mostrados + POR_VEZ).forEach((p) => lista.appendChild(p._emDia ? cartaoEmDia(p) : cartaoPost(p)));
+  posts.slice(mostrados, mostrados + POR_VEZ).forEach((p, i) => {
+    lista.appendChild(p._emDia ? cartaoEmDia(p) : cartaoPost(p));
+    // Sugestões para você no meio do Diário (como no Instagram): depois da 4ª publicação, uma vez por lista.
+    if (!p._emDia && podeSugerir() && posts.slice(0, mostrados + i + 1).filter((x) => !x._emDia).length >= SUG_DEPOIS) lista.appendChild(blocoSugestoes());
+  });
   mostrados = Math.min(posts.length, mostrados + POR_VEZ);
+  // Com poucas publicações: as sugestões entram no fim.
+  if (mostrados >= posts.length && posts.length >= 1 && podeSugerir()) lista.appendChild(blocoSugestoes());
   $("maisFeed").hidden = mostrados >= posts.length && !temMaisPrincipais();
+}
+const SUG_DEPOIS = 4;
+const podeSugerir = () => !sugNaLista && (filtro === "principais" || filtro === "seguindo") && tipoFeed === "tudo" && !tagAtual && !localAtual;
+function blocoSugestoes() {
+  sugNaLista = true;
+  const b = el("section", "feed-sug"); b.setAttribute("aria-label", "Sugestões para você");
+  const topo = el("div", "feed-sug-topo");
+  const tit = el("div"); tit.append(el("strong", null, "Sugestões para você"), el("small", null, "Pessoas que você pode conhecer"));
+  const ver = el("button", null, "Ver tudo"); ver.type = "button";
+  ver.addEventListener("click", () => { trocarAba("explorar"); setTimeout(() => $("secSugestoes")?.scrollIntoView({ block: "start", behavior: "smooth" }), 400); });
+  topo.append(tit, ver);
+  const corpo = el("div");
+  b.append(topo, corpo);
+  b.hidden = true;
+  montarSugestoes(corpo, { max: 10, aoEsvaziar: () => b.remove() }).then((n) => { if (n) b.hidden = false; else b.remove(); }).catch(() => b.remove());
+  return b;
 }
 const temMaisPrincipais = () => !localAtual && !tagAtual && ((maisPrincipais && filtro === "principais") || (maisSeguindo && filtro === "seguindo"));
 // Aviso "Você está em dia" no meio do Diário (Principais).
@@ -931,7 +953,7 @@ async function pintarLateral() {
   primeirasPublicacoes.then(() => setTimeout(() => avisarPublicacaoGuardada(() => compor()), 600));
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.
   const seguindo = carregarMeusSeguindo();
-  montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).then(() => atualizarAlta()).catch((e) => console.warn("Flash:", e));
+  montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).catch((e) => console.warn("Flash:", e));
   // Puxar para atualizar (como no Instagram): no Diário lê de novo as publicações e a fileira do Flash; no Explorar, tudo.
   ligarPuxar({ aoAtualizar: () => (aba === "explorar" ? recarregarExplorar() : Promise.all([atualizarDiario(), atualizarBarraFlash()])) });
   conferirDeTempos(conferirNovasPublicacoes, 120000);

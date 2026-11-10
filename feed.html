@@ -39,10 +39,10 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=87" />
+  <link rel="stylesheet" href="rede.css?v=88" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="feed.js?v=173"></script>
+  <script type="module" src="feed.js?v=174"></script>
 </head>
 <body>
   <header class="topo">
@@ -78,11 +78,11 @@
             <a href="comunidade.html" class="atalho-classe comunidade" style="background-image:url('comunidade.svg')"><span class="ic"><svg class="i s"><use href="#i-comunidade"/></svg></span><strong>Comunidade</strong><small>Doações, trocas e quartos</small></a>
             </div>
             <section class="exp-sec exp-alta" id="secAlta" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic fogo" aria-hidden="true">🔥</span>Em alta no Help Floripa</h2><small>Top 20 de hashtags e lugares das publicações e dos flashes</small></div>
+              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic fogo" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.6 2.2c.4 3-1.2 4.6-2.6 6.1-1.5 1.6-3 3.2-3 6.1A5.9 5.9 0 0 0 12.9 20a5.8 5.8 0 0 0 6-5.9c0-2.6-1.3-4.4-2.4-5.7-.2 1.5-.9 2.6-2 3.2.4-3.6-.6-7.3-1.9-9.4zM12 21.8a2.8 2.8 0 0 1-2.8-2.8c0-1.6 1.3-2.4 2-3.6.4 1 1.2 1.4 1.9 1.4.4.6.7 1.3.7 2.2a2.8 2.8 0 0 1-1.8 2.8z"/></svg></span>Em alta no Help Floripa</h2><small>Top 20 de hashtags e lugares das publicações</small></div>
               <div class="exp-alta-corpo" id="exploraTags"></div>
             </section>
             <section class="exp-sec exp-hall" id="secHall" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic coroa" aria-hidden="true">👑</span>Hall da fama</h2><small>Quem mais recebeu estrelas nos últimos 7 dias</small></div>
+              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic coroa" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 18l1.6-10 4.9 4.2L12 5l2.5 7.2L19.4 8 21 18z"/><rect x="3" y="19" width="18" height="2.4" rx="1.2" fill="currentColor"/></svg></span>Hall da fama</h2><small>Quem mais brilhou com as estrelas da comunidade</small></div>
               <div id="exploraHall"></div>
             </section>
             <section class="exp-sec" id="secEnquetes" hidden>
@@ -109,13 +109,13 @@
               <div class="exp-grade" id="gradePostsPerto"></div>
             </section>
             <section class="exp-sec" id="secSugestoes" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas da sua rede e da sua cidade</small></div>
-              <div class="exp-sug" id="exploraSugestoes"></div>
+              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas da sua rede, da sua cidade e quem está online</small></div>
+              <div id="exploraSugestoes"></div>
             </section>
           </div>
-          <h2 class="titulo-sec" id="titPessoas">Ativos recentemente</h2>
+          <h2 class="titulo-sec" id="titPessoas" hidden>Resultados</h2>
           <div class="filtros-grade abas-busca" id="abasBusca" role="tablist" aria-label="Resultados da busca" hidden></div>
-          <div class="cartao" style="padding:6px" id="listaPessoas"></div>
+          <div class="cartao" style="padding:6px" id="listaPessoas" hidden></div>
         </section>
       </div>
       <aside class="lateral some-mobile" aria-label="Atalhos">

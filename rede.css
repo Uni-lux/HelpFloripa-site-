@@ -3620,3 +3620,58 @@ body.modo-lugar #storiesFeed, body.modo-lugar #filtroFeed { display: none !impor
 .tp-grade { margin: 0 -16px; border-radius: 0; }
 .tp-hero, .tp-sec { max-width: 760px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 @media (min-width: 760px) { .tp-grade { margin: 0; border-radius: 16px; } }
+
+/* ===== Sugestões para você (Explorar e no meio do Diário, 10/11/2026) ===== */
+.sug-trilho { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; scroll-padding: 2px; scrollbar-width: none; overscroll-behavior-x: contain; }
+.sug-trilho::-webkit-scrollbar { display: none; }
+.sug-poucas { display: grid; gap: 8px; }
+.sug-cartao, .sug-linha { position: relative; background: var(--panel); border: 1px solid var(--line); transition: opacity .2s, transform .2s; }
+.sug-cartao.saindo, .sug-linha.saindo { opacity: 0; transform: scale(.92); }
+.sug-cartao { flex: 0 0 156px; display: flex; flex-direction: column; align-items: center; padding: 0 12px 12px; border-radius: 20px; overflow: hidden; text-align: center; scroll-snap-align: start; }
+.sug-capa { align-self: stretch; margin: 0 -12px; height: 58px; background: center / cover no-repeat var(--panel-2); }
+.sug-capa.vazia { background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 62%), linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--panel-2)), var(--panel-2)); }
+.sug-foto { position: relative; flex: none; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.sug-cartao .sug-foto { margin-top: -34px; }
+.sug-cartao .sug-foto .avatar { width: 68px; height: 68px; font-size: 22px; box-shadow: 0 0 0 3px var(--panel); }
+.sug-on { position: absolute; right: 2px; bottom: 2px; width: 14px; height: 14px; border-radius: 50%; background: #2fbf71; box-shadow: 0 0 0 3px var(--panel); }
+.sug-nome { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin-top: 8px; font-size: 14px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.sug-selo { flex: none; color: var(--accent); }
+.sug-nick { max-width: 100%; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sug-motivo { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; margin: 9px 0 11px; padding: 3px 9px 3px 4px; border-radius: 999px; background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--muted); font-size: 11.5px; font-weight: 800; }
+.sug-motivo > span:last-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sug-motivo > .i { flex: none; margin-left: 3px; }
+.sug-motivo.segue, .sug-motivo.rede { color: var(--accent); background: color-mix(in srgb, var(--accent) 11%, transparent); }
+.sug-motivo.online { color: #2fbf71; background: rgba(47, 191, 113, .12); }
+.sug-mini.avatar { flex: none; width: 18px; height: 18px; font-size: 8px; }
+.sug-pt { flex: none; width: 8px; height: 8px; margin-left: 4px; border-radius: 50%; background: #2fbf71; box-shadow: 0 0 0 3px rgba(47, 191, 113, .2); }
+.sug-cartao .btn { width: 100%; justify-content: center; margin-top: auto; }
+.sug-cartao .sug-tirar { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0, 0, 0, .38); color: #fff; backdrop-filter: blur(6px); }
+.sug-linha { display: flex; align-items: center; gap: 12px; padding: 12px 10px 12px 12px; border-radius: 18px; }
+.sug-linha .sug-foto .avatar { width: 54px; height: 54px; font-size: 18px; }
+.sug-linha .sug-tx { flex: 1; min-width: 0; display: grid; justify-items: start; }
+.sug-linha .sug-nome { margin-top: 0; }
+.sug-linha .sug-motivo { margin: 5px 0 0; }
+.sug-linha .sug-tirar { position: static; flex: none; width: 30px; height: 30px; }
+/* No Diário: um bloco entre as publicações, como no Instagram */
+.feed-sug { margin: 6px 0 14px; padding: 14px 0 6px; border-radius: 20px; background: color-mix(in srgb, var(--accent) 4%, var(--panel)); border: 1px solid var(--line); }
+.feed-sug-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px 10px; }
+.feed-sug-topo strong { font-size: 15px; }
+.feed-sug-topo small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+.feed-sug-topo button { flex: none; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13.5px; font-weight: 900; cursor: pointer; }
+.feed-sug .sug-trilho { padding: 2px 14px 10px; scroll-padding: 14px; }
+.feed-sug .sug-poucas { padding: 0 12px 8px; }
+.feed-sug .sug-cartao, .feed-sug .sug-linha { background: var(--panel); }
+/* Em alta: foto do assunto, estrelas e selo Novo */
+.alta-ic.foto { position: relative; background: center / cover no-repeat var(--panel-2); }
+.alta-ic-selo { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #00adee, #0068a8); box-shadow: 0 0 0 2px var(--panel); }
+.alta-ic.lugar .alta-ic-selo { background: linear-gradient(135deg, #ff5d73, #c0234a); }
+.alta-ic.foto { color: transparent; }
+.alta-est { display: inline-flex; align-items: center; gap: 2px; color: #ffc72c; font-weight: 800; }
+.alta-est .i { fill: currentColor; }
+.alta-tend.novo { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.exp-tit-ic svg { width: 18px; height: 18px; display: block; }
+.exp-tit-ic.fogo { color: #ff8a2a; } .exp-tit-ic.coroa { color: #ffc72c; }
+/* Hall da fama: abas, pódio com poucos e a melhor publicação ao lado */
+.hall-abas { margin-bottom: 4px; }
+.hall-podio.poucos { grid-template-columns: repeat(auto-fit, minmax(0, 150px)); justify-content: center; }
+.hall-capa { flex: none; width: 40px; height: 40px; border-radius: 10px; background: center / cover no-repeat var(--panel-2); border: 1px solid var(--line); }
