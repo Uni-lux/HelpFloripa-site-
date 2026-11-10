@@ -2165,10 +2165,30 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+## PRÓXIMO TRABALHO: novo card das classes no lugar da Comunidade (pedido dele em 10/11/2026)
+- **Regras publicadas por ele em 10/11/2026** (as 17 partes de `_regras/`, 817 testes). Os "não publicadas" acima valem só
+  como histórico. Lembrar: "Recalcular estrelas" no painel e os índices de `_regras/INDICES-LEIA-ME.md`. Regra nova daqui em
+  diante volta a precisar de publicação manual (acumular em `firestore.rules` e entregar em partes).
+- Pedido dele (10/11): "O card de comunidade dos cards de negócios vai ser substituído por outro ramo (encontre outro ramo
+  para substituir, potencialmente bom, com muito fluxo)". A Comunidade agora vive só na aba da rede (rede.html, Mural; PR #187),
+  então o 6º cartão das classes (Início `index.html`/inicio.js, topo das vitrines `.classe-link`, Explorar `.exp-classes`,
+  painel do anunciante em negocios.html com 6 lugares 3+3, menu.js, rodapés "Explorar") fica livre.
+- Recomendação dada: **Automotivo / Veículos** (oficinas, mecânicos, auto elétrica, funilaria, lava-jato/estética automotiva,
+  borracharia, guincho, autopeças, venda/aluguel de veículos) — muito fluxo de busca, ticket recorrente, combina com
+  Perto de você e com os planos. Alternativas: Ofertas (promoções dos assinantes, sem regra nova), Eventos, Aulas e cursos.
+  **Confirmar com ele qual ramo antes de começar** (ele ainda não escolheu).
+- Implementação esperada (seguir o padrão de Saúde, PR #75): tipo novo de negócio (`tipo: "automotivo"` ou o escolhido) em
+  `negocios` → MUDA REGRAS (regex de tipos em `negocios`, `negociosFlashOk` `^uid_(servicos|delivery|lojinha|imoveis)$`,
+  `planos.tipos`, estatísticas `neg_stats`, programa_banidos); página `{tipo}.html` + `vitrine.js?tipo=X` (v à mão), arte
+  `{tipo}-arte.svg` (`scripts/arte/gerar-artes.py`), cor própria (não repetir as das classes: servicos #00adee, delivery
+  #ff7a1a, lojinha #b066ff, imoveis #2fbf71, saude #0fb5a6, comunidade #e5487f), `GRUPOS`/áreas com palavras de busca,
+  filtros (`FILTROS`, `GRUPOS_FILTRO`), Meus negócios (`NOMES_PERFIL`/`TIPOS_PERFIL` em planos-base.js, cartão de criar),
+  link curto `/@nick/{tipo}`, sitemap, Ajuda/Termos, testes (`t-saude-comunidade.mjs` como modelo). Identidade visual não muda.
+
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (17 partes em `_regras/`, 817 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. ~~Publicar as regras~~ (FEITO por ele em 10/11/2026) (17 partes em `_regras/`, 817 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
