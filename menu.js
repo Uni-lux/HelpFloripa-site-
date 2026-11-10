@@ -99,6 +99,8 @@ const ICONES_MENU = {
   sair: '<path d="M14 4.5h4.5a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5H14M10 16l-4-4 4-4M6 12h9.5"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   seta: '<path d="M9 5l7 7-7 7"/>',
+  entregas: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  volante: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2"/><path d="M3.8 10.5l6.3 1M13.9 11.5l6.3-1M12 14v6.5"/>',
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   feed: '<rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/>',
   sino: '<path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/>',
@@ -121,7 +123,8 @@ const SECOES_MENU = [
     ["imoveis.html", "imoveis", "Imóveis", "#2fbf71"],
     ["saude.html", "saude", "Saúde", "#0fb5a6"],
     ["automotivo.html", "automotivo", "Automotivo", "#f5b301"],
-    ["comunidade.html", "comunidade", "Comunidade", "#e5487f"]
+    ["comunidade.html", "comunidade", "Comunidade", "#e5487f"],
+    ["entregas.html", "entregas", "Entregas e corridas", "#f5b301", null, "Envie algo ou peça um carro e acompanhe no mapa"]
   ]],
   ["Minha conta", [
     ["feed.html", "feed", "Diário"],
@@ -134,7 +137,8 @@ const SECOES_MENU = [
   ["Para quem anuncia", [
     ["negocios.html", "maleta", "Meus negócios"],
     ["negocios.html?planos=1", "selo", "Planos", "#fab219", null, "Plus, Pro e Premium · 30 dias grátis na 1ª assinatura"],
-    ["profissionais.html", "servicos", "Como anunciar"]
+    ["profissionais.html", "servicos", "Como anunciar"],
+    ["entregador.html", "volante", "Seja entregador", null, null, "Entregas e corridas pelo Help Floripa"]
   ]],
   ["Ajuda e suporte", [
     ["ajuda.html", "ajuda", "Central de Ajuda"],

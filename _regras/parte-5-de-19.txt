@@ -51,7 +51,7 @@
       allow list: if admin();
       allow create, update: if podeModerar()
                     && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade', 'entregas']
                     && id == request.resource.data.uid + '_' + request.resource.data.tipo
                     && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
                     && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
@@ -173,4 +173,4 @@
                     && contextoOk()
                     && textoAte('ultimaMensagem', 200);
 
-// ===== FIM DA PARTE 5 DE 17 =====
+// ===== FIM DA PARTE 5 DE 19 =====

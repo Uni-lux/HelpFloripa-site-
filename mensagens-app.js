@@ -1,4 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
+import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
 import "./sem-menu-imagem.js?v=5";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
@@ -760,6 +761,7 @@ function resumoMensagem(m) {
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao, m.remetenteId === eu?.uid);
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "entrega") return (m.cartao.servico === "corrida" ? "Corrida: " : "Entrega: ") + String(m.cartao.titulo || "").replace(/^(Entrega|Corrida):?\s*/, "").slice(0, 60);
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") return `Pix${Number(m.cartao.valor) > 0 ? ": " + reais(m.cartao.valor) : ""}`;
   if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
   if (m.tipoArquivo === "cartao" && m.cartao?.status) return `Pedido: ${(infoStatus(m.cartao.tipo, m.cartao.status) || [0, "status atualizado"])[1]}`;
@@ -782,7 +784,7 @@ const PREVIAS = [
 ];
 const PREVIAS_TIPO = [
   [/^Foto$/, "imagem"], [/^Figurinha$/, "figurinha"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
-  [/^Pix\b/, "pix"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
+  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
   [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
 ];
 function previaLista(texto) {
@@ -2299,6 +2301,9 @@ function criarLinhaMensagem(m, data, primeira) {
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") {
     bolha.classList.add("cartao-msg", "chamada-msg");
     bolha.appendChild(cartaoChamada(m.cartao, m.remetenteId === eu.uid));
+  } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "entrega") {
+    bolha.classList.add("cartao-msg", "entrega-msg");
+    bolha.appendChild(cartaoEntrega(m.cartao, m.remetenteId === eu.uid));
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") {
     bolha.classList.add("cartao-msg", "pix-msg");
     bolha.appendChild(cartaoPix(m.cartao, m.remetenteId === eu.uid));
@@ -3270,7 +3275,16 @@ async function abrirAnexar() {
   op("local", "Localização", "#22c55e", enviarLocalizacao, "Onde estou agora");
   op("casa", "Endereço", "#f59e0b", usarMeuEndereco, "O seu, salvo");
   op("pix", "Pix", "#32bcad", abrirCartaoPix, "Cobrar ou receber");
+  // Entregas e corridas (entregas.html): enviar algo para esta pessoa (ela acompanha e recebe o PIN) ou pedir um carro.
+  const outro = ativa.equipe ? "" : ativa.outroId || "";
+  op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
+  op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
   corpo.appendChild(grade);
+  // A pessoa é entregador/motorista no Help Floripa: chamar direto.
+  if (outro) fb.getDoc(fb.doc(fb.db, "entregadores", outro)).then((d) => {
+    if (!d.exists() || d.data().status !== "ativo" || !grade.isConnected) return;
+    op("carro", `Chamar ${String(ativa.nome || "").split(" ")[0] || "entregador"}`, "#2fbf71", () => irParaTopo(`entregas.html?entregador=${encodeURIComponent(outro)}`), d.data().servicos?.includes("corrida") ? "Entrega ou corrida" : "Para uma entrega");
+  }).catch(() => {});
   // Cartões de negócio: o meu (para mandar a quem conversa) e os da pessoa (para pedir sem sair daqui).
   const sec = elm("div", "pv-sec"); sec.appendChild(elm("h4", null, "Negócios"));
   const g2 = elm("div", "ax-grade");
@@ -3359,6 +3373,37 @@ async function coordDe(texto) {
 const reaisPix = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 // Golpe comum: cobrar "em nome do Help Floripa" pelo chat. Os planos se pagam só na tela de Planos.
 const fingeHelpFloripa = (c) => /help\s*floripa/i.test(`${c?.nome || ""} ${c?.descricao || ""}`) || String(c?.chave || "").replace(/\D/g, "") === "61935934000100";
+// Entregas e corridas: cartão com o andamento (lido do pedido; quem não tem acesso vê só o que veio no cartão).
+function irParaTopo(url) { try { (window.top || window).location.href = url; } catch { location.href = url; } }
+function cartaoEntrega(c, minha) {
+  const box = elm("div", "en");
+  const corrida = c.servico === "corrida";
+  const cab = elm("div", "en-cab");
+  const ic = elm("span", "en-ic"); ic.appendChild(usar(corrida ? "carro" : "pacote", "i"));
+  const papel = c.papel === "entregador" ? (minha ? "Você chamou para levar" : "Chamado para você levar") : minha ? (corrida ? "Você pediu uma corrida" : "Você enviou uma entrega") : (corrida ? "Corrida" : "Entrega para você");
+  const t = elm("div"); t.append(elm("small", null, papel), elm("b", null, String(c.titulo || (corrida ? "Corrida" : "Entrega")).slice(0, 80)));
+  cab.append(ic, t);
+  const rota = elm("div", "en-rota");
+  rota.append(elm("i"), elm("span", null, String(c.de || "").slice(0, 80)), elm("i", "b"), elm("span", null, String(c.para || "").slice(0, 80)));
+  const st = elm("div", "en-st"); st.textContent = c.papel === "entregador" && Number(c.valor) > 0 ? `Oferta: ${reaisEnt(c.valor)}` : "";
+  const barra = elm("div", "en-passos");
+  const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
+  const link = elm("a", "en-btn"); link.href = !id ? "entregas.html" : c.papel === "entregador" && !minha ? "entregador.html" : `entregas.html?id=${id}`;
+  link.textContent = c.papel === "entregador" && !minha ? "Abrir o painel do entregador" : "Acompanhar no mapa";
+  link.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); irParaTopo(link.getAttribute("href")); });
+  box.append(cab, rota, st, barra, link);
+  if (id) fb.getDoc(fb.doc(fb.db, "corridas", id)).then((d) => {
+    if (!d.exists()) return;
+    const x = d.data();
+    st.textContent = statusEntrega(x) + (x.entregador?.nome && x.status !== "procurando" ? ` · ${x.entregador.nome.split(" ")[0]}` : "");
+    st.dataset.status = entregaExpirada(x) ? "expirada" : x.status;
+    if (x.status !== "cancelada" && !entregaExpirada(x)) {
+      const n = passoEntrega(x.status);
+      barra.replaceChildren(...ETAPAS_ENTREGA[corrida ? "corrida" : "entrega"].map((_, i) => elm("i", i < n || x.status === "concluida" ? "feito" : i === n ? "agora" : "")));
+    }
+  }).catch(() => {});
+  return box;
+}
 function cartaoPix(c, minha) {
   const box = elm("div", "px");
   if (fingeHelpFloripa(c)) box.appendChild(elm("p", "px-golpe", "Cuidado: o Help Floripa nunca cobra pelo chat. Planos só se pagam em Meus negócios → Planos. Não pague este Pix e denuncie a conversa."));

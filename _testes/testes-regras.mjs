@@ -1319,6 +1319,105 @@ await t("e-mail da conta: não grava o de outra pessoa", () => assertFails(setDo
 await t("e-mail da conta: cadastro com o e-mail de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "ana@t.com" })));
 await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSucceeds(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "novoEmail@t.com" })));
 
+// ===================== Entregas e corridas =====================
+{
+  const db0 = (fn) => semRegras(fn);
+  await db0(async (db) => {
+    for (const u of ["cli", "moto1", "moto2", "carro1", "semVerif", "dest"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: u !== "semVerif" });
+    await setDoc(doc(db, "entregadores", "moto2"), { uid: "moto2", nome: "Moto 2", servicos: ["entrega", "corrida"], veiculo: "moto", modelo: "CG", cor: "Preta", placa: "ABC1D23", cnh: "A", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo });
+    await setDoc(doc(db, "entregadores", "carro1"), { uid: "carro1", nome: "Carro 1", servicos: ["entrega"], veiculo: "carro", modelo: "Gol", cor: "Branco", placa: "XYZ9876", cnh: "B", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo });
+  });
+  const cad = (extra) => ({ uid: "moto1", nome: "Moto 1", servicos: ["entrega", "corrida"], veiculo: "moto", modelo: "Honda CG 160", cor: "Vermelha", placa: "QWE1R23", cnh: "A", cidade: "Florianópolis", uf: "SC", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("entregador: conta sem verificação não se cadastra", () => assertFails(setDoc(doc(ctx("semVerif"), "entregadores", "semVerif"), cad({ uid: "semVerif" }))));
+  await t("entregador: recusa placa inválida", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ placa: "AB-123" }))));
+  await t("entregador: recusa sem as declarações", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ declaracoes: { maior: true } }))));
+  await t("entregador: bike não faz corrida", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "" }))));
+  await t("entregador: bike sem placa faz entrega", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "", servicos: ["entrega"] }))));
+  await t("entregador: apaga o próprio cadastro", () => assertSucceeds(deleteDoc(doc(ctx("moto1"), "entregadores", "moto1"))));
+  await t("entregador: cadastro de moto completo", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad())));
+  await t("entregador: não se cadastra no lugar de outra pessoa", () => assertFails(setDoc(doc(ctx("cli"), "entregadores", "moto1"), cad())));
+  await t("entregador: não se suspende/desuspende sozinho", () => assertFails(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "suspenso", atualizadoEm: serverTimestamp() })));
+  await t("entregador: pausar", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "pausado", atualizadoEm: serverTimestamp() })));
+  await t("entregador: voltar a ativo", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
+  const online = (uid, extra) => ({ uid, lat: -27.595, lng: -48.548, geo4: "6gkz", geo5: "6gkzm", veiculo: "moto", servicos: ["entrega"], ocupado: false, em: serverTimestamp(), ...extra });
+  await t("online: entregador ativo fica online", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1"))));
+  await t("online: quem não é entregador não fica online", () => assertFails(setDoc(doc(ctx("cli"), "entregadores_online", "cli"), online("cli"))));
+  await t("online: veículo tem que ser o do cadastro", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { veiculo: "carro" }))));
+  await t("online: geo5 tem que começar com o geo4", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { geo5: "6gkym" }))));
+  await t("online: quem pede lista os entregadores perto", () => assertSucceeds(getDocs(query(collection(ctx("cli"), "entregadores_online"), where("geo4", "in", ["6gkz", "6gky"])))));
+
+  const ponto = (lat, lng, nome) => ({ lat, lng, nome, sub: "Centro · Florianópolis" });
+  const pedido = (extra) => ({ servico: "entrega", modalidade: "entrega_moto", veiculo: "moto", clienteId: "cli", clienteNome: "Cli", origem: ponto(-27.595, -48.548, "Rua A, 10"), destino: ponto(-27.6, -48.52, "Rua B, 20"), km: 4.2, min: 12, valor: 15, valorSugerido: 14.5, pagamento: "pix", pacote: { tamanho: "P", oque: "Documentos" }, status: "procurando", paraId: "", destinatarioId: "dest", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "entrega", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  const criar = (db, id, extra, pin = "1234") => { const b = writeBatch(db); b.set(doc(db, "corridas", id), pedido(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin }); b.set(doc(db, "corridas", id, "privado", "contato"), { nome: "Dest", telefone: "48999990000", obs: "Apto 302" }); return b.commit(); };
+  await t("pedido: cria com PIN e contato na mesma gravação", () => assertSucceeds(criar(ctx("cli"), "pedidoEntrega01")));
+  await t("pedido: sem o PIN é recusado", () => assertFails(setDoc(doc(ctx("cli"), "corridas", "pedidoSemPin01"), pedido())));
+  await t("pedido: não cria em nome de outra pessoa", () => assertFails(criar(ctx("cli"), "pedidoOutro0001", { clienteId: "dest" })));
+  await t("pedido: veículo tem que bater com a modalidade", () => assertFails(criar(ctx("cli"), "pedidoVeic00001", { veiculo: "carro" })));
+  await t("pedido: valor abaixo do mínimo", () => assertFails(criar(ctx("cli"), "pedidoBarato001", { valor: 1 })));
+  await t("pedido: corrida não leva pacote", () => assertFails(criar(ctx("cli"), "pedidoCorrPac01", { servico: "corrida", modalidade: "corrida_moto", pinEm: "embarque" })));
+  await t("pedido: corrida de carro (PIN no embarque)", () => assertSucceeds(criar(ctx("cli"), "pedidoCorrida01", { servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", pacote: null, pinEm: "embarque", destinatarioId: "" }, "4321")));
+  await t("pedido: PIN no lugar errado (entrega com PIN no embarque)", () => assertFails(criar(ctx("cli"), "pedidoPinErr001", { pinEm: "embarque" })));
+  await t("pedido: ponto fora do Brasil", () => assertFails(criar(ctx("cli"), "pedidoFora00001", { destino: ponto(48.8, 2.3, "Paris") })));
+  await t("pedido: direcionado a quem não é entregador", () => assertFails(criar(ctx("cli"), "pedidoPara00001", { paraId: "dest" })));
+  await t("pedido: direcionado a um entregador ativo", () => assertSucceeds(criar(ctx("cli"), "pedidoPara00002", { paraId: "moto2", raioKm: 40 })));
+  await t("pedido: sem e-mail confirmado não pede", () => assertFails(criar(ctx("cli", false), "pedidoSemEmail1")));
+  await t("PIN: quem pede lê", () => assertSucceeds(getDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01", "privado", "pin"))));
+  await t("PIN: quem recebe lê", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01", "privado", "pin"))));
+  await t("PIN: o entregador NÃO lê", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "pin"))));
+  await t("PIN: ninguém troca depois", () => assertFails(setDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01", "privado", "pin"), { pin: "0000" })));
+  await t("pedido: entregadores listam os pedidos perto", () => assertSucceeds(getDocs(query(collection(ctx("moto1"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", ""), where("geo4", "in", ["6gkz"])))));
+  await t("pedido: quem não é entregador não lista os pedidos", () => assertFails(getDocs(query(collection(ctx("dest"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", ""), where("geo4", "in", ["6gkz"])))));
+  await t("pedido: o direcionado só aparece para quem foi chamado", () => assertSucceeds(getDocs(query(collection(ctx("moto2"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", "moto2")))));
+  await t("pedido: outro entregador não lê o direcionado", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoPara00002"))));
+  await t("contato: entregador não lê antes de aceitar", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
+  await t("pedido: quem pede aumenta a oferta e o raio", () => assertSucceeds(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 18, raioKm: 10, atualizadoEm: serverTimestamp() })));
+  await t("pedido: não diminui a oferta", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 10, atualizadoEm: serverTimestamp() })));
+  const ent = (extra) => ({ nome: "Moto 1", veiculo: "moto", modelo: "Honda CG 160", cor: "Vermelha", placa: "QWE1R23", ...extra });
+  const aceitar = (uid, id, extra) => updateDoc(doc(ctx(uid), "corridas", id), { status: "aceita", entregadorId: uid, aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: ent(extra) });
+  await t("aceitar: carro não aceita pedido de moto", () => assertFails(aceitar("carro1", "pedidoEntrega01", { veiculo: "carro", placa: "XYZ9876", modelo: "Gol", cor: "Branco" })));
+  await t("aceitar: não mostra outra placa", () => assertFails(aceitar("moto1", "pedidoEntrega01", { placa: "AAA1111" })));
+  await t("aceitar: quem pede não aceita o próprio", () => assertFails(aceitar("cli", "pedidoEntrega01")));
+  await t("aceitar: moto aceita", () => assertSucceeds(aceitar("moto1", "pedidoEntrega01")));
+  await t("aceitar: outro não aceita depois", () => assertFails(aceitar("moto2", "pedidoEntrega01", { nome: "Moto 2", modelo: "CG", cor: "Preta", placa: "ABC1D23" })));
+  await t("contato: o entregador do pedido lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
+  await t("posição: o entregador manda a posição ao vivo", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 90, vel: 8, em: serverTimestamp() } })));
+  await t("posição: quem pede não mexe na posição", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
+  await t("posição: recusa ponto fora do Brasil", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: 40, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
+  await t("etapa: não pula para entregue", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "1234" })));
+  await t("etapa: cheguei na coleta", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "chegou", chegouEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("etapa: coletei (entrega não pede PIN aqui)", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("etapa: quem pede não cancela depois que saiu", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { status: "cancelada", canceladaPor: "cliente", motivo: "x", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("etapa: PIN errado não finaliza a entrega", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "9999" })));
+  await t("etapa: PIN certo finaliza a entrega", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "1234" })));
+  await t("quem recebe acompanha o pedido", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01"))));
+  await t("outra pessoa não vê o pedido", () => assertFails(getDoc(doc(ctx("moto2"), "corridas", "pedidoEntrega01"))));
+  const avaliar = (db, nota, notas) => { const b = writeBatch(db); b.update(doc(db, "corridas", "pedidoEntrega01"), { avaliacao: { nota, elogios: ["Rápido"], texto: "Ótimo", em: serverTimestamp() } }); b.set(doc(db, "entregadores_notas", "moto1"), notas); return b.commit(); };
+  await t("avaliação: nota no resumo tem que ser a mesma", () => assertFails(avaliar(ctx("cli"), 5, { soma: 50, n: 1, ultima: "pedidoEntrega01" })));
+  await t("avaliação: sem o resumo junto é recusada", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { avaliacao: { nota: 5, elogios: [], texto: "", em: serverTimestamp() } })));
+  await t("avaliação: quem pediu avalia (com o resumo)", () => assertSucceeds(avaliar(ctx("cli"), 5, { soma: 5, n: 1, ultima: "pedidoEntrega01" })));
+  await t("avaliação: só uma vez", () => assertFails(avaliar(ctx("cli"), 4, { soma: 9, n: 2, ultima: "pedidoEntrega01" })));
+  await t("avaliação: o entregador avalia quem pediu", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { avaliacaoEntregador: { nota: 5, em: serverTimestamp() } })));
+  await t("notas: ninguém sobe a própria nota", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_notas", "moto1"), { soma: 100, n: 20, ultima: "pedidoEntrega01" })));
+  // corrida: PIN no embarque, desistir e cancelar
+  await t("corrida: moto não aceita corrida de carro", () => assertFails(aceitar("moto1", "pedidoCorrida01")));
+  await semRegras((db) => setDoc(doc(db, "entregadores", "carro2"), { uid: "carro2", nome: "Carro 2", servicos: ["entrega", "corrida"], veiculo: "carro", modelo: "Onix", cor: "Prata", placa: "BRA2E19", cnh: "B", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo }));
+  const entC = { nome: "Carro 2", veiculo: "carro", modelo: "Onix", cor: "Prata", placa: "BRA2E19" };
+  await t("corrida: carro aceita", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "aceita", entregadorId: "carro2", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: entC })));
+  await t("corrida: desistir volta a procurar", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "procurando", entregadorId: "", entregador: deleteField(), aceitaEm: deleteField(), desistencias: 1, atualizadoEm: serverTimestamp() })));
+  await t("corrida: aceita de novo", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "aceita", entregadorId: "carro2", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: entC })));
+  await t("corrida: chegou", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "chegou", chegouEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("corrida: motorista não cancela antes de 5 minutos esperando", () => assertFails(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "cancelada", canceladaPor: "entregador", motivo: "Não apareceu", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("corrida: sem PIN não inicia a viagem", () => assertFails(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("corrida: PIN do passageiro inicia a viagem", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "4321" })));
+  await t("corrida: finaliza sem PIN", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("pedido: quem pede cancela enquanto procura", () => assertSucceeds(updateDoc(doc(ctx("cli"), "corridas", "pedidoPara00002"), { status: "cancelada", canceladaPor: "cliente", motivo: "Mudei de planos", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("pedido: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("cli"), "corridas", "pedidoPara00002"))));
+  await t("pedido: quem pede lista o histórico", () => assertSucceeds(getDocs(query(collection(ctx("cli"), "corridas"), where("clienteId", "==", "cli"), orderBy("criadoEm", "desc"), limit(30)))));
+  await t("pedido: entregador lista o trabalho ativo", () => assertSucceeds(getDocs(query(collection(ctx("moto1"), "corridas"), where("entregadorId", "==", "moto1"), where("status", "in", ["aceita", "chegou", "em_rota"])))));
+  await t("programa: moderação bane das entregas", () => assertSucceeds(setDoc(doc(ctx("adm"), "programa_banidos", "moto2_entregas"), { uid: "moto2", tipo: "entregas", motivo: "Golpe", ate: null, por: "adm", em: serverTimestamp() })));
+  await t("programa: banido das entregas não muda o cadastro", () => assertFails(updateDoc(doc(ctx("moto2"), "entregadores", "moto2"), { modelo: "Outra", atualizadoEm: serverTimestamp() })));
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

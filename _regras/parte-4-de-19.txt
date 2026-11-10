@@ -210,4 +210,4 @@
             && [a.get('tipo', ''), a.get('data', ''), a.get('local', '')].join('\n')
                  .matches('^(perdido|encontrado)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,80}$');
       }
-// ===== FIM DA PARTE 4 DE 17 =====
+// ===== FIM DA PARTE 4 DE 19 =====
