@@ -3736,3 +3736,95 @@ body.modo-lugar .fab-criar { display: none; }
 .hall-base, .hall-lugar.p1 .hall-base { background: var(--panel); border-color: var(--line); }
 .hall-est, .hall-est .i { color: var(--text); }
 .hall-voce { background: var(--panel); border-color: var(--line); }
+
+/* =====================================================================================================
+   Abas da rede (Diário, Explorar, Comunidade, Perfil) em preto, como no X (10/11/2026, pedido dele):
+   fundo #000, painéis #111 (identidade da marca), linhas discretas; topo e barra de baixo em preto translúcido.
+   Só no tema escuro e só nas páginas com a barra de baixo (#barraRede).
+   ===================================================================================================== */
+:root[data-theme="dark"]:has(#barraRede) {
+  --bg: #000000; --panel: #111111; --panel-2: #181a1c; --hover: #1d1f22; --line: #26292d;
+  --input: #16181c; --tile: #16181c; --muted: #8b949c; --soft: rgba(255, 255, 255, .05);
+}
+:root[data-theme="dark"]:has(#barraRede) .topo { background: rgba(0, 0, 0, .82); border-bottom-color: #1e2124; }
+:root[data-theme="dark"]:has(#barraRede) .barra-rede { background: rgba(0, 0, 0, .9); border-color: #26292d; }
+
+/* =====================================================================================================
+   Explorar com luzes de LED (10/11/2026, pedido dele): cada classe com uma luz na cor dela embaixo do nome e no ícone;
+   Em alta com filtro Brasil/estado/cidade, setas de quem subiu (verde) e caiu (vermelho), estrelas douradas e Top 100;
+   Hall da fama sóbrio (cartão do líder + ranking em linhas).
+   ===================================================================================================== */
+#exploraConteudo .atalho-classe strong { position: relative; padding-bottom: 8px; }
+#exploraConteudo .atalho-classe strong::after { content: ""; position: absolute; left: 0; bottom: 0; width: 28px; height: 3px; border-radius: 3px;
+  background: var(--c); box-shadow: 0 0 4px var(--c), 0 0 12px color-mix(in srgb, var(--c) 70%, transparent); }
+#exploraConteudo .atalho-classe .ic { color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 35%, transparent); }
+#exploraConteudo .atalho-classe .ic .i { filter: drop-shadow(0 0 3px var(--c)); }
+
+.alta-filtros { display: flex; align-items: center; gap: 8px; margin: 2px 0 12px; min-width: 0; }
+.esc-seg, .alta-tipos { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); min-width: 0; }
+.alta-tipos { margin-left: auto; flex: none; }
+.esc-seg button, .alta-tipos button { height: 28px; padding: 0 11px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 800;
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; display: inline-grid; place-items: center; }
+.alta-tipos button { padding: 0 9px; min-width: 32px; }
+.esc-seg button[aria-selected="true"], .alta-tipos button[aria-selected="true"] { background: var(--text); color: var(--bg); }
+.alta-tipos button:disabled { opacity: .35; cursor: default; }
+.alta-item { position: relative; overflow: hidden; }
+.alta-item::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: transparent; }
+.alta-item.sobe::before { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+.alta-item.cai::before { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+.alta-col { flex: none; width: 34px; display: grid; justify-items: center; gap: 2px; }
+.alta-col .alta-pos { width: auto; }
+.alta-mov { font-size: 10.5px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; color: var(--muted); }
+.alta-mov.sobe { color: #22c55e; } .alta-mov.cai { color: #ef4444; }
+.alta-mov.novo { color: var(--accent); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+.alta-item.top1 .alta-pos { color: #ffd54a; text-shadow: 0 0 10px rgba(255, 200, 40, .65); }
+.alta-item.top2 .alta-pos { color: #e4ecf2; text-shadow: 0 0 10px rgba(228, 236, 242, .45); }
+.alta-item.top3 .alta-pos { color: #ff9d5c; text-shadow: 0 0 10px rgba(255, 140, 70, .5); }
+:root[data-theme="light"] .alta-item.top2 .alta-pos { color: #7d8b97; text-shadow: none; }
+:root[data-theme="light"] .alta-item.top1 .alta-pos { color: #d29a00; }
+.alta-est { color: #f5b700; font-weight: 800; }
+.alta-tend.sobe { color: #22c55e; } .alta-tend.sobe::before { content: "▲ "; font-size: 9px; }
+.alta-tend.cai { background: none; padding: 0; font-weight: 800; color: #ef4444; } .alta-tend.cai::before { content: "▼ "; font-size: 9px; }
+.alta-vazio { margin: 0; padding: 16px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); font-size: 13.5px; text-align: center; }
+
+.hall-filtros { flex-wrap: wrap; }
+.hall-filtros .alta-abas { margin: 0; }
+.hall-lider { position: relative; overflow: hidden; width: 100%; display: grid; gap: 14px; padding: 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.hall-lider::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; background: linear-gradient(90deg, transparent, #f5c542, transparent); box-shadow: 0 0 12px #f5c542; }
+@media (hover: hover) { .hall-lider:hover { border-color: var(--muted); } }
+.hl-faixa { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.hl-coroa { width: 18px; height: 18px; color: #f5c542; filter: drop-shadow(0 0 4px rgba(245, 197, 66, .6)); }
+.hl-coroa svg { width: 100%; height: 100%; display: block; }
+.hl-pos { margin-left: auto; font-size: 22px; font-weight: 900; letter-spacing: -.02em; color: #f5c542; text-shadow: 0 0 10px rgba(245, 197, 66, .5); }
+.hl-topo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.hl-av { width: 60px; height: 60px; flex: none; font-size: 20px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px #f5c542; }
+.hl-quem { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.hl-quem strong { font-size: 18px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-quem small { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-capa { width: 56px; height: 56px; flex: none; border-radius: 12px; background: center / cover no-repeat var(--panel-2); border: 1px solid var(--line); }
+.hl-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-top: 12px; border-top: 1px solid var(--line); }
+.hl-num { display: grid; gap: 2px; text-align: center; min-width: 0; }
+.hl-num + .hl-num { border-left: 1px solid var(--line); }
+.hl-num b { display: inline-flex; align-items: center; justify-content: center; gap: 3px; font-size: 17px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.hl-num b .i { width: 14px; height: 14px; color: #f5b700; fill: currentColor; }
+.hl-num small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hall-resto { list-style: none; margin: 10px 0 0; padding: 0; display: block; border: 1px solid var(--line); border-top: 1px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden; }
+.hall-resto li + li { border-top: 1px solid var(--line); }
+.hall-linha { width: 100%; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 0; border-radius: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+@media (hover: hover) { .hall-linha:hover { background: var(--hover); } }
+.hall-linha.eu { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.hall-n { width: 20px; flex: none; text-align: center; font-weight: 900; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hall-linha.p2 .hall-n { color: #e4ecf2; text-shadow: 0 0 8px rgba(228, 236, 242, .45); }
+.hall-linha.p3 .hall-n { color: #ff9d5c; text-shadow: 0 0 8px rgba(255, 140, 70, .45); }
+:root[data-theme="light"] .hall-linha.p2 .hall-n { color: #7d8b97; text-shadow: none; }
+.hall-linha .avatar { width: 40px; height: 40px; flex: none; font-size: 13px; }
+.hall-tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.hall-tx strong { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hall-tx small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hall-barra { display: block; height: 3px; margin-top: 4px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+.hall-barra i { display: block; height: 100%; border-radius: 3px; background: var(--accent); opacity: .85; }
+.hall-est { flex: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 850; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+.hall-est .i { color: #f5b700; fill: currentColor; }
+.hall-voce { margin: 10px 0 0; padding: 11px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); font-weight: 750; font-size: 13.5px; }
+.hall-voce.lider { border-left-color: #f5c542; }

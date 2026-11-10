@@ -163,6 +163,13 @@ function aplicarTema(tema) {
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = escuro ? "#0f161b" : "#ffffff";
   gaveta?.querySelectorAll("[data-tema]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tema === tema ? "true" : "false"));
 }
+// Tema trocado em outra aba/página: esta acompanha (sem gravar de novo).
+addEventListener("storage", (e) => {
+  if (e.key !== "hf-chat-config") return;
+  const tema = temaAtual(), escuro = tema === "escuro" || (tema === "sistema" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = escuro ? "dark" : "light";
+  gaveta?.querySelectorAll("[data-tema]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tema === tema ? "true" : "false"));
+});
 function montarGaveta() {
   const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
   const fundo = el("div", "gaveta-fundo");

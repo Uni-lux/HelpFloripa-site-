@@ -30,6 +30,7 @@ await db.doc("stories/eaFlash").set({ autorId: U.bruno, nome: "Bruno", tipo: "fo
   toques: ["h|festivalexp|0.5|0.3|0.3|0.06", `l|${LAGOA.nome}|${LAGOA.lat}|${LAGOA.lng}|0.5|0.6|0.4|0.06`] });
 
 const A = await navegador({ mobile: true });
+await A.ctx.addInitScript(() => { try { localStorage.setItem("hf-busca-local", JSON.stringify({ uf: "SC", cidade: "Florianópolis", cidadeIbge: 4205407 })); localStorage.setItem("hf-local-manual", "1"); } catch {} });
 const p = await entrar(A.ctx, "ana", "feed.html?aba=explorar");
 if (process.env.CLARO !== "1") await p.emulateMedia({ colorScheme: "dark" });
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
@@ -45,16 +46,24 @@ await p.waitForTimeout(300);
 ok(!(await p.locator("#exploraTags .alta-item strong").allTextContents()).includes("#festivalexp"), "hashtag só das figurinhas do flash NÃO conta no Em alta");
 const lagoaMeta = await p.locator("#exploraTags .alta-item", { hasText: "Lagoa da Conceição" }).locator("small").textContent();
 ok(/3 publicações/.test(lagoaMeta) && !/flash/.test(lagoaMeta), "lugar conta só as publicações: " + lagoaMeta);
-await p.locator("#exploraTags .alta-abas button", { hasText: "Lugares" }).click(); await p.waitForTimeout(200);
+await p.locator('#exploraTags .alta-tipos button[aria-label="Lugares"]').click(); await p.waitForTimeout(200);
 ok((await p.locator("#exploraTags .alta-item .alta-ic.tag").count()) === 0, "aba Lugares só com lugares");
-await p.locator("#exploraTags .alta-abas button", { hasText: "Tudo" }).click(); await p.waitForTimeout(200);
+await p.locator('#exploraTags .alta-tipos button[aria-label="Tudo"]').click(); await p.waitForTimeout(200);
+// Filtro Brasil / estado / cidade e setas de posição (10/11/2026)
+const esc = await p.locator("#exploraTags .esc-seg button").allTextContents();
+ok(esc[0] === "Brasil" && esc.length >= 2, "filtro compacto Brasil / estado / cidade: " + esc.join(" · "));
+ok((await p.locator("#exploraTags .alta-item .alta-mov").count()) > 0, "cada assunto mostra quanto subiu ou caiu");
+ok(await p.locator("#exploraTags .alta-est").first().evaluate((e) => getComputedStyle(e).color) === "rgb(245, 183, 0)", "estrelas em dourado");
+await p.locator("#exploraTags .esc-seg button").nth(1).click(); await p.waitForTimeout(300);
+ok(await p.locator("#exploraTags .esc-seg button").nth(1).getAttribute("aria-selected") === "true", "troca para o estado");
+await p.locator("#exploraTags .esc-seg button").first().click(); await p.waitForTimeout(300);
 await p.locator("#secAlta").scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
 await p.screenshot({ path: "saida/ea-01-em-alta.png" });
 // Hall da fama
-await p.waitForSelector("#secHall:not([hidden]) .hall-lugar.p1", { timeout: 15000 });
-const primeiro = await p.locator(".hall-lugar.p1 .hall-nome").textContent();
-ok(/Bruno/.test(primeiro) && await p.locator(".hall-lugar.p1 .hall-coroa").count() === 1, "1º do Hall da fama com coroa: " + primeiro);
-ok(await p.locator(".hall-lugar.p2").count() === 1 && await p.locator(".hall-lugar.p3").count() === 1, "2º (prata) e 3º (bronze)");
+await p.waitForSelector("#secHall:not([hidden]) .hall-lider", { timeout: 15000 });
+const primeiro = await p.locator(".hall-lider .hl-quem strong").textContent();
+ok(/Bruno/.test(primeiro) && await p.locator(".hall-lider .hl-coroa").count() === 1 && await p.locator(".hall-lider .hl-num").count() === 4, "1º do Hall da fama no cartão do líder, com coroa e números: " + primeiro);
+ok(await p.locator(".hall-linha.p2").count() === 1 && await p.locator(".hall-linha.p3").count() === 1 && await p.locator(".hall-linha .hall-barra i").count() >= 2, "2º e 3º em linhas com barra");
 await p.locator("#secHall").scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
 await p.screenshot({ path: "saida/ea-02-hall.png" });
 // página da hashtag

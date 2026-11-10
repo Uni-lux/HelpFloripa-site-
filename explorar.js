@@ -320,8 +320,34 @@ export async function abrirExplorar() {
 // mais pessoas usando = nota maior, assunto de uma pessoa só vale menos. "Subindo" = mais uso nas últimas 24 h do que no dia
 // anterior; "Novo" = apareceu nas últimas 24 h e já tem 2 pessoas. Hashtags iguais sem acento e lugares a menos de 800 m
 // viram um assunto só. Nada inventado: só dados do próprio site.
-const ALTA_MAX = 20;
-let assuntos = [], filtroAlta = "tudo", altaAberta = false;
+const ALTA_MAX = 100;
+let assuntos = [], filtroAlta = "tudo", altaVer = 5;
+// Onde contar (Em alta e Hall da fama): Brasil, o estado ou a cidade (lugar escolhido ou a cidade do perfil), pela região
+// gravada na publicação (diario.autorUf / autorIbge). Guardado no aparelho.
+let escopoAlta = (() => { try { return localStorage.getItem("hf-alta-escopo") || "brasil"; } catch { return "brasil"; } })();
+const regiaoNome = () => {
+  const l = lugarEscolhido(), r = regiaoEu();
+  const cid = String((l.uf ? l.cidade : dados.cidade) || "").split("/")[0].trim();
+  return { uf: r.uf, ibge: r.cidadeIbge, cidade: cid };
+};
+const doEscopo = (p, esc, r) => (esc === "estado" ? !!r.uf && p.autorUf === r.uf : esc === "cidade" ? !!r.ibge && Number(p.autorIbge) === r.ibge : true);
+function seletorEscopo() {
+  const r = regiaoNome();
+  const ops = [["brasil", "Brasil"], ...(r.uf ? [["estado", r.uf]] : []), ...(r.ibge ? [["cidade", r.cidade || "Cidade"]] : [])];
+  if (!ops.some(([k]) => k === escopoAlta)) escopoAlta = "brasil";
+  const w = el("div", "esc-seg"); w.setAttribute("role", "tablist"); w.setAttribute("aria-label", "Onde contar");
+  ops.forEach(([k, nome]) => {
+    const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(escopoAlta === k));
+    b.title = k === "brasil" ? "Nacional" : k === "estado" ? "Estadual" : "Municipal";
+    b.addEventListener("click", () => {
+      if (escopoAlta === k) return;
+      escopoAlta = k; try { localStorage.setItem("hf-alta-escopo", k); } catch {}
+      altaVer = 5; pintarAlta(listaAlta); pintarHall();
+    });
+    w.appendChild(b);
+  });
+  return w;
+}
 const chaveLugar = (nome) => semAcento(String(nome || "").split(",")[0]).trim();
 // Figurinhas tocáveis do flash: "h|tag|x|y|w|h" e "l|nome|lat|lng|x|y|w|h" (só para "Nos flashes agora" da página do assunto).
 function toquesDoFlash(f) {
@@ -334,8 +360,8 @@ function toquesDoFlash(f) {
   return { tags, lugares };
 }
 const flashesDaPagina = () => { try { return flashesCarregados().filter((f) => !escondido(f.autorId) && !silenciado(f.autorId)); } catch { return []; } };
-function contarAssuntos(lista) {
-  const m = new Map(), agora = Date.now(), reg = regiaoEu(), lugares = [];
+function contarAssuntos(lista, agora = Date.now()) {
+  const m = new Map(), reg = regiaoEu(), lugares = [];
   const somar = (k, base, p, nomeVisto) => {
     let x = m.get(k);
     if (!x) { x = { ...base, k, n: 0, hoje: 0, ontem: 0, notas: 0, primeiro: agora, porAutor: new Map(), formas: new Map(), capa: "", capaW: -1 }; m.set(k, x); }
@@ -379,46 +405,70 @@ const posicaoEmAlta = (k, local) => {
 };
 let listaAlta = [];
 export function atualizarAlta() { if (listaAlta.length) pintarAlta(listaAlta); }
+// Lista: posição com luz (1º, 2º, 3º), quanto subiu ou caiu desde ontem (mesma conta feita só com as publicações de até
+// 24 h atrás), tendência (Subindo / Caindo pelo uso de hoje × ontem), estrelas em dourado e "Ver o Top 20 / 100".
 function pintarAlta(lista) {
   listaAlta = lista;
   assuntos = contarAssuntos(lista);
   const sec = $("secAlta");
   sec.hidden = !assuntos.length;
   if (!assuntos.length) return;
-  const temLugar = assuntos.some((x) => x.tipo === "lugar"), temTag = assuntos.some((x) => x.tipo === "tag");
+  const r = regiaoNome(), agora = Date.now();
+  const escopo = seletorEscopo();
+  const base = escopoAlta === "brasil" ? lista : lista.filter((p) => doEscopo(p, escopoAlta, r));
+  const atuais = escopoAlta === "brasil" ? assuntos : contarAssuntos(base, agora);
+  const ontem = contarAssuntos(base.filter((p) => (ms(p.criadoEm) || agora) <= agora - DIA), agora - DIA);
+  const posOntem = new Map(ontem.slice(0, ALTA_MAX).map((x, i) => [x.k, i + 1]));
+  const temLugar = atuais.some((x) => x.tipo === "lugar"), temTag = atuais.some((x) => x.tipo === "tag");
   if (filtroAlta !== "tudo" && !(filtroAlta === "tag" ? temTag : temLugar)) filtroAlta = "tudo";
-  const filtrados = assuntos.filter((x) => filtroAlta === "tudo" || x.tipo === filtroAlta).slice(0, ALTA_MAX);
-  const abas = el("div", "alta-abas"); abas.setAttribute("role", "tablist");
-  [["tudo", "Tudo"], ["tag", "Hashtags"], ["lugar", "Lugares"]].filter(([k]) => k === "tudo" || (k === "tag" ? temTag : temLugar)).forEach(([k, nome]) => {
-    const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(filtroAlta === k));
-    b.addEventListener("click", () => { filtroAlta = k; pintarAlta(lista); });
-    abas.appendChild(b);
+  const filtrados = atuais.filter((x) => filtroAlta === "tudo" || x.tipo === filtroAlta).slice(0, ALTA_MAX);
+  const tipos = el("div", "alta-tipos"); tipos.setAttribute("role", "tablist"); tipos.setAttribute("aria-label", "Tipo");
+  [["tudo", "Tudo", null], ["tag", "Hashtags", "hashtag"], ["lugar", "Lugares", "local"]].forEach(([k, nome, ic]) => {
+    const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(filtroAlta === k));
+    b.title = nome; b.setAttribute("aria-label", nome);
+    if (ic) b.appendChild(icone(ic, "i xs")); else b.textContent = "Tudo";
+    b.disabled = k !== "tudo" && !(k === "tag" ? temTag : temLugar);
+    b.addEventListener("click", () => { filtroAlta = k; altaVer = 5; pintarAlta(lista); });
+    tipos.appendChild(b);
   });
-  const ol = el("ol", "alta-lista" + (altaAberta ? " aberta" : ""));
-  filtrados.forEach((x, i) => {
+  const barra = el("div", "alta-filtros"); barra.append(escopo, tipos);
+  const ol = el("ol", "alta-lista aberta");
+  filtrados.slice(0, altaVer).forEach((x, i) => {
+    const pos = i + 1, antes = posOntem.get(x.k), delta = antes ? antes - pos : null;
+    const caindo = (delta !== null && delta <= -1) || (x.ontem >= 2 && x.hoje < x.ontem * 0.6);
+    const subindo = (delta !== null && delta >= 1) || x.subindo;
     const li = el("li");
-    const b = el("button", "alta-item" + (i < 3 ? " top" + (i + 1) : "")); b.type = "button";
-    b.setAttribute("aria-label", `${i + 1}º em alta: ${nomeAssunto(x)}, ${metaAssunto(x)}`);
-    const pos = el("span", "alta-pos", String(i + 1));
+    const b = el("button", "alta-item" + (pos <= 3 ? " top" + pos : "") + (subindo && !caindo ? " sobe" : caindo ? " cai" : "")); b.type = "button";
+    const mov = delta === null ? "novo na lista" : delta > 0 ? `subiu ${delta}` : delta < 0 ? `caiu ${-delta}` : "mesma posição";
+    b.setAttribute("aria-label", `${pos}º em alta: ${nomeAssunto(x)}, ${metaAssunto(x)}, ${mov}`);
+    const col = el("span", "alta-col");
+    col.appendChild(el("span", "alta-pos", String(pos)));
+    const m = el("span", "alta-mov " + (delta === null ? "novo" : delta > 0 ? "sobe" : delta < 0 ? "cai" : "igual"),
+      delta === null ? "novo" : delta > 0 ? "▲" + delta : delta < 0 ? "▼" + -delta : "–");
+    col.appendChild(m);
     const ic = el("span", "alta-ic " + x.tipo);
-    if (x.capa) { ic.classList.add("foto"); ic.style.backgroundImage = `url("${x.capa}")`; const s = el("span", "alta-ic-selo"); s.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i xs")); ic.appendChild(s); }
+    if (x.capa) { ic.classList.add("foto"); ic.style.backgroundImage = `url("${x.capa}")`; const sl = el("span", "alta-ic-selo"); sl.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i xs")); ic.appendChild(sl); }
     else ic.appendChild(icone(x.tipo === "tag" ? "hashtag" : "local", "i s"));
     const meta = el("small"); meta.appendChild(document.createTextNode(metaAssunto(x)));
     if (x.notas) { const e = el("span", "alta-est"); e.append(icone("estrela", "i xs"), document.createTextNode(numeroCurto(x.notas))); meta.append(document.createTextNode(" · "), e); }
     const tx = el("span", "alta-tx"); tx.append(el("strong", null, nomeAssunto(x)), meta);
-    b.append(pos, ic, tx);
-    if (x.novo) b.appendChild(el("span", "alta-tend novo", "Novo"));
-    else if (x.subindo) b.appendChild(el("span", "alta-tend sobe", "↑ Subindo"));
+    b.append(col, ic, tx);
+    if (caindo) b.appendChild(el("span", "alta-tend cai", "Caindo"));
+    else if (subindo && delta !== null) b.appendChild(el("span", "alta-tend sobe", "Subindo"));
     b.addEventListener("click", () => abrirTopico(x.tipo === "tag" ? { tag: x.nome } : { local: { nome: x.nome, lat: x.lat, lng: x.lng } }));
     li.appendChild(b); ol.appendChild(li);
   });
-  const corpo = [abas, ol];
-  if (filtrados.length > 5) {
-    const mais = el("button", "alta-mais", altaAberta ? "Mostrar menos" : `Ver o Top ${filtrados.length}`); mais.type = "button";
-    mais.addEventListener("click", () => { altaAberta = !altaAberta; pintarAlta(lista); if (!altaAberta) sec.scrollIntoView({ block: "start", behavior: "smooth" }); });
+  const corpo = [barra];
+  if (!filtrados.length) corpo.push(el("p", "alta-vazio", `Ainda não há hashtags ou lugares em alta ${escopoAlta === "cidade" ? "em " + (r.cidade || "sua cidade") : "em " + r.uf} nos últimos dias.`));
+  else corpo.push(ol);
+  const n = filtrados.length;
+  const prox = altaVer < 20 && n > 5 ? Math.min(20, n) : altaVer < 100 && n > 20 ? Math.min(100, n) : 0;
+  if (prox || altaVer > 5) {
+    const mais = el("button", "alta-mais", prox ? `Ver o Top ${prox}` : "Mostrar menos"); mais.type = "button";
+    mais.addEventListener("click", () => { altaVer = prox || 5; pintarAlta(lista); if (!prox) sec.scrollIntoView({ block: "start", behavior: "smooth" }); });
     corpo.push(mais);
   }
-  corpo.push(el("p", "alta-nota", "Pelas hashtags e lugares das publicações dos últimos dias: conta quantas pessoas usam, as estrelas que receberam e se está crescendo, com peso maior para a sua região. Os flashes não entram na contagem."));
+  corpo.push(el("p", "alta-nota", "Pelas hashtags e lugares das publicações dos últimos dias: conta quantas pessoas usam, as estrelas que receberam e se está crescendo. As setas comparam com a posição de 24 horas atrás. Os flashes não entram na contagem."));
   $("exploraTags").replaceChildren(...corpo);
 }
 
@@ -449,6 +499,8 @@ function rankingHall(lista, aba) {
   return aba === "media" ? lst.filter((x) => x.total >= 5).sort((a, b) => b.bayes - a.bayes || b.total - a.total)
     : lst.sort((a, b) => b.soma - a.soma || b.media - a.media || b.posts - a.posts);
 }
+// Visual (10/11/2026, pedido dele "profissional e elegante, como no X"): cartão do líder (coroa discreta, foto, @, números e a
+// melhor publicação), do 2º ao 10º em linhas com barra proporcional ao líder e estrela dourada; filtro Brasil/estado/cidade.
 async function pintarHall(lista = listaHall) {
   listaHall = lista;
   const sec = $("secHall"); if (!sec) return;
@@ -456,55 +508,72 @@ async function pintarHall(lista = listaHall) {
   sec.hidden = !abas.length;
   if (!abas.length) return;
   if (!abas.some(([k]) => k === abaHall)) abaHall = abas[0][0];
-  const ranking = rankingHall(lista, abaHall);
+  const r = regiaoNome();
+  const base = escopoAlta === "brasil" ? lista : lista.filter((p) => doEscopo(p, escopoAlta, r));
+  const ranking = rankingHall(base, abaHall);
   const top = ranking.slice(0, 10);
   const perfis = new Map(await Promise.all(top.map((x) => perfilHall(x.uid).then((pp) => [x.uid, pp || {}]))));
   const nomeDe = (x) => perfis.get(x.uid)?.nome || x.nome || "Usuário";
+  const nickDe = (x) => perfis.get(x.uid)?.nickname || "";
   const virg = (n) => n.toFixed(1).replace(".", ",");
-  const valor = (x) => (abaHall === "media" ? virg(x.media) : numeroCurto(x.soma));
-  const detalhe = (x) => (abaHall === "media" ? plural(x.total, "nota", "notas") : `média ${virg(x.media)}`);
-  const COROA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.6-10 4.9 4.2L12 5l2.5 7.2L19.4 8 21 18z" fill="currentColor"/><rect x="3" y="19" width="18" height="2.4" rx="1.2" fill="currentColor"/></svg>';
-  const lugar = (x, i) => {
-    const pp = perfis.get(x.uid) || {};
-    const b = el("button", "hall-lugar p" + (i + 1)); b.type = "button"; b.setAttribute("aria-label", `${i + 1}º lugar: ${nomeDe(x)}, ${valor(x)} ${abaHall === "media" ? "de média" : "estrelas"}`);
-    const av = el("div", "avatar"); pintarAvatar(av, pp.fotoPerfil || x.foto, nomeDe(x));
-    const fr = el("div", "hall-foto"); fr.appendChild(av);
-    if (i === 0) { const c = el("span", "hall-coroa"); c.innerHTML = COROA; fr.appendChild(c); }
-    fr.appendChild(el("span", "hall-medalha", String(i + 1)));
-    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(valor(x)));
-    b.append(fr, el("strong", "hall-nome", nomeDe(x).split(" ").slice(0, 2).join(" ")), est, el("small", null, detalhe(x)), el("span", "hall-base"));
-    b.addEventListener("click", () => ganchos.abrirPerfil(x.uid));
-    return b;
-  };
+  const ehMedia = abaHall === "media";
+  const valor = (x) => (ehMedia ? virg(x.media) : numeroCurto(x.soma));
+  const medida = (x) => (ehMedia ? x.bayes : x.soma);
+  const estrela = (x) => { const e = el("span", "hall-est"); e.append(icone("estrela", "i xs"), document.createTextNode(valor(x))); return e; };
+  const COROA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.6-10 4.9 4.2L12 5l2.5 7.2L19.4 8 21 18z" fill="currentColor"/></svg>';
   const tabs = el("div", "alta-abas hall-abas"); tabs.setAttribute("role", "tablist");
   abas.forEach(([k, nome]) => {
     const b = el("button", null, nome); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(abaHall === k));
     b.addEventListener("click", () => { abaHall = k; pintarHall(); });
     tabs.appendChild(b);
   });
-  const podio = el("div", "hall-podio" + (top.length < 3 ? " poucos" : ""));
-  [1, 0, 2].forEach((i) => { if (top[i]) podio.appendChild(lugar(top[i], i)); });
-  const resto = el("ol", "hall-resto"); resto.start = 4;
-  top.slice(3).forEach((x, k) => {
-    const pp = perfis.get(x.uid) || {};
-    const li = el("li"); const b = el("button", "hall-linha"); b.type = "button";
-    const av = el("div", "avatar"); pintarAvatar(av, pp.fotoPerfil || x.foto, nomeDe(x));
-    const tx = el("span", "hall-tx"); tx.append(el("strong", null, nomeDe(x)), el("small", null, [detalhe(x), plural(x.posts, "publicação", "publicações")].join(" · ")));
-    const est = el("span", "hall-est"); est.append(icone("estrela", "i xs"), document.createTextNode(valor(x)));
-    b.append(el("span", "hall-n", String(k + 4)), av, tx, est);
-    if (x.capa) { const t = el("span", "hall-capa"); t.style.backgroundImage = `url("${x.capa}")`; b.appendChild(t); }
-    b.addEventListener("click", () => ganchos.abrirPerfil(x.uid));
-    li.appendChild(b); resto.appendChild(li);
-  });
-  const corpo = [tabs, podio];
-  if (resto.children.length) corpo.push(resto);
+  const filtros = el("div", "alta-filtros hall-filtros"); filtros.append(seletorEscopo(), tabs);
+  const corpo = [filtros];
+  if (!top.length) {
+    corpo.push(el("p", "alta-vazio", `Ninguém recebeu estrelas ${escopoAlta === "cidade" ? "em " + (r.cidade || "sua cidade") : "em " + r.uf} neste período.`));
+    $("exploraHall").replaceChildren(...corpo); return;
+  }
+  // Líder
+  const l = top[0], ppl = perfis.get(l.uid) || {};
+  const lider = el("button", "hall-lider"); lider.type = "button";
+  lider.setAttribute("aria-label", `1º lugar: ${nomeDe(l)}, ${valor(l)} ${ehMedia ? "de média" : "estrelas"}`);
+  const faixa = el("span", "hl-faixa"); const cr = el("span", "hl-coroa"); cr.innerHTML = COROA;
+  faixa.append(cr, el("span", null, ehMedia ? "Melhor média" : abaHall === "hoje" ? "Destaque de hoje" : "Destaque da semana"), el("span", "hl-pos", "1º"));
+  const av = el("div", "avatar hl-av"); pintarAvatar(av, ppl.fotoPerfil || l.foto, nomeDe(l));
+  const quem = el("span", "hl-quem"); quem.append(el("strong", null, nomeDe(l)), el("small", null, nickDe(l) ? "@" + nickDe(l) : plural(l.posts, "publicação", "publicações")));
+  const linha = el("span", "hl-topo"); linha.append(av, quem);
+  if (l.capa) { const t = el("span", "hl-capa"); t.style.backgroundImage = `url("${l.capa}")`; linha.appendChild(t); }
+  const nums = el("span", "hl-nums");
+  const num = (v, n, est) => { const c = el("span", "hl-num"); const b = el("b"); if (est) b.appendChild(icone("estrela", "i xs")); b.appendChild(document.createTextNode(v)); c.append(b, el("small", null, n)); return c; };
+  nums.append(num(numeroCurto(l.soma), "estrelas", true), num(virg(l.media), "média"), num(String(l.total), l.total === 1 ? "nota" : "notas"), num(String(l.posts), l.posts === 1 ? "publicação" : "publicações"));
+  lider.append(faixa, linha, nums);
+  lider.addEventListener("click", () => ganchos.abrirPerfil(l.uid));
+  corpo.push(lider);
+  // 2º ao 10º
+  if (top.length > 1) {
+    const resto = el("ol", "hall-resto"); resto.start = 2;
+    const maior = medida(l) || 1;
+    top.slice(1).forEach((x, k) => {
+      const pp = perfis.get(x.uid) || {}, pos = k + 2;
+      const li = el("li"); const b = el("button", "hall-linha" + (pos <= 3 ? " p" + pos : "") + (x.uid === eu.uid ? " eu" : "")); b.type = "button";
+      b.setAttribute("aria-label", `${pos}º lugar: ${nomeDe(x)}, ${valor(x)} ${ehMedia ? "de média" : "estrelas"}`);
+      const a = el("div", "avatar"); pintarAvatar(a, pp.fotoPerfil || x.foto, nomeDe(x));
+      const tx = el("span", "hall-tx");
+      tx.append(el("strong", null, nomeDe(x)), el("small", null, [nickDe(x) ? "@" + nickDe(x) : "", ehMedia ? plural(x.total, "nota", "notas") : `média ${virg(x.media)}`].filter(Boolean).join(" · ")));
+      const barra = el("span", "hall-barra"); const f = el("i"); f.style.width = Math.max(6, Math.round((medida(x) / maior) * 100)) + "%"; barra.appendChild(f); tx.appendChild(barra);
+      b.append(el("span", "hall-n", String(pos)), a, tx, estrela(x));
+      b.addEventListener("click", () => ganchos.abrirPerfil(x.uid));
+      li.appendChild(b); resto.appendChild(li);
+    });
+    corpo.push(resto);
+  }
   const minha = ranking.findIndex((x) => x.uid === eu.uid);
-  if (minha === 0) corpo.push(el("p", "hall-voce", "Você é o 1º lugar! A coroa é sua."));
-  else if (minha > 0 && abaHall !== "media") {
+  if (minha === 0) corpo.push(el("p", "hall-voce lider", "Você está em 1º lugar."));
+  else if (minha > 0 && !ehMedia) {
     const falta = ranking[minha - 1].soma - ranking[minha].soma + 1;
-    corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º lugar · faltam ${plural(falta, "estrela", "estrelas")} para o ${minha}º.`));
-  } else if (minha > 0) corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º lugar na melhor média.`));
-  corpo.push(el("p", "alta-nota", abaHall === "media" ? "Média das notas com pelo menos 5 notas recebidas nos últimos 7 dias; quem tem poucas notas fica perto de 3,5 até ter mais."
+    corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º · faltam ${plural(falta, "estrela", "estrelas")} para o ${minha}º.`));
+  } else if (minha > 0) corpo.push(el("p", "hall-voce", `Você está em ${minha + 1}º na melhor média.`));
+  corpo.push(el("p", "alta-nota", ehMedia ? "Média das notas com pelo menos 5 notas recebidas nos últimos 7 dias; quem tem poucas notas fica perto de 3,5 até ter mais."
     : `Pela soma das estrelas recebidas nas publicações ${abaHall === "hoje" ? "das últimas 24 horas" : "dos últimos 7 dias"}. De cada pessoa contam as 5 publicações com mais estrelas.`));
   $("exploraHall").replaceChildren(...corpo);
 }
