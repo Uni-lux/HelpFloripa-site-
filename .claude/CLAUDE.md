@@ -2029,6 +2029,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   os 5 tipos sempre (zero esmaecido) + Ordenar Recentes | Mais perto (`#muOrdem`) numa barra fixa; cartão com "Novo" (<24 h) e
   distância na foto; vazio com Doar/Pedir/Trocar, "Ver em todo o Brasil" e "Convidar alguém". perto.js: "1000 m" virou "1 km".
   Testes `t-explorar-alta.mjs` (19), `t-mural-novo.mjs` (14).
+  **Sem emojis na Comunidade (pedido dele, mesmo PR):** `iconeCom(k)` em comunidade-cartao.js (SVG de traço: presente, setas,
+  mão, cama, lupa, coração) no lugar de `CAT_COM.emoji` (removido) no Mural (tipos, filtros, etiquetas, foto sem imagem, Perto de
+  você, vazio) e nos cartões `.cm-mini` do Início/Explorar.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

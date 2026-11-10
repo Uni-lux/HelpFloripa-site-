@@ -8,7 +8,7 @@
 import { ligarPuxar } from "./puxar-atualizar.js?v=2";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
 import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=135";
-import { CAT_COM, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
+import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps, salvarLocal, marcarManual } from "./local-escolhido.js?v=3";
@@ -52,7 +52,7 @@ function pintarTipos() {
   const w = $("muTipos"); w.replaceChildren();
   Object.entries(CAT_COM).forEach(([k, c]) => {
     const a = el("a", "mu-tipo"); a.href = link(k); a.style.setProperty("--cc", c.cor);
-    const bola = el("span", "mu-tipo-em", c.emoji);
+    const bola = el("span", "mu-tipo-em"); bola.appendChild(iconeCom(k));
     a.append(bola, el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica));
     w.appendChild(a);
   });
@@ -79,7 +79,7 @@ function pintarFiltros() {
     const b = el("button", "mu-chip"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.k = k;
     b.setAttribute("aria-selected", String(k === filtro));
     if (!n && k !== filtro) b.classList.add("zero");
-    if (k) { b.style.setProperty("--cc", CAT_COM[k].cor); b.append(el("span", "mu-chip-em", CAT_COM[k].emoji)); }
+    if (k) { b.style.setProperty("--cc", CAT_COM[k].cor); const ic = el("span", "mu-chip-em"); ic.appendChild(iconeCom(k)); b.append(ic); }
     b.append(document.createTextNode(nome), el("small", null, String(n)));
     b.addEventListener("click", () => { filtro = k; mostrados = POR_VEZ; pintarFiltros(); pintarLista(); });
     w.appendChild(b);
@@ -112,7 +112,7 @@ function cartao(a) {
   const onde = [a.bairro, a.cidade].filter(Boolean).join(", ");
   const dist = Number.isFinite(a._km) && a._km !== Infinity ? textoDistancia(a._km, a._aprox) : "";
   quem.append(linha, el("small", null, [dist, onde, haQuanto(a.atualizadoEm || a.criadoEm)].filter(Boolean).join(" · ")));
-  const tag = el("span", "mu-tag"); tag.append(el("span", null, c.emoji), document.createTextNode(c.nome));
+  const tag = el("span", "mu-tag"); tag.append(iconeCom(a.categoria), document.createTextNode(c.nome));
   cab.append(av, quem, tag);
   if (Date.now() - ms(a.criadoEm || a.atualizadoEm) < 24 * 3600e3) art.classList.add("novo");
   art.appendChild(cab);
@@ -129,7 +129,7 @@ function cartao(a) {
     if (dist) f.appendChild(el("span", "mu-dist", dist));
     corpo.appendChild(f);
   } else {
-    const f = el("div", "mu-foto sem"); f.append(el("span", "mu-foto-em", c.emoji), el("span", "mu-selo", selo(a)));
+    const f = el("div", "mu-foto sem"); const ic = el("span", "mu-foto-em"); ic.appendChild(iconeCom(a.categoria)); f.append(ic, el("span", "mu-selo", selo(a)));
     if (dist) f.appendChild(el("span", "mu-dist", dist));
     corpo.appendChild(f);
   }
@@ -157,16 +157,18 @@ function vazio() {
   const v = el("div", "mu-vazio");
   const c = filtro ? CAT_COM[filtro] : null, l = lerLocal();
   if (termo) {
-    v.append(el("span", "mu-vazio-em", "🔍"), el("strong", null, `Nada com “${termo}” por aqui`), el("p", null, "Tente outra palavra ou publique um pedido: quem tiver pode oferecer."));
+    const icB = el("span", "mu-vazio-em"); icB.appendChild(iconeCom("busca"));
+    v.append(icB, el("strong", null, `Nada com “${termo}” por aqui`), el("p", null, "Tente outra palavra ou publique um pedido: quem tiver pode oferecer."));
     const b = el("button", "mu-acao", "Limpar a busca"); b.type = "button"; b.addEventListener("click", () => { termo = ""; $("muBusca").value = ""; pintarTudo(); });
     const p = el("a", "mu-acao sec", "Pedir isso na Comunidade"); p.href = link("pedido");
     const bts = el("div", "mu-vazio-bts"); bts.append(b, p); v.appendChild(bts); return v;
   }
-  v.append(el("span", "mu-vazio-em", c ? c.emoji : "🤝"),
+  const icV = el("span", "mu-vazio-em"); icV.appendChild(iconeCom(filtro || "comunidade"));
+  v.append(icV,
     el("strong", null, c ? `Nenhuma publicação de ${c.plural.toLowerCase()} ${l.uf ? "em " + rotuloLocal(l) : "por aqui"}` : `Ainda não tem publicações ${l.uf ? "em " + rotuloLocal(l) : "por aqui"}`),
     el("p", null, "Seja a primeira pessoa! Quem estiver perto vê a sua publicação e chama você no chat."));
   const atalhos = el("div", "mu-vazio-tipos");
-  ["doacao", "pedido", "troca"].forEach((k) => { const a = el("a", "mu-vazio-tipo"); a.href = link(k); a.style.setProperty("--cc", CAT_COM[k].cor); a.append(el("span", null, CAT_COM[k].emoji), el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica)); atalhos.appendChild(a); });
+  ["doacao", "pedido", "troca"].forEach((k) => { const a = el("a", "mu-vazio-tipo"); a.href = link(k); a.style.setProperty("--cc", CAT_COM[k].cor); const ic = el("span", "mu-vt-ic"); ic.appendChild(iconeCom(k)); a.append(ic, el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica)); atalhos.appendChild(a); });
   v.appendChild(atalhos);
   const bts = el("div", "mu-vazio-bts");
   if (l.uf) { const b = el("button", "mu-acao sec", "Ver em todo o Brasil"); b.type = "button"; b.addEventListener("click", () => { salvarLocal({}); marcarManual(true); trocarLugar(); }); bts.appendChild(b); }
@@ -187,8 +189,8 @@ function pintarPerto() {
     const c = CAT_COM[a.categoria] || CAT_COM.doacao;
     const m = el("a", "mu-mini"); m.href = `comunidade.html?item=${encodeURIComponent(a.id)}&de=mural`; m.style.setProperty("--cc", c.cor);
     const f = el("div", "mu-mini-foto"); const foto = (a.fotos || []).find(fotoOk);
-    if (foto) { const im = new Image(); im.src = foto; im.alt = ""; im.loading = "lazy"; f.appendChild(im); } else f.appendChild(el("span", null, c.emoji));
-    f.appendChild(el("span", "mu-mini-tag", c.emoji + " " + c.nome));
+    if (foto) { const im = new Image(); im.src = foto; im.alt = ""; im.loading = "lazy"; f.appendChild(im); } else { const ic = el("span", "mu-mini-ic"); ic.appendChild(iconeCom(a.categoria)); f.appendChild(ic); }
+    const tg = el("span", "mu-mini-tag"); tg.append(iconeCom(a.categoria), document.createTextNode(c.nome)); f.appendChild(tg);
     m.append(f, el("strong", null, a.titulo || c.nome), el("small", null, textoDistancia(a._km, a._aprox)));
     return m;
   }));

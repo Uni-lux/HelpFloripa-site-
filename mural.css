@@ -157,3 +157,27 @@
   .mu-barra { margin: 0 0 12px; padding: 8px 0; }
 }
 .mu-barra[hidden] { display: none; }
+
+/* Ícones no lugar dos emojis (10/11/2026): desenhados no mesmo traço do site, na cor de cada tipo */
+.ic-com { display: block; flex: none; }
+.mu-tipo-em { width: 44px; height: 44px; border-radius: 14px; color: #fff; font-size: 0;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cc) 82%, #fff), var(--cc) 55%, color-mix(in srgb, var(--cc) 70%, #000));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--cc) 32%, transparent), inset 0 1px 0 rgba(255,255,255,.25); }
+.mu-tipo-em .ic-com { width: 23px; height: 23px; }
+.mu-chip-em { display: inline-grid; place-items: center; color: var(--cc); }
+.mu-chip-em .ic-com { width: 17px; height: 17px; }
+.mu-chip[aria-selected="true"] .mu-chip-em { color: #fff; }
+.mu-tag .ic-com { width: 14px; height: 14px; }
+@media (max-width: 380px) { .mu-tag .ic-com { width: 15px; height: 15px; } }
+.mu-foto-em { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 22px; color: #fff; font-size: 0; filter: none;
+  background: color-mix(in srgb, var(--cc) 55%, transparent); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), 0 12px 28px rgba(0,0,0,.3); }
+.mu-foto-em .ic-com { width: 36px; height: 36px; }
+.mu-vazio-em { color: var(--mu); font-size: 0; }
+.mu-vazio-em .ic-com { width: 36px; height: 36px; }
+.mu-vt-ic { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; color: #fff; background: var(--cc); box-shadow: 0 6px 14px color-mix(in srgb, var(--cc) 30%, transparent); }
+.mu-vt-ic .ic-com { width: 21px; height: 21px; }
+.mu-mini-ic { width: 60px; height: 60px; display: grid; place-items: center; border-radius: 18px; color: #fff; background: color-mix(in srgb, var(--cc) 55%, transparent); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+.mu-mini-ic .ic-com { width: 30px; height: 30px; }
+.mu-mini-tag { display: inline-flex; align-items: center; gap: 4px; }
+.mu-mini-tag .ic-com { width: 13px; height: 13px; }
+.mu-mini-tag { white-space: nowrap; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }

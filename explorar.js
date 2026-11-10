@@ -25,7 +25,7 @@ import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=7";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=3";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
-import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=2";
+import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=3";
 import { combinaPublico, leitorDe } from "./publico-alvo.js?v=1";
 import { lerLocal as lugarEscolhido } from "./local-escolhido.js?v=3";
 import { maisNovo, haNovidade } from "./novidades.js?v=1";
