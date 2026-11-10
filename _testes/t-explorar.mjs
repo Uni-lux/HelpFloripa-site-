@@ -26,7 +26,7 @@ await p.reload(); await p.waitForTimeout(4500);
 
 // Em alta: #confeitaria subindo (2 publicações hoje)
 await p.locator("#exploraTags .alta-mais").click().catch(() => {});
-ok(await p.locator("#exploraTags .alta-item", { hasText: "#confeitaria" }).locator(".alta-tend.sobe").count() === 1, "Em alta: #confeitaria marcada como subindo");
+ok(await p.locator("#exploraTags .alta-item", { hasText: "#confeitaria" }).locator(".alta-tend.sobe, .alta-tend.novo").count() === 1, "Em alta: #confeitaria marcada como nova/subindo");
 // Enquetes abertas: só a que ainda não terminou
 const enqs = await p.locator("#exploraEnquetes .exp-enq").allTextContents();
 ok(enqs.length === 1 && enqs[0].includes("Qual o melhor doce?") && /Termina em 5 h/.test(enqs[0]) && enqs[0].includes("Brigadeiro"), "Enquetes abertas: só a que está aberta, com prazo e opções → " + enqs.join(" | ").slice(0, 90));
@@ -36,14 +36,14 @@ ok((await p.locator("#titNegocios").textContent()) === "Perto de você" && (awai
 const negs = await p.locator("#exploraNegocios .exp-neg strong").allTextContents();
 ok(negs.length >= 3 && !negs.includes("Edu Pinturas"), "negócios: só os de Florianópolis (sem o de São Paulo) → " + negs.join(", "));
 // Sugestões com motivo
-const motivo = async (nome) => (await p.locator("#exploraSugestoes .exp-pessoa", { hasText: nome }).locator(".sug-motivo").textContent().catch(() => "")) || "";
+const motivo = async (nome) => (await p.locator("#exploraSugestoes :is(.sug-cartao, .sug-linha)", { hasText: nome }).locator(".sug-motivo > span:last-child").textContent().catch(() => "")) || "";
 ok((await motivo("Eduardo")) === "Segue você", "sugestão: Edu → \"Segue você\"");
 ok((await motivo("Fabiana")) === "Seguido por Bruno", "sugestão: Fabi → \"Seguido por Bruno\"");
-ok(await p.locator("#exploraSugestoes .exp-pessoa", { hasText: "Eduardo" }).locator("button", { hasText: "Seguir de volta" }).count() === 1, "quem segue você: botão \"Seguir de volta\"");
-const ordemSug = await p.locator("#exploraSugestoes .exp-pessoa strong").allTextContents();
+ok(await p.locator("#exploraSugestoes :is(.sug-cartao, .sug-linha)", { hasText: "Eduardo" }).locator("button", { hasText: "Seguir de volta" }).count() === 1, "quem segue você: botão \"Seguir de volta\"");
+const ordemSug = await p.locator("#exploraSugestoes .sug-nome").allTextContents();
 ok(ordemSug[0].startsWith("Eduardo") && ordemSug[1].startsWith("Fabiana"), "sugestões: os da rede vêm primeiro → " + ordemSug.join(", "));
-await p.locator("#exploraSugestoes .exp-pessoa", { hasText: "Helena" }).locator(".sug-tirar").tap(); await p.waitForTimeout(400);
-ok(await p.locator("#exploraSugestoes .exp-pessoa", { hasText: "Helena" }).count() === 0, "dispensar sugestão tira o cartão");
+await p.locator("#exploraSugestoes :is(.sug-cartao, .sug-linha)", { hasText: "Helena" }).locator(".sug-tirar").tap(); await p.waitForTimeout(400);
+ok(await p.locator("#exploraSugestoes :is(.sug-cartao, .sug-linha)", { hasText: "Helena" }).count() === 0, "dispensar sugestão tira o cartão");
 // Destaques: filtros
 const filtros = await p.locator("#filtrosDestaque button").allTextContents();
 ok(filtros.join(",") === "Tudo,Fotos,Textos", "destaques: filtros só dos tipos que existem → " + filtros.join(","));
@@ -101,7 +101,7 @@ await p.locator("#buscaRecentes .br-tirar").first().tap(); await p.waitForTimeou
 ok(await p.locator("#buscaRecentes .br-usar", { hasText: "faxina" }).count() === 0 && (await p.evaluate(() => localStorage.getItem("hf-buscas"))) === "[]", "X tira a busca da lista (e do aparelho)");
 // Dispensar vale depois de recarregar
 await p.reload(); await p.waitForTimeout(4500);
-ok(await p.locator("#exploraSugestoes .exp-pessoa", { hasText: "Helena" }).count() === 0, "sugestão dispensada continua fora depois de recarregar");
+ok(await p.locator("#exploraSugestoes :is(.sug-cartao, .sug-linha)", { hasText: "Helena" }).count() === 0, "sugestão dispensada continua fora depois de recarregar");
 
 // Tema claro também
 await p.evaluate(() => { document.documentElement.dataset.theme = "light"; });

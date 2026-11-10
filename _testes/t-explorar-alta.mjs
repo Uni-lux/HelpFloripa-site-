@@ -1,4 +1,4 @@
-// Explorar (10/11/2026, pedido do dono): Top 20 "Em alta" (hashtags e lugares das publicações E dos flashes), Hall da fama
+// Explorar (10/11/2026, pedido do dono): Top 20 "Em alta" (hashtags e lugares só das publicações: os flashes não contam), Hall da fama
 // (estrelas dos últimos 7 dias, coroa/prata/bronze), página da #hashtag / do lugar dentro do Explorar e busca de lugares.
 // Uso: node seed.mjs && node t-explorar-alta.mjs
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
@@ -34,7 +34,7 @@ const p = await entrar(A.ctx, "ana", "feed.html?aba=explorar");
 if (process.env.CLARO !== "1") await p.emulateMedia({ colorScheme: "dark" });
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector("#secAlta:not([hidden]) .alta-item", { timeout: 30000 });
-await p.waitForFunction(() => [...document.querySelectorAll("#exploraTags .alta-item strong")].some((x) => x.textContent === "#festivalexp"), null, { timeout: 15000 }).catch(() => {});
+await p.waitForTimeout(2500);
 const itens = await p.locator("#exploraTags .alta-item strong").allTextContents();
 ok(itens[0] === "#trilhaexp" && itens.slice(0, 3).includes("#floripa"), "mais usadas em cima: " + itens.slice(0, 5).join(", "));
 ok(itens.includes("Lagoa da Conceição"), "lugar da publicação entra no Em alta");
@@ -42,9 +42,9 @@ ok(await p.locator("#exploraTags .alta-item.top1").count() === 1 && await p.loca
 // flash: a #festivalexp só existe no flash
 await p.locator("#exploraTags .alta-mais").click().catch(() => {});
 await p.waitForTimeout(300);
-ok((await p.locator("#exploraTags .alta-item strong").allTextContents()).includes("#festivalexp"), "hashtag das figurinhas do flash conta no Em alta");
+ok(!(await p.locator("#exploraTags .alta-item strong").allTextContents()).includes("#festivalexp"), "hashtag só das figurinhas do flash NÃO conta no Em alta");
 const lagoaMeta = await p.locator("#exploraTags .alta-item", { hasText: "Lagoa da Conceição" }).locator("small").textContent();
-ok(/3 publicações/.test(lagoaMeta) && /1 flash/.test(lagoaMeta), "lugar soma publicações e flash: " + lagoaMeta);
+ok(/3 publicações/.test(lagoaMeta) && !/flash/.test(lagoaMeta), "lugar conta só as publicações: " + lagoaMeta);
 await p.locator("#exploraTags .alta-abas button", { hasText: "Lugares" }).click(); await p.waitForTimeout(200);
 ok((await p.locator("#exploraTags .alta-item .alta-ic.tag").count()) === 0, "aba Lugares só com lugares");
 await p.locator("#exploraTags .alta-abas button", { hasText: "Tudo" }).click(); await p.waitForTimeout(200);
@@ -61,7 +61,7 @@ await p.screenshot({ path: "saida/ea-02-hall.png" });
 await p.locator("#exploraTags .alta-item", { hasText: "#floripa" }).click();
 await p.waitForSelector(".topico.tag .exp-tile", { timeout: 15000 }); await p.waitForTimeout(500);
 ok((await p.locator(".topico .tp-tx h1").textContent()) === "#floripa" && /publicaç/.test(await p.locator(".topico .tp-n").textContent()), "página da #hashtag no Explorar");
-ok(/^🔥 [123]º em alta/.test(await p.locator(".topico .tp-alta").textContent()), "selo da posição no Em alta: " + await p.locator(".topico .tp-alta").textContent());
+ok(/^[123]º em alta/.test(await p.locator(".topico .tp-alta").textContent()), "selo da posição no Em alta: " + await p.locator(".topico .tp-alta").textContent());
 ok(new URL(p.url()).searchParams.get("tag") === "floripa", "link da página: feed.html?tag=floripa");
 ok(await p.locator(".topico .tp-chip").count() >= 1, "hashtags relacionadas");
 await p.screenshot({ path: "saida/ea-03-hashtag.png" });

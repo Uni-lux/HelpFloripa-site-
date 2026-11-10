@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=21" />
+  <link rel="stylesheet" href="mensagens.css?v=22" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -199,6 +199,8 @@
           <svg class="i s"><use href="#i-lupa"/></svg>
           <input type="search" id="buscaPessoas" placeholder="Buscar pessoa pelo nome ou @usuário" autocomplete="off" aria-label="Buscar pessoa" />
         </div>
+        <!-- Online agora: quem está com o site aberto, os seus contatos primeiro (como o chat do antigo Facebook) -->
+        <section class="online-agora" id="onlineAgora" aria-label="Online agora" hidden></section>
         <div class="painel-corpo conv-list" id="listaPessoas"></div>
       </section>
 
@@ -523,6 +525,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=33"></script>
+  <script type="module" src="mensagens-app.js?v=34"></script>
 </body>
 </html>

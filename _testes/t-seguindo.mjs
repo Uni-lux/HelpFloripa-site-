@@ -23,7 +23,7 @@ const B = await navegador({ mobile: true });
 const p = await entrar(B.ctx, "bruno", "feed.html");
 await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (/^hf-(vistas|marcas|filtro)|diario-|^q:/.test(k)) localStorage.removeItem(k); });
 await p.reload(); await p.waitForSelector(".post-card", { timeout: 30000 }); await p.waitForTimeout(1500);
-const cards = () => p.$$eval("#listaFeed > *", (l) => l.map((c) => c.dataset.emDia ? "EMDIA" : (c.textContent.match(/s[ADE]\d+/) || ["?"])[0]));
+const cards = () => p.$$eval("#listaFeed > :not(.feed-sug)", (l) => l.map((c) => c.dataset.emDia ? "EMDIA" : (c.textContent.match(/s[ADE]\d+/) || ["?"])[0]));
 const maisAte = async (n) => { for (let i = 0; i < 6; i++) { const l = await cards(); if (l.length >= n || !(await p.isVisible("#maisFeed"))) return l; await p.click("#maisFeed"); await p.waitForTimeout(1200); } return cards(); };
 
 // ---------- Principais: "Você está em dia" ----------

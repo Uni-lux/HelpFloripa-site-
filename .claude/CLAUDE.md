@@ -2032,6 +2032,25 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Sem emojis na Comunidade (pedido dele, mesmo PR):** `iconeCom(k)` em comunidade-cartao.js (SVG de traço: presente, setas,
   mão, cama, lupa, coração) no lugar de `CAT_COM.emoji` (removido) no Mural (tipos, filtros, etiquetas, foto sem imagem, Perto de
   você, vazio) e nos cartões `.cm-mini` do Início/Explorar.
+- **Sugestões no Diário, Online agora e Em alta/Hall mais inteligentes (10/11/2026, PR depois do #182, sem regra nova):**
+  pedido dele (prints). `montarSugestoes(alvo, {max, aoEsvaziar})` exportado do explorar.js (`listaSugestoes`: 5 min, rede +
+  seguidores + `pessoasRecentes`; motivos Segue você > Seguido por X (foto da ponte) > Online · cidade > Em cidade > Online agora
+  > Novo por aqui; X = `hf-sug-dispensados`). Cartão novo `.sug-cartao` (capa `fotoCapa` ou degradê, foto com bolinha verde,
+  selo, @, motivo em pílula, Seguir); com 1–2 sugestões vira linha larga `.sug-linha` (`.sug-poucas`), com 3+ trilho `.sug-trilho`.
+  Diário (feed.js `blocoSugestoes`, `.feed-sug` com "Ver tudo" → Explorar): depois da 4ª publicação de verdade (o cartão "em dia"
+  não conta), uma vez por lista, só em Principais/Seguindo sem filtro; a cópia rápida e as 4 primeiras não sugerem
+  (`sugNaLista = true`). Explorar: "Ativos recentemente" SAIU (`#titPessoas`/`#listaPessoas` só com busca). **Em alta** só com as
+  publicações (# e lugares dos flashes NÃO contam; só aparecem no Flash e em "Nos flashes agora" da página do assunto): nota por
+  recência (2 dias) × região × estrelas (log), 2 melhores por pessoa cheias e o resto ¼, mais pessoas = mais nota (1 pessoa ×0,6),
+  # iguais sem acento e lugares a ≤800 m juntos, "Novo" (<24 h, 2+ pessoas) e "↑ Subindo" (hoje > ontem ×1,5), miniatura da
+  melhor foto do assunto; repinta quando as estrelas chegam. **Hall da fama**: abas Semana | Hoje | Melhor média (≥5 notas, média
+  puxada para 3,5 com peso 8), 5 melhores publicações por pessoa, miniatura da melhor ao lado, "faltam N estrelas para o Nº";
+  títulos com ícones SVG (sem emoji). **Mensagens → Online agora** (`lerOnline`/`pintarOnline` em mensagens-app.js): 1 consulta
+  `perfis_publicos` ultimoAcesso ≥ agora−10 min (limit 80, relida a cada 2 min com a página à vista). **A fileira `#onlineAgora`
+  fica no "+" (Nova conversa, pedido dele: NÃO na lista de conversas)**: todos os online, contatos (conversas + quem você segue,
+  cache `seguindo-<uid>`) primeiro; a lista embaixo vira "Pessoas no Help Floripa" sem repetir. Na lista de conversas só a
+  bolinha verde `.conv-item.on`. Quem esconde o próprio online não
+  vê o dos outros. Testes `t-sugestoes-online.mjs` (16), `t-explorar-alta` (flash não conta).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
