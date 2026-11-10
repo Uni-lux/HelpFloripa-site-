@@ -23,12 +23,12 @@ const feed = quadro(/feed\.html/);
 const topo = await feed.evaluate(() => ({ mais: !!document.querySelector(".topo #btnComporFeed.topo-criar"), fab: !!document.querySelector(".fab-criar"), fonte: getComputedStyle(document.querySelector(".marca strong")).fontFamily, ital: getComputedStyle(document.querySelector(".marca strong")).fontStyle }));
 ok(topo.mais && !topo.fab, "Diário: + de volta no topo, sem o botão flutuante");
 ok(/HF Marca/.test(topo.fonte) && topo.ital === "normal", "marca em Sora, sem itálico");
-ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#0f161b", "tema escuro: barra do celular escura");
+ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#10181d", "tema escuro: barra do celular escura");
 await p.screenshot({ path: "saida/cr-diario-escuro.png" });
 // tema claro: a casca acompanha
 await feed.evaluate(() => { const c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); c.tema = "claro"; localStorage.setItem("hf-chat-config", JSON.stringify(c)); });
 await p.waitForTimeout(600);
-ok(await p.evaluate(() => [document.documentElement.dataset.theme, document.querySelector('meta[name="theme-color"]').content, getComputedStyle(document.body).backgroundColor].join(" ")) === "light #ffffff rgb(241, 244, 246)", "tema claro: barra do celular e fundo claros");
+ok(await p.evaluate(() => [document.documentElement.dataset.theme, document.querySelector('meta[name="theme-color"]').content, getComputedStyle(document.body).backgroundColor].join(" ")) === "light #ffffff rgb(238, 242, 245)", "tema claro: barra do celular e fundo claros");
 await p.screenshot({ path: "saida/cr-diario-claro.png" });
 // Comunidade
 await p.evaluate(() => window.__hfShell.ir("comunidade")); await p.waitForTimeout(1500);
@@ -39,8 +39,9 @@ await mural.locator(".mu-post", { hasText: "Sofá de dois lugares" }).locator(".
 ok(/mural\.html/.test(mural.url()) && await mural.evaluate(() => !!document.querySelector(".cm-modal")), "tocar no anúncio abre ele por cima do Mural (sem trocar de página)");
 await p.screenshot({ path: "saida/cr-item.png" });
 await mural.evaluate(() => document.querySelector(".cm-modal .cm-x").click()); await p.waitForTimeout(400);
-await mural.locator("#btnPublicarMural").tap(); await p.waitForTimeout(1500);
-ok(/mural\.html/.test(mural.url()) && await mural.evaluate(() => !!document.querySelector(".cm-modal .cm-form")), "+ abre o formulário de publicar ali mesmo");
+await mural.locator("#btnPublicarMural").tap(); await p.waitForTimeout(500);
+await mural.locator("#folhaPublicar .mu-pub", { hasText: "Doar" }).tap(); await p.waitForTimeout(1500);
+ok(/mural\.html/.test(mural.url()) && await mural.evaluate(() => !!document.querySelector(".cm-modal .cm-form")), "+ → Doar abre o formulário de publicar ali mesmo");
 await p.screenshot({ path: "saida/cr-form.png" });
 await mural.evaluate(() => document.querySelector(".cm-modal .cm-x").click()); await p.waitForTimeout(300);
 // página antiga leva para a rede
