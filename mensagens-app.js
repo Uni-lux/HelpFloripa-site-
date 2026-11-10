@@ -76,6 +76,14 @@ function salvarConfig() {
 }
 temaEscuroSistema?.addEventListener?.("change", aplicarConfig);
 aplicarConfig();
+// Tema trocado em outra página/aba (Configurações, menu, outra aba da rede): o Mensagens acompanha na hora. Antes ele só lia
+// o tema ao abrir e, na rede (que deixa o Mensagens aberto), continuava escuro com o site claro (10/11/2026).
+window.addEventListener("storage", (e) => {
+  if (e.key !== CHAVE_CONFIG) return;
+  try { config = { ...config, ...JSON.parse(e.newValue || "{}") }; } catch { return; }
+  if (config.fundo === "ponte") config.fundo = CONFIG_PADRAO.fundo;
+  aplicarConfig();
+});
 
 // ======================================================
 // Utilitários

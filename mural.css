@@ -181,3 +181,44 @@
 .mu-mini-tag { display: inline-flex; align-items: center; gap: 4px; }
 .mu-mini-tag .ic-com { width: 13px; height: 13px; }
 .mu-mini-tag { white-space: nowrap; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
+
+/* =====================================================================================================
+   Comunidade neutra e profissional (10/11/2026, pedido dele): fundo e cartões nos tons do tema, sem degradês nem
+   brilhos coloridos; a cor de cada tipo (--cc) e o rosa da Comunidade (--mu) ficam só nos detalhes (ícones, pontos,
+   etiquetas pequenas). Botões principais neutros (claro sobre escuro), como nas grandes redes.
+   ===================================================================================================== */
+.mu-topo { border-color: var(--line); background: var(--panel); }
+.mu-topo-luz { display: none; }
+.mu-ic { background: var(--panel-2); color: var(--mu); border: 1px solid var(--line); box-shadow: none; }
+.mu-local { background: var(--panel-2); border-color: var(--line); }
+.mu-gratis { color: var(--text); background: var(--panel-2); border-color: var(--line); }
+.mu-gratis svg { color: #2fbf71; }
+.mu-busca:focus-within { border-color: var(--muted); box-shadow: none; }
+.mu-num { background: var(--panel-2); }
+.mu-num b { color: var(--text); }
+.mu-mais { background: var(--text); color: var(--bg); box-shadow: none; }
+.mu-tipo { background: var(--panel-2); border-color: var(--line); }
+.mu-tipo:hover { border-color: var(--muted); }
+.mu-tipo-em { background: transparent; color: var(--cc); box-shadow: none; border: 1px solid var(--line); }
+.mu-regra { background: var(--panel); border-color: var(--line); border-left: 3px solid #e0a100; }
+.mu-regra-ic { background: transparent; }
+.mu-regra-ver, .mu-regra-link { color: var(--text); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--muted); }
+.mu-mini-foto, .mu-foto.sem { background: var(--panel-2); border: 1px solid var(--line); }
+.mu-mini-ic, .mu-foto-em { background: transparent; color: var(--cc); box-shadow: none; }
+.mu-mini-tag, .mu-selo { background: rgba(0, 0, 0, .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: none; }
+.mu-mini-tag .ic-com, .mu-selo .ic-com { color: var(--cc); }
+.mu-num small::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; vertical-align: 1px; background: var(--cc); box-shadow: 0 0 6px var(--cc); }
+.mu-chip[aria-selected="true"] { background: var(--text); border-color: var(--text); color: var(--bg); box-shadow: none; }
+.mu-chip[aria-selected="true"] small { background: color-mix(in srgb, var(--bg) 14%, transparent); color: var(--bg); }
+.mu-chip[aria-selected="true"] .mu-chip-em { color: var(--bg); }
+.mu-post:hover { border-color: var(--muted); }
+.mu-cab .avatar { box-shadow: none; }
+.mu-tag { color: var(--text); background: var(--panel-2); border-color: var(--line); }
+.mu-tag .ic-com { color: var(--cc); }
+.mu-post.novo .mu-tag::after { background: var(--accent, #00adee); }
+.mu-acao, .mu-post .mu-acao { background: var(--text); color: var(--bg); box-shadow: none; }
+.mu-acao.sec { background: var(--panel-2); color: var(--text); }
+.mu-vazio { background: var(--panel); }
+.mu-vazio-em { background: var(--panel-2); border: 1px solid var(--line); }
+.mu-vazio-tipo { background: var(--panel-2); border-color: var(--line); }
+.mu-vt-ic { background: transparent; color: var(--cc); box-shadow: none; border: 1px solid var(--line); }

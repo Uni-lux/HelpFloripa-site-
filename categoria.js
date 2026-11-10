@@ -8,7 +8,7 @@
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=19";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=20";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=17";
 import { avisoPlano } from "./planos-base.js?v=15";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
