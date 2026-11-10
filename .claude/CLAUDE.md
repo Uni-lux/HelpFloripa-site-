@@ -2007,6 +2007,28 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   menu ao segurar, pílula `.msg-reacoes` no pé do balão (tocar = quem reagiu / tirar a sua), toque duplo = ❤️, entra na
   `assinaturaMsg`. Testes `t-pub-formatada.mjs` (36), `t-coment-ricos.mjs` (12), `t-reacoes-msg.mjs` (7); fotos de teste em
   `saida/fotos-pub/`. `t-tipos-pub` atualizado (hashtag vira etiqueta).
+- **Explorar: Em alta (Top 20), Hall da fama e página da #hashtag/lugar + Mural refeito (10/11/2026, mesmo PR do item
+  acima, sem regra nova):** pedido dele (prints). Como no Instagram, **#hashtag e lugar abrem uma página no EXPLORAR**, não um
+  filtro do Diário: `abrirTopico({tag|local}, {daUrl})` em explorar.js (`.topico`, z 3950, `history.pushState({hfTopico})`,
+  voltar fecha; mapa `mapaDoLugar` exportado do stories.js; "N publicações" por `getCountFromServer`, selo "Nº em alta",
+  Publicar com a # / Publicar aqui (`abrirCompositor({texto, local})` novo), Como chegar, Compartilhar, "Nos flashes agora",
+  Relacionados e grade Principais | Recentes com `tilePost`). feed.js: `feed.html?tag=`/`?local=` viram `topicoDaUrl` (abre o
+  Explorar com a página por cima; `tagAtual/localAtual` ficam vazios), clique em qualquer `a[href*="feed.html?tag="|"?local="]`
+  abre a página sem recarregar, `abrirLocal` idem; `ganchos.abrirTopico`; folhas do Flash dizem "Ver no Explorar".
+  **Em alta** (`contarAssuntos`): hashtags e lugares das publicações recentes (as que o Explorar já leu) + figurinhas `toques`
+  (`h|tag`, `l|nome|lat|lng`) dos flashes JÁ carregados na página (`flashesCarregados()` exportado do stories.js; só de quem a
+  pessoa segue — ler os flashes do país custaria as fotos inteiras sem Storage); peso por região, recência e nº de pessoas;
+  lista 1–20 (top 5 + "Ver o Top 20"), abas Tudo/Hashtags/Lugares, ouro/prata/bronze, "↑ Subindo"; `vigiarFlashes` repinta quando
+  a fileira do Flash termina de carregar; `atualizarAlta` exportado. **Hall da fama** (`pintarHall`): soma das estrelas
+  (`diario_notas`) das publicações dos últimos 7 dias entre as lidas, pódio 2-1-3 (coroa no 1º, medalhas), 4º–10º em lista,
+  "Você está em Nº lugar". Busca do Explorar com aba **Lugares**. Ordem do Explorar: atalhos numa fileira deslizante (celular),
+  Em alta, Hall da fama, Enquetes, Destaques, Negócios, Comunidade, Perto, Sugestões. "Top 20 da internet" NÃO foi feito:
+  não há fonte de dados (seria inventar) — explicado a ele. **Mural da Comunidade refeito** (mural.html/js/css): topo com
+  local, "Tudo de graça", busca (`#muBusca`: filtra na hora + `buscarNoServidor` com 3+ letras) e números reais; publicar em
+  cartões que deslizam; regra amarela vira `<details>` "Como funciona"; "Perto de você" (`.mu-mini`, com posição); filtros com
+  os 5 tipos sempre (zero esmaecido) + Ordenar Recentes | Mais perto (`#muOrdem`) numa barra fixa; cartão com "Novo" (<24 h) e
+  distância na foto; vazio com Doar/Pedir/Trocar, "Ver em todo o Brasil" e "Convidar alguém". perto.js: "1000 m" virou "1 km".
+  Testes `t-explorar-alta.mjs` (19), `t-mural-novo.mjs` (14).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

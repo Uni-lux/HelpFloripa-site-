@@ -39,10 +39,10 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=86" />
+  <link rel="stylesheet" href="rede.css?v=87" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="feed.js?v=171"></script>
+  <script type="module" src="feed.js?v=172"></script>
 </head>
 <body>
   <header class="topo">
@@ -66,7 +66,7 @@
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
         </section>
         <section id="painelExplorar" aria-label="Explorar" hidden>
-          <label class="campo-busca busca-explorar"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar no Help Floripa</span><input type="search" id="buscaPessoas" placeholder="Buscar pessoas, negócios ou #hashtag" autocomplete="off" enterkeyhint="search" /></label>
+          <label class="campo-busca busca-explorar"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar no Help Floripa</span><input type="search" id="buscaPessoas" placeholder="Buscar pessoas, negócios, #hashtags e lugares" autocomplete="off" enterkeyhint="search" /></label>
           <div class="busca-recentes" id="buscaRecentes" hidden></div>
           <div id="exploraConteudo">
             <div class="atalhos-classes compactos">
@@ -77,17 +77,23 @@
             <a href="saude.html" class="atalho-classe saude" style="background-image:url('saude.svg')"><span class="ic"><svg class="i s"><use href="#i-saude"/></svg></span><strong>Saúde</strong><small>Consultas e atendimentos</small></a>
             <a href="comunidade.html" class="atalho-classe comunidade" style="background-image:url('comunidade.svg')"><span class="ic"><svg class="i s"><use href="#i-comunidade"/></svg></span><strong>Comunidade</strong><small>Doações, trocas e quartos</small></a>
             </div>
-            <section class="exp-sec" id="secAlta" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Em alta agora</h2><small>Hashtags mais usadas nos últimos dias</small></div>
-              <div class="exp-tags" id="exploraTags"></div>
+            <section class="exp-sec exp-alta" id="secAlta" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic fogo" aria-hidden="true">🔥</span>Em alta no Help Floripa</h2><small>Top 20 de hashtags e lugares das publicações e dos flashes</small></div>
+              <div class="exp-alta-corpo" id="exploraTags"></div>
+            </section>
+            <section class="exp-sec exp-hall" id="secHall" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec"><span class="exp-tit-ic coroa" aria-hidden="true">👑</span>Hall da fama</h2><small>Quem mais recebeu estrelas nos últimos 7 dias</small></div>
+              <div id="exploraHall"></div>
             </section>
             <section class="exp-sec" id="secEnquetes" hidden>
               <div class="exp-tit"><h2 class="titulo-sec">Enquetes abertas</h2><small>Dê a sua opinião antes de encerrar</small></div>
               <div class="exp-trilho" id="exploraEnquetes"></div>
             </section>
-            <section class="exp-sec" id="secSugestoes" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas da sua rede e da sua cidade</small></div>
-              <div class="exp-sug" id="exploraSugestoes"></div>
+            <section class="exp-sec" id="secDestaques" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec">Destaques para você</h2><small>As publicações com mais estrelas e comentários</small></div>
+              <div class="filtros-grade exp-filtros" id="filtrosDestaque" role="tablist" aria-label="Mostrar nos destaques"></div>
+              <div class="exp-grade" id="exploraGrade"></div>
+              <div style="text-align:center"><button type="button" class="btn sec exp-mais" id="maisDestaques" hidden>Ver mais</button></div>
             </section>
             <section class="exp-sec" id="secNegocios" hidden>
               <div class="exp-tit"><h2 class="titulo-sec" id="titNegocios">Negócios em destaque</h2><small id="subNegocios">Bem avaliados e novidades</small></div>
@@ -102,11 +108,9 @@
               <div class="exp-tit"><h2 class="titulo-sec">Publicações perto de você</h2><small id="subPostsPerto">Da sua região</small></div>
               <div class="exp-grade" id="gradePostsPerto"></div>
             </section>
-            <section class="exp-sec" id="secDestaques" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Destaques para você</h2><small>As publicações com mais estrelas e comentários</small></div>
-              <div class="filtros-grade exp-filtros" id="filtrosDestaque" role="tablist" aria-label="Mostrar nos destaques"></div>
-              <div class="exp-grade" id="exploraGrade"></div>
-              <div style="text-align:center"><button type="button" class="btn sec exp-mais" id="maisDestaques" hidden>Ver mais</button></div>
+            <section class="exp-sec" id="secSugestoes" hidden>
+              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas da sua rede e da sua cidade</small></div>
+              <div class="exp-sug" id="exploraSugestoes"></div>
             </section>
           </div>
           <h2 class="titulo-sec" id="titPessoas">Ativos recentemente</h2>

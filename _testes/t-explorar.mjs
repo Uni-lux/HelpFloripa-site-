@@ -25,7 +25,8 @@ await p.evaluate(() => { localStorage.removeItem("hf-buscas"); localStorage.remo
 await p.reload(); await p.waitForTimeout(4500);
 
 // Em alta: #confeitaria subindo (2 publicações hoje)
-ok(await p.locator("#exploraTags .exp-tag.subindo", { hasText: "#confeitaria" }).count() === 1, "Em alta: #confeitaria marcada como subindo");
+await p.locator("#exploraTags .alta-mais").click().catch(() => {});
+ok(await p.locator("#exploraTags .alta-item", { hasText: "#confeitaria" }).locator(".alta-tend.sobe").count() === 1, "Em alta: #confeitaria marcada como subindo");
 // Enquetes abertas: só a que ainda não terminou
 const enqs = await p.locator("#exploraEnquetes .exp-enq").allTextContents();
 ok(enqs.length === 1 && enqs[0].includes("Qual o melhor doce?") && /Termina em 5 h/.test(enqs[0]) && enqs[0].includes("Brigadeiro"), "Enquetes abertas: só a que está aberta, com prazo e opções → " + enqs.join(" | ").slice(0, 90));

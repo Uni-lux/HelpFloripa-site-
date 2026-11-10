@@ -11,7 +11,7 @@
 // =====================================================
 import { GENEROS, SEGUIDORES, IDADE_MIN, RAIOS, resumoPublico, publicoParaGravar, temPublico } from "./publico-alvo.js?v=1";
 import { UFS, NOME_UF, cidadesDe, cidadePorCodigo, semAcento } from "./endereco.js?v=1";
-import { carregarCidades, distanciaKm } from "./perto.js?v=2";
+import { carregarCidades, distanciaKm } from "./perto.js?v=3";
 
 const FAIXAS = [["", "", "Todas as idades"], [18, "", "18+"], [18, 24, "18–24"], [25, 34, "25–34"], [35, 44, "35–44"], [45, 54, "45–54"], [55, "", "55+"]];
 const LOCAIS = [["brasil", "Todo o Brasil", "local"], ["estados", "Estados", "grade"], ["cidades", "Cidades", "casa"], ["perto", "Raio", "pin"]];

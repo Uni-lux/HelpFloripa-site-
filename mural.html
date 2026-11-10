@@ -35,11 +35,11 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=86" />
+  <link rel="stylesheet" href="rede.css?v=87" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <link rel="stylesheet" href="mural.css?v=1" />
-  <script type="module" src="mural.js?v=58"></script>
+  <link rel="stylesheet" href="mural.css?v=2" />
+  <script type="module" src="mural.js?v=59"></script>
 </head>
 <body class="pg-mural">
   <header class="topo">
@@ -54,26 +54,47 @@
     <div class="duas-col">
       <div class="mural">
         <section class="mu-topo" aria-label="Comunidade">
+          <div class="mu-topo-luz" aria-hidden="true"></div>
           <div class="mu-tit">
             <span class="mu-ic"><svg class="i"><use href="#i-comunidade"/></svg></span>
             <div><h1>Comunidade</h1><p>Doe, troque e ajude quem está perto de você</p></div>
           </div>
-          <button type="button" class="mu-local" id="muLocal" aria-haspopup="dialog"><svg class="i xs"><use href="#i-local"/></svg><span>Todo o Brasil</span><svg class="i xs seta"><use href="#i-avancar"/></svg></button>
+          <div class="mu-topo-linha">
+            <button type="button" class="mu-local" id="muLocal" aria-haspopup="dialog"><svg class="i xs"><use href="#i-local"/></svg><span>Todo o Brasil</span><svg class="i xs seta"><use href="#i-avancar"/></svg></button>
+            <span class="mu-gratis"><svg class="i xs"><use href="#i-coracao"/></svg>Tudo de graça</span>
+          </div>
+          <label class="mu-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar na Comunidade</span><input type="search" id="muBusca" placeholder="Buscar: sofá, bicicleta, roupa de bebê…" autocomplete="off" enterkeyhint="search" /></label>
+          <div class="mu-numeros" id="muNumeros" hidden></div>
         </section>
 
-        <div class="mu-compor">
+        <section class="mu-compor" aria-label="Publicar na Comunidade">
           <button type="button" class="mu-compor-campo" id="muCompor">
             <span class="avatar" id="muAvatar"></span>
             <span class="txt">O que você quer doar, trocar ou pedir?</span>
             <span class="mu-mais"><svg class="i s"><use href="#i-mais"/></svg></span>
           </button>
-          <div class="mu-tipos" id="muTipos" aria-label="Publicar na Comunidade"></div>
+          <div class="mu-tipos" id="muTipos"></div>
+        </section>
+
+        <details class="mu-regra" id="muRegra">
+          <summary><span class="mu-regra-ic"><svg class="i xs"><use href="#i-alerta"/></svg></span><span><b>Proibido vender ou cobrar.</b> Aqui é doação, troca ou ajuda.</span><span class="mu-regra-ver">Como funciona</span></summary>
+          <ol class="mu-passos">
+            <li><b>Publique</b> o que você doa, troca, procura ou encontrou.</li>
+            <li><b>Quem tiver interesse</b> chama você no chat do Help Floripa.</li>
+            <li><b>Combinem a entrega</b> num lugar público e movimentado. Nunca pague nada para receber uma doação.</li>
+          </ol>
+          <a class="mu-regra-link" href="diretrizes.html">Ler as regras da Comunidade</a>
+        </details>
+
+        <section class="mu-sec" id="muPertoSec" hidden>
+          <div class="mu-sec-tit"><h2>Perto de você</h2><small id="muPertoSub">O que está mais perto</small></div>
+          <div class="mu-trilho" id="muPerto"></div>
+        </section>
+
+        <div class="mu-barra">
+          <div class="mu-filtros" id="muFiltros" role="tablist" aria-label="Mostrar"></div>
+          <div class="mu-ordem" id="muOrdem" role="radiogroup" aria-label="Ordenar"></div>
         </div>
-
-        <p class="mu-regra"><svg class="i xs"><use href="#i-alerta"/></svg><span><b>Proibido vender ou cobrar.</b> Aqui tudo é de graça: doação, troca ou ajuda.</span></p>
-
-        <div class="mu-numeros" id="muNumeros" hidden></div>
-        <div class="mu-filtros" id="muFiltros" role="tablist" aria-label="Mostrar"></div>
         <div id="muLista" class="mu-lista" aria-live="polite"><div class="mu-carregando"><span></span><span></span><span></span></div></div>
         <div class="mu-fim"><button type="button" class="btn sec" id="muMais" hidden>Ver mais publicações</button></div>
       </div>

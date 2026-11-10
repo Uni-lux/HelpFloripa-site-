@@ -14,15 +14,15 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=134";
+} from "./rede.js?v=135";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=5";
+import { escolherPublico } from "./publico-tela.js?v=6";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
 import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=21";
-import { minhaPosicao } from "./perto.js?v=2";
+import { minhaPosicao } from "./perto.js?v=3";
 import { lerFlashTexto, pegarGuardado } from "./flash-direto.js?v=1";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=7";
 
@@ -52,6 +52,9 @@ const curtidos = conjuntoDaConta("hf-flash-curtidos", 300);
 const guardarCurtidos = () => curtidos.salvar();
 const gravarReacao = (s, campos) => fb.setDoc(fb.doc(fb.db, "stories", s.id, "reacoes", eu.uid), { ...campos, em: fb.serverTimestamp() }, { merge: true });
 let porAutor = new Map();   // uid -> [flashes em ordem de criação]
+// Os flashes já lidos nesta página (de quem você segue + os seus), para o Explorar contar as #hashtags e os lugares
+// marcados nas figurinhas (Em alta e página do assunto) sem ler nada a mais.
+export const flashesCarregados = () => [...porAutor.values()].flat().filter((s) => s && !s._leve && ativo(s));
 let barra = null;
 const vistosLocal = conjuntoDaConta("hf-stories-vistos", 600);
 const guardarVistos = () => vistosLocal.salvar();
@@ -747,7 +750,7 @@ function publicacaoExiste(id) {
   return postsConferidos.get(id);
 }
 // Folha do lugar marcado no flash: mapa, "Como chegar" e as publicações feitas por perto.
-function mapaDoLugar(la, lo, z = 15) {
+export function mapaDoLugar(la, lo, z = 15) {
   const box = el("div", "lg-mapa");
   const n = 2 ** z, rad = (la * Math.PI) / 180;
   const px = ((lo + 180) / 360) * n * 256, py = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n * 256;
@@ -789,7 +792,8 @@ async function abrirLugarFlash(l, aoFechar) {
   cab.append(ic, tx);
   const acoes = el("div", "lg-acoes");
   const rota = el("a", "btn sec", "Como chegar"); rota.href = `https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}`; rota.target = "_blank"; rota.rel = "noopener";
-  const todas = el("a", "btn pri", "Ver no Diário"); todas.href = `feed.html?local=${l.lat},${l.lng}&n=${encodeURIComponent(l.nome)}`;
+  const todas = el("a", "btn pri", "Ver no Explorar"); todas.href = `feed.html?local=${l.lat},${l.lng}&n=${encodeURIComponent(l.nome)}`;
+  todas.addEventListener("click", (e) => { if (!ganchos.abrirTopico) return; e.preventDefault(); fecharFolha("folhaLista"); ganchos.abrirTopico({ local: l }); });
   acoes.append(rota, todas);
   const tit = el("p", "lg-sec", "Publicado por perto");
   const lugarGrade = el("div"); lugarGrade.appendChild(el("p", "lista-vazia", "Carregando..."));
@@ -809,7 +813,8 @@ async function abrirHashtagFlash(tag, aoFechar) {
   const tx = el("div", "lg-tx"); tx.append(el("strong", null, "#" + tag), n);
   cab.append(ic, tx);
   const acoes = el("div", "lg-acoes");
-  const todas = el("a", "btn pri", "Ver no Diário"); todas.href = `feed.html?tag=${encodeURIComponent(tag)}`;
+  const todas = el("a", "btn pri", "Ver no Explorar"); todas.href = `feed.html?tag=${encodeURIComponent(tag)}`;
+  todas.addEventListener("click", (e) => { if (!ganchos.abrirTopico) return; e.preventDefault(); fecharFolha("folhaLista"); ganchos.abrirTopico({ tag }); });
   acoes.appendChild(todas);
   const grade = el("div"); grade.appendChild(el("p", "lista-vazia", "Carregando..."));
   corpo.replaceChildren(cab, acoes, el("p", "lg-sec", "Publicações recentes"), grade);

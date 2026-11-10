@@ -12,11 +12,11 @@ import { termosBusca, buscarNoServidor, combina } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { docComValidade, docsComValidade } from "./leituras.js?v=4";
 import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
-import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=2";
+import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=10";
-import { prepararConversa } from "./vitrine.js?v=91";
+import { prepararConversa } from "./vitrine.js?v=92";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },
