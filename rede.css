@@ -3837,3 +3837,10 @@ body.modo-lugar .fab-criar { display: none; }
 .hall-est .i { color: #f5b700; fill: currentColor; }
 .hall-voce { margin: 10px 0 0; padding: 11px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); font-weight: 750; font-size: 13.5px; }
 .hall-voce.lider { border-left-color: #f5c542; }
+
+/* Texto com imagem (cartão casado) recolhido em 7 linhas com "ver mais / ver menos" (10/11/2026). */
+.casada-texto.recolhido { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; line-clamp: 7; overflow: hidden; padding-bottom: 0; margin-bottom: 20px; }
+.casada-texto.menor.recolhido { -webkit-line-clamp: 8; line-clamp: 8; }
+.casada .casada-ver { display: block; margin: -12px 0 0; padding: 0 22px 16px; color: var(--muted); font-weight: 800; font-size: 13px; text-align: left; }
+.casada .casada-ver:hover { color: var(--text); }
+.casada.fundo .casada-ver { position: relative; z-index: 2; color: #fff; }

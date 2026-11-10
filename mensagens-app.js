@@ -3015,6 +3015,17 @@ function abrirMenuAssunto(alvo = ativa, x = null, y = null) {
   }
 }
 
+// Fechar o menu ⋮ tira o passo dele do histórico (voltar.js faz history.go(-1), que chega um instante depois). Se a ação
+// abrisse um painel/janela nesse meio-tempo, o "voltar" atrasado fechava o que acabou de abrir: "Configurações do chat"
+// abria e sumia na hora (10/11/2026). Agora a ação espera esse passo sair (no máximo 450 ms).
+function depoisDoMenu(fn) {
+  if (!history.state?.hfCamadas) { fn(); return; }
+  let feito = false;
+  const vai = () => { if (feito) return; feito = true; removeEventListener("popstate", aoVoltar); fn(); };
+  const aoVoltar = () => setTimeout(vai, 0);
+  addEventListener("popstate", aoVoltar);
+  setTimeout(vai, 450);
+}
 function abrirMenuConversa() {
   const menu = $("menuMsg");
   menu.replaceChildren();
@@ -3055,7 +3066,7 @@ function abrirMenuConversa() {
       b.setAttribute("role", "menuitem");
       if (op.perigo) b.className = "perigo";
       b.append(icone(op.icone, "i"), document.createTextNode(op.rotulo));
-      b.addEventListener("click", () => { fecharMenu(); op.acao(); });
+      b.addEventListener("click", () => { fecharMenu(); depoisDoMenu(op.acao); });
       menu.appendChild(b);
     });
   });

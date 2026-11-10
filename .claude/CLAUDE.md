@@ -2085,6 +2085,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   rede.html. "+" (`.fab-criar`) agora é SÓ o sinal (sem círculo), ciano com sombra; também na Comunidade (`#muFab` em
   mural.html → `link(filtro || "doacao")`). Celular sem barrinha de rolagem em todas as páginas (sem-menu-imagem.js,
   `pointer: coarse`). Testes `t-marca-fab.mjs` (8), `t-tema-rede` atualizado.
+- **Menu ⋮ da conversa e "ver mais" do texto com imagem (10/11/2026, PR depois do #186, sem regra nova):** relato dele.
+  "Configurações do chat" (e as outras ações do menu ⋮ da conversa) abria e sumia: fechar o menu tira o passo dele do histórico
+  (voltar.js `history.go(-1)`, que chega depois) e esse "voltar" fechava o painel recém-aberto. `depoisDoMenu(fn)` em
+  mensagens-app.js espera o popstate (máx. 450 ms) antes da ação. Cartão de texto com imagem (`blocoCasado`, opção `verMais`
+  no Diário e na tela da publicação do perfil) ganhou "ver mais / ver menos" (`.casada-texto.recolhido`, 7 linhas);
+  `descricaoPost` (feed.js) só mede com o texto à vista (ResizeObserver; escondido a altura 0 tirava o "ver mais").
+  Teste `t-menu-vermais.mjs` (7; precisa de `saida/seed-ids.json` = última linha do seed.mjs).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
