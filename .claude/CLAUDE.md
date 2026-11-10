@@ -1975,6 +1975,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `juntar`; leitura completa (limitToLast 150) 1×/dia (`CHEIO_MS`) e ao "carregar anteriores"; 1ª resposta do servidor sem som;
   sem conexão mantém as guardadas. Medido: conversa aparece em ~0,1 s com o servidor atrasado 3,5 s. Teste
   `t-mensagens-cache.mjs` (14); `t-figurinhas-pro` atualizado.
+- **Figurinha segurada, Chamadas sem atraso e Negócios em 2 linhas (10/11/2026, PR depois do #179, sem regra nova):** prints
+  dele. Segurar figurinha: o tile ganha `.segurada` e abre a folha `.pe-folha-fundo.pe-menu` (position fixed no `body`, tela
+  toda): figurinha grande + "Nome · Pacote/Suas figurinhas" + Enviar/Favoritas/Editar/Remover; tocar fora, X, Esc ou voltar
+  fecham só a folha. Chamadas: `renderizarChamadas(ler)` desenha na hora com `chamadasLidas` (ou esqueleto `.rc-esqueleto`) e
+  relê por trás (`geracaoCham`); antes a lista de conversas ficava alguns segundos. Negócios: o tipo foi para a linha do nome
+  (`.conv-tipo-nm` "· Freelances", título do contexto no `title`), `.conv-meta` só com etiquetas do cliente. `statusTopo` vazio
+  limpa o campo (sumia o "·" sozinho). Teste `t-mensagens-ajustes2.mjs` (11); `t-mensagens-cache` e `t-emojis-figurinhas`
+  atualizados.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -82,7 +82,7 @@ ok(await esperar(async () => (await ana.locator('.pe-sec[data-sec="minhas"] + .p
 const t = ana.locator('.pe-sec[data-sec="minhas"] + .pe-figs .pe-fig').first();
 await t.dispatchEvent("contextmenu");
 await ana.waitForSelector(".pe-menu", { timeout: 3000 });
-await ana.locator(".pe-menu button", { hasText: "Favoritar" }).click();
+await ana.locator(".pe-menu button", { hasText: "Adicionar às favoritas" }).click();
 ok(await esperar(async () => (await ana.locator('.pe-sec[data-sec="favoritas"]').count()) === 1), "segurar → Favoritar cria a seção Favoritas");
 // voltar fecha o painel
 await ana.goBack().catch(() => {}); await ana.waitForTimeout(600);

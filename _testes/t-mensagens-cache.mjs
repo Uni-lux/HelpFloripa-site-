@@ -22,7 +22,7 @@ await p.waitForSelector(".conv-item", { timeout: 20000 }); await p.waitForTimeou
 const item = p.locator(".conv-item").first();
 ok(await item.locator(".conv-nick").count() === 0 && !/@/.test(await item.locator(".conv-nome").textContent()), "sem o @ na lista");
 ok(await item.locator(".conv-nome .selo-v").count() === 1, "selo de verificado ao lado do nome");
-ok(await item.locator(".conv-tipo-ic").count() === 1 && await item.locator(".conv-meta .conv-tipo").count() === 1, "negócio: selinho do tipo na foto + linha com o tipo");
+ok(await item.locator(".conv-tipo-ic").count() === 1 && await item.locator(".conv-nome .conv-tipo-nm").count() === 1, "negócio: selinho do tipo na foto + tipo ao lado do nome");
 const anel = await item.locator(".avatar").evaluate((e) => getComputedStyle(e).boxShadow);
 ok(anel === "none", "sem o anel colorido na foto (" + anel + ")");
 await p.screenshot({ path: "saida/negocios-lista.png" });
