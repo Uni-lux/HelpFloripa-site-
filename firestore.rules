@@ -1212,6 +1212,17 @@ service cloud.firestore {
                       && request.resource.data.apagada.em == request.time
                       && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
 
+        // Reações (como no WhatsApp): cada um dos dois põe, troca ou tira só a própria (reacoes.{uid} = emoji),
+        // em qualquer mensagem que não foi apagada, sem prazo.
+        allow update: if logado()
+                      && participante()
+                      && !('apagada' in resource.data)
+                      && mudou().hasOnly(['reacoes'])
+                      && request.resource.data.reacoes is map
+                      && request.resource.data.reacoes.diff(resource.data.get('reacoes', {})).affectedKeys().hasOnly([request.auth.uid])
+                      && (!(request.auth.uid in request.resource.data.reacoes)
+                          || request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
+
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId
                       && noPrazoDeMexer();
@@ -2850,8 +2861,29 @@ service cloud.firestore {
 
       allow read: if logado();
 
+      // Texto até 500; pode ficar vazio quando o comentário é uma foto, um áudio, uma figurinha ou uma enquete.
       function textoComentarioOk(d) {
-        return d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 500;
+        return d.texto is string && d.texto.size() <= 500 && (d.texto.size() >= 1 || 'midia' in d || 'enquete' in d);
+      }
+      // Foto, áudio (até 60 s) ou figurinha no comentário: do próprio site (dentro do documento ou Storage).
+      function midiaComentOk(d) {
+        return !('midia' in d)
+            || (d.midia is map && d.midia.keys().hasOnly(['tipo', 'url', 'dur'])
+                && d.midia.tipo in ['imagem', 'audio', 'figurinha']
+                && d.midia.url is string && d.midia.url.size() <= 700000
+                && d.midia.url.matches(d.midia.tipo == 'audio'
+                     ? '^(data:audio/[a-z0-9.+-]{1,20}(;codecs=[a-z0-9.]{1,12})?;base64,|https://firebasestorage[.]googleapis[.]com/).*'
+                     : '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
+                && (!('dur' in d.midia) || (d.midia.dur is number && d.midia.dur > 0 && d.midia.dur <= 61)));
+      }
+      // Enquete no comentário (como no Instagram): só o autor da publicação; pergunta e 2 a 4 opções.
+      function enqueteComentOk(d) {
+        return !('enquete' in d)
+            || (d.postAutorId == request.auth.uid
+                && d.enquete is map && d.enquete.keys().hasOnly(['pergunta', 'opcoes'])
+                && d.enquete.pergunta is string && d.enquete.pergunta.size() >= 1 && d.enquete.pergunta.size() <= 120
+                && d.enquete.opcoes is list && d.enquete.opcoes.size() >= 2 && d.enquete.opcoes.size() <= 4
+                && d.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
       }
 
       // Quem pode comentar (escolha do autor): o autor sempre pode.
@@ -2874,9 +2906,10 @@ service cloud.firestore {
 
       allow create: if logado()
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'midia', 'enquete', 'criadoEm'])
                     && request.resource.data.autorId == request.auth.uid
                     && textoComentarioOk(request.resource.data)
+                    && midiaComentOk(request.resource.data) && enqueteComentOk(request.resource.data)
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && fotoOk(request.resource.data.get('foto', ''))
                     && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
@@ -2905,6 +2938,23 @@ service cloud.firestore {
 
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // VOTOS NA ENQUETE DE UM COMENTÁRIO: comentario_votos/{comentarioId}_{uid}
+    // Um voto por pessoa (não muda); a opção tem que existir na enquete do comentário. Todos contam.
+    // =====================================================
+    match /comentario_votos/{id} {
+      allow read: if logado();
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && request.resource.data.opcao is int && request.resource.data.opcao >= 0
+                    && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
+                    && request.resource.data.criadoEm == request.time;
       allow delete: if podeModerar();
     }
 
@@ -2949,6 +2999,9 @@ service cloud.firestore {
       function publicacaoOk() {
         let d = request.resource.data;
         return textoAte('texto', 1000)
+            // título em cima (opcional) e o modelo escolhido (como a publicação é desenhada)
+            && (!('titulo' in d) || (d.titulo is string && d.titulo.size() >= 1 && d.titulo.size() <= 90))
+            && (!('layout' in d) || (d.layout is string && d.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
             && textoAte('nome', 80)
             && campoFotoOk('fotoPerfil')
             && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
@@ -3024,7 +3077,7 @@ service cloud.firestore {
                     && emailOk()
                     && request.resource.data.autorId == request.auth.uid
                     && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
-                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'criadoEm'])
+                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
                     && tipoOk(request.resource.data)
                     && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
                     && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
@@ -3049,7 +3102,7 @@ service cloud.firestore {
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas'])
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
                     && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
                     // texto com imagem casada continua até 500 letras ao editar
                     && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)

@@ -32,6 +32,9 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=7";
 import "./sem-menu-imagem.js?v=3"; // segurar a foto não abre o menu de baixar/compartilhar
 import "./fotos-suaves.js?v=1"; // fotos entram suaves
+import { formatarTexto, organizarHashtags, hashtagsDe, limparTitulo, partesDoTexto, MAX_TITULO, MAX_TAGS } from "./texto-pub.js?v=1";
+import { modelosDe, layoutDe, desenhoModelo, abrirVisorFotos } from "./pub-modelos.js?v=1";
+import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 
 // ---------- ícones ----------
 const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
@@ -92,7 +95,7 @@ const SIMBOLOS = `<symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l
 <symbol id="i-sair" viewBox="0 0 24 24"><path d="M15 4h3.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H15M10 16.5L14.5 12 10 7.5M14.5 12H4"/></symbol>
 <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
 <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
-<symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-varinha" viewBox="0 0 24 24"><path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3M4 9v2M3 10h2"/></symbol><symbol id="i-desfazer" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol><symbol id="i-olho" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
 <symbol id="i-destaque" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4l1.25 3.35 3.35 1.25-3.35 1.25L12 16.6l-1.25-3.35L7.4 12l3.35-1.25z" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-pincel" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5L10 19c-1.2 1.2-3.6 1.6-6 1 .6-2.4-.2-4.8 1-6z"/><path d="M13 6l5 5"/></symbol>
 <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
@@ -271,6 +274,12 @@ export function abrirFolha(id) {
 export function fecharFolha(id) {
   const f = $(id);
   if (!f) return;
+  // A folha pode perguntar antes (ex.: "Sair da publicação?"). false = continua aberta.
+  if (f.antesDeFechar && !f._liberada && f.classList.contains("aberta")) {
+    const r = f.antesDeFechar();
+    if (r === false) return;
+    if (r && typeof r.then === "function") { r.then((ok) => { if (ok) { f._liberada = true; try { fecharFolha(id); } finally { f._liberada = false; } } }); return; }
+  }
   f.classList.remove("aberta");
   const i = pilha.indexOf(id);
   if (i >= 0) pilha.splice(i, 1);
@@ -1582,7 +1591,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=105").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=106").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -1845,6 +1854,24 @@ async function possoComentar(post) {
 // Comentários no estilo das redes sociais: o fixado no topo (o primeiro comentário fica fixado sozinho, até o
 // autor escolher outro), depois os com mais engajamento (reações + respostas). Reações com emoji, respostas em
 // fio, e o autor da publicação oculta, apaga, fixa e escolhe quem pode comentar.
+// Foto do comentário: até 1080 px no lado maior, JPEG, cabendo dentro do documento (até ~650 KB).
+async function reduzirFoto(arquivo) {
+  if (!/^image\//.test(arquivo?.type || "")) throw new Error("Escolha uma foto.");
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => erro(new Error("Não foi possível ler esta foto.")); i.src = url; });
+    let lado = 1080, q = 0.82, saida = "";
+    for (let k = 0; k < 6; k++) {
+      const esc = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * esc); c.height = Math.round(img.naturalHeight * esc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      saida = c.toDataURL("image/jpeg", q);
+      if (saida.length <= 650000) return saida;
+      q -= 0.1; lado = Math.round(lado * 0.85);
+    }
+    throw new Error("Foto grande demais.");
+  } finally { URL.revokeObjectURL(url); }
+}
 export function montarComentarios(alvo, post, { aoMudar } = {}) {
   alvo.replaceChildren();
   const dono = post.autorId === eu.uid;
@@ -1863,10 +1890,136 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
   tx.setAttribute("aria-label", "Seu comentário");
   const env = el("button", "coment-enviar"); env.type = "submit"; env.setAttribute("aria-label", "Publicar comentário"); env.textContent = "Publicar"; env.disabled = true;
   linhaForm.append(meuAv, tx, env);
-  form.append(resp, linhaForm);
+  // Anexo do comentário (foto, áudio, figurinha ou enquete do autor) e as ferramentas embaixo do campo.
+  const anexoBox = el("div", "coment-anexo"); anexoBox.hidden = true;
+  const emojis = el("div", "coment-emojis");
+  ["❤️", "🙌", "🔥", "👏", "😍", "😂", "😮", "🙏"].forEach((e) => { const b = el("button", null, e); b.type = "button"; b.setAttribute("aria-label", "Pôr " + e); b.addEventListener("click", () => { const i = tx.selectionStart ?? tx.value.length; tx.setRangeText(e, i, tx.selectionEnd ?? i, "end"); tx.focus(); ajustar(); }); emojis.appendChild(b); });
+  const ferr = el("div", "coment-ferr");
+  const bt = (ic, nome, fn, cls = "") => { const b = el("button", "cf-bt " + cls); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, nome)); b.addEventListener("click", fn); ferr.appendChild(b); return b; };
+  const arqFoto = el("input"); arqFoto.type = "file"; arqFoto.accept = "image/*"; arqFoto.hidden = true;
+  bt("imagem", "Foto", () => arqFoto.click());
+  const btAudio = bt("mic", "Áudio", () => gravarAudio());
+  bt("figurinha", "Figurinha", () => escolherFigurinha());
+  if (dono) bt("enquete", "Enquete", () => editarEnquete(), "so-autor");
+  const gravando = el("div", "coment-gravando"); gravando.hidden = true;
+  form.append(resp, anexoBox, gravando, linhaForm, emojis, ferr, arqFoto);
   alvo.append(config, aviso, lista, form);
-  let respondendo = null;
-  const ajustar = () => { tx.style.height = "auto"; tx.style.height = Math.min(140, tx.scrollHeight) + "px"; env.disabled = !tx.value.trim(); };
+  let respondendo = null, anexo = null;
+  const ajustar = () => { tx.style.height = "auto"; tx.style.height = Math.min(140, tx.scrollHeight) + "px"; env.disabled = !tx.value.trim() && !anexo; };
+  // Prévia do anexo antes de publicar (com X para tirar).
+  function pintarAnexo() {
+    anexoBox.replaceChildren(); anexoBox.hidden = !anexo;
+    if (!anexo) { ajustar(); return; }
+    const x = el("button", "icone-btn ca-x"); x.type = "button"; x.setAttribute("aria-label", "Tirar"); x.appendChild(icone("fechar", "i xs"));
+    x.addEventListener("click", () => { anexo = null; pintarAnexo(); });
+    let corpo;
+    if (anexo.enquete) {
+      corpo = el("div", "ca-enq"); corpo.append(el("span", "ca-rot", "Enquete no comentário"), el("strong", null, anexo.enquete.pergunta), el("small", null, anexo.enquete.opcoes.join(" · ")));
+    } else if (anexo.midia.tipo === "audio") {
+      corpo = el("div", "ca-audio"); corpo.appendChild(criarPlayerAudio({ fonte: anexo.midia.url, duracao: anexo.midia.dur, carregarJa: true }));
+    } else { corpo = el("img", "ca-img" + (anexo.midia.tipo === "figurinha" ? " fig" : "")); corpo.src = anexo.midia.url; corpo.alt = ""; }
+    anexoBox.append(corpo, x);
+    ajustar();
+  }
+  // Foto: reduzida no aparelho (até 1080 px, JPEG) para caber dentro do comentário.
+  arqFoto.addEventListener("change", async () => {
+    const f = arqFoto.files?.[0]; arqFoto.value = "";
+    if (!f) return;
+    try { anexo = { midia: { tipo: "imagem", url: await reduzirFoto(f) } }; pintarAnexo(); tx.focus(); }
+    catch (e) { toast(e.message || "Não foi possível usar esta foto."); }
+  });
+  // Áudio (até 60 s): toca no microfone, fala e toca em "Pronto".
+  let gravador = null;
+  async function gravarAudio() {
+    if (gravador) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast("Este navegador não grava áudio."); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { toast("Permita o uso do microfone para gravar o áudio."); return; }
+    const partes = [];
+    try { gravador = new MediaRecorder(stream, { audioBitsPerSecond: 16000 }); } catch { gravador = new MediaRecorder(stream); }
+    let cancelado = false;
+    const inicio = Date.now();
+    const tempo = el("span", "cg-tempo", "0:00"), ponto = el("i", "cg-ponto");
+    const cancelar = el("button", "cg-cancelar", "Cancelar"); cancelar.type = "button";
+    const pronto = el("button", "btn pri mini", "Pronto"); pronto.type = "button";
+    gravando.replaceChildren(ponto, el("span", "cg-tx", "Gravando"), tempo, cancelar, pronto); gravando.hidden = false; btAudio.classList.add("ativo");
+    const timer = setInterval(() => { const s = Math.floor((Date.now() - inicio) / 1000); tempo.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; if (s >= 60) parar(); }, 250);
+    const parar = (c = false) => { cancelado = c; clearInterval(timer); if (gravador?.state === "recording") gravador.stop(); };
+    cancelar.addEventListener("click", () => parar(true));
+    pronto.addEventListener("click", () => parar(false));
+    gravador.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
+    gravador.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const tipo = (gravador.mimeType || "audio/webm").replace(/\s+/g, "");
+      gravador = null; gravando.hidden = true; btAudio.classList.remove("ativo");
+      if (cancelado || !partes.length) return;
+      const dur = Math.max(1, Math.min(60, Math.round((Date.now() - inicio) / 1000)));
+      const url = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(new Blob(partes, { type: tipo })); });
+      if (url.length > 690000) { toast("Áudio grande demais. Grave até 60 segundos."); return; }
+      anexo = { midia: { tipo: "audio", url, dur } }; pintarAnexo();
+    };
+    gravador.start();
+  }
+  // Figurinhas: as do Help Floripa e as suas (as mesmas do Mensagens, guardadas no aparelho).
+  async function escolherFigurinha() {
+    const corpo = abrirLista("Figurinhas");
+    const grade = el("div", "coment-figs"); corpo.appendChild(grade);
+    grade.appendChild(el("div", "lista-vazia", "Carregando..."));
+    try {
+      const F = await import("./figurinhas.js?v=2");
+      const [pac, minhas] = await Promise.all([F.pacoteHelp(), F.minhasFigurinhas(eu.uid)]);
+      const suas = minhas.filter((m) => !m.pacote).slice(0, 40);
+      grade.replaceChildren();
+      const sec = (titulo, itens, pacote) => {
+        if (!itens.length) return;
+        grade.appendChild(el("strong", "cfg-tit", titulo));
+        const g = el("div", "cfg-grade");
+        itens.forEach((it) => {
+          const b = el("button", "cfg-fig"); b.type = "button"; b.setAttribute("aria-label", it.texto || "Figurinha");
+          const im = el("img"); im.src = it.url; im.alt = ""; im.loading = "lazy"; b.appendChild(im);
+          b.addEventListener("click", async () => {
+            try { const url = await F.paraDataUrl(it.url); if (url.length > 300000) throw new Error("Figurinha grande demais."); anexo = { midia: { tipo: "figurinha", url } }; F.usarFigurinha(eu.uid, it.url, pacote); fecharFolha("folhaLista"); pintarAnexo(); }
+            catch (e) { toast(e.message || "Não foi possível usar esta figurinha."); }
+          });
+          g.appendChild(b);
+        });
+        grade.appendChild(g);
+      };
+      sec("Suas figurinhas", suas, false);
+      sec(pac.nome || "Help Floripa", pac.itens || [], true);
+      if (!grade.children.length) grade.appendChild(el("div", "lista-vazia", "Nenhuma figurinha ainda."));
+    } catch { grade.replaceChildren(el("div", "lista-vazia", "Não foi possível abrir as figurinhas.")); }
+  }
+  // Enquete no comentário (só o autor da publicação, como no Instagram): pergunta e 2 a 4 opções.
+  function editarEnquete() {
+    const corpo = abrirLista("Enquete no comentário");
+    const w = el("div", "coment-enq-ed");
+    const atual = anexo?.enquete || { pergunta: "", opcoes: ["", ""] };
+    const perg = el("input", "pe-pergunta"); perg.maxLength = 120; perg.placeholder = "Pergunte algo para quem comenta..."; perg.value = atual.pergunta;
+    const ops = el("div", "ce-ops");
+    const lista = [...atual.opcoes];
+    const pintarOps = () => {
+      ops.replaceChildren(...lista.map((o, i) => {
+        const l = el("div", "pe-opcao"); const inp = el("input"); inp.maxLength = 60; inp.placeholder = `Opção ${i + 1}`; inp.value = o;
+        inp.addEventListener("input", () => { lista[i] = inp.value; });
+        l.appendChild(inp);
+        if (lista.length > 2) { const x = el("button", "pe-x", "×"); x.type = "button"; x.addEventListener("click", () => { lista.splice(i, 1); pintarOps(); }); l.appendChild(x); }
+        return l;
+      }));
+      if (lista.length < 4) { const m = el("button", "pe-mais"); m.type = "button"; m.append(icone("mais", "i xs"), document.createTextNode("Adicionar opção")); m.addEventListener("click", () => { lista.push(""); pintarOps(); }); ops.appendChild(m); }
+    };
+    pintarOps();
+    const ok = el("button", "btn pri", "Pôr no comentário"); ok.type = "button";
+    ok.addEventListener("click", () => {
+      const pergunta = perg.value.trim().slice(0, 120), opcoes = lista.map((o) => o.trim().slice(0, 60)).filter(Boolean);
+      if (!pergunta) { perg.focus(); toast("Escreva a pergunta."); return; }
+      if (opcoes.length < 2) { toast("Escreva pelo menos 2 opções."); return; }
+      anexo = { enquete: { pergunta, opcoes } }; fecharFolha("folhaLista"); pintarAnexo();
+    });
+    w.append(el("p", "pa-sub", "Aparece nos comentários da sua publicação. Cada pessoa vota uma vez e todos veem o resultado."), perg, ops, ok);
+    corpo.appendChild(w);
+    setTimeout(() => perg.focus(), 120);
+  }
   tx.addEventListener("input", ajustar);
   const cancelarResposta = () => { respondendo = null; resp.hidden = true; tx.placeholder = "Adicione um comentário..."; };
   respX.addEventListener("click", cancelarResposta);
@@ -2039,6 +2192,8 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     const mais = el("button", "icone-btn coment-mais"); mais.type = "button"; mais.setAttribute("aria-label", "Opções do comentário"); mais.appendChild(icone("pontos", "i xs"));
     topo.appendChild(mais);
     const texto = comMencoes(el("p", "coment-texto"), c.texto);
+    if (!c.texto) texto.hidden = true;
+    const extra = conteudoComentario(c);
     const acoes = el("div", "coment-acoes");
     const bReagir = el("button", "coment-reagir"); bReagir.type = "button";
     const resumo = el("button", "coment-reacoes"); resumo.type = "button"; resumo.setAttribute("aria-label", "Reações");
@@ -2089,22 +2244,74 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       no.addEventListener("click", () => { ed.replaceWith(texto); ae.remove(); acoes.hidden = false; });
       ok.addEventListener("click", async () => {
         const novo = ed.value.trim();
-        if (!novo) { ed.focus(); return; }
+        if (!novo && !c.midia && !c.enquete) { ed.focus(); return; }
         ok.disabled = true;
         try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { texto: novo, editadoEm: fb.serverTimestamp() }); toast("Comentário editado"); pintar(); }
         catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); ok.disabled = false; }
       });
     }
     if (fixo) { const f = el("div", "coment-fixo"); f.append(icone("tacha", "i xs"), document.createTextNode(autoFixo ? "Primeiro comentário" : `Fixado por ${dono ? "você" : "o autor"}`)); col.appendChild(f); }
-    col.append(topo, texto, acoes);
+    col.append(topo, texto);
+    if (extra) col.appendChild(extra);
+    col.appendChild(acoes);
     linha.append(av, col);
     return linha;
+  }
+  // Foto, áudio, figurinha ou enquete do comentário.
+  function conteudoComentario(c) {
+    const m = c.midia;
+    if (m?.url && midiaSegura(m.url, m.tipo === "audio" ? "audio" : "imagem")) {
+      if (m.tipo === "audio") { const w = el("div", "coment-audio"); w.appendChild(criarPlayerAudio({ chave: "c_" + c.id, fonte: m.url, duracao: m.dur || 0 })); return w; }
+      const im = el("img", m.tipo === "figurinha" ? "coment-fig" : "coment-foto"); im.src = m.url; im.alt = m.tipo === "figurinha" ? "Figurinha" : "Foto do comentário"; im.loading = "lazy";
+      if (m.tipo === "imagem") im.addEventListener("click", () => abrirVisorFotos([m.url], 0, carrosselFotos));
+      return im;
+    }
+    if (c.enquete?.pergunta && Array.isArray(c.enquete.opcoes)) return enqueteComentario(c);
+    return null;
+  }
+  function enqueteComentario(c) {
+    const e = c.enquete;
+    const w = el("div", "coment-enq");
+    const cab = el("div", "ce-cab"); cab.append(icone("enquete", "i xs"), el("span", null, "Enquete do autor"));
+    const ops = el("div", "ce-ops");
+    const rod = el("small", "ce-rod", "Carregando...");
+    w.append(cab, el("strong", "ce-perg", e.pergunta), ops, rod);
+    let contas = e.opcoes.map(() => 0), meu = null;
+    const pintar = () => {
+      const total = contas.reduce((a, b) => a + b, 0), mostrar = meu !== null || c.autorId === eu.uid;
+      const maior = Math.max(...contas);
+      ops.replaceChildren(...e.opcoes.map((o, i) => {
+        const b = el("button", "ce-op" + (meu === i ? " minha" : "") + (mostrar && total && contas[i] === maior ? " lider" : "")); b.type = "button";
+        const pct = total ? Math.round((contas[i] / total) * 100) : 0;
+        const barra = el("i", "ce-barra"); barra.style.width = mostrar ? pct + "%" : "0%";
+        b.append(barra, el("span", "ce-txt", o));
+        if (mostrar) b.appendChild(el("span", "ce-pct", pct + "%"));
+        if (meu !== null) b.setAttribute("aria-disabled", "true");
+        b.addEventListener("click", () => votar(i));
+        return b;
+      }));
+      rod.textContent = `${numero(total)} ${total === 1 ? "voto" : "votos"}` + (meu !== null ? " · você votou" : c.autorId === eu.uid ? " · você vê os votos chegando" : " · toque para votar");
+    };
+    async function votar(i) {
+      if (meu !== null) return;
+      if (await precisaEmail()) return;
+      meu = i; contas[i]++; pintar();
+      try { await fb.setDoc(fb.doc(fb.db, "comentario_votos", `${c.id}_${eu.uid}`), { comentarioId: c.id, uid: eu.uid, opcao: i, criadoEm: fb.serverTimestamp() }); }
+      catch (err) { meu = null; contas[i]--; pintar(); toast(err?.code === "permission-denied" ? "Votar começa a funcionar quando as regras novas forem publicadas." : "Não foi possível votar: " + erroAmigavel(err)); }
+    }
+    fb.getDocs(fb.query(fb.collection(fb.db, "comentario_votos"), fb.where("comentarioId", "==", c.id), fb.limit(500))).then((s) => {
+      contas = e.opcoes.map(() => 0);
+      s.docs.forEach((d) => { const v = d.data(); if (Number.isInteger(v.opcao) && v.opcao < contas.length) contas[v.opcao]++; if (v.uid === eu.uid) meu = v.opcao; });
+      pintar();
+    }).catch(() => pintar());
+    pintar(); rod.textContent = "Carregando...";
+    return w;
   }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const texto = tx.value.trim();
-    if (!texto) return;
+    if (!texto && !anexo) return;
     if (await precisaEmail()) return;
     env.disabled = true;
     try {
@@ -2112,13 +2319,19 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
       const foto = urlSegura(dados.fotoPerfil).startsWith("https://") ? dados.fotoPerfil : "";
       const doc = { postId: post.id, postAutorId: post.autorId, autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), foto, texto: texto.slice(0, 500), criadoEm: fb.serverTimestamp() };
       if (respondendo) { doc.respostaA = respondendo.id; doc.respostaAutorId = respondendo.autorId; }
-      await comRitmo(fb, eu.uid, "com", (lote) => lote.set(fb.doc(fb.collection(fb.db, "comentarios")), doc));
+      if (anexo?.midia) doc.midia = { ...anexo.midia };
+      if (anexo?.enquete) doc.enquete = { ...anexo.enquete };
+      try { await comRitmo(fb, eu.uid, "com", (lote) => lote.set(fb.doc(fb.collection(fb.db, "comentarios")), doc)); }
+      catch (e1) {
+        if (e1?.code === "permission-denied" && anexo) { toast(anexo.enquete ? "Enquete no comentário começa a funcionar quando as regras novas forem publicadas." : "Foto, áudio e figurinha nos comentários começam a funcionar quando as regras novas forem publicadas."); return; }
+        throw e1;
+      }
       registrarGosto(post, PESO.comentar, eu.uid);
-      tx.value = ""; ajustar();
+      tx.value = ""; anexo = null; pintarAnexo(); ajustar();
       cancelarResposta();
       await pintar();
     } catch (err) { toast(err?.code === "permission-denied" ? "Você não pode comentar nesta publicação." : "Não foi possível comentar: " + erroAmigavel(err)); }
-    finally { env.disabled = !tx.value.trim(); }
+    finally { env.disabled = !tx.value.trim() && !anexo; }
   });
   // A publicação pode ter vindo da cópia do aparelho: lê de novo as escolhas do autor (quem comenta, fixado).
   fb.getDoc(fb.doc(fb.db, "diario", post.id)).then((d) => {
@@ -2142,7 +2355,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=105").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=106").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2258,9 +2471,16 @@ export function abrirCompositor({ aoPublicar, inicio = "" } = {}) {
         <button type="button" class="pub-tipo" id="pubCaixaBtn" data-tipo="caixa" role="tab"><svg class="i"><use href="#i-caixa"/></svg><span>Perguntas</span></button>
       </div>
       <p class="pub-tipo-dica" id="pubTipoDica"></p>
+      <div class="pub-recuperado" id="pubRecuperado" hidden></div>
+      <label class="pub-titulo-campo"><input type="text" id="pubTitulo" maxlength="90" placeholder="Título (opcional)" aria-label="Título da publicação" autocomplete="off" enterkeyhint="next" /><span class="cont" id="pubTituloCont">0/90</span></label>
       <div class="pub-campo">
         <textarea class="pub-texto" id="pubTexto" maxlength="1000" placeholder="No que você está pensando? Escreva, adicione uma foto ou faça uma enquete..." aria-label="Texto da publicação"></textarea>
         <span class="cont" id="pubCont">0/1000</span>
+      </div>
+      <div class="pub-txt-barra">
+        <button type="button" class="pub-fmt" id="pubFormatar" title="Arruma espaços, letras maiúsculas, pontuação e leva as #hashtags para o fim"><svg class="i"><use href="#i-varinha"/></svg><span>Formatar texto</span></button>
+        <button type="button" class="pub-fmt desfazer" id="pubDesfazerFmt" hidden><svg class="i"><use href="#i-desfazer"/></svg><span>Desfazer</span></button>
+        <span class="pub-tags-prev" id="pubTagsPrev" hidden></span>
       </div>
       <div class="pub-previa" id="pubPrevia" hidden></div>
       <div class="pub-extras" id="pubMarcados" hidden></div>
@@ -2268,6 +2488,10 @@ export function abrirCompositor({ aoPublicar, inicio = "" } = {}) {
       <div class="pub-extras" id="pubLocalBox" hidden></div>
       <div class="pub-enquete" id="pubEnquete" hidden></div>
       <div class="pub-enquete pub-caixa" id="pubCaixa" hidden></div>
+      <section class="pub-modelos" id="pubModelosBox" hidden>
+        <div class="pub-modelos-topo"><span class="pub-add-tit">Modelo</span><button type="button" class="pub-ver-previa" id="pubVerPrevia"><svg class="i"><use href="#i-olho"/></svg>Ver como vai ficar</button></div>
+        <div class="pub-modelos-lista" id="pubModelos" role="radiogroup" aria-label="Modelo da publicação"></div>
+      </section>
       <div class="pub-add">
         <span class="pub-add-tit">Adicionar à publicação</span>
         <div class="pub-ferr-grade">
@@ -2290,12 +2514,15 @@ export function abrirCompositor({ aoPublicar, inicio = "" } = {}) {
       <button type="button" class="btn pri" id="pubEnviar">Publicar</button>`;
     ligarCompositor();
     f.addEventListener("fechada", () => { if (!$("pubEnviar").disabled) limparPublicacao(); });
+    // Fechar com algo escrito pergunta antes (salvar rascunho, descartar ou continuar).
+    f.antesDeFechar = perguntarSaida;
   }
   pintarAvatar($("pubAvatar"), dados.fotoPerfil, dados.nome);
   $("pubNome").textContent = dados.nome || "Você";
   $("folhaPublicar").aoPublicar = aoPublicar;
   pintarExtras();
   abrirFolha("folhaPublicar");
+  recuperarAutomatico();
   // Atalhos do campo de publicar: já abre com a foto, o vídeo, a enquete ou a caixa de perguntas.
   if (["foto", "video", "enquete", "caixa"].includes(inicio)) mudarTipo(inicio);
   else if (inicio === "local" && !pubLocal) $("pubLocal").click();
@@ -2380,22 +2607,37 @@ async function abrirDenunciaComentario(c) {
 export function editarPublicacao(post, aoSalvar) {
   const f = criarFolha("folhaEditarPost", { titulo: "Editar publicação", corpoClasse: "folha-corpo pad", rodape: true });
   if (!$("edPostTexto")) {
-    $("c_folhaEditarPost").innerHTML = `<textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-ferramentas"><span class="cont" id="edPostCont">0/1000</span></div>`;
+    $("c_folhaEditarPost").innerHTML = `<label class="pub-titulo-campo"><input type="text" id="edPostTitulo" maxlength="90" placeholder="Título (opcional)" aria-label="Título da publicação" autocomplete="off" /><span class="cont" id="edPostTitCont">0/90</span></label><textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-txt-barra"><button type="button" class="pub-fmt" id="edPostFormatar"><svg class="i"><use href="#i-varinha"/></svg><span>Formatar texto</span></button><span class="cont" id="edPostCont">0/1000</span></div>`;
+    $("edPostTitulo").addEventListener("input", () => { $("edPostTitCont").textContent = `${$("edPostTitulo").value.length}/90`; });
+    $("edPostFormatar").addEventListener("click", () => { const t = $("edPostTexto"); const n = formatarTexto(t.value).slice(0, t.maxLength); if (n === t.value) { toast("O texto já está organizado."); return; } t.value = n; t.dispatchEvent(new Event("input")); toast("Texto formatado."); });
     $("r_folhaEditarPost").innerHTML = `<button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="edPostSalvar">Salvar</button>`;
     $("edPostTexto").addEventListener("input", () => { $("edPostCont").textContent = `${$("edPostTexto").value.length}/1000`; });
   }
   $("edPostTexto").value = post.texto || "";
-  $("edPostCont").textContent = `${(post.texto || "").length}/1000`;
+  $("edPostTexto").maxLength = post.estilo === "casada" ? 500 : 1000;
+  $("edPostTitulo").value = post.titulo || ""; $("edPostTitCont").textContent = `${(post.titulo || "").length}/90`;
+  $("edPostCont").textContent = `${(post.texto || "").length}/${$("edPostTexto").maxLength}`;
   const salvar = $("edPostSalvar").cloneNode(true);
   $("edPostSalvar").replaceWith(salvar);
   salvar.addEventListener("click", async () => {
-    const texto = $("edPostTexto").value.trim();
-    if (texto === (post.texto || "")) { fecharFolha("folhaEditarPost"); return; }
-    if (!texto && !post.mediaUrl) { toast("A publicação não pode ficar vazia."); return; }
+    // As #hashtags continuam indo para o fim (e as tags da busca acompanham).
+    const texto = organizarHashtags($("edPostTexto").value.trim()), titulo = limparTitulo($("edPostTitulo").value);
+    const mudouTitulo = titulo !== (post.titulo || "");
+    if (texto === (post.texto || "") && !mudouTitulo) { fecharFolha("folhaEditarPost"); return; }
+    if (!texto && !post.mediaUrl && !post.enquete && !post.caixa) { toast("A publicação não pode ficar vazia."); return; }
     salvar.disabled = true;
     try {
-      await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { texto, editadoEm: fb.serverTimestamp() });
-      post.texto = texto; post.editadoEm = { toMillis: () => Date.now(), toDate: () => new Date() };
+      const campos = { texto, editadoEm: fb.serverTimestamp(), tags: tagsDoTexto(texto) };
+      if (mudouTitulo) campos.titulo = titulo || fb.deleteField();
+      try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), campos); }
+      catch (e) {
+        if (e?.code !== "permission-denied" || !mudouTitulo) throw e;
+        // Regras do ar sem o título: grava o texto e avisa.
+        delete campos.titulo; await fb.updateDoc(fb.doc(fb.db, "diario", post.id), campos);
+        toast("O título começa a funcionar quando as regras novas forem publicadas.");
+      }
+      post.texto = texto; post.tags = campos.tags; if ("titulo" in campos) { if (titulo) post.titulo = titulo; else delete post.titulo; }
+      post.editadoEm = { toMillis: () => Date.now(), toDate: () => new Date() };
       fecharFolha("folhaEditarPost");
       toast("Publicação editada");
       aoSalvar?.(post);
@@ -2454,6 +2696,156 @@ export const TIPOS_PUB = {
   caixa: { nome: "Perguntas", fotos: 1, ph: "Conte mais (opcional)...", dica: "As pessoas escrevem a resposta e só você vê. Respostas anônimas se quiser." }
 };
 let pubTipo = "texto", trocandoImagem = false;
+let pubLayout = "", textoAntesFmt = null, tFmt = 0;
+// O que está no formulário, no formato de uma publicação (para os modelos e a prévia).
+function postDoCompositor() {
+  const fotos = pubMidia?.tipo === "image" ? pubMidia.fotos : [];
+  const texto = $("pubTexto").value.trim();
+  let enquete = null; try { enquete = pubEnquete ? { ...pubEnquete, opcoes: (pubEnquete.opcoes || []).map((o) => String(o || "").trim()).filter(Boolean) } : null; } catch {}
+  return {
+    id: "previa", _previa: true, autorId: eu?.uid, nome: dados?.nome || "Você", fotoPerfil: dados?.fotoPerfil || "", titulo: limparTitulo($("pubTitulo").value) || "",
+    texto: organizarHashtags(texto), mediaUrl: pubMidia?.tipo === "video" ? pubMidia.previa : (fotos[0] || ""), mediaTipo: pubMidia?.tipo === "video" ? "video" : fotos.length ? "image" : "",
+    ...(fotos.length > 1 ? { midias: fotos } : {}), ...(pubTipo === "texto" && fotos.length ? { estilo: "casada" } : {}),
+    ...(pubTipo === "enquete" && enquete?.pergunta ? { enquete: { ...enquete, opcoes: enquete.opcoes.length >= 2 ? enquete.opcoes : ["Opção 1", "Opção 2"] } } : {}),
+    ...(pubTipo === "caixa" && pubCaixa ? { caixa: pubCaixa } : {}), tipo: pubTipo, layout: pubLayout, criadoEm: null
+  };
+}
+// Modelos do tipo (e do que já foi escolhido): botões com o desenho de cada um.
+function pintarModelos() {
+  const box = $("pubModelosBox"); if (!box) return;
+  const p = postDoCompositor();
+  const lista = modelosDe(p);
+  box.hidden = !lista.length;
+  if (!lista.length) { $("pubModelos").replaceChildren(); return; }
+  const atual = layoutDe(p);
+  $("pubModelos").replaceChildren(...lista.map(([k, nome, sub]) => {
+    const b = el("button", "pub-modelo" + (k === atual ? " ativo" : "")); b.type = "button"; b.dataset.modelo = k;
+    b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === atual)); b.title = sub;
+    b.innerHTML = desenhoModelo(k);
+    b.append(el("span", null, nome));
+    b.addEventListener("click", () => { pubLayout = k; if (pubTipo === "texto" && pubMidia?.tipo === "image") mostrarPreviaPublicacao(); else pintarModelos(); guardarAutomatico(); });
+    return b;
+  }));
+}
+// "Vão para o fim": as hashtags que a pessoa escreveu (sempre ficam no fim da descrição ao publicar).
+function pintarTagsPrev() {
+  const box = $("pubTagsPrev"); if (!box) return;
+  const tags = hashtagsDe($("pubTexto").value);
+  box.hidden = !tags.length;
+  if (!tags.length) { box.replaceChildren(); return; }
+  box.replaceChildren(el("small", null, tags.length > MAX_TAGS ? `Só as ${MAX_TAGS} primeiras hashtags valem` : "Vão para o fim:"), ...tags.slice(0, MAX_TAGS).map((t) => el("b", null, "#" + t)));
+  box.classList.toggle("demais", tags.length > MAX_TAGS);
+}
+// Prévia: o cartão de verdade (o mesmo do Diário), quando a página tem o Diário; senão os modelos já dizem.
+function verPrevia() {
+  const p = postDoCompositor();
+  if (!p.texto && !p.mediaUrl && !p.enquete && !p.caixa) { toast("Escreva algo ou adicione uma foto para ver a prévia."); return; }
+  const corpo = abrirLista("Como vai ficar");
+  const w = el("div", "pub-previa-post");
+  const card = ganchos.cartaoPrevia ? ganchos.cartaoPrevia(p) : null;
+  if (card) { w.appendChild(card); w.appendChild(el("p", "pub-previa-nota", "Prévia: estrelas, comentários e votos funcionam depois de publicar.")); }
+  else w.appendChild(el("div", "lista-vazia", "A prévia aparece no Diário."));
+  corpo.appendChild(w);
+}
+
+// ---------- rascunho automático (no aparelho) ----------
+// Tudo o que a pessoa escreve vai sendo guardado no aparelho; se ela sair do app, trocar de aba ou o celular fechar a
+// página, a publicação volta na próxima vez que abrir o formulário (e o Diário avisa que tem uma publicação guardada).
+const chaveAuto = () => `hf-pub-auto-${eu?.uid || ""}`;
+let tAuto = 0;
+function temConteudo() {
+  return !!($("pubTexto")?.value.trim() || $("pubTitulo")?.value.trim() || pubMidia || (pubEnquete && (String(pubEnquete.pergunta || "").trim() || (pubEnquete.opcoes || []).some((o) => String(o || "").trim())))
+    || (pubCaixa && String(pubCaixa.pergunta || "").trim() && pubCaixa.pergunta !== "Me faça uma pergunta"));
+}
+function estadoAuto() {
+  return { titulo: $("pubTitulo").value, texto: $("pubTexto").value, tipo: pubTipo, layout: pubLayout,
+    fotos: pubMidia?.tipo === "image" ? pubMidia.fotos.slice(0, MAX_FOTOS) : [], video: pubMidia?.tipo === "video",
+    enquete: pubEnquete ? { pergunta: pubEnquete.pergunta || "", opcoes: pubEnquete.opcoes || [], anonima: !!pubEnquete.anonima } : null,
+    caixa: pubCaixa ? { pergunta: pubCaixa.pergunta || "", anonima: !!pubCaixa.anonima } : null,
+    local: pubLocal || null, em: Date.now() };
+}
+function guardarAutomatico(ja = false) {
+  clearTimeout(tAuto);
+  const fazer = () => {
+    if (!$("folhaPublicar")?.classList.contains("aberta") || !eu?.uid) return;
+    if (!temConteudo()) { esquecerAutomatico(); return; }
+    const e = estadoAuto();
+    try { localStorage.setItem(chaveAuto(), JSON.stringify(e)); }
+    catch { try { localStorage.setItem(chaveAuto(), JSON.stringify({ ...e, fotos: [], semFotos: e.fotos.length })); } catch {} }
+  };
+  if (ja) fazer(); else tAuto = setTimeout(fazer, 600);
+}
+function esquecerAutomatico() { clearTimeout(tAuto); try { localStorage.removeItem(chaveAuto()); } catch {} }
+export function publicacaoGuardada() {
+  try { const e = JSON.parse(localStorage.getItem(chaveAuto()) || "null"); return e && (e.texto?.trim() || e.titulo?.trim() || e.fotos?.length || e.enquete?.pergunta || e.semFotos) && Date.now() - (e.em || 0) < 30 * 864e5 ? e : null; } catch { return null; }
+}
+function resumoGuardada(e) {
+  const t = (e.titulo || e.texto || e.enquete?.pergunta || "").replace(/\s+/g, " ").trim();
+  return t ? `“${t.slice(0, 60)}${t.length > 60 ? "…" : ""}”` : e.fotos?.length ? `${e.fotos.length} foto(s)` : "sem texto";
+}
+// Abre o formulário vazio e há uma publicação guardada no aparelho: volta com ela e avisa.
+function recuperarAutomatico() {
+  const e = publicacaoGuardada();
+  if (!e || temConteudo()) return;
+  pubMidia = null; pubEnquete = null; pubCaixa = null;
+  mudarTipo(TIPOS_PUB[e.tipo] && !(e.tipo === "video") ? e.tipo : "texto", { abrir: false });
+  $("pubTitulo").value = e.titulo || ""; $("pubTituloCont").textContent = `${$("pubTitulo").value.length}/${MAX_TITULO}`;
+  $("pubTexto").value = e.texto || "";
+  if (e.fotos?.length) pubMidia = { tipo: "image", fotos: e.fotos.slice(0, maxFotosPub()) };
+  if (e.tipo === "enquete" && e.enquete) { pubEnquete = { ...pubEnquete, ...e.enquete, duracao: pubEnquete?.duracao || { dur: 1440 } }; pintarEnqueteCompositor(); }
+  if (e.tipo === "caixa" && e.caixa) { pubCaixa = { ...e.caixa }; pintarCaixaCompositor(); }
+  if (e.local) pubLocal = e.local;
+  pubLayout = e.layout || "";
+  $("pubTexto").dispatchEvent(new Event("input"));
+  mostrarPreviaPublicacao(); pintarExtras(); pintarTipo();
+  const box = $("pubRecuperado");
+  box.replaceChildren();
+  const tx = el("span"); tx.append(icone("rascunho", "i s"), el("span", null, `Continuando a publicação que você não terminou (${tempoRelativo(new Date(e.em))})` + (e.semFotos || e.video ? ". Escolha a foto ou o vídeo de novo." : ".")));
+  const desc = el("button", "pub-rec-desc", "Descartar"); desc.type = "button";
+  desc.addEventListener("click", async () => {
+    if (!await confirmarHF({ titulo: "Descartar a publicação?", texto: "O que você escreveu some deste aparelho.", ok: "Descartar", icone: "lixo" })) return;
+    limparPublicacao(); toast("Publicação descartada");
+  });
+  box.append(tx, desc); box.hidden = false;
+}
+// Fechar o formulário com algo feito: "Sair da publicação?" (Salvar rascunho · Descartar · Continuar editando).
+// Assinatura do que está no formulário (para saber se já foi salvo como rascunho e não mudou depois).
+const assinaturaForm = () => { const e = estadoAuto(); delete e.em; return JSON.stringify(e); };
+let salvoComo = "";
+function perguntarSaida() {
+  if (!temConteudo() || $("pubEnviar").disabled) return true;
+  // Acabou de salvar o rascunho e não mexeu depois: fecha sem perguntar (o rascunho está em Rascunhos).
+  if (salvoComo && salvoComo === assinaturaForm()) { esquecerAutomatico(); return true; }
+  guardarAutomatico(true);
+  return new Promise((ok) => {
+    let decidiu = false;
+    const fim = (v) => { if (decidiu) return; decidiu = true; ok(v); };
+    abrirOpcoes("Sair da publicação?", [
+      { rotulo: "Salvar rascunho", sub: "Fica em Rascunhos para terminar depois", icone: "rascunho", fn: async () => { const salvou = await salvarRascunho(); if (salvou) { esquecerAutomatico(); limparPublicacao(); } fim(salvou !== false); } },
+      { rotulo: "Descartar", sub: "Apaga o que você escreveu", icone: "lixo", perigo: true, fn: () => { limparPublicacao(); fim(true); } },
+      { rotulo: "Continuar editando", icone: "lapis", fn: () => fim(false) }
+    ]);
+    // Fechou a pergunta sem escolher (voltar, tocar fora): continua editando.
+    const fo = $("folhaOpcoes");
+    const aoFechar = () => { fo.removeEventListener("fechada", aoFechar); setTimeout(() => fim(false), 0); };
+    fo?.addEventListener("fechada", aoFechar);
+  });
+}
+// O Diário avisa quando tem uma publicação guardada no aparelho (a pessoa saiu do app no meio).
+export function avisarPublicacaoGuardada(abrir) {
+  const e = publicacaoGuardada();
+  if (!e || document.querySelector(".pub-guardada")) return;
+  const c = el("div", "pub-guardada"); c.setAttribute("role", "status");
+  const tx = el("div", "pg-tx"); tx.append(el("strong", null, "Publicação não terminada"), el("small", null, resumoGuardada(e) + " · " + tempoRelativo(new Date(e.em))));
+  const ir = el("button", "btn pri mini", "Continuar"); ir.type = "button";
+  const x = el("button", "icone-btn"); x.type = "button"; x.setAttribute("aria-label", "Descartar a publicação guardada"); x.appendChild(icone("fechar", "i s"));
+  const ic = el("span", "pg-ic"); ic.appendChild(icone("rascunho", "i"));
+  c.append(ic, tx, ir, x);
+  ir.addEventListener("click", () => { c.remove(); (abrir || abrirCompositor)(); });
+  x.addEventListener("click", async () => { if (!await confirmarHF({ titulo: "Descartar a publicação?", texto: "O que você escreveu some deste aparelho.", ok: "Descartar", icone: "lixo" })) return; esquecerAutomatico(); c.remove(); });
+  document.body.appendChild(c);
+  setTimeout(() => c.classList.add("dentro"), 30);
+}
 const AJUSTES_PADRAO = () => ({ quemComenta: dados.diarioConfig?.quemComenta || "todos", ocultarNotas: false });
 let pubAjustes = null;
 const maxFotosPub = () => TIPOS_PUB[pubTipo].fotos;
@@ -2471,6 +2863,7 @@ function pintarTipo() {
   $("pubVideo").classList.toggle("ativo", pubMidia?.tipo === "video");
   $("pubAjustes").classList.toggle("ativo", !!pubAjustes && (pubAjustes.ocultarNotas || pubAjustes.quemComenta !== AJUSTES_PADRAO().quemComenta));
   $("pubCont").textContent = `${$("pubTexto").value.length}/${limiteTexto()}`;
+  pintarModelos();
 }
 // Texto com imagem casada: até 500 letras (o cartão foi desenhado para isso).
 const limiteTexto = () => (pubTipo === "texto" && pubMidia?.tipo === "image" ? 500 : 1000);
@@ -2541,8 +2934,9 @@ function abrirAjustesPub() {
 // Cartão do texto com imagem casada (o mesmo no formulário, no Diário, no perfil e no Explorar):
 // a imagem em cima, num quadro com as bordas do cartão, se fundindo com o fundo; o texto embaixo em letra grande,
 // com aspas e a barra na cor do site. Um modelo só, para todos os textos com imagem.
-export function blocoCasado(texto, url, { curto = false } = {}) {
-  const c = el("figure", "casada");
+export function blocoCasado(texto, url, { curto = false, layout = "topo" } = {}) {
+  // Modelos (diario.layout): "topo" (imagem em cima se fundindo), "lado" (imagem do lado) e "fundo" (texto por cima).
+  const c = el("figure", "casada" + (layout === "lado" || layout === "fundo" ? " " + layout : ""));
   const f = el("div", "casada-foto");
   const im = document.createElement("img"); im.src = url; im.alt = ""; im.loading = "lazy"; im.decoding = "async";
   f.appendChild(im);
@@ -2578,6 +2972,7 @@ function pintarEnqueteCompositor() {
   box.appendChild(linhaChave(pubEnquete, "anonima", { titulo: "Votação anônima", sub: "Ninguém vê quem votou, nem você" }));
   // Duração: 1 h, 6 h, 12 h, 1 dia (padrão) ou personalizado (até 7 dias a partir de quando a publicação aparece).
   box.appendChild(seletorDuracao(pubEnquete.duracao, { maxMin: MAX_PUB_MIN, base: () => (pubAgenda && pubAgenda > new Date() ? pubAgenda.getTime() : Date.now()) }));
+  pintarModelos();
 }
 function enqueteDoCompositor() {
   if (!pubEnquete) return null;
@@ -2726,14 +3121,15 @@ export function escolherLocal(aoEscolher) {
   setTimeout(() => busca.focus({ preventScroll: true }), 120);
 }
 function limparPublicacao() {
-  $("pubTexto").value = "";
+  $("pubTexto").value = ""; $("pubTitulo").value = ""; $("pubTituloCont").textContent = `0/${MAX_TITULO}`;
+  pubLayout = ""; salvoComo = ""; esquecerAutomatico(); $("pubRecuperado").hidden = true; $("pubDesfazerFmt").hidden = true; textoAntesFmt = null;
   if (pubMidia?.previa?.startsWith("blob:")) URL.revokeObjectURL(pubMidia.previa);
   pubMidia = null;
   pubMarcados = []; pubAgenda = null; pubLocal = null; pubPublico = null; pubRascunhoId = null; pubEnquete = null; pintarEnqueteCompositor(); pubCaixa = null; pintarCaixaCompositor();
   pubTipo = "texto"; pubAjustes = null; $("pubTexto").maxLength = 1000; pintarTipo();
   $("pubPrevia").hidden = true;
   $("pubPrevia").replaceChildren();
-  pintarExtras();
+  pintarExtras(); pintarTagsPrev(); pintarModelos();
 }
 // Marcar pessoas (até 10): quem você segue primeiro; a busca procura qualquer pessoa.
 async function escolherMarcados() {
@@ -2795,15 +3191,24 @@ function escolherAgenda() {
 async function salvarRascunho() {
   const texto = $("pubTexto").value.trim();
   const fotos = pubMidia?.tipo === "image" ? pubMidia.fotos.slice(0, MAX_FOTOS) : [];
-  if (!texto && !fotos.length) { toast("Escreva algo ou adicione uma foto para salvar o rascunho."); return; }
+  if (!texto && !fotos.length && !$("pubTitulo").value.trim()) { toast("Escreva algo ou adicione uma foto para salvar o rascunho."); return false; }
   const b = $("pubSalvarRascunho"); b.disabled = true;
   try {
     const cabem = fotos.length ? await caberNoDocumento(fotos, 860000) : [];
     const ref = pubRascunhoId ? fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId) : fb.doc(fb.collection(fb.db, "rascunhos", eu.uid, "itens"));
-    await fb.setDoc(ref, { texto, fotos: cabem, atualizadoEm: fb.serverTimestamp() });
+    // O título vai junto no texto do rascunho (primeira linha) — sem campo novo nas regras.
+    const titulo = limparTitulo($("pubTitulo").value);
+    await fb.setDoc(ref, { texto: (titulo ? `${titulo}\n\n${texto}` : texto).slice(0, 5000), fotos: cabem, atualizadoEm: fb.serverTimestamp() });
     pubRascunhoId = ref.id;
+    salvoComo = assinaturaForm(); esquecerAutomatico();
     toast("Rascunho salvo. Abra em Rascunhos (ícone de folha) quando quiser.");
-  } catch (e) { toast(e?.code === "permission-denied" ? "Rascunhos começam a funcionar quando as regras novas forem publicadas." : "Não foi possível salvar: " + erroAmigavel(e)); }
+    return true;
+  } catch (e) {
+    // Sem as regras ou sem internet: fica guardado no aparelho (volta quando abrir o formulário de novo).
+    guardarAutomatico(true);
+    toast(e?.code === "permission-denied" ? "Guardado neste aparelho: volta quando você abrir Nova publicação." : "Sem conexão: guardado neste aparelho. Volta quando você abrir Nova publicação.");
+    return true;
+  }
   finally { b.disabled = false; }
 }
 async function abrirRascunhos() {
@@ -2861,7 +3266,7 @@ function mostrarPreviaPublicacao() {
   // Texto com imagem: a prévia é o próprio cartão casado (muda enquanto a pessoa escreve).
   if (pubMidia.tipo === "image" && pubTipo === "texto") {
     box.classList.add("casada-previa");
-    const c = blocoCasado($("pubTexto").value.trim() || "Escreva o seu texto...", pubMidia.fotos[0]);
+    const c = blocoCasado(partesDoTexto($("pubTexto").value).corpo || "Escreva o seu texto...", pubMidia.fotos[0], { layout: layoutDe(postDoCompositor()) });
     const x = el("button", "icone-btn"); x.type = "button"; x.setAttribute("aria-label", "Tirar a imagem");
     x.appendChild(icone("fechar", "i s"));
     x.addEventListener("click", () => { pubMidia = null; $("pubTexto").maxLength = 1000; mostrarPreviaPublicacao(); });
@@ -2908,7 +3313,38 @@ function ligarCompositor() {
   });
   // O campo cresce com o texto (até 45% da tela; depois rola por dentro).
   const crescer = () => { const t = $("pubTexto"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, Math.round(innerHeight * 0.45)) + "px"; };
-  $("pubTexto").addEventListener("input", () => { $("pubCont").textContent = `${$("pubTexto").value.length}/${limiteTexto()}`; crescer(); if (pubTipo === "texto" && pubMidia?.tipo === "image") mostrarPreviaPublicacao(); });
+  $("pubTexto").addEventListener("input", () => {
+    $("pubCont").textContent = `${$("pubTexto").value.length}/${limiteTexto()}`; crescer(); if (pubTipo === "texto" && pubMidia?.tipo === "image") mostrarPreviaPublicacao();
+    pintarTagsPrev(); pintarModelos(); guardarAutomatico();
+    if (textoAntesFmt !== null && !tFmt) { textoAntesFmt = null; $("pubDesfazerFmt").hidden = true; }
+  });
+  $("pubTitulo").addEventListener("input", () => { $("pubTituloCont").textContent = `${$("pubTitulo").value.length}/${MAX_TITULO}`; guardarAutomatico(); });
+  $("pubTitulo").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("pubTexto").focus(); } });
+  // Formatar texto: arruma e deixa as #hashtags no fim; "Desfazer" volta como estava.
+  $("pubFormatar").addEventListener("click", () => {
+    const t = $("pubTexto"), antes = t.value;
+    const novo = formatarTexto(antes).slice(0, t.maxLength || 1000);
+    const tit = $("pubTitulo"), titNovo = limparTitulo(tit.value).replace(/^\p{Ll}/u, (l) => l.toUpperCase());
+    if (novo === antes && titNovo === tit.value) { toast(antes.trim() ? "O texto já está organizado." : "Escreva o texto primeiro."); return; }
+    textoAntesFmt = { texto: antes, titulo: tit.value };
+    tFmt = 1; t.value = novo; tit.value = titNovo; t.dispatchEvent(new Event("input")); tit.dispatchEvent(new Event("input")); tFmt = 0;
+    $("pubDesfazerFmt").hidden = false;
+    t.classList.add("formatado"); setTimeout(() => t.classList.remove("formatado"), 700);
+    toast("Texto formatado: espaços, maiúsculas, pontuação e #hashtags no fim.");
+  });
+  $("pubDesfazerFmt").addEventListener("click", () => {
+    if (!textoAntesFmt) return;
+    const { texto, titulo } = textoAntesFmt; textoAntesFmt = null;
+    tFmt = 1; $("pubTexto").value = texto; $("pubTitulo").value = titulo; $("pubTexto").dispatchEvent(new Event("input")); $("pubTitulo").dispatchEvent(new Event("input")); tFmt = 0;
+    $("pubDesfazerFmt").hidden = true;
+  });
+  $("pubVerPrevia").addEventListener("click", verPrevia);
+  $("pubEnquete").addEventListener("input", () => { pintarModelos(); guardarAutomatico(); });
+  $("pubCaixa").addEventListener("input", () => guardarAutomatico());
+  // Saiu do app, trocou de aba ou a página vai fechar: guarda na hora.
+  document.addEventListener("visibilitychange", () => { if (document.hidden) guardarAutomatico(true); });
+  addEventListener("pagehide", () => guardarAutomatico(true));
+  addEventListener("beforeunload", (e) => { if ($("folhaPublicar")?.classList.contains("aberta") && temConteudo() && !$("pubEnviar").disabled) { guardarAutomatico(true); e.preventDefault(); e.returnValue = ""; } });
   $("pubFoto").addEventListener("click", () => $("pubArquivoFoto").click());
   $("pubVideo").addEventListener("click", () => $("pubArquivoVideo").click());
   $("pubMarcar").addEventListener("click", escolherMarcados);
@@ -2975,12 +3411,14 @@ function ligarCompositor() {
   });
   $("pubEnviar").addEventListener("click", async () => {
     if (preparandoFoto && Date.now() - preparandoDesde < 60000) { toast("Espere a foto terminar de carregar."); return; }
-    const texto = $("pubTexto").value.trim();
-    if (!texto && !pubMidia && !pubEnquete && !pubCaixa) { toast("Escreva algo ou adicione uma foto."); return; }
+    // As #hashtags vão SEMPRE para o fim da descrição (organizadas numa linha só).
+    const texto = organizarHashtags($("pubTexto").value.trim());
+    const titulo = limparTitulo($("pubTitulo").value);
+    if (!texto && !titulo && !pubMidia && !pubEnquete && !pubCaixa) { toast("Escreva algo ou adicione uma foto."); return; }
     // As regras de cada tipo (as mesmas do firestore.rules).
     const tipo = pubTipo;
     const casada = tipo === "texto" && pubMidia?.tipo === "image";
-    if (tipo === "texto" && !texto) { toast(pubMidia ? "Escreva o texto que vai com a imagem." : "Escreva o seu texto."); return; }
+    if (tipo === "texto" && !texto) { toast(pubMidia ? "Escreva o texto que vai com a imagem." : titulo ? "Escreva a descrição embaixo do título." : "Escreva o seu texto."); return; }
     if (casada && texto.length > 500) { toast(`Com imagem, o texto vai até 500 letras (tem ${texto.length}). Encurte ou mude para Foto.`); return; }
     if (tipo === "foto" && pubMidia?.tipo !== "image") { toast("Adicione pelo menos uma foto."); return; }
     if (tipo === "video" && pubMidia?.tipo !== "video") { toast("Escolha o vídeo."); return; }
@@ -3014,16 +3452,29 @@ function ligarCompositor() {
       const agenda = pubAgenda && pubAgenda > new Date() ? fb.Timestamp.fromDate(pubAgenda) : null;
       const ajustes = pubAjustes || AJUSTES_PADRAO();
       const extras = { ...(tags.length ? { tags } : {}), ...(marcados.length ? { marcados } : {}), ...(agenda ? { agendadoPara: agenda } : {}), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(pubLocal ? { local: { ...pubLocal } } : {}), ...(pubPublico ? { publico: { ...pubPublico } } : {}),
-        tipo, ...(casada ? { estilo: "casada" } : {}), ...(ajustes.quemComenta !== "todos" ? { quemComenta: ajustes.quemComenta } : {}), ...(ajustes.ocultarNotas ? { ocultarNotas: true } : {}) };
+        tipo, ...(casada ? { estilo: "casada" } : {}), ...(ajustes.quemComenta !== "todos" ? { quemComenta: ajustes.quemComenta } : {}), ...(ajustes.ocultarNotas ? { ocultarNotas: true } : {}),
+        ...(titulo ? { titulo } : {}) };
+      const modelo = layoutDe({ texto, titulo, mediaUrl, mediaTipo, midias, enquete, caixa, estilo: casada ? "casada" : "", layout: pubLayout });
+      if (pubLayout && modelo) extras.layout = modelo;
+      // Campos que as regras do ar ainda não conhecem (tipo, modelo, título...): se recusar, publica sem eles e com o
+      // título junto no texto; se ainda recusar, publica só o básico (como sempre).
+      const NOVOS_PUB = ["tipo", "estilo", "titulo", "layout", "publico", "quemComenta", "ocultarNotas"];
+      const extrasMeio = Object.fromEntries(Object.entries(extras).filter(([k]) => !NOVOS_PUB.includes(k)));
+      const textoMeio = titulo ? `${titulo}\n\n${texto}`.slice(0, 1000) : texto;
       // Região de quem publica (Diário e Explorar priorizam a sua cidade e o seu estado).
       const regiao = /^[A-Z]{2}$/.test(dados.uf || "") ? { autorUf: dados.uf, ...(Number.isInteger(dados.cidadeIbge) ? { autorIbge: dados.cidadeIbge } : {}) } : {};
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
-        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos ? { ...extras, ...regiao } : {}), criadoEm: fb.serverTimestamp() });
+        lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto: novos === "meio" ? textoMeio : texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos === true ? { ...extras, ...regiao } : novos === "meio" ? { ...extrasMeio, ...regiao } : {}), criadoEm: fb.serverTimestamp() });
         return r;
       });
-      let ref, semNovos = false;
+      let ref, semNovos = false, meio = false;
       try { ref = await gravar(true); }
+      catch (e0) {
+        if (e0?.code !== "permission-denied") throw e0;
+        if (!pubPublico) try { ref = await gravar("meio"); meio = true; } catch (e) { if (e?.code !== "permission-denied") throw e; }
+      }
+      if (!ref) try { throw Object.assign(new Error("sem permissão"), { code: "permission-denied" }); }
       catch (e) {
         // Regras antigas no servidor: publica sem os campos novos. Agendada não vai na hora: avisa e para.
         if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length && !Object.keys(regiao).length)) throw e;
@@ -3038,7 +3489,8 @@ function ligarCompositor() {
       if (pubRascunhoId) fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId)).catch(() => {});
       // Quem pode comentar vai junto na publicação; com as regras antigas, vai depois (como antes).
       if (semNovos && ajustes.quemComenta !== "todos") fb.updateDoc(ref, { quemComenta: ajustes.quemComenta }).catch(() => {});
-      const post = { id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(!semNovos && midias ? { midias } : {}), ...(!semNovos ? extras : {}), criadoEm: null };
+      const post = { id: ref.id, autorId: eu.uid, nome: dados.nome, fotoPerfil: foto, texto: meio ? textoMeio : texto, mediaUrl, mediaTipo, ...(!semNovos && midias ? { midias } : {}), ...(semNovos ? {} : meio ? extrasMeio : extras), criadoEm: null };
+      esquecerAutomatico();
       btn.disabled = false;
       limparPublicacao();
       fecharFolha("folhaPublicar");

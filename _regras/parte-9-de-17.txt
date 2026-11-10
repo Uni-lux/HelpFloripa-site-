@@ -1,3 +1,45 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'contexto', 'status', 'criadoEm'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.alvoId is string
+                    && request.resource.data.alvoId != request.auth.uid
+                    && request.resource.data.itemId is string
+                    && request.resource.data.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio', 'comunidade']
+                    && id == request.resource.data.tipo + '_' + request.resource.data.itemId + '_' + request.auth.uid
+                    && request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'venda', 'outro']
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 500)
+                    && valorTextoAte(request.resource.data.get('trecho', ''), 300)
+                    // mensagem: ids de algumas mensagens antes e depois (a equipe abre uma por uma)
+                    && (!('contexto' in request.resource.data)
+                        || (request.resource.data.tipo == 'mensagem'
+                            && request.resource.data.contexto is list
+                            && request.resource.data.contexto.size() <= 12))
+                    && request.resource.data.status == 'nova'
+                    && request.resource.data.criadoEm == request.time
+                    && itemDoAlvo(request.resource.data);
+
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // ADMINISTRAÇÃO
+    // admins/{uid}      : quem é da equipe (criado à mão no console do Firebase)
+    // sancoes/{uid}     : suspensão (até uma data) ou banimento
+    // avisos/{id}       : aviso da equipe para uma pessoa
+    // comunicados/{id}  : faixa para todos (ex.: manutenção, novidade)
+    // suporte/{id}      : chamados de suporte (+ mensagens)
+    // parcerias/{id}    : interessados em ser sócio, investidor ou parceiro
+    // admin_log/{id}    : registro de tudo o que a equipe faz
+    // estatisticas/{dia}, relatorios/{id}: gravados pelo relatório automático (Admin SDK)
+    // =====================================================
+    match /admins/{uid} {
+      allow get: if logado() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      allow write: if false;
+    }
+
     match /sancoes/{uid} {
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
@@ -133,45 +175,4 @@
               && x.url is string && x.url.size() <= 750000
               && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
         }
-        allow read: if logado() && (chamado().uid == request.auth.uid || admin());
-        allow create: if logado()
-                      && (chamadoDepois().uid == request.auth.uid || admin())
-                      && request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em', 'anexo'])
-                      && request.resource.data.autorId == request.auth.uid
-                      // "equipe" (resposta oficial) só quem é da equipe; no próprio chamado, todos escrevem como usuário
-                      && (request.resource.data.equipe == false || (request.resource.data.equipe == true && admin()))
-                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
-                      // texto vazio só com anexo
-                      && (request.resource.data.texto.size() >= 1 || 'anexo' in request.resource.data)
-                      && (!('anexo' in request.resource.data) || anexoOk(request.resource.data.anexo))
-                      && request.resource.data.em == request.time;
-        allow update, delete: if false;
-      }
-      // Notas internas do chamado: só a equipe lê e escreve (a pessoa nunca vê). Não se editam nem apagam.
-      match /notas/{notaId} {
-        allow read: if admin();
-        allow create: if admin()
-                      && request.resource.data.keys().hasOnly(['autorId', 'nome', 'texto', 'em'])
-                      && request.resource.data.autorId == request.auth.uid
-                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
-                      && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                      && request.resource.data.em == request.time;
-        allow update, delete: if false;
-      }
-    }
-
-    // Pedido do selo de verificado: a pessoa e a moderação leem. A foto do documento é apagada na decisão.
-    // Respostas prontas do suporte, compartilhadas pela equipe (suporte nacional): só a equipe lê e mexe.
-    match /suporte_respostas/{id} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'categoria', 'autorId', 'autorNome', 'em'])
-                    && request.resource.data.titulo is string && request.resource.data.titulo.size() >= 2 && request.resource.data.titulo.size() <= 60
-                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 2 && request.resource.data.texto.size() <= 2000
-                    && request.resource.data.get('categoria', '') in ['', 'conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
-                    && request.resource.data.autorId == request.auth.uid
-                    && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
-                    && request.resource.data.em == request.time;
-      allow delete: if admin();
-    }
 // ===== FIM DA PARTE 9 DE 17 =====

@@ -50,7 +50,7 @@ const casada = await novo("Toda reforma");
 ok(casada?.tipo === "texto" && casada.estilo === "casada" && casada.mediaUrl && !casada.midias && casada.quemComenta === "seguidores" && casada.ocultarNotas === true, "gravado: " + JSON.stringify({ tipo: casada?.tipo, estilo: casada?.estilo, qc: casada?.quemComenta, on: casada?.ocultarNotas }));
 await p.waitForSelector(".post-card .casada", { timeout: 10000 });
 const card = p.locator(".post-card", { has: p.locator(".casada") }).first();
-ok(await card.locator(".post-midia-f").count() === 0 && await card.locator(".post-texto").count() === 0 && await card.locator(".casada-texto a.hashtag").count() === 1, "Diário: um cartão só (imagem + texto), com a #hashtag como link");
+ok(await card.locator(".post-midia-f").count() === 0 && await card.locator(".post-texto").count() === 0 && await card.locator(".post-tags .tag-chip").count() === 1, "Diário: um cartão só (imagem + texto), com a #hashtag em etiqueta no fim");
 await card.scrollIntoViewIfNeeded(); await p.screenshot({ path: "saida/tp-casada-diario.png" });
 
 // ---------- 2) Foto: a 2ª imagem no Texto muda para Foto ----------

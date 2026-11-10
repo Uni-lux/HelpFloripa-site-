@@ -99,15 +99,25 @@
 > prende entre 0,6 e 1,3 ao desenhar. Sem a regra publicada, o flash vai sem o `k` e a figurinha aparece no tamanho de sempre.
 > Agora são **17 partes**.
 
+> **Publicações formatadas, comentários ricos e reações no chat (10/11):** `diario.titulo` (1 a 90 letras, opcional) e
+> `diario.layout` (o modelo escolhido: `topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical`),
+> no criar e no editar. `comentarios.midia` {tipo `imagem|audio|figurinha`, url do site (`data:` ou Storage) até 700 mil letras,
+> dur até 60 s} e `comentarios.enquete` {pergunta até 120, 2 a 4 opções até 60} — enquete só o autor da publicação; com mídia ou
+> enquete o texto pode ficar vazio. Coleção nova `comentario_votos/{comentarioId}_{uid}` {comentarioId, uid, opcao, criadoEm}:
+> um voto por pessoa (não muda), a opção tem que existir na enquete do comentário; todos leem. Mensagens do chat:
+> `reacoes.{uid}` = emoji (❤️ 👍 😂 😮 😢 🙏 🔥 👏) — cada um dos dois põe/troca/tira só a própria, sem prazo, menos em mensagem
+> apagada. Sem as regras publicadas: a publicação sai sem título/modelo (o título vai junto no começo do texto), comentário com
+> foto/áudio/figurinha/enquete e a reação no chat avisam que falta publicar. Continuam **17 partes**.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **17 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (195.495 bytes, 3.198 linhas, sha256 começa com `327830f7c2223ed6`).
+- Arquivo de origem: `firestore.rules` (199.580 bytes, 3.251 linhas, sha256 começa com `8ce74b814a871c0f`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 17 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 17 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **785 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **817 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

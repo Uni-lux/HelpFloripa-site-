@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=133";
+} from "./rede.js?v=134";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -16,8 +16,8 @@ import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerRes
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=91";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=21";
 import { semPausados } from "./planos-base.js?v=15";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=105";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=90";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=106";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=91";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -177,7 +177,7 @@ function renderizarMeuPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=97").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=98").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -353,7 +353,9 @@ function desenharTextos(box, lista, { autor }) {
       contarComentarios(post.id).then((n) => { com.lastChild.textContent = numero(n); }).catch(() => { com.lastChild.textContent = "0"; });
       rod.append(est, com);
       if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) rod.appendChild(el("span", "selo-agendada", "Agendada"));
-      corpoT.append(cab, tx);
+      corpoT.append(cab);
+      if (post.titulo) corpoT.appendChild(el("strong", "ti-titulo", post.titulo));
+      corpoT.appendChild(tx);
       const enq = blocoEnquete(post);
       if (enq) corpoT.appendChild(enq);
       const cx = blocoCaixa(post);
@@ -552,7 +554,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=100").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=101").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;

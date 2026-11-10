@@ -2034,7 +2034,45 @@ function assinaturaMsg(m, data, primeira) {
   const original = m.resposta?.id ? mensagens.find((x) => x.id === m.resposta.id) : null;
   return JSON.stringify([primeira, hora(data), m.texto || "", m.arquivoUrl || "", m.tipoArquivo || "", m.cartao || null, m.avaliacao || null,
     m.resposta || null, original ? resumoMensagem(original) : "", ativa?.nome || "", ms(m.apagada?.em) || (m.apagada ? 1 : 0), ms(m.editadaEm),
-    m.apagada ? noPrazo(m.apagada.em) : 0, m.conferencia ? (m.conferencia.ok ? 1 : 2) : 0]);
+    m.apagada ? noPrazo(m.apagada.em) : 0, m.conferencia ? (m.conferencia.ok ? 1 : 2) : 0, m.apagada ? "" : textoReacoes(m)]);
+}
+// ---------- reações nas mensagens (como no WhatsApp): reacoes.{uid} = emoji ----------
+const REACOES_MSG = ["❤️", "👍", "😂", "😮", "😢", "🙏", "🔥", "👏"];
+const reacoesDe = (m) => Object.entries(m?.reacoes && typeof m.reacoes === "object" ? m.reacoes : {}).filter(([, e]) => REACOES_MSG.includes(e));
+const textoReacoes = (m) => reacoesDe(m).sort().map((x) => x.join(":")).join(",");
+async function reagirMensagem(m, emoji) {
+  if (!ativa || m.pendente || m.apagada) return;
+  const atual = mensagens.find((x) => x.id === m.id) || m;
+  const antes = atual.reacoes ? { ...atual.reacoes } : null;
+  const tirar = antes?.[eu.uid] === emoji;
+  const novo = { ...(antes || {}) };
+  if (tirar) delete novo[eu.uid]; else novo[eu.uid] = emoji;
+  atual.reacoes = novo; renderizarMensagens(false);
+  if (!tirar) navigator.vibrate?.(10);
+  try { await fb.updateDoc(refMsg(m.id), { ["reacoes." + eu.uid]: tirar ? fb.deleteField() : emoji }); }
+  catch (e) {
+    atual.reacoes = antes; renderizarMensagens(false);
+    toast(e?.code === "permission-denied" ? "Reações nas mensagens começam a funcionar quando as regras novas forem publicadas." : "Não foi possível reagir agora.");
+  }
+}
+// Pílula embaixo do balão: os emojis (até 3) e quantos; tocar mostra quem reagiu e tira a sua.
+function pilulaReacoes(m) {
+  const lista = reacoesDe(m);
+  if (!lista.length) return null;
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "msg-reacoes" + (lista.some(([u]) => u === eu.uid) ? " minha" : "");
+  const unicos = [...new Set(lista.map(([, e]) => e))].slice(0, 3);
+  b.append(...unicos.map((e) => { const s = document.createElement("span"); s.className = "mr-e"; s.textContent = e; return s; }));
+  if (lista.length > 1) { const n = document.createElement("span"); n.className = "mr-n"; n.textContent = String(lista.length); b.appendChild(n); }
+  b.setAttribute("aria-label", "Reações: " + lista.map(([u, e]) => `${u === eu.uid ? "você" : (ativa?.nome || "contato")} ${e}`).join(", "));
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = $("menuMsg"); menu.replaceChildren();
+    const r = b.getBoundingClientRect();
+    const ops = lista.map(([u, em]) => ({ rotulo: `${em}  ${u === eu.uid ? "Você · toque para tirar" : (ativa?.nome || "Contato")}`, icone: u === eu.uid ? "lixo" : "pessoa", acao: () => { if (u === eu.uid) reagirMensagem(m, em); } }));
+    montarMenu(menu, ops, r.left, r.bottom + 4);
+  });
+  return b;
 }
 
 function renderizarMensagens(chegouDoOutro) {
@@ -2326,6 +2364,10 @@ function criarLinhaMensagem(m, data, primeira) {
 
   ligarMenuBolha(bolha, m);
   linha.appendChild(bolha);
+  const pr = pilulaReacoes(m);
+  if (pr) { linha.classList.add("com-reacao"); linha.appendChild(pr); }
+  // Toque duplo no balão = ❤️ (de novo tira), como no Instagram.
+  bolha.addEventListener("dblclick", (e) => { if (e.target.closest("a, button, audio, video, input")) return; e.preventDefault(); window.getSelection?.()?.removeAllRanges?.(); reagirMensagem(mensagens.find((x) => x.id === m.id) || m, "❤️"); });
   return linha;
 }
 
@@ -2495,6 +2537,19 @@ function abrirMenuMensagem(m, x, y) {
     if (noPrazo(m.apagada.em)) ops.push({ rotulo: "Ver mensagem apagada", icone: "olho", acao: () => verApagada(m) });
     ops.push({ rotulo: "Apagar para mim", icone: "lixo", perigo: true, acao: () => perguntarApagar(m) });
     return montarMenu(menu, ops, x, y);
+  }
+  // Reações rápidas em cima do menu (a sua fica marcada; tocar de novo tira).
+  if (!m.pendente) {
+    const barra = document.createElement("div"); barra.className = "menu-reacoes"; barra.setAttribute("role", "group"); barra.setAttribute("aria-label", "Reagir");
+    const minhaR = m.reacoes?.[eu.uid];
+    REACOES_MSG.forEach((e, k) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = e; b.style.setProperty("--k", k);
+      if (minhaR === e) b.className = "eu";
+      b.setAttribute("aria-label", (minhaR === e ? "Tirar a reação " : "Reagir com ") + e);
+      b.addEventListener("click", (ev) => { ev.stopPropagation(); fecharMenu(); reagirMensagem(m, e); });
+      barra.appendChild(b);
+    });
+    menu.appendChild(barra);
   }
   const opcoes = [
     { rotulo: "Responder", icone: "responder", acao: () => responder(m) },

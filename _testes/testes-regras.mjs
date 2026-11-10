@@ -197,6 +197,17 @@ await t("mensagem: segunda mensagem soma 1 no limite", () => assertSucceeds(mand
 await t("mensagem: sem contar no limite diário é recusada", () => assertFails(setDoc(doc(collection(ctx("ana"), "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "x", criadoEm: serverTimestamp() })));
 await t("mensagem: quem não participa não manda", () => assertFails(mandarMsg("edu", convAB, "intruso", true)));
 await t("mensagem: quem não participa não lê", () => assertFails(getDocs(collection(ctx("edu"), "conversas", convAB, "mensagens"))));
+// Reações nas mensagens (cada um só a própria).
+await semRegras((db) => setDoc(doc(db, "conversas", convAB, "mensagens", "mReac"), { remetenteId: "bia", texto: "oi", criadoEm: antigo }));
+const mReac = (q) => doc(ctx(q), "conversas", convAB, "mensagens", "mReac");
+await t("reação no chat: participante reage (mesmo depois de 10 min)", () => assertSucceeds(updateDoc(mReac("ana"), { "reacoes.ana": "❤️" })));
+await t("reação no chat: quem enviou também reage", () => assertSucceeds(updateDoc(mReac("bia"), { "reacoes.bia": "😂" })));
+await t("reação no chat: troca o emoji", () => assertSucceeds(updateDoc(mReac("ana"), { "reacoes.ana": "🔥" })));
+await t("reação no chat: não mexe na reação da outra pessoa", () => assertFails(updateDoc(mReac("ana"), { "reacoes.bia": "👍" })));
+await t("reação no chat: emoji fora da lista é recusado", () => assertFails(updateDoc(mReac("ana"), { "reacoes.ana": "💩" })));
+await t("reação no chat: não muda o texto junto", () => assertFails(updateDoc(mReac("ana"), { "reacoes.ana": "👍", texto: "mudei" })));
+await t("reação no chat: quem não participa não reage", () => assertFails(updateDoc(mReac("edu"), { "reacoes.edu": "👍" })));
+await t("reação no chat: tira a própria", () => assertSucceeds(updateDoc(mReac("ana"), { "reacoes.ana": deleteField() })));
 await t("mensagem: não se passa por outra pessoa", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "bia", texto: "fake", criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertFails(b.commit()); });
 await t("mensagem: citação de mensagem real é aceita", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "respondendo", resposta: { id: "m1", texto: "oi", remetenteId: "bia" }, criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertSucceeds(b.commit()); });
 await t("mensagem: citação inventada (autor errado) é recusada", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(collection(db, "conversas", convAB, "mensagens")), { remetenteId: "ana", texto: "x", resposta: { id: "m1", texto: "oi", remetenteId: "ana" }, criadoEm: serverTimestamp() }); b.set(doc(db, "ritmo", "ana"), { msg: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "msg" }, { merge: true }); await assertFails(b.commit()); });
@@ -464,6 +475,28 @@ await t("reações: troca o emoji", () => assertSucceeds(updateDoc(doc(ctx("ana"
 await t("reações: emoji fora da lista é recusado", () => assertFails(updateDoc(doc(ctx("ana"), "curtidas_comentarios", "c3_ana"), { reacao: "💩" })));
 await t("reações: não troca a reação de outra pessoa", () => assertFails(updateDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_ana"), { reacao: "👍" })));
 await t("reações: curtida antiga (sem emoji) continua valendo", () => assertSucceeds(setDoc(doc(ctx("bia"), "curtidas_comentarios", "c3_bia"), { comentarioId: "c3", uid: "bia", criadoEm: serverTimestamp() })));
+// Comentários com foto, áudio, figurinha e enquete do autor (como no Instagram).
+await t("comentário: o dono abre de novo os comentários", () => assertSucceeds(updateDoc(doc(ctx("dono"), "diario", "pCom"), { quemComenta: "todos" })));
+await t("comentário: com foto e sem texto", () => assertSucceeds(comentar("ana", "cFoto", { texto: "", midia: { tipo: "imagem", url: fP(200) } })));
+await t("comentário: com áudio de 12 s", () => assertSucceeds(comentar("ana", "cAud", { texto: "", midia: { tipo: "audio", url: "data:audio/webm;codecs=opus;base64,GkXf", dur: 12 } })));
+await t("comentário: com figurinha", () => assertSucceeds(comentar("bia", "cFig", { texto: "", midia: { tipo: "figurinha", url: "data:image/webp;base64,UklG" } })));
+await t("comentário: áudio com mais de 60 s é recusado", () => assertFails(comentar("ana", "cAud2", { texto: "", midia: { tipo: "audio", url: "data:audio/webm;base64,GkXf", dur: 90 } })));
+await t("comentário: foto de fora do site é recusada", () => assertFails(comentar("ana", "cFoto2", { texto: "", midia: { tipo: "imagem", url: "https://x.com/a.jpg" } })));
+await t("comentário: áudio no campo de foto é recusado", () => assertFails(comentar("ana", "cFoto3", { texto: "", midia: { tipo: "imagem", url: "data:audio/webm;base64,GkXf" } })));
+await t("comentário: tipo de mídia estranho é recusado", () => assertFails(comentar("ana", "cFoto4", { texto: "", midia: { tipo: "pdf", url: fP(10) } })));
+await t("comentário: vazio (sem texto nem mídia) é recusado", () => assertFails(comentar("ana", "cVazio", { texto: "" })));
+const enqC = { pergunta: "Qual cor?", opcoes: ["Azul", "Preto", "Branco"] };
+await t("comentário: o autor da publicação faz uma enquete", () => assertSucceeds(comentar("dono", "cEnq", { texto: "", enquete: enqC })));
+await t("comentário: quem não é o autor não faz enquete", () => assertFails(comentar("ana", "cEnq2", { texto: "", enquete: enqC })));
+await t("comentário: enquete com 5 opções é recusada", () => assertFails(comentar("dono", "cEnq3", { texto: "", enquete: { pergunta: "?", opcoes: ["a", "b", "c", "d", "e"] } })));
+await t("comentário: opção vazia é recusada", () => assertFails(comentar("dono", "cEnq4", { texto: "", enquete: { pergunta: "?", opcoes: ["a", ""] } })));
+const votoC = (q, opcao, id = "cEnq") => setDoc(doc(ctx(q), "comentario_votos", `${id}_${q}`), { comentarioId: id, uid: q, opcao, criadoEm: serverTimestamp() });
+await t("comentário: vota na enquete", () => assertSucceeds(votoC("ana", 1)));
+await t("comentário: não vota duas vezes (não muda)", () => assertFails(votoC("ana", 2)));
+await t("comentário: opção que não existe é recusada", () => assertFails(votoC("bia", 3)));
+await t("comentário: voto em comentário sem enquete é recusado", () => assertFails(votoC("bia", 0, "cFoto")));
+await t("comentário: voto em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "comentario_votos", "cEnq_edu"), { comentarioId: "cEnq", uid: "edu", opcao: 0, criadoEm: serverTimestamp() })));
+await t("comentário: quem comentou corrige o texto da foto", () => assertSucceeds(updateDoc(doc(ctx("ana"), "comentarios", "cFoto"), { texto: "olha isso", editadoEm: serverTimestamp() })));
 
 // Diário: hashtags, marcar pessoas, agendar; alcance; salvamentos; stories; rascunhos; aviso de reação.
 async function publicar2(quem, dadosPub) {
@@ -520,6 +553,11 @@ await t("tipo caixa: caixa de perguntas", () => assertSucceeds(publicar2("edu", 
 await t("tipo caixa: sem a caixa é recusado", () => assertFails(publicar2("edu", { tipo: "caixa", texto: "oi" })));
 await t("tipo estranho é recusado", () => assertFails(publicar2("edu", { tipo: "reels", texto: "oi" })));
 await t("estilo sem tipo é recusado", () => assertFails(publicar2("edu", { texto: "oi", estilo: "casada" })));
+await t("título: publicação com título e modelo", () => assertSucceeds(publicar2("edu", { tipo: "foto", titulo: "Reforma da cozinha", layout: "pizza", texto: "Ficou ótima #reforma", tags: ["reforma"], mediaUrl: fP(10), mediaTipo: "image", midias: [fP(10), fP(10), fP(10)] })));
+await t("título: mais de 90 letras é recusado", () => assertFails(publicar2("edu", { tipo: "texto", titulo: "t".repeat(91), texto: "oi" })));
+await t("título: vazio é recusado", () => assertFails(publicar2("edu", { tipo: "texto", titulo: "", texto: "oi" })));
+await t("modelo: nome estranho é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", layout: "<script>" })));
+await t("modelo: o autor troca o título e o modelo depois", () => assertSucceeds(updateDoc(doc(ctx("bia"), "diario", "pPub"), { titulo: "Novo título", layout: "destaque" })));
 await t("configurações: quem comenta e ocultar estrelas na hora de publicar", () => assertSucceeds(publicar2("edu", { tipo: "texto", texto: "oi", quemComenta: "seguidores", ocultarNotas: true })));
 await t("configurações: quem comenta estranho é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", quemComenta: "amigos" })));
 await t("configurações: ocultar estrelas não-bool é recusado", () => assertFails(publicar2("edu", { tipo: "texto", texto: "oi", ocultarNotas: "sim" })));
@@ -528,12 +566,12 @@ await t("configurações: o autor oculta as estrelas depois", () => assertSuccee
 await t("casada: editar o texto para mais de 500 letras é recusado", () => assertFails(updateDoc(doc(ctx("edu"), "diario", "pCas"), { texto: "z".repeat(501), editadoEm: serverTimestamp() })));
 await t("tipo: não dá para trocar o tipo depois", () => assertFails(updateDoc(doc(ctx("edu"), "diario", "pCas"), { tipo: "foto" })));
 await t("tipo: publicação com TUDO junto (texto casado, local, marcados, hashtags, região, público e configurações) cabe", () => assertSucceeds(publicar2("edu", {
-  tipo: "texto", estilo: "casada", texto: "x".repeat(500), mediaUrl: fP(10), mediaTipo: "image", quemComenta: "mutuos", ocultarNotas: true,
+  tipo: "texto", estilo: "casada", titulo: "t".repeat(90), layout: "lado", texto: "x".repeat(500), mediaUrl: fP(10), mediaTipo: "image", quemComenta: "mutuos", ocultarNotas: true,
   tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i),
   local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407, agendadoPara: Timestamp.fromMillis(Date.now() + 864e5),
   publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
 await t("tipo: enquete com TUDO junto cabe", () => assertSucceeds(publicar2("edu", {
-  tipo: "enquete", texto: "x".repeat(900), mediaUrl: fP(10), mediaTipo: "image", enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5), anonima: true },
+  tipo: "enquete", titulo: "Vote!", layout: "duelo", texto: "x".repeat(900), mediaUrl: fP(10), mediaTipo: "image", enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5), anonima: true },
   tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i), quemComenta: "todos", ocultarNotas: false,
   local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407,
   publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));

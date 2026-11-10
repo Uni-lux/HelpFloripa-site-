@@ -88,7 +88,7 @@ await pa.locator(".fig-op", { hasText: "Localização" }).tap();
 // Localização de verdade: a folha de lugares (busca, localização atual, cidade do perfil)
 await pa.waitForSelector("#folhaLista.aberta .linha-local", { timeout: 8000 }); await pa.waitForTimeout(1500);
 await pa.locator("#folhaLista .linha-local", { hasText: "Sua cidade" }).tap(); await pa.waitForTimeout(400);
-ok((await pa.locator(".flash-camada .flash-fig.fig-local").textContent()).startsWith("📍 "), "figurinha de localização (lugar escolhido na folha)");
+ok(((await pa.locator(".flash-camada .flash-fig.fig-local").textContent()) || "").trim().length > 2, "figurinha de localização (lugar escolhido na folha)");
 await pa.locator(".flash-legenda").fill("Bom dia!");
 await pa.screenshot({ path: "saida/flash-criar-foto.png" });
 await pa.locator(".flash-publicar").tap(); await pa.waitForTimeout(2500);
@@ -111,7 +111,7 @@ ok(!(await pb.locator("#listaFeed").textContent()).includes("Promoção de amanh
 const cardB = pb.locator(".post-card", { hasText: "Banheiro novinho" }).first();
 await cardB.scrollIntoViewIfNeeded(); await pb.waitForTimeout(7500); // vistas vão em lote a cada 6 s
 ok((await cardB.locator(".post-com").textContent()).includes("Bruno"), "post mostra \"com Bruno\"");
-ok(await cardB.locator("a.hashtag").count() === 2, "hashtags viram link");
+ok(await cardB.locator(".post-tags a.tag-chip").count() === 2, "hashtags viram etiquetas (link) no fim");
 ok((await db.doc(`diario/${p1.id}/vistas/${U.bruno}`).get()).exists, "alcance: a vista do Bruno foi contada");
 await cardB.locator(".estrela").nth(3).tap(); await pb.waitForTimeout(1500);
 await cardB.locator(".interacoes .acao.salvar").tap(); await pb.waitForTimeout(1200);

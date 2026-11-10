@@ -1449,3 +1449,20 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 .rc-sk .sk-av { grid-row: span 2; width: 52px; height: 52px; border-radius: 50%; }
 .rc-sk .sk-l1 { width: 45%; height: 14px; } .rc-sk .sk-l2 { width: 65%; height: 12px; }
 @keyframes rcSk { to { background-position: -200% 0; } }
+
+/* Reações nas mensagens (10/11/2026): pílula no pé do balão + fileira de emojis em cima do menu */
+.linha-msg.com-reacao { margin-bottom: 16px; }
+.msg-reacoes { position: absolute; bottom: -15px; z-index: 2; display: inline-flex; align-items: center; gap: 1px; height: 26px; padding: 0 7px; border-radius: 999px;
+  border: 2px solid var(--bg, #070b0e); background: var(--panel); color: var(--text); font: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25); animation: mr-entra .22s cubic-bezier(.2,1.4,.4,1); }
+.linha-msg.minha .msg-reacoes { right: 12px; }
+.linha-msg.outra .msg-reacoes { left: 12px; }
+.msg-reacoes .mr-n { margin-left: 3px; font-size: 12px; font-weight: 800; color: var(--muted); }
+.msg-reacoes.minha { background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+@keyframes mr-entra { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#menuMsg .menu-reacoes { display: flex; justify-content: space-between; gap: 2px; padding: 4px 4px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+#menuMsg .menu-reacoes button { width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 50%; font-size: 22px; line-height: 1; gap: 0;
+  animation: mr-entra .25s cubic-bezier(.2,1.4,.4,1) both; animation-delay: calc(var(--k, 0) * 25ms); }
+#menuMsg .menu-reacoes button:hover { transform: scale(1.18); background: var(--hover); }
+#menuMsg .menu-reacoes button.eu { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: inset 0 0 0 2px var(--accent); }
+#menuMsg { min-width: 296px; }

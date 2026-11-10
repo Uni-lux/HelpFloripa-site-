@@ -1983,6 +1983,30 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (`.conv-tipo-nm` "· Freelances", título do contexto no `title`), `.conv-meta` só com etiquetas do cliente. `statusTopo` vazio
   limpa o campo (sumia o "·" sozinho). Teste `t-mensagens-ajustes2.mjs` (11); `t-mensagens-cache` e `t-emojis-figurinhas`
   atualizados.
+- **Publicações formatadas, modelos, comentários ricos e reações no chat (10/11/2026, PR depois do #180, MUDA REGRAS — não
+  publicadas; 17 partes, 817 testes):** pedido dele (prints). `texto-pub.js` (sem deps): `formatarTexto` (espaços, linhas em
+  branco, maiúscula no começo das frases, espaço depois da pontuação, "- item" → "• Item", "!!!!!!" → "!!!"; não mexe em links,
+  @, # e números), `organizarHashtags` (as #hashtags SEMPRE no fim, numa linha; as do meio da frase viram palavra), `partesDoTexto`
+  {corpo, tags}, `limparTitulo`. `diario.titulo` (≤90) e `diario.layout` (regra em `publicacaoOk`, criar e editar). `pub-modelos.js`
+  (sem deps): `MODELOS` por grupo (texto citação/simples/destaque · texto+imagem em cima/ao lado/no fundo · 1 foto normal/polaroid ·
+  2–4 fotos carrossel/grade/mosaico/baralho/pizza · enquete lista/cartões/duelo (só 2 opções) · vídeo normal/cinema/vertical),
+  `grupoModelo`, `layoutDe`, `modelosDe`, `blocoFotos` (grade/mosaico/baralho = tocar passa a carta/pizza = fatias com clip-path,
+  tocar abre a foto/polaroid), `abrirVisorFotos` (`.md-visor`), `tomDestaque`, `desenhoModelo` (SVG dos botões). Cartão do Diário
+  (feed.js `cartaoPost`): título `.post-titulo` em cima, mídia, enquete/caixa, descrição embaixo (`descricaoPost`: "ver mais / ver
+  menos" medido depois de desenhar; o recorte é no `span.pt-c` — antes o padding mostrava meia linha), etiquetas `.post-tags`; a
+  classe do invólucro é `mod-<layout>` (com `md-` colidia com o bloco de dentro). Formulário: `#pubTitulo`, "Formatar texto" com
+  Desfazer, `#pubTagsPrev` ("Vão para o fim"), `#pubModelos` + "Ver como vai ficar" (`ganchos.cartaoPrevia` = cartaoPost; `_previa`
+  não conta vista), **rascunho automático** no aparelho (`hf-pub-auto-<uid>`, a cada digitação e ao esconder a página; volta ao abrir
+  com `#pubRecuperado`; o Diário mostra `.pub-guardada` "Publicação não terminada"), fechar com conteúdo pergunta "Sair da
+  publicação?" (Salvar rascunho · Descartar · Continuar editando; `fecharFolha` aceita `f.antesDeFechar`). Publicar tenta com tudo →
+  sem os campos novos (`NOVOS_PUB`, título junto no texto) → básico. Editar publicação: título + Formatar texto, tags atualizadas.
+  **Comentários** (rede.js `montarComentarios`): emojis rápidos, Foto (`reduzirFoto` JPEG ≤650 KB), Áudio (MediaRecorder 16 kbps,
+  ≤60 s, player do audio-ondas.js), Figurinha (pacote + suas, figurinhas.js), Enquete só do autor → `comentarios.midia`
+  {tipo imagem|audio|figurinha, url, dur} / `comentarios.enquete` {pergunta, opcoes}; votos `comentario_votos/{com}_{uid}`
+  (limpeza de conta apaga). **Reações no chat** (mensagens-app.js): `reacoes.{uid}` (8 emojis `REACOES_MSG`), fileira em cima do
+  menu ao segurar, pílula `.msg-reacoes` no pé do balão (tocar = quem reagiu / tirar a sua), toque duplo = ❤️, entra na
+  `assinaturaMsg`. Testes `t-pub-formatada.mjs` (36), `t-coment-ricos.mjs` (12), `t-reacoes-msg.mjs` (7); fotos de teste em
+  `saida/fotos-pub/`. `t-tipos-pub` atualizado (hashtag vira etiqueta).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2045,7 +2069,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (17 partes em `_regras/`, 785 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (17 partes em `_regras/`, 817 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
