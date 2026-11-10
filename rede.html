@@ -17,6 +17,10 @@
   <!-- As páginas das abas conferem isto para saber que estão dentro da rede (e não numa gaveta). -->
   <script>window.__hfShell = { pronto: false };</script>
   <style>
+    /* fonte da marca (a cópia do topo durante o deslize fica nesta página) */
+    @font-face { font-family: "HF Marca"; src: url("fonte-marca.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
+    /* cópia do topo (rede-app.js): links herdam a cor do topo, não o azul padrão de link */
+    body > header a { color: inherit; text-decoration: none; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #070b0e; overscroll-behavior: none; }
     @media (prefers-color-scheme: light) { html, body { background: #f4f6f8; } }
     /* atrás do cubo (troca de aba deslizando) */
@@ -42,6 +46,6 @@
 </head>
 <body>
   <div class="hf-carregando" id="carregandoRede">Carregando...</div>
-  <script type="module" src="rede-app.js?v=10"></script>
+  <script type="module" src="rede-app.js?v=11"></script>
 </body>
 </html>

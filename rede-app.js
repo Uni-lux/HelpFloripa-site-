@@ -237,6 +237,27 @@ function copiaDaBarra(b) {
     return c;
   } catch { return null; }
 }
+// O topo (header.topo) fica PARADO durante o deslize, como no X: uma cópia do topo da aba que sai fica por cima e a
+// da aba que entra aparece por cima dela aos poucos (os topos do Diário, Comunidade e Perfil são iguais, então a troca
+// não se vê). Os ícones <use href="#..."> apontam para o desenho que está DENTRO do quadro: a cópia leva o desenho junto.
+const topoDe = (q) => { try { const h = q.contentDocument?.querySelector("header.topo"); return h && h.getBoundingClientRect().height ? h : null; } catch { return null; } };
+function copiaDoTopo(h) {
+  const c = copiaDaBarra(h);
+  if (!c) return null;
+  const doc = h.ownerDocument;
+  c.querySelectorAll("use").forEach((u) => {
+    const id = (u.getAttribute("href") || u.getAttribute("xlink:href") || "").replace(/^#/, "");
+    const sym = id && doc.getElementById(id), svg = u.ownerSVGElement;
+    if (!sym || !svg) return;
+    if (sym.getAttribute("viewBox") && !svg.getAttribute("viewBox")) svg.setAttribute("viewBox", sym.getAttribute("viewBox"));
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    for (const at of ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"]) if (sym.getAttribute(at)) g.setAttribute(at, sym.getAttribute(at));
+    g.innerHTML = sym.innerHTML;
+    u.replaceWith(g);
+  });
+  c.style.zIndex = "19";
+  return c;
+}
 function acenderNaCopia(c, k) {
   if (!c) return;
   c.querySelectorAll("[data-barra]").forEach((a) => {
@@ -252,6 +273,9 @@ function acenderNaCopia(c, k) {
 // animações do celular desligadas (que desligam as transições do CSS).
 function pintarDeslize(a, p) {
   const { de, para, lado } = a, w = W(), s = lado === "esq" ? -1 : 1;
+  const [t0, t1] = a.topos || [];
+  if (t1) t1.style.opacity = String(Math.min(1, Math.max(0, (p - 0.15) / 0.6)));
+  else if (t0) t0.style.opacity = String(1 - p);
   de.style.transform = `translate3d(${s * p * w}px,0,0)`;
   para.style.transform = `translate3d(${-s * (1 - p) * w}px,0,0)`;
 }
@@ -266,7 +290,11 @@ function comecar(k, lado) {
   const bDe = barraDe(de), bPara = barraDe(para);
   const copia = bDe ? copiaDaBarra(bDe) : null;
   if (copia) { bDe.style.visibility = "hidden"; if (bPara) bPara.style.visibility = "hidden"; }
-  arraste = { de, para, lado, alvo, k, p: 0, bDe, bPara, copia, aceso: false };
+  const tDe = topoDe(de), tPara = topoDe(para);
+  const topos = [tDe && copiaDoTopo(tDe), tPara && copiaDoTopo(tPara)];
+  if (topos[0]) tDe.style.visibility = "hidden";
+  if (topos[1]) { tPara.style.visibility = "hidden"; topos[1].style.opacity = "0"; topos[1].style.zIndex = "20"; }
+  arraste = { de, para, lado, alvo, k, p: 0, bDe, bPara, copia, aceso: false, tDe, tPara, topos };
   document.body.classList.add("girando");
   pintarDeslize(arraste, 0);
   return true;
@@ -298,8 +326,9 @@ function terminar(vai, v = 0) {
     arraste = null;
     document.body.classList.remove("girando");
     if (vai) ir(alvo);
-    for (const b of [bDe, bPara]) if (b) b.style.visibility = "";
+    for (const b of [bDe, bPara, a.tDe, a.tPara]) if (b) b.style.visibility = "";
     copia?.remove();
+    for (const t of a.topos) t?.remove();
   };
   requestAnimationFrame(passo);
 }

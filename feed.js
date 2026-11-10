@@ -8,7 +8,7 @@
 // Abas do topo: Diário (publicações com foto ou vídeo) | Registros (textos, enquetes e caixas de perguntas). O Explorar e a
 // Comunidade ficam na barra de baixo (barra-rede.js); o Explorar abre aqui mesmo, sem recarregar.
 // =====================================================
-import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { ligarPuxar } from "./puxar-atualizar.js?v=3";
 import { textoCidade } from "./endereco.js?v=1";
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
@@ -16,12 +16,12 @@ import {
   barraInteracao, abrirCompositor, avisarPublicacaoGuardada, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=135";
+} from "./rede.js?v=136";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=107";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=108";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=122";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=123";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=3";
@@ -103,7 +103,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=54").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=55").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -121,14 +121,32 @@ function pintarTipos() {
 function trocarAba(nova, { passo = false } = {}) {
   // Diário ↔ Explorar é um passo no histórico: o "voltar" volta para o anterior.
   if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", urlAba(nova)); }
+  scrollDaAba[aba] = scrollY;
   aba = nova;
   $("painelFeed").hidden = aba === "explorar";
   $("painelExplorar").hidden = aba !== "explorar";
+  scrollTo({ top: scrollDaAba[aba] || 0, behavior: "instant" });
   marcarBarra(aba === "explorar" ? "explorar" : "diario");
   if (!passo) history.replaceState({ ...(history.state || {}), hfAbaFeed: aba }, "", urlAba(aba) + (tagAtual ? `?tag=${encodeURIComponent(tagAtual)}` : ""));
   if (aba === "explorar") { pilula?.esconder(); abrirExplorar(); }
   else carregarFeed({ forcar: false });
 }
+// Cada aba (Diário / Explorar) volta para onde estava rolada.
+const scrollDaAba = { diario: 0, explorar: 0 };
+// Deslizar entre Diário e Explorar (deslizar-flash.js): a outra aba aparece DE VERDADE ao lado, na rolagem em que
+// estava, e anda junto com o dedo (antes aparecia um painel com o ícone e o nome). Devolve { atual, el, fim, cancelar }.
+window.__hfPreviaAba = (k) => {
+  if (!eu || k === aba || !ABAS.includes(k)) return null;
+  const atual = $(aba === "explorar" ? "painelExplorar" : "painelFeed"), el = $(k === "explorar" ? "painelExplorar" : "painelFeed");
+  const r = atual.getBoundingClientRect();
+  if (!r.width) return null;
+  if (k === "explorar") abrirExplorar(); else if (!$("listaFeed").children.length) carregarFeed({ forcar: false });
+  const topo = r.top + scrollY - (scrollDaAba[k] || 0);
+  Object.assign(el.style, { position: "fixed", top: topo + "px", left: r.left + "px", width: r.width + "px", zIndex: "1", margin: "0" });
+  el.hidden = false;
+  const limpar = () => { for (const p of ["position", "top", "left", "width", "zIndex", "margin", "transform"]) el.style[p] = ""; el.classList.remove("df-anima", "df-movendo"); };
+  return { atual, el, fim: limpar, cancelar: () => { limpar(); el.hidden = true; } };
+};
 pintarTipos();
 addEventListener("popstate", () => { const a = history.state?.hfAbaFeed || abaDaUrl(); if (a !== aba && eu) trocarAba(a); });
 // Dentro da rede (rede.html): a casca troca entre Diário e Explorar sem recarregar (antes de terminar de abrir, guarda o pedido).
@@ -723,7 +741,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=102").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=103").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -949,6 +967,8 @@ async function pintarLateral() {
   // O sino (e as marcações em publicações com foto) espera as primeiras publicações aparecerem.
   primeirasPublicacoes.then(() => ouvirAvisos());
   $("btnComporFeed").addEventListener("click", () => compor());
+  // Botão "+" (como no X): fica translúcido enquanto a página rola e volta quando para.
+  { const fab = $("btnComporFeed"); let t = 0; addEventListener("scroll", () => { fab.classList.add("rolando"); clearTimeout(t); t = setTimeout(() => fab.classList.remove("rolando"), 260); }, { passive: true }); }
   // Saiu do app no meio de uma publicação: o Diário avisa e "Continuar" abre o formulário com ela.
   primeirasPublicacoes.then(() => setTimeout(() => avisarPublicacaoGuardada(() => compor()), 600));
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.

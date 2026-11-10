@@ -8,7 +8,7 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, atualizarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=135";
+} from "./rede.js?v=136";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=7";
@@ -17,7 +17,7 @@ import { textoMensagens } from "./mensagens-novas.js?v=1";
 import { criarLista } from "./avisos-lista.js?v=18";
 import { docsPorIds } from "./leituras.js?v=4";
 import { textoFlash } from "./flash-avisos.js?v=3";
-import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { ligarPuxar } from "./puxar-atualizar.js?v=3";
 import { pilulaNovidades } from "./novidades.js?v=1";
 
 let vistoAntes = 0, ultimo = null, abriuPedida = false;

@@ -5,9 +5,9 @@
 // chamar no chat acontecem lá (comunidade.html?novo=TIPO&volta=mural · ?item=ID). Sem venda e sem cobrança.
 // Leituras: cidade → estado → Brasil (por-local.js, mesmo cache da comunidade.html) e os perfis dos autores em lote.
 // =====================================================
-import { ligarPuxar } from "./puxar-atualizar.js?v=2";
+import { ligarPuxar } from "./puxar-atualizar.js?v=3";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=135";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=136";
 import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";

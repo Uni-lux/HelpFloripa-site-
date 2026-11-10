@@ -3,8 +3,8 @@
 // módulo e a página da Comunidade também (sem carregar o rede.js). Estilo próprio, injetado só quando a página não
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
-import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=8";
+import { ligarQuadro, casca } from "./quadro-rede.js?v=2";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=9";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],

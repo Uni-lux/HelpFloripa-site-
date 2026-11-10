@@ -2051,6 +2051,19 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   cache `seguindo-<uid>`) primeiro; a lista embaixo vira "Pessoas no Help Floripa" sem repetir. Na lista de conversas só a
   bolinha verde `.conv-item.on`. Quem esconde o próprio online não
   vê o dos outros. Testes `t-sugestoes-online.mjs` (16), `t-explorar-alta` (flash não conta).
+- **"+" como no X, marca nova e deslize sem emenda (10/11/2026, PR depois do #183, sem regra nova):** prints dele (X).
+  Diário/Explorar: o lápis do topo saiu (`.topo-espaco` no lugar) e o `#btnComporFeed` virou `.fab-criar` (redondo, azul,
+  embaixo à direita, acima da barra; translúcido `.rolando` enquanto a página rola). **Marca** `.marca` em Saira Black
+  itálico (`fonte-marca.woff2`, SIL OFL em `fonte-marca-OFL.txt`, `@font-face "HF Marca"` no fim do rede.css e do
+  categoria.css e no rede.html), apertada, cores de sempre. **Deslize:** Diário ↔ Explorar (mesmo quadro) mostra a outra aba
+  DE VERDADE ao lado (`window.__hfPreviaAba(k)` em feed.js: seção `position: fixed` na rolagem em que estava; `scrollDaAba`
+  guarda a rolagem de cada aba) — antes era o painel com ícone e nome (`.df-painel`, ainda usado fora disso); entre as
+  outras abas o topo fica PARADO (rede-app.js `copiaDoTopo`: cópia do `header.topo` dos dois quadros na casca, com os
+  `<use>` trocados pelo desenho, a da aba que entra aparece por cima; Diário, Comunidade e Perfil têm o mesmo topo).
+  Sem barra de rolagem nas abas da rede (quadro-rede.js; o "tracinho" cinza na beirada). **Explorar sem cores sobrando**
+  (pedido dele): classes de negócio em grade 3 × 2 (antes fileira cortada), ícones em vidro escuro, só o nome no celular;
+  Em alta sem ouro/prata/bronze, "Subindo" em texto cinza, "Novo" em azul; Hall da fama com coroa dourada só no 1º.
+  Teste `t-x-transicoes.mjs` (14). `saida/fotos-pub/*.jpg` dos testes podem ser geradas com PIL (qualquer JPEG serve).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

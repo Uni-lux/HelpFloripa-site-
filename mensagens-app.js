@@ -3,9 +3,9 @@ import "./sem-menu-imagem.js?v=3";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=8";
-import { ligarPuxar } from "./puxar-atualizar.js?v=2";
-import { ligarQuadro, casca } from "./quadro-rede.js?v=1";
+import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=9";
+import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { ligarQuadro, casca } from "./quadro-rede.js?v=2";
 import { textoDoFlash, guardarParaAbrir } from "./flash-direto.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
 ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba da barra de baixo
@@ -2842,7 +2842,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=43"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=92"));
+  return (vitrineMod ||= import("./vitrine.js?v=93"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
