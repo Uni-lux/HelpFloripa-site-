@@ -2077,6 +2077,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   **Comunidade (mural.css) neutra:** fim dos degradês; cor do tipo só em ícones/pontos; botões principais claros sobre escuro.
   **Tema:** o Mensagens não escutava a troca de tema feita em outra aba/quadro (`storage` em mensagens-app.js; menu.js
   também). Testes `t-explorar-alta` (atualizado, 22), `t-tema-rede.mjs` (5).
+- **Fundo de volta, marca metálica, "+" só o sinal e sem barra de rolagem (10/11/2026, PR depois do #185, sem regra
+  nova):** o PRETO PURO das abas foi DESFEITO a pedido dele ("esse fundo tava melhor"): voltou #070b0e/#0f161b (rede.css,
+  mensagens.css, rede.html). Marca `.marca` (rede.css e categoria.css, mesmo bloco): HELP em prata metálica e FLORIPA em
+  ciano metálico (texto com degradê `background-clip: text`, contorno e brilho), slogan numa faixa inclinada escura com
+  filete ciano (`small::before`) e "riscos" dos lados (`small::after`); a cópia do topo da casca leva essas regras no
+  rede.html. "+" (`.fab-criar`) agora é SÓ o sinal (sem círculo), ciano com sombra; também na Comunidade (`#muFab` em
+  mural.html → `link(filtro || "doacao")`). Celular sem barrinha de rolagem em todas as páginas (sem-menu-imagem.js,
+  `pointer: coarse`). Testes `t-marca-fab.mjs` (8), `t-tema-rede` atualizado.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

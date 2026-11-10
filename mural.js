@@ -7,7 +7,7 @@
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=3";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=136";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=137";
 import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
@@ -259,6 +259,9 @@ async function trocarLugar() {
   pintarAvatar($("muAvatar"), dados.fotoPerfil, dados.nome);
   pintarLocal();
   $("muCompor").addEventListener("click", () => { location.href = link(filtro || "doacao"); });
+  { const fab = $("muFab"); let t = 0;
+    fab?.addEventListener("click", () => { location.href = link(filtro || "doacao"); });
+    addEventListener("scroll", () => { fab?.classList.add("rolando"); clearTimeout(t); t = setTimeout(() => fab?.classList.remove("rolando"), 260); }, { passive: true }); }
   $("muMais").addEventListener("click", verMais);
   // Busca: filtra o que já está na tela na hora e, com 3 letras ou mais, procura em todo o Brasil (busca.js).
   $("muBusca").addEventListener("input", () => {
