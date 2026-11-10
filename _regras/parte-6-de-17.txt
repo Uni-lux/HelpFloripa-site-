@@ -146,6 +146,17 @@
                       && request.resource.data.apagada.em == request.time
                       && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
 
+        // Reações (como no WhatsApp): cada um dos dois põe, troca ou tira só a própria (reacoes.{uid} = emoji),
+        // em qualquer mensagem que não foi apagada, sem prazo.
+        allow update: if logado()
+                      && participante()
+                      && !('apagada' in resource.data)
+                      && mudou().hasOnly(['reacoes'])
+                      && request.resource.data.reacoes is map
+                      && request.resource.data.reacoes.diff(resource.data.get('reacoes', {})).affectedKeys().hasOnly([request.auth.uid])
+                      && (!(request.auth.uid in request.resource.data.reacoes)
+                          || request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
+
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId
                       && noPrazoDeMexer();
@@ -164,36 +175,4 @@
         function original() {
           return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
         }
-        function noPrazo() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
-        allow get: if logado() && daConversa() && noPrazo();
-        allow get: if podeModerar();
-        allow create: if logado()
-                      && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
-                      && request.resource.data.remetenteId == request.auth.uid
-                      && original().remetenteId == request.auth.uid
-                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
-                      && request.resource.data.apagadaEm == request.time
-                      && request.resource.data.conteudo is map
-                      && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
-                      // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
-                      && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
-                      && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
-                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
-        // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
-        allow update: if logado() && daConversa() && noPrazo()
-                      && request.auth.uid != resource.data.remetenteId
-                      && mudou().hasOnly(['denunciada'])
-                      && request.resource.data.denunciada == true;
-        // Denunciada (pela marca ou porque existe a denúncia, mesmo feita antes de apagar): fica para a moderação.
-        function temDenuncia() {
-          let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
-          let quemRecebeu = p[0] == resource.data.remetenteId ? p[1] : p[0];
-          return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + mensagemId + '_' + quemRecebeu));
-        }
-        allow delete: if logado() && daConversa() && !noPrazo() && resource.data.get('denunciada', false) != true && !temDenuncia();
-        allow delete: if podeModerar();
-      }
-    }
-
-
 // ===== FIM DA PARTE 6 DE 17 =====

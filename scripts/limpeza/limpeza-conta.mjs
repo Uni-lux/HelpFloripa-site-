@@ -61,6 +61,7 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     }
     await apagar("curtidas", col("curtidas").where("uid", "==", uid));
     await apagar("curtidas_comentarios", col("curtidas_comentarios").where("uid", "==", uid));
+    await apagar("comentario_votos", col("comentario_votos").where("uid", "==", uid));
     await apagar("republicacoes", col("republicacoes").where("uid", "==", uid));
     // Flashes (no ar e do arquivo), com quem viu e as reações, e os destaques do perfil.
     const flashes = await col("stories").where("autorId", "==", uid).get();

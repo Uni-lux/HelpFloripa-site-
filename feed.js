@@ -13,15 +13,15 @@ import { textoCidade } from "./endereco.js?v=1";
 import {
   $, el, icone, ms, paraData, pintarAvatar, urlSegura, nomeCidade, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, meusSeguindo, escondido, ganchos, obterPerfil, iniciarRede, carregarMeusSeguindo, linhaPessoa, pessoasEmPilha, blocoCasado,
-  barraInteracao, abrirCompositor, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
+  barraInteracao, abrirCompositor, avisarPublicacaoGuardada, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=133";
+} from "./rede.js?v=134";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=105";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=106";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=118";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=119";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
@@ -30,6 +30,8 @@ import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
 import { lerRanking, juntarRanking, fatorTaxa } from "./ranking-diario.js?v=1";
 import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
+import { partesDoTexto } from "./texto-pub.js?v=1";
+import { layoutDe, blocoFotos, abrirVisorFotos, tomDestaque } from "./pub-modelos.js?v=1";
 
 const POR_VEZ = 10;
 // Publicação de conta desativada (conta.js): escondida até ocultoAte.
@@ -92,7 +94,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=52").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=53").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -649,7 +651,7 @@ const vigiaVideo = "IntersectionObserver" in window ? new IntersectionObserver((
 function cartaoPost(post) {
   const c = el("article", "post-card");
   c.dataset.autor = post.autorId; c._post = post;
-  vigiaVista?.observe(c);
+  if (!post._previa) vigiaVista?.observe(c);
   // Veio por uma republicação de quem você segue: "Fulano republicou" em cima (tocar abre o perfil de quem republicou).
   if (post._repost) {
     const r = post._repost, linha = el("div", "post-repost");
@@ -690,7 +692,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=100").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=101").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -724,43 +726,38 @@ function cartaoPost(post) {
     sub.textContent = (temLocal ? "· " : "") + [temLocal ? "" : p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
   });
   const url = urlSegura(post.mediaUrl);
+  // Título em cima (opcional, até 90 letras), logo abaixo de quem publicou.
+  if (post.titulo) c.appendChild(el("h3", "post-titulo", post.titulo));
   // Pessoas marcadas: fotinhas empilhadas + "com Ana e mais 2" (vale para todos os tipos de publicação).
   if (Array.isArray(post.marcados) && post.marcados.length) c.appendChild(pessoasEmPilha(post.marcados, { classe: "post-com" }));
-  // Texto com imagem casada: um cartão só (imagem em cima se fundindo, texto grande embaixo).
-  const casada = post.estilo === "casada" && url && post.mediaTipo !== "video";
-  if (casada) { c._casada = blocoCasado(post.texto, url); c.appendChild(c._casada); }
-  if (post.texto && !casada) {
-    // Só texto (sem foto, enquete ou caixa de perguntas) vira cartão de citação, como no Flash.
-    const citacao = !url && !post.enquete?.pergunta && !post.caixa?.pergunta && post.texto.length <= 500;
-    const t = comMencoes(el("p", "post-texto" + (url ? "" : " so-texto") + (citacao ? " citacao" : "")), post.texto);
-    c.appendChild(t);
-    if (!url) c._texto = t;
-    // Texto longo: mostra o começo e "ver mais".
-    if (post.texto.length > 220) {
-      t.classList.add("curto");
-      const vm = el("button", "ver-mais", "ver mais"); vm.type = "button";
-      vm.addEventListener("click", () => { t.classList.remove("curto"); vm.remove(); });
-      c.appendChild(vm);
-    }
-  }
+  const layout = layoutDe(post);
+  // Descrição + #hashtags (sempre no fim, em etiquetas). Publicações antigas com hashtags no meio também ficam assim.
+  const { corpo, tags } = partesDoTexto(post.texto);
   const barra = barraInteracao(post);
-  // Publicação só de texto: toque duplo no texto dá as 5 estrelas (como na foto).
-  if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra, true));
-  if (c._casada) toqueDuploEm(c._casada, () => toqueDuplo(c._casada, barra));
+  // Texto com imagem casada: um cartão só (em cima, ao lado ou com o texto por cima da imagem).
+  const casada = post.estilo === "casada" && url && post.mediaTipo !== "video";
+  if (casada) { c._casada = blocoCasado(corpo, url, { layout }); c.appendChild(c._casada); }
   const fotos = casada ? [] : fotosDoPost(post);
   if (casada) { /* já desenhado acima */ }
   else if (fotos.length && post.mediaTipo !== "video") {
     // A foto aparece no recorte escolhido ao publicar (4:5, 1:1 ou 16:9), sem cortar de novo. Fotos antigas
-    // fora dessas medidas ficam entre 4:5 e 1,91:1. Toque duplo: contagem de estrelas.
-    const m = el("div", "post-midia-f" + (fotos.length > 1 ? " varias" : ""));
-    const car = carrosselFotos(fotos, { alt: post.texto ? post.texto.slice(0, 80) : "Publicação", aoToqueDuplo: () => toqueDuplo(m, barra) });
-    const img = car.querySelector("img"); img.loading = "lazy";
-    img.addEventListener("load", () => { const p = img.naturalWidth / Math.max(1, img.naturalHeight); m.style.setProperty("--prop", String(Math.min(1.91, Math.max(0.8, p)))); m.classList.toggle("alta", p < 0.8); }, { once: true });
-    m.appendChild(car);
+    // fora dessas medidas ficam entre 4:5 e 1,91:1. Toque duplo: contagem de estrelas. Modelos: grade, mosaico,
+    // baralho, pizza e polaroid (pub-modelos.js); tocar numa foto deles abre em tela cheia.
+    const alt = post.titulo || (post.texto ? post.texto.slice(0, 80) : "Publicação");
+    const modelo = blocoFotos(fotos, { layout, alt, titulo: post.titulo, aoToqueDuplo: () => toqueDuplo(c._midia, barra), abrirFoto: (i) => abrirVisorFotos(fotos, i, carrosselFotos) });
+    const m = el("div", "post-midia-f" + (fotos.length > 1 ? " varias" : "") + (modelo ? " modelo mod-" + layout : ""));
+    c._midia = m;
+    if (modelo) m.appendChild(modelo);
+    else {
+      const car = carrosselFotos(fotos, { alt, aoToqueDuplo: () => toqueDuplo(m, barra) });
+      const img = car.querySelector("img"); img.loading = "lazy";
+      img.addEventListener("load", () => { const p = img.naturalWidth / Math.max(1, img.naturalHeight); m.style.setProperty("--prop", String(Math.min(1.91, Math.max(0.8, p)))); m.classList.toggle("alta", p < 0.8); }, { once: true });
+      m.appendChild(car);
+    }
     m.title = "Toque duas vezes para dar estrelas";
     c.appendChild(m);
   } else if (url) {
-    const m = el("div", "post-midia-f");
+    const m = el("div", "post-midia-f" + (layout && layout !== "normal" ? " vd-" + layout : ""));
     const v = document.createElement("video"); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.preload = "metadata";
     const som = el("button", "video-som"); som.type = "button"; som.setAttribute("aria-label", "Ligar o som"); som.appendChild(icone("mudo", "i s"));
     som.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; som.replaceChildren(icone(v.muted ? "mudo" : "som", "i s")); som.setAttribute("aria-label", v.muted ? "Ligar o som" : "Desligar o som"); if (v.paused) v.play().catch(() => {}); });
@@ -773,11 +770,57 @@ function cartaoPost(post) {
     c.appendChild(m);
   }
   const enq = blocoEnquete(post);
-  if (enq) c.appendChild(enq);
+  if (enq) { if (layout === "cartoes" || layout === "duelo") enq.classList.add("enq-" + layout); c.appendChild(enq); }
   const cx = blocoCaixa(post);
   if (cx) c.appendChild(cx);
+  if (corpo && !casada) {
+    // Só texto (sem foto, enquete ou caixa de perguntas): citação, simples ou destaque (cartão colorido).
+    const soTexto = !url && !post.enquete?.pergunta && !post.caixa?.pergunta;
+    let estilo = soTexto ? (post.layout ? layout : (corpo.length <= 500 ? "citacao" : "simples")) : "";
+    if (estilo === "destaque" && corpo.length > 320) estilo = "citacao";
+    const t = descricaoPost(corpo, "post-texto" + (soTexto ? " so-texto" : "") + (estilo && estilo !== "simples" ? " " + estilo : "") + (estilo === "simples" ? " simples" : ""), estilo === "citacao" ? 7 : estilo === "destaque" ? 8 : 4);
+    if (estilo === "destaque") { const [a, b] = tomDestaque(post.id); t.style.setProperty("--d1", a); t.style.setProperty("--d2", b); t.classList.toggle("menor", corpo.length > 140); }
+    c.appendChild(t);
+    if (soTexto) c._texto = t;
+  }
+  if (tags.length) c.appendChild(etiquetasTags(tags));
+  // Publicação só de texto: toque duplo no texto dá as 5 estrelas (como na foto).
+  if (c._texto) toqueDuploEm(c._texto, () => toqueDuplo(c._texto, barra, true));
+  if (c._casada) toqueDuploEm(c._casada, () => toqueDuplo(c._casada, barra));
   c.appendChild(barra);
   return c;
+}
+// Descrição com "ver mais / ver menos": só aparece se o texto passar das linhas (medido depois de desenhar).
+function descricaoPost(texto, classe, linhas = 4) {
+  const p = el("div", classe);
+  const sp = comMencoes(el("span", "pt-c"), texto);
+  p.style.setProperty("--linhas", linhas);
+  p.appendChild(sp);
+  const longo = texto.length > 180 || texto.split("\n").length > linhas;
+  if (!longo) return p;
+  p.classList.add("curto");
+  const vm = el("button", "ver-mais", "ver mais"); vm.type = "button"; vm.setAttribute("aria-expanded", "false");
+  vm.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const abrir = p.classList.contains("curto");
+    p.classList.toggle("curto", !abrir); vm.textContent = abrir ? "ver menos" : "ver mais"; vm.setAttribute("aria-expanded", String(abrir));
+    if (!abrir) p.closest(".post-card")?.scrollIntoView?.({ block: "nearest" });
+  });
+  p.appendChild(vm);
+  // Cabe inteiro? Some o botão.
+  const conferir = () => { if (!p.isConnected) return false; if (p.classList.contains("curto") && sp.scrollHeight <= sp.clientHeight + 2) { p.classList.remove("curto"); vm.remove(); } return true; };
+  requestAnimationFrame(() => { if (!conferir()) setTimeout(conferir, 400); });
+  return p;
+}
+function etiquetasTags(tags) {
+  const w = el("div", "post-tags");
+  tags.forEach((t) => {
+    const a = document.createElement("a"); a.className = "tag-chip"; a.href = `feed.html?tag=${encodeURIComponent(t.toLowerCase())}`;
+    a.append(el("b", null, "#"), document.createTextNode(t));
+    a.addEventListener("click", (e) => e.stopPropagation());
+    w.appendChild(a);
+  });
+  return w;
 }
 // Dois toques rápidos no elemento (links e "ver mais" continuam funcionando com um toque).
 function toqueDuploEm(alvo, fn) {
@@ -819,6 +862,8 @@ async function pintarLateral() {
   try { await iniciarRede(); }
   catch (e) { $("listaFeed").replaceChildren(vazio("Não foi possível carregar", e.message || "")); return; }
   definirCartao(cartaoPost);
+  // Prévia no formulário de publicar ("Ver como vai ficar"): o mesmo cartão do Diário.
+  ganchos.cartaoPrevia = (post) => cartaoPost(post);
   // "Ver publicação" (Flash) e links feed.html?post=ID abrem a própria publicação aqui.
   ganchos.abrirPublicacao = (id, opc) => abrirPublicacao(id, opc);
   // Voltou de um link aberto de dentro de um flash: reabre o flash JÁ (antes esperava o Diário inteiro carregar).
@@ -873,6 +918,8 @@ async function pintarLateral() {
   // O sino (e as marcações em publicações com foto) espera as primeiras publicações aparecerem.
   primeirasPublicacoes.then(() => ouvirAvisos());
   $("btnComporFeed").addEventListener("click", () => compor());
+  // Saiu do app no meio de uma publicação: o Diário avisa e "Continuar" abre o formulário com ela.
+  primeirasPublicacoes.then(() => setTimeout(() => avisarPublicacaoGuardada(() => compor()), 600));
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.
   const seguindo = carregarMeusSeguindo();
   montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).catch((e) => console.warn("Flash:", e));

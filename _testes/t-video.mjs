@@ -32,13 +32,14 @@ try {
   // ---------- 1) Diário ----------
   await p.locator("#btnComporFeed").click(); await p.waitForTimeout(400);
   ok(await p.locator("#pubTipoVideo:visible").count() === 1, "com Storage, o tipo Vídeo aparece no formulário");
-  const [fc] = await Promise.all([p.waitForEvent("filechooser"), p.locator("#pubTipoVideo").click()]);
+  await p.locator("#pubTipoVideo").click(); // trocar o tipo não abre a galeria (04/11): o quadro "Escolher o vídeo" abre
+  const [fc] = await Promise.all([p.waitForEvent("filechooser"), p.locator("#pubEscolher").click()]);
   await fc.setFiles(VID); await p.waitForSelector("#pubPrevia video", { timeout: 8000 });
   await p.locator("#pubTexto").fill("Vídeo da obra #reforma");
   await p.locator("#pubEnviar").click();
   await p.waitForFunction(() => !document.getElementById("folhaPublicar")?.classList.contains("aberta"), null, { timeout: 40000 }).catch(() => {});
   await p.waitForTimeout(2000);
-  const pv = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).find((x) => x.texto === "Vídeo da obra #reforma");
+  const pv = (await db.collection("diario").where("autorId", "==", U.ana).get()).docs.map((d) => ({ id: d.id, ...d.data() })).find((x) => (x.texto || "").startsWith("Vídeo da obra"));
   ok(pv?.tipo === "video" && pv.mediaTipo === "video" && ST.test(pv.mediaUrl || ""), "Diário: vídeo no Storage, tipo Vídeo");
   const vDiario = p.locator(".post-card .post-midia-f.video video").first();
   await vDiario.scrollIntoViewIfNeeded().catch(() => {});
