@@ -8,7 +8,7 @@
 // Segurança: o código sai do endereço assim que é lido (não fica no histórico nem vai para outro site),
 // e o "continuar" só leva a páginas do próprio site.
 // =====================================================
-import { $, mensagemErro, firebasePronto } from "./acesso.js?v=5";
+import { $, mensagemErro, firebasePronto } from "./acesso.js?v=6";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 
 const q = new URLSearchParams(location.search);

@@ -128,7 +128,7 @@ export const TEXTO_RECLAMACAO = {
   "avaliacao": (i) => (i.cliente ? `avaliou você como cliente com ${i.nota} ${i.nota === 1 ? "estrela" : "estrelas"}` : `avaliou seu negócio com ${i.nota} ${i.nota === 1 ? "estrela" : "estrelas"}`)
 };
 // Página da vitrine de cada tipo (o id do negócio é "uid_tipo").
-const PAGINA_NEG = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" };
+const PAGINA_NEG = { servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html", automotivo: "automotivo.html" };
 export const linkReclamacao = (i, uid) => {
   if (i.tipo === "avaliacao") {
     if (i.cliente) return `usuarios.html?perfil=${encodeURIComponent(uid)}`;

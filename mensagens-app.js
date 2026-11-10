@@ -3,8 +3,8 @@ import "./sem-menu-imagem.js?v=4";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=9";
-import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=10";
+import { ligarPuxar } from "./puxar-atualizar.js?v=4";
 import { ligarQuadro, casca } from "./quadro-rede.js?v=2";
 import { textoDoFlash, guardarParaAbrir } from "./flash-direto.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
@@ -13,18 +13,18 @@ import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
 import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=7";
-import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=18";
+import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=19";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
-import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=15";
+import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { comRitmo } from "./ritmo.js?v=3";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 import { lerConversa, guardarConversa, juntar, maisRecente, FOLGA_MS, CHEIO_MS } from "./cache-msgs.js?v=1";
 import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-import { abrirQueixa } from "./queixas.js?v=18";
+import { abrirQueixa } from "./queixas.js?v=19";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 // ======================================================
@@ -213,11 +213,12 @@ const ASSUNTOS = {
   lojinha: { nome: "Lojinha", cor: "#b066ff" },
   imoveis: { nome: "Imóveis", cor: "#2fbf71" },
   saude: { nome: "Saúde", cor: "#0fb5a6" },
+  automotivo: { nome: "Automotivo", cor: "#f5b301" },
   comunidade: { nome: "Comunidade", cor: "#e5487f" },
   publicacao: { nome: "Publicação", cor: "#f5b301" }
 };
 // Ícone do selinho no canto da foto, por tipo de negócio
-const ICONE_ASSUNTO = { servicos: "maleta", delivery: "pedido", lojinha: "loja", imoveis: "casa", saude: "saude", comunidade: "comunidade", publicacao: "feed" };
+const ICONE_ASSUNTO = { servicos: "maleta", delivery: "pedido", lojinha: "loja", imoveis: "casa", saude: "saude", automotivo: "automotivo", comunidade: "comunidade", publicacao: "feed" };
 const reais = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 // Lista do pedido (itens, unidades e total) dentro do cartão.
 function blocoPedido(p) {
@@ -2315,7 +2316,7 @@ function criarLinhaMensagem(m, data, primeira) {
     // Pedido de delivery ou lojinha: cartão completo, como nos apps de pedido.
     const c = m.cartao;
     const tipo = ASSUNTOS[c.tipo] ? c.tipo : "delivery";
-    const href = /^((servicos|delivery|shopping|imoveis|saude|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+    const href = /^((servicos|delivery|shopping|imoveis|saude|automotivo|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
     bolha.classList.add("cartao-msg", "pedido", "pedido-pro");
     bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
     bolha.appendChild(cartaoPedido(m, c, tipo, href));
@@ -2326,7 +2327,7 @@ function criarLinhaMensagem(m, data, primeira) {
     bolha.style.setProperty("--assunto", ASSUNTOS[tipo].cor);
     const ehPedido = Array.isArray(c.pedido?.itens) && c.pedido.itens.length;
     const ehOrc = !!(c.solicitacao && typeof c.solicitacao === "object");
-    const href = /^((servicos|delivery|shopping|imoveis|saude|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
+    const href = /^((servicos|delivery|shopping|imoveis|saude|automotivo|comunidade)\.html|usuarios\.html)\?[\w=&%.-]+$/.test(String(c.link || "")) ? c.link : "#";
     // Pedido e orçamento mostram tudo na própria mensagem; só o rodapé leva ao perfil.
     const link = document.createElement(ehPedido || ehOrc ? "div" : "a");
     link.className = "cm-link";
@@ -2349,7 +2350,7 @@ function criarLinhaMensagem(m, data, primeira) {
     link.append(tx, ver);
     bolha.appendChild(link);
     // Quem recebeu o orçamento/agendamento (o negócio) marca como concluído: a conversa ganha o pedido de avaliação.
-    if (ehOrc && m.remetenteId !== eu.uid && (tipo === "servicos" || tipo === "saude")) {
+    if (ehOrc && m.remetenteId !== eu.uid && (tipo === "servicos" || tipo === "saude" || tipo === "automotivo")) {
       const concl = document.createElement("div"); concl.className = "orc-concluir";
       const pintarConcl = () => {
         concl.replaceChildren();
@@ -2849,8 +2850,8 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 // volta para esta conversa como cartão, sem sair do chat.
 let vitrineMod = null;
 function carregarVitrine() {
-  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=43"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=93"));
+  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+  return (vitrineMod ||= import("./vitrine.js?v=94"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -2909,9 +2910,9 @@ async function abrirPreviaPerfil() {
     notaGeral.append(usar("estrela"), elm("b", null, notaTexto(media(tot))), document.createTextNode(` · ${tot.total} ${tot.total === 1 ? "avaliação" : "avaliações"}`));
   } else notaGeral.append(document.createTextNode("Ainda sem avaliações"));
   notaGeral.hidden = false;
-  const ORDEM = ["servicos", "delivery", "lojinha", "imoveis", "saude"];
+  const ORDEM = ["servicos", "delivery", "lojinha", "imoveis", "saude", "automotivo"];
   negs.sort((x, y) => ORDEM.indexOf(x.tipo) - ORDEM.indexOf(y.tipo));
-  const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis", saude: "Agendar" };
+  const IR = { servicos: "Orçamento", delivery: "Pedir", lojinha: "Ver loja", imoveis: "Ver imóveis", saude: "Agendar", automotivo: "Orçamento" };
   negs.forEach((n) => {
     const b = elm("button", "pv-neg"); b.type = "button";
     b.style.setProperty("--cor", (ASSUNTOS[n.tipo] || ASSUNTOS.servicos).cor);

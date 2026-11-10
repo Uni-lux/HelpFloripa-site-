@@ -109,15 +109,20 @@
 > apagada. Sem as regras publicadas: a publicação sai sem título/modelo (o título vai junto no começo do texto), comentário com
 > foto/áudio/figurinha/enquete e a reação no chat avisam que falta publicar. Continuam **17 partes**.
 
+> **Atualização (10/11/2026 – Automotivo):** tipo novo de negócio `automotivo` (oficinas, auto elétrica, pneus, lava-jato,
+> guincho, peças...) aceito em `negocios` (criar, `principal`), banimento de programa, contexto da conversa, avaliações,
+> reclamações, vínculos de cliente, figurinha de link e "Publicar em" do Flash, e `planos.tipos`/negociação (agora até 6
+> perfis). Sem as regras publicadas, criar o perfil Automotivo avisa que falta publicar. Continuam **17 partes**, 827 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **17 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (199.580 bytes, 3.251 linhas, sha256 começa com `8ce74b814a871c0f`).
+- Arquivo de origem: `firestore.rules` (199.733 bytes, 3.251 linhas, sha256 começa com `832d6d3fd222b92e`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 17 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 17 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **817 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **827 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

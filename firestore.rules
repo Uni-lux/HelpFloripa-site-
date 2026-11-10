@@ -135,7 +135,7 @@ service cloud.firestore {
           && l.negocioId is string && l.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
           && exists(/databases/$(database)/documents/negocios/$(l.negocioId))
           && valorTextoAte(l.get('nome', ''), 80)
-          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+          && l.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
           // x e y num regex só (como na caixa): sobra espaço no limite de 1.000 para o limite diário do flash
           && (string(l.get('x', 0)) + ' ' + string(l.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
     }
@@ -151,7 +151,7 @@ service cloud.firestore {
     }
     // Flash nos perfis de negócio da própria pessoa (ids = uid_tipo, até 4) e se aparece também no perfil pessoal.
     function negociosFlashOk(d) {
-      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude))';
+      let n = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude|automotivo))';
       return (!('negocios' in d) || (d.negocios is list && d.negocios.size() >= 1 && d.negocios.size() <= 4
                                       && d.negocios.join(' ').matches('^' + n + '( ' + n + '){0,3}$')))
           && (!('perfil' in d) || (d.perfil is bool && (d.perfil || 'negocios' in d)));
@@ -742,7 +742,7 @@ service cloud.firestore {
             && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
             && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)))
             && (!m.hasAny(['principal']) || d.get('principal', null) == null
-                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']);
+                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']);
       }
 
       function negocioOk() {
@@ -768,7 +768,7 @@ service cloud.firestore {
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && id == request.auth.uid + '_' + request.resource.data.tipo
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()
@@ -942,7 +942,7 @@ service cloud.firestore {
       allow list: if admin();
       allow create, update: if podeModerar()
                     && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
                     && id == request.resource.data.uid + '_' + request.resource.data.tipo
                     && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
                     && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
@@ -1036,7 +1036,7 @@ service cloud.firestore {
         let c = request.resource.data.get('contexto', null);
         return c == null
             || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
@@ -1291,7 +1291,7 @@ service cloud.firestore {
                     && request.resource.data.vendedorId == request.auth.uid
                     && request.resource.data.clienteId is string
                     && request.resource.data.clienteId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
                     && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
                     && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
@@ -1567,7 +1567,7 @@ service cloud.firestore {
                     && id == request.resource.data.negocioId + '_' + request.auth.uid
                     && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
                     && request.resource.data.alvoId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && relatoOk(request.resource.data)
                     && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
                     && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)
@@ -2026,8 +2026,8 @@ service cloud.firestore {
     // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
       function tiposPerfisOk(l) {
-        return l is list && l.size() >= 1 && l.size() <= 5
-            && l.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$');
+        return l is list && l.size() >= 1 && l.size() <= 6
+            && l.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude|automotivo)(,(servicos|delivery|lojinha|imoveis|saude|automotivo)){0,5}$');
       }
       allow read: if logado();
       // Os 30 dias grátis agora vêm junto com a primeira assinatura paga (o dono do site soma ao confirmar o Pix):
@@ -2103,7 +2103,7 @@ service cloud.firestore {
                     && resource.data.status in ['novo', 'em_conversa']
                     && mudou().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
                     && respNegOk(request.resource.data)
-                    && (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 5 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude)(,(servicos|delivery|lojinha|imoveis|saude)){0,4}$')))
+                    && (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 6 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude|automotivo)(,(servicos|delivery|lojinha|imoveis|saude|automotivo)){0,5}$')))
                     && request.resource.data.get('semSelo', false) is bool
                     && (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
                     && request.resource.data.status in ['em_conversa', 'aprovado', 'aguardando_pagamento', 'recusado']

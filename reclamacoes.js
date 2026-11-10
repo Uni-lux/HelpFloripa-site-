@@ -11,9 +11,9 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=18";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=18";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=93";
+import { estrelas } from "./avaliacoes.js?v=19";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=19";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=94";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 
@@ -24,7 +24,7 @@ const data = (ts) => { const d = ts?.toDate?.(); return d ? d.toLocaleDateString
 const dataCurta = (ts) => { const d = ts?.toDate?.(); return d ? d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : ""; };
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 const primeiro = (n) => String(n || "").trim().split(/\s+/)[0] || "";
-const COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)", saude: "#0fb5a6" };
+const COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)", saude: "#0fb5a6", automotivo: "#f5b301" };
 const nomeClasse = (t) => (t === "lojinha" ? "Shopping" : NOMES_TIPO[t] || "Perfil");
 const ROTULO = { pendente: "Aguardando", respondida: "Respondida", resolvida: "Resolvida" };
 const CLASSE_ST = { pendente: "pend", respondida: "resp", resolvida: "resolv" };

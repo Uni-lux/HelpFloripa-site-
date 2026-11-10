@@ -108,7 +108,7 @@
                     && id == request.resource.data.negocioId + '_' + request.auth.uid
                     && request.resource.data.alvoId == donoDoNegocio(request.resource.data.negocioId)
                     && request.resource.data.alvoId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && relatoOk(request.resource.data)
                     && valorTextoAte(request.resource.data.get('autorNome', ''), 80)
                     && valorTextoAte(request.resource.data.get('negocioNome', ''), 80)

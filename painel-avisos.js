@@ -8,17 +8,17 @@
 // Funciona em qualquer página com o sino no topo (a[href="notificacoes.html"] dentro de .topo),
 // menos na própria página de notificações.
 // =====================================================
-import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=17";
+import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=18";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas, textoMensagens } from "./mensagens-novas.js?v=1";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=7";
-import { avisoPlano, textoPlano } from "./planos-base.js?v=15";
+import { avisoPlano, textoPlano } from "./planos-base.js?v=16";
 import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
-import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=18";
-import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=19";
+import { ligarPuxar } from "./puxar-atualizar.js?v=4";
 import { haNovidade } from "./novidades.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);

@@ -3,9 +3,9 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=28";
-import * as S from "./admin-secoes.js?v=86";
-import { previa, tocarSom } from "./admin-chat.js?v=40";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=29";
+import * as S from "./admin-secoes.js?v=87";
+import { previa, tocarSom } from "./admin-chat.js?v=41";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
 const SECOES = {
@@ -212,7 +212,7 @@ async function carregar(mostrar = true) {
     return { total, verificados, novos7, novos7a, novos30, novos30a, ativos1, ativos7, ativos30 };
   };
   const contarNeg = async () => {
-    const tipos = ["servicos", "delivery", "lojinha", "imoveis", "saude"];
+    const tipos = ["servicos", "delivery", "lojinha", "imoveis", "saude", "automotivo"];
     const [total, anuncios, ...porTipo] = await Promise.all([contar("negocios"), contar("anuncios"), ...tipos.map((t) => contarQ(fb.query(col("negocios"), fb.where("tipo", "==", t))))]);
     return { total, anuncios, ...Object.fromEntries(tipos.map((t, i) => [t, porTipo[i]])) };
   };

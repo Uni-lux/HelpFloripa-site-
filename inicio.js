@@ -8,19 +8,19 @@
 // - Banner de anúncios: passa sozinho e aceita arrastar com o dedo.
 // =====================================================
 import { fotoSegura } from "./seguranca.js?v=1";
-import { enfeitarSelect } from "./escolha.js?v=4";
-import { estrelas, lerResumos, media } from "./avaliacoes.js?v=18";
+import { enfeitarSelect } from "./escolha.js?v=5";
+import { estrelas, lerResumos, media } from "./avaliacoes.js?v=19";
 import { docComValidade, docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
-import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { ligarPuxar } from "./puxar-atualizar.js?v=4";
 import { fundoSuave } from "./fotos-suaves.js?v=1";
-import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=9";
+import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=10";
 // Dedo parado numa classe ou num cartão: a vitrine começa a carregar por trás (quando o toque termina, ela já está pronta).
 prepararAoTocar(escolherVitrine);
 import { ordenarJusto, relevancia, dadosNegocio } from "./relevancia.js?v=4";
-import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=15";
+import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, planosDosDonos } from "./planos-base.js?v=16";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
-import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=93";
+import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=94";
 import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=3";
 import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
 import { NOME_UF } from "./endereco.js?v=1";
@@ -28,7 +28,7 @@ import { NOME_UF } from "./endereco.js?v=1";
 const $ = (id) => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const ms = (ts) => ts?.toMillis?.() ?? 0;
-const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg" };
+const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg", automotivo: "automotivo.svg" };
 const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
 
 // ---------- saudação ----------
@@ -49,6 +49,7 @@ const DICAS = {
   lojinha: "Ex.: tênis, fone, vestido",
   imoveis: "Ex.: apartamento com 2 quartos",
   saude: "Ex.: pediatra, psicóloga, Unimed",
+  automotivo: "Ex.: troca de óleo, alinhamento, guincho",
   comunidade: "Ex.: berço, sofá, quarto para dividir"
 };
 // Buscas populares embaixo da busca (como nos apps de serviço e de classificados): mudam com a área.
@@ -58,6 +59,7 @@ const POPULARES = {
   lojinha: ["Roupas", "Tênis", "Celular", "Maquiagem", "Móveis", "Artesanato", "Infantil"],
   imoveis: ["Apartamento", "Casa", "Kitnet", "Temporada", "Sala comercial", "Terreno"],
   saude: ["Psicólogo", "Nutricionista", "Fisioterapeuta", "Dentista", "Pediatra", "Veterinário"],
+  automotivo: ["Mecânico", "Troca de óleo", "Alinhamento", "Lava-jato", "Guincho", "Auto elétrica"],
   comunidade: ["Doação", "Móveis", "Roupas", "Quarto", "Brinquedos", "Achados e perdidos"]
 };
 function pintarPopulares(tipo) {
@@ -293,7 +295,7 @@ function revezar(id, itens, { criar, peso, tempo, chave = (x) => x.id, lugares =
 }
 // Filtro por tipo em cima de um carrossel (Tudo · Freelances · Delivery · Lojas · Imóveis): só os
 // tipos que têm alguém aparecem; com um tipo só, o filtro nem aparece.
-const ROT_FILTRO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojas", imoveis: "Imóveis", saude: "Saúde" };
+const ROT_FILTRO = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojas", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 function filtroTipos(secId, lista, montar) {
   const sec = $(secId); if (!sec) return;
   sec.querySelector(".hm-filtro")?.remove();
@@ -410,15 +412,16 @@ async function carregar(fs, db, u) {
     try { const n = (await fs.getCountFromServer(q)).data().count; totais[nome] = n; totais.em = totais.em || Date.now(); try { localStorage.setItem("hf-totais-inicio", JSON.stringify(totais)); } catch {} return n; } catch { return null; }
   };
   const neg = fs.collection(db, "negocios");
-  const rotulos = { servicos: ["profissional", "profissionais"], delivery: ["cardápio", "cardápios"], lojinha: ["loja", "lojas"], imoveis: ["imóvel", "imóveis"], saude: ["profissional", "profissionais"], comunidade: ["anúncio", "anúncios"] };
+  const rotulos = { servicos: ["profissional", "profissionais"], delivery: ["cardápio", "cardápios"], lojinha: ["loja", "lojas"], imoveis: ["imóvel", "imóveis"], saude: ["profissional", "profissionais"], automotivo: ["perfil", "perfis"], comunidade: ["anúncio", "anúncios"] };
   Promise.all([
     contar(fs.query(neg, fs.where("tipo", "==", "servicos")), "servicos"),
     contar(fs.query(neg, fs.where("tipo", "==", "delivery")), "delivery"),
     contar(fs.query(neg, fs.where("tipo", "==", "lojinha")), "lojinha"),
     contar(fs.query(fs.collection(db, "anuncios"), fs.where("tipo", "==", "imovel")), "imoveis"),
     contar(fs.query(neg, fs.where("tipo", "==", "saude")), "saude"),
+    contar(fs.query(neg, fs.where("tipo", "==", "automotivo")), "automotivo"),
     contar(fs.query(fs.collection(db, "comunidade"), fs.where("status", "==", "disponivel")), "comunidade")
-  ]).then((ns) => ["servicos", "delivery", "lojinha", "imoveis", "saude", "comunidade"].forEach((t, k) => {
+  ]).then((ns) => ["servicos", "delivery", "lojinha", "imoveis", "saude", "automotivo", "comunidade"].forEach((t, k) => {
     const alvo = $("conta-" + t);
     if (alvo && ns[k] != null) alvo.textContent = ns[k] ? `${ns[k]} ${rotulos[t][ns[k] === 1 ? 0 : 1]}` : "Seja o primeiro";
   }));

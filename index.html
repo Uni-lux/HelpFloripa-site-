@@ -50,12 +50,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=16" />
-  <link rel="stylesheet" href="inicio.css?v=18" />
+  <link rel="stylesheet" href="categoria.css?v=17" />
+  <link rel="stylesheet" href="inicio.css?v=19" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=80"></script>
-  <script type="module" src="inicio.js?v=95"></script>
+  <script type="module" src="categoria.js?v=81"></script>
+  <script type="module" src="inicio.js?v=96"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -73,6 +73,7 @@
     <symbol id="i-estrela" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
     <symbol id="i-grupo" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.5"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15c2.6-.4 4.6.8 5.5 3.5"/></symbol>
     <symbol id="i-saude" viewBox="0 0 24 24"><path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z"/></symbol>
+    <symbol id="i-automotivo" viewBox="0 0 24 24"><path d="M5 13l1.6-4.4A2 2 0 018.5 7.3h7a2 2 0 011.9 1.3L19 13"/><rect x="3.5" y="13" width="17" height="4.5" rx="1.5"/><path d="M6.5 17.5v1.5M17.5 17.5v1.5M7 15.2h1.5M15.5 15.2H17"/></symbol>
     <symbol id="i-comunidade" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/><path d="M9 11.5h6"/></symbol>
     <symbol id="i-imoveis" viewBox="0 0 24 24"><path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/></symbol>
     <symbol id="i-lojinha" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/></symbol>
@@ -117,6 +118,7 @@
               <option value="lojinha">Shopping</option>
               <option value="imoveis">Imóveis</option>
               <option value="saude">Saúde</option>
+              <option value="automotivo">Automotivo</option>
               <option value="comunidade">Comunidade</option>
             </select>
             <label class="sr" for="campoBusca">O que você procura?</label>
@@ -159,10 +161,10 @@
         <span class="cc-tx"><strong>Saúde</strong><small>Médicos, enfermagem, psicólogos e veterinários.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
-      <a class="classe-card comunidade" href="comunidade.html" style="--img: url('comunidade.svg')">
-        <span class="conta" id="conta-comunidade">&nbsp;</span>
-        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-comunidade"/></svg></span>
-        <span class="cc-tx"><strong>Comunidade</strong><small>Doe, troque, peça ajuda e divida moradia.</small></span>
+      <a class="classe-card automotivo" href="automotivo.html" style="--img: url('automotivo.svg')">
+        <span class="conta" id="conta-automotivo">&nbsp;</span>
+        <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-automotivo"/></svg></span>
+        <span class="cc-tx"><strong>Automotivo</strong><small>Oficinas, peças, guincho e lava-jato.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
     </nav>
@@ -275,11 +277,11 @@
           <p>Registro no conselho, convênios e pedidos de agendamento.</p>
           <span class="ir">Criar perfil<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></span>
         </a>
-        <a class="comunidade" href="comunidade.html?novo=doacao">
-          <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-comunidade"/></svg></span>
-          <strong>Doar na Comunidade</strong>
-          <p>Doações, trocas, pedidos e quartos. Sem venda.</p>
-          <span class="ir">Sempre grátis<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></span>
+        <a class="automotivo" href="negocios.html?tipo=automotivo">
+          <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-automotivo"/></svg></span>
+          <strong>Anunciar no Automotivo</strong>
+          <p>Oficina, peças, guincho ou lava-jato com serviços e preços.</p>
+          <span class="ir">Criar perfil<svg class="i xs" aria-hidden="true"><use href="#i-seta"/></svg></span>
         </a>
       </div>
     </section>
@@ -322,9 +324,9 @@
   <footer class="rodape-home">
     <div>
       <div class="marca-rodape">HELP <span>FLORIPA</span></div>
-      <p>Tudo o que você precisa perto de você, em um só lugar: freelances, delivery, compras, imóveis, saúde e Comunidade, em todo o Brasil.</p>
+      <p>Tudo o que você precisa perto de você, em um só lugar: freelances, delivery, compras, imóveis, saúde, automotivo e Comunidade, em todo o Brasil.</p>
     </div>
-    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="comunidade.html">Comunidade</a></nav></div>
+    <div><h4>Explorar</h4><nav aria-label="Explorar"><a href="servicos.html">Freelances</a><a href="delivery.html">Delivery</a><a href="shopping.html">Shopping</a><a href="imoveis.html">Imóveis</a><a href="saude.html">Saúde</a><a href="automotivo.html">Automotivo</a><a href="comunidade.html">Comunidade</a></nav></div>
     <div><h4>Para você</h4><nav aria-label="Para você"><a href="usuarios.html">Meu perfil</a><a href="mensagens.html">Mensagens</a><a href="social.html">Social</a><a href="negocios.html">Anunciar</a><a href="profissionais.html">Para profissionais</a><a href="clientes.html">Para clientes</a><a href="reclamacoes.html">Reclamações</a></nav></div>
     <div><h4>Help Floripa</h4><nav aria-label="Institucional"><a href="sobre.html">Sobre</a><a href="ajuda.html">Ajuda</a><a href="contato.html">Contato</a><a href="socios-parcerias.html">Sócios e parcerias</a><a href="seguranca.html">Central de Segurança</a><a href="diretrizes.html">Diretrizes da Comunidade</a><a href="como-ordenamos.html">Como ordenamos os resultados</a><a href="termos.html">Termos de Uso</a><a href="privacidade.html">Privacidade</a><a href="https://www.instagram.com/help_floripa" target="_blank" rel="noopener noreferrer">Instagram</a></nav></div>
     <div class="fim"><span>&copy; 2025–2026 Help Floripa · Todos os direitos reservados</span><span>CNPJ 61.935.934/0001-00</span></div>

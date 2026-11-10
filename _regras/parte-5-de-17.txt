@@ -51,7 +51,7 @@
       allow list: if admin();
       allow create, update: if podeModerar()
                     && request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
                     && id == request.resource.data.uid + '_' + request.resource.data.tipo
                     && request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
                     && (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
@@ -145,7 +145,7 @@
         let c = request.resource.data.get('contexto', null);
         return c == null
             || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'comunidade']
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 

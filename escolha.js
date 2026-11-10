@@ -12,6 +12,7 @@ const ICONES = {
   lojinha: '<path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2"/>',
   imoveis: '<path d="M4 11.5L12 4l8 7.5M6 10v9.5h12V10M10 19.5v-5h4v5"/>',
   saude: '<path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z"/>',
+  automotivo: '<path d="M5 13l1.6-4.4A2 2 0 018.5 7.3h7a2 2 0 011.9 1.3L19 13"/><rect x="3.5" y="13" width="17" height="4.5" rx="1.5"/><path d="M6.5 17.5v1.5M17.5 17.5v1.5M7 15.2h1.5M15.5 15.2H17"/>',
   comunidade: '<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/><path d="M9 11.5h6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   seta: '<path d="M6 9l6 6 6-6"/>'
@@ -24,6 +25,7 @@ export const CLASSES_BUSCA = {
   lojinha: { cor: "#b066ff", desc: "Produtos das lojas da cidade" },
   imoveis: { cor: "#2fbf71", desc: "Aluguel, venda e temporada" },
   saude: { cor: "#0fb5a6", desc: "Médicos, enfermagem, psicólogos e mais" },
+  automotivo: { cor: "#f5b301", desc: "Oficinas, peças, guincho e lava-jato" },
   comunidade: { cor: "#e5487f", desc: "Doações, trocas e quartos" }
 };
 
