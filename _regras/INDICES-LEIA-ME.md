@@ -4,7 +4,7 @@ Com o filtro de **Estado/Cidade** escolhido, as vitrines (Freelances, Delivery, 
 **no servidor** os perfis daquela cidade. Antes vinham os 48 mais recentes do Brasil inteiro e o filtro era feito no
 celular: com muitos negócios no país, quem está em Recife podia ver a vitrine vazia mesmo havendo negócios em Recife.
 
-Para isso o Firestore precisa de **20 índices compostos** (4 das vitrines, 1 do Diário por região, 1 dos Reels, 2 da Comunidade, 2 do registro de chamadas, 1 das Reclamações, 1 das republicações, 2 do Flash e 6 do sino). Enquanto eles não existem, o site continua funcionando
+Para isso o Firestore precisa de **24 índices compostos** (4 das entregas e corridas, 4 das vitrines, 1 do Diário por região, 1 dos Reels, 2 da Comunidade, 2 do registro de chamadas, 1 das Reclamações, 1 das republicações, 2 do Flash e 6 do sino). Enquanto eles não existem, o site continua funcionando
 como antes (busca geral + filtro no celular), sem erro para ninguém.
 
 ## Como criar (uns 5 minutos, uma vez só)
@@ -33,6 +33,10 @@ Crie um por vez, com **Escopo da consulta: Coleção**:
 | `comentarios` | `respostaAutorId` Crescente | `criadoEm` Decrescente | — |
 | `diario`   | `marcados` Matrizes ("Array contains") | `criadoEm` Decrescente | — |
 | `republicacoes` | `postAutorId` Crescente | `criadoEm` Decrescente | — |
+| `corridas` | `clienteId` Crescente | `criadoEm` Decrescente | — |
+| `corridas` | `destinatarioId` Crescente | `criadoEm` Decrescente | — |
+| `corridas` | `entregadorId` Crescente | `criadoEm` Decrescente | — |
+| `corridas` | `status` Crescente | `paraId` Crescente | `geo4` Crescente |
 
 O 5º índice faz o Diário e o Explorar trazerem também as publicações recentes do seu estado. Os 2 da Comunidade fazem o
 Início e o Explorar mostrarem as doações, trocas, quartos e achados mais recentes da sua cidade (e do seu estado). A seção

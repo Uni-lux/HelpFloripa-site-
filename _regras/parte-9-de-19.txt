@@ -175,4 +175,4 @@
               && x.url is string && x.url.size() <= 750000
               && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
         }
-// ===== FIM DA PARTE 9 DE 17 =====
+// ===== FIM DA PARTE 9 DE 19 =====

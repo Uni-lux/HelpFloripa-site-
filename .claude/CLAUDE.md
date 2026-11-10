@@ -2120,6 +2120,26 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Sem as regras publicadas, criar o perfil avisa que falta publicar. Classes das 6 vitrines, Explorar (atalhos), menu,
   Início (cartão, "Anunciar", busca, populares, contagem), Meus negócios (7 lugares: Comunidade na linha de baixo inteira),
   link curto `/@nick/automotivo`, painel, sino, estatísticas e Mensagens conhecem o tipo. Teste `t-automotivo.mjs` (14).
+- **Entregas e corridas (10/11/2026, PR depois do #189, MUDA REGRAS — não publicadas; 19 partes, 904 testes; 4 índices novos,
+  agora 24):** pedido dele ("pedir um carro" + entregadores no mapa real como a Uber; vai usar o Mapbox depois).
+  `entregas.html/js` (quem pede: abas Entrega | Corrida, A → B com busca/GPS/"escolher no mapa", veículos `MODALIDADES` com
+  "N perto · chega em ~X min" pelos `entregadores_online`, oferta com valor SUGERIDO (tarifas em corridas-base.js, escolhidas
+  por mim — perguntar a ele; não é preço fixo), quem leva = qualquer pessoa perto ou um entregador pelo @/favoritos/quem já
+  levou (`paraId`; quem não é entregador = convite por WhatsApp `entregador.html?convite=NICK`), pagamento direto (Pix,
+  dinheiro, cartão do entregador; o site não cobra), procurando com raio que cresce 5→10→20→40 km e "+ R$ 2/5", acompanhar ao
+  vivo (`pos` do pedido move o marcador; depois da coleta o pacote vai junto), etapas, PIN, cancelar com motivo, segurança,
+  avaliar (+ `entregadores_notas` na mesma transação), favoritos `usuarios.entregadoresFavoritos`, histórico).
+  `entregador.html/js` (cadastro: conta verificada + veículo/placa/CNH/3 declarações; online com GPS e wake lock, presença
+  `entregadores_online` 30 s/150 m arredondada; pedidos por geohash `geo4` + vizinhas e raio do pedido, chamados diretos
+  chegam mesmo offline; aceitar por transação; posição no pedido a cada 4 s/20 m; Google Maps/Waze; PIN no embarque (corrida)
+  e na entrega; desistir volta a procurar; "não apareceu" só depois de 5 min; ganhos de hoje). `corridas-base.js` (sem deps),
+  `mapa-vivo.js` (Leaflet 1.9.4 em `mapa/`, BSD-2; marcadores que deslizam, rota, busca e rota por OSM/Nominatim/OSRM ou
+  Mapbox), `mapa-config.js` (`mapboxToken` vazio; com `pk.` troca tudo — `_regras/MAPBOX-LEIA-ME.md`), `entregas-comum.js`,
+  `entregas.css`. Chat: Anexar → Entrega (para a pessoa, que acompanha e recebe o PIN), Corrida e "Chamar Fulano" se ela é
+  entregador; cartão `{tipo:"entrega", id, servico, papel}` com o andamento. Menu: Entregas e corridas / Seja entregador.
+  Regras: `corridas` com UMA `allow update` que escolhe o caso (várias estouravam 1.000 expressões). Teste `t-entregas.mjs`
+  (42). Falta (Blaze): avisar o entregador com o app fechado (push) e o GPS com a tela apagada (só com app instalado).
+  Pendente de decisão dele: tarifas sugeridas, comissão (não implantada), regras municipais/seguro para corridas de passageiro.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2182,7 +2202,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (17 partes em `_regras/`, 827 testes; inclui o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (19 partes em `_regras/`, 904 testes; inclui Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

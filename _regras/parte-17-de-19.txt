@@ -147,6 +147,27 @@
       allow delete: if false;
     }
 
-  }
-}
-// ===== FIM DA PARTE 17 DE 17 =====
+      // =====================================================
+    // ENTREGAS E CORRIDAS (entregas.html = quem pede; entregador.html = quem leva)
+    // Pedido em corridas/{id}: procurando → aceita → chegou → em_rota → concluida (ou cancelada).
+    // O PIN (corridas/{id}/privado/pin) só quem pede e quem recebe leem; quem leva digita para embarcar (corrida) ou
+    // finalizar (entrega) e a regra confere. O pagamento é direto entre as pessoas: o site não cobra nem recebe.
+    function entregadorAtivo(uid) {
+      let e = /databases/$(database)/documents/entregadores/$(uid);
+      return exists(e) && get(e).data.get('status', '') == 'ativo';
+    }
+    function pontoOk(p) {
+      return p is map && p.keys().hasOnly(['lat', 'lng', 'nome', 'sub'])
+          && p.lat is number && p.lat >= -34 && p.lat <= 6
+          && p.lng is number && p.lng >= -75 && p.lng <= -28
+          && valorTextoAte(p.get('nome', ''), 120) && valorTextoAte(p.get('sub', ''), 160);
+    }
+    function posOk(p) {
+      return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
+          && p.lat is number && p.lat >= -34 && p.lat <= 6
+          && p.lng is number && p.lng >= -75 && p.lng <= -28
+          && p.get('rumo', 0) is number && p.get('vel', 0) is number
+          && p.em == request.time;
+    }
+
+// ===== FIM DA PARTE 17 DE 19 =====
