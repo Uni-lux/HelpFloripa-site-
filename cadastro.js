@@ -3,7 +3,7 @@
 // - Uma conta para tudo: contratar, comprar, publicar e anunciar.
 // - @usuário reservado na mesma transação que cria o perfil.
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=5";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=6";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 import { camposEndereco, gravarComLocal, NOVOS } from "./endereco.js?v=1";
 

@@ -2,13 +2,14 @@
    Meus negócios (negocios.html): painel do anunciante, cartões de criar com a cor de cada
    classe (as mesmas da página inicial) e o formulário que muda de cor conforme o tipo.
    ===================================================== */
-:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; --c-saude: #0fb5a6; --c-comunidade: #e5487f; }
+:root { --c-servicos: #00adee; --c-delivery: #ff7a1a; --c-lojinha: #b066ff; --c-imoveis: #2fbf71; --c-saude: #0fb5a6; --c-comunidade: #e5487f; --c-automotivo: #f5b301; }
 .servicos { --c: var(--c-servicos); }
 .delivery { --c: var(--c-delivery); }
 .lojinha { --c: var(--c-lojinha); }
 .imoveis { --c: var(--c-imoveis); }
 .saude { --c: var(--c-saude); }
 .comunidade { --c: var(--c-comunidade); }
+.automotivo { --c: var(--c-automotivo); }
 
 /* ---------- topo ---------- */
 .ng-hero { position: relative; overflow: hidden; display: grid; gap: 16px; margin: 4px 0 22px; padding: 22px 20px 18px; border-radius: 24px; border: 1px solid var(--line);
@@ -23,6 +24,9 @@
 .ng-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 /* 6 lugares sempre em 3 + 3: cada um na cor da sua classe; criado = cartão aceso no degradê da cor */
 @media (min-width: 700px) { .ng-slots { gap: 12px; } }
+/* 6 tipos de perfil + a Comunidade: a Comunidade ocupa a linha de baixo inteira (ícone, nome e situação lado a lado) */
+.ng-slot.comunidade { grid-column: 1 / -1; grid-auto-flow: column; justify-content: center; align-items: center; gap: 10px; min-height: 58px; padding: 10px 14px; }
+.ng-slot.comunidade .ic { width: 34px; height: 34px; border-radius: 11px; }
 .ng-slot { position: relative; overflow: hidden; display: grid; justify-items: center; align-content: center; gap: 6px; min-height: 112px; padding: 14px 6px 12px; border-radius: 18px;
   border: 1px solid color-mix(in srgb, var(--c) 38%, var(--line));
   background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%), color-mix(in srgb, var(--panel) 85%, transparent);
@@ -114,6 +118,7 @@
 #folhaNegocio[data-tipo="lojinha"] { --c: var(--c-lojinha); }
 #folhaNegocio[data-tipo="imoveis"] { --c: var(--c-imoveis); }
 #folhaNegocio[data-tipo="saude"] { --c: var(--c-saude); }
+#folhaNegocio[data-tipo="automotivo"] { --c: var(--c-automotivo); }
 #folhaNegocio .folha-topo { position: relative; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent); transition: background .3s; }
 #folhaNegocio .folha-topo::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--c); transition: background .3s; }
 #folhaNegocio #negSalvar { background: var(--c); color: #fff; box-shadow: 0 10px 24px -12px var(--c); }
@@ -262,6 +267,7 @@
 .ni-folha[data-tipo="lojinha"] { --c: var(--c-lojinha); }
 .ni-folha[data-tipo="imoveis"] { --c: var(--c-imoveis); }
 .ni-folha[data-tipo="saude"] { --c: var(--c-saude); }
+.ni-folha[data-tipo="automotivo"] { --c: var(--c-automotivo); }
 .ni-folha .folha-topo { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), transparent); }
 .ni-corpo { padding: 14px 16px 28px; display: grid; gap: 14px; align-content: start; }
 .ni-carregando { padding: 40px 0; text-align: center; color: var(--muted); }

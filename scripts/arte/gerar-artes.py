@@ -35,6 +35,13 @@ I = {
   "lupa": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   "pessoas": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   "broto": '<path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+  "carro": '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  "ferramenta": '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  "pneu": '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>',
+  "gota": '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  "raio": '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  "volante": '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/><path d="M12 14v8M10 12 2.5 10M14 12l7.5-2"/>',
+
 }
 
 PAGINAS = {
@@ -49,11 +56,13 @@ PAGINAS = {
                  "coracao-pulso", ["estetoscopio", "pilula", "cruz", "agenda", "sorriso"]),
   "comunidade": ("#220010", "#8f1d4a", "#ff4f86", "#ffb38a", "#ffb38a", "#ffe4ea", "#fb7185", "#ffc6d6", "#ffb3c8", "#560c2a", "#ffb38a", "#ffd2df", "#ffe08a",
                  "coracao-mao", ["presente", "troca", "cama", "lupa", "pessoas"]),
+  "automotivo": ("#1a1000", "#7a4a00", "#f5b301", "#ffe08a", "#ffd166", "#fff4cc", "#fbbf24", "#ffe9a8", "#ffd77a", "#4a2e00", "#ffd166", "#ffe9a8", "#ffffff",
+                 "carro", ["ferramenta", "pneu", "gota", "raio", "volante"]),
 }
 
 # Mesmas posições da arte de Freelances
 SAT = [(700, 120), (1120, 110), (1130, 470), (760, 520), (980, 600)]
-NOMES = {"delivery": "Delivery", "shopping": "Shopping", "imoveis": "Imóveis", "saude": "Saúde", "comunidade": "Comunidade"}
+NOMES = {"delivery": "Delivery", "shopping": "Shopping", "imoveis": "Imóveis", "saude": "Saúde", "comunidade": "Comunidade", "automotivo": "Automotivo"}
 
 def svg(nome, c):
   (f0, f1, f2, br, br2, t0, t1, pts, anel, sat, pin, pin2, est, centro, sats) = c

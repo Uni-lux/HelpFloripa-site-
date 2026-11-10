@@ -10,10 +10,10 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=138";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=105";
+} from "./rede.js?v=139";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=106";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
-import { lerPlano, nivelPlano } from "./planos-base.js?v=15";
+import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 
 const DIA = 864e5;
 const PERIODOS = [[7, "7 dias"], [30, "30 dias"], [90, "90 dias"]];
@@ -192,7 +192,7 @@ function montar(corpo, D, dias, trocarPeriodo) {
 }
 
 // ---------- seus negócios: atalho para as estatísticas de cada perfil de negócio ----------
-const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", "#ff7a1a"], lojinha: ["Lojinha", "#b066ff"], imoveis: ["Imóveis", "#2fbf71"], saude: ["Saúde", "#0fb5a6"] };
+const TIPOS_NEG = { servicos: ["Freelances", "#00adee"], delivery: ["Delivery", "#ff7a1a"], lojinha: ["Lojinha", "#b066ff"], imoveis: ["Imóveis", "#2fbf71"], saude: ["Saúde", "#0fb5a6"], automotivo: ["Automotivo", "#f5b301"] };
 async function secaoNegocios(corpo, dias) {
   const negs = await lerTodos(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(8)));
   if (!negs?.length) return;

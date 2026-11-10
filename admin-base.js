@@ -133,7 +133,7 @@ export function seloEmail(p) {
   return null;
 }
 const textoEmail = (p) => (p.emailConfirmado === true ? "Confirmado" : p.emailConfirmado === false ? "NÃO confirmado — a conta não consegue entrar até confirmar" : "Sem informação (não entrou desde 03/11/2026)");
-export const TIPOS_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
+export const TIPOS_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 export const MOTIVOS_DEN = { golpe: "Golpe ou fraude", falso: "Perfil falso", assedio: "Assédio ou ofensa", odio: "Discurso de ódio", improprio: "Conteúdo impróprio", spam: "Spam", menor: "Menor de idade", venda: "Venda/cobrança na Comunidade", outro: "Outro" };
 export const MOTIVOS_QX = { atraso: "Atraso", qualidade: "Qualidade", cobranca: "Cobrança", ausencia: "Não compareceu", atendimento: "Atendimento", golpe: "Suspeita de golpe", outro: "Outro" };
 
@@ -525,7 +525,7 @@ export const NIVEIS_MA_FE = {
   2: "Reincidência: proibido de anunciar sem prazo + conta suspensa 30 dias",
   3: "Grave (documento falso, golpe ou 3ª vez): conta banida"
 };
-const TIPOS_ANUNCIO = ["servicos", "delivery", "lojinha", "imoveis", "saude"];
+const TIPOS_ANUNCIO = ["servicos", "delivery", "lojinha", "imoveis", "saude", "automotivo"];
 const MARCA_MA_FE = "Má-fé ao anunciar";
 async function nivelSugerido(uid) {
   const { fb } = C;
@@ -568,7 +568,7 @@ export async function punirMaFe(uid, ligadas = new Map()) {
 // ---------- banimento de um programa (um tipo de negócio ou a Comunidade) ----------
 // programa_banidos/{uid}_{tipo}: a pessoa não cria mais perfil daquele tipo (nem anúncio na Comunidade) até `ate`.
 // O que ela já tem no programa é escondido pela equipe (o dono não consegue mostrar de novo).
-export const PROGRAMAS = { comunidade: "Comunidade", saude: "Saúde", servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis" };
+export const PROGRAMAS = { comunidade: "Comunidade", saude: "Saúde", servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", automotivo: "Automotivo" };
 export async function banirPrograma(uid, tipoInicial = "comunidade", motivoInicial = "") {
   const { fb } = C;
   const p = D.pessoas.get(uid) || {};

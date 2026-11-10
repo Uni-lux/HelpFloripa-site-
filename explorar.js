@@ -12,19 +12,19 @@ import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha,
   abrirCompositor
-} from "./rede.js?v=138";
-import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=110";
+} from "./rede.js?v=139";
+import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=111";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
 import { buscarPessoas, pessoasRecentes, semAcento } from "./pessoas.js?v=6";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { ordenarJusto, dadosNegocio } from "./relevancia.js?v=4";
-import { lerResumos, media } from "./avaliacoes.js?v=18";
-import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=93";
+import { lerResumos, media } from "./avaliacoes.js?v=19";
+import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat, categoriasDe } from "./vitrine.js?v=94";
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=7";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=3";
-import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=15";
+import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=16";
 import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=3";
 import { combinaPublico, leitorDe } from "./publico-alvo.js?v=1";
 import { lerLocal as lugarEscolhido } from "./local-escolhido.js?v=3";
@@ -41,7 +41,7 @@ const lerLocal = (k, padrao) => { try { const v = JSON.parse(localStorage.getIte
 const gravarLocal = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const NOME_TIPO = (t) => (t === "lojinha" ? "Shopping" : NOMES_TIPO[t] || "Negócio");
-const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg" };
+const IMG_TIPO = { servicos: "servicos-480.webp", delivery: "lanchonetes-480.webp", lojinha: "shopping-480.webp", imoveis: "imoveis-480.webp", saude: "saude.svg", automotivo: "automotivo.svg" };
 const linkNegocio = (n) => `${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}&de=explorar`;
 // Link de uma publicação: abre a própria publicação (tela cheia, com as parecidas embaixo), como no Instagram.
 const linkPost = (p) => `feed.html?post=${encodeURIComponent(p.id)}`;
@@ -970,7 +970,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=57").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=58").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);

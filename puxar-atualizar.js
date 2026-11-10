@@ -5,7 +5,7 @@
 // Só no toque (celular). Não liga com uma janela aberta (folha, flash, visor...) nem dentro de campo de texto.
 // O "puxar" do próprio navegador (que recarrega a página inteira) fica desligado onde este está ligado.
 // =====================================================
-import { camadaAberta } from "./deslizar-flash.js?v=9";
+import { camadaAberta } from "./deslizar-flash.js?v=10";
 import { buscarDeNovo } from "./leituras.js?v=4";
 
 const PONTO = 72, MAX = 120, TAM = 36;

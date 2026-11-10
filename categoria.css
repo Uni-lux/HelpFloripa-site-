@@ -44,6 +44,7 @@ body[data-classe="lojinha"] { --classe: #b066ff; --classe-2: #ff8ad8; --classe-i
 body[data-classe="imoveis"] { --classe: #2fbf71; --classe-2: #a4f0b6; --classe-ink: #002612; }
 body[data-classe="saude"] { --classe: #0fb5a6; --classe-2: #9ff3e6; --classe-ink: #00261f; }
 body[data-classe="comunidade"] { --classe: #e5487f; --classe-2: #ffb38a; --classe-ink: #2b0013; }
+body[data-classe="automotivo"] { --classe: #f5b301; --classe-2: #ffe08a; --classe-ink: #2a1a00; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -105,6 +106,7 @@ svg.i.xs { width: 14px; height: 14px; }
 .classe-link.imoveis { --c: #2fbf71; }
 .classe-link.saude { --c: #0fb5a6; }
 .classe-link.comunidade { --c: #e5487f; }
+.classe-link.automotivo { --c: #f5b301; }
 
 /* ---------- página ---------- */
 .pagina { width: min(1180px, 100%); margin: 0 auto; padding: 12px 16px calc(28px + env(safe-area-inset-bottom)); }
@@ -268,6 +270,7 @@ body[data-classe="lojinha"] { --arte-sombra: 18 4 36; }
 body[data-classe="imoveis"] { --arte-sombra: 1 20 10; }
 body[data-classe="saude"] { --arte-sombra: 0 20 18; }
 body[data-classe="comunidade"] { --arte-sombra: 28 0 12; }
+body[data-classe="automotivo"] { --arte-sombra: 26 16 0; }
 .hero.hero-arte { background-position: 72% center; border-color: color-mix(in srgb, var(--classe) 45%, var(--line));
   box-shadow: 0 22px 50px -30px color-mix(in srgb, var(--classe) 80%, #000); }
 .hero.hero-arte::before {

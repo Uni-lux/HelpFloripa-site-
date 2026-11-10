@@ -6,11 +6,11 @@
 //   estrelas, comentar, salvar, republicar, compartilhar e enviar (as mesmas do Diário), autor com Seguir e legenda.
 // - Publicação de vídeo precisa do Storage (firebase.js USAR_STORAGE): sem ele não existem vídeos novos.
 // =====================================================
-import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { ligarPuxar } from "./puxar-atualizar.js?v=4";
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=138";
+} from "./rede.js?v=139";
 
 let aberto = null;
 let somLigado = false;

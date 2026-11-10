@@ -6,7 +6,7 @@
 //   abrir uma mensagem por vez, sem listar a conversa): a equipe vê o que foi dito de verdade.
 // - publicação, comentário, perfil e negócio: o conteúdo completo, com foto.
 // =====================================================
-import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=28";
+import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=29";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 
 const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado", comunidade: "Anúncio da Comunidade denunciado" };
@@ -132,7 +132,7 @@ async function conteudoOutro(d, corpo, acoes) {
     if (!n) { corpo.appendChild(h("div", "ad-den-vazio", "O negócio não existe mais.")); return; }
     const fotos = h("div", "ad-den-fotos"); (Array.isArray(n.fotos) ? n.fotos : []).filter((u) => midiaOk(u, "image")).slice(0, 5).forEach((u) => fotos.appendChild(img(u)));
     corpo.appendChild(ficha(n.foto, n.nome, [TIPOS_NEG[n.tipo] || n.tipo, n.cidade].filter(Boolean).join(" · "), [n.descricao || "", fotos.children.length ? fotos : ""]));
-    const pag = ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html" }[n.tipo] || "servicos.html");
+    const pag = ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", imoveis: "imoveis.html", saude: "saude.html", automotivo: "automotivo.html" }[n.tipo] || "servicos.html");
     const a = h("a", "ad-bt", "Abrir no site"); a.href = `${pag}?negocio=${encodeURIComponent(d.itemId)}`; a.target = "_blank"; a.rel = "noopener"; acoes.prepend(a);
   } else if (d.tipo === "comunidade") {
     const a = await ler("comunidade", d.itemId);

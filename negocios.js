@@ -10,17 +10,17 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=138";
-import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=18";
+} from "./rede.js?v=139";
+import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=19";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { geocodificar, geoOk } from "./perto.js?v=3";
-import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=15";
+import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=16";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
-import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=34";
+import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=35";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, prazoPromo } from "./vitrine.js?v=93";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, CATEGORIAS_AUTO, PALAVRAS_AUTO, MODOS_AUTO, DIFERENCIAIS_AUTO, prazoPromo } from "./vitrine.js?v=94";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {
@@ -53,6 +53,12 @@ const NEGOCIOS = {
     chamada: "Atenda pela saúde", frase: "Médicos, enfermagem, psicólogos, veterinários e mais recebendo agendamentos pelo chat.", cta: "Criar perfil de saúde",
     pontos: ["Registro do conselho à vista", "Convênios, valor e online ou em casa", "Pedidos de agendamento no chat"],
     phNome: "Ex.: Dra. Ana Souza · Psicóloga", phDesc: "Sua formação, como é o seu atendimento, o que você trata e para quem..."
+  },
+  automotivo: {
+    rotulo: "Automotivo", img: "automotivo.svg", pagina: "automotivo.html", desc: "Oficina, peças, guincho ou lava-jato com serviços e preços.",
+    chamada: "Anuncie no Automotivo", frase: "Oficinas, auto elétrica, pneus, lava-jato, guincho e peças recebendo pedidos de orçamento.", cta: "Criar perfil automotivo",
+    pontos: ["Serviços com preço", "Fotos do espaço e dos trabalhos", "Pedidos de orçamento no chat"],
+    phNome: "Ex.: Oficina do Zé · Mecânica e elétrica", phDesc: "O que vocês fazem, marcas que atendem, garantia, há quanto tempo estão no mercado..."
   }
 };
 let meusNegocios = [];
@@ -177,7 +183,7 @@ async function exigirVerificacao() {
     texto: "Para criar perfis de negócio e anúncios, a conta precisa ser verificada: a equipe confere seu documento e você ganha o selo azul. Isso protege os clientes contra golpes e perfis falsos.",
     ok: "Verificar agora", icone: "selo", cor: "normal"
   });
-  if (ok) import("./verificacao.js?v=95").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
+  if (ok) import("./verificacao.js?v=96").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
   return false;
 }
 
@@ -234,7 +240,7 @@ function completude(n) {
     ["WhatsApp", !!String(n.whatsapp || "").trim()],
     ["Bairro", !!n.bairro]
   ];
-  if (n.tipo === "servicos") lista.push(["Serviços com preço", itens.some((i) => Number(i.preco) > 0)], ["Fotos de trabalhos", fotos.length > 0], ["Horário", temSemana || !!n.horario]);
+  if (n.tipo === "servicos" || n.tipo === "automotivo") lista.push(["Serviços com preço", itens.some((i) => Number(i.preco) > 0)], ["Fotos de trabalhos", fotos.length > 0], ["Horário", temSemana || !!n.horario]);
   if (n.tipo === "delivery") lista.push(["3 itens no cardápio", itens.length >= 3], ["Fotos dos pratos", itens.some((i) => urlSegura(i.foto))], ["Foto de capa", fotos.length > 0], ["Horário", temSemana || !!(n.horaAbre && n.horaFecha)]);
   if (n.tipo === "lojinha") lista.push(["3 produtos", itens.length >= 3], ["Fotos dos produtos", itens.length > 0 && itens.every((i) => urlSegura(i.foto))], ["Formas de pagamento", (n.pagamentos || []).length > 0], ["Horário", temSemana]);
   if (n.tipo === "imoveis") lista.push(["Um imóvel anunciado", numeros.anuncios > 0], ["CRECI", n.tipoAnunciante === "proprietario" || !!n.creci]);
@@ -247,11 +253,11 @@ function completude(n) {
 }
 const linkNegocio = (n) => new URL(`${PAGINA_TIPO[n.tipo]}?negocio=${encodeURIComponent(n.id)}`, location.href).href;
 // Link curto: helpfloripa.com.br/@seunome/tipo (404.html → link.html descobre de quem é o @). Sem @, o link longo.
-const SLUG_TIPO = { servicos: "servicos", delivery: "delivery", lojinha: "loja", imoveis: "imoveis", saude: "saude" };
+const SLUG_TIPO = { servicos: "servicos", delivery: "delivery", lojinha: "loja", imoveis: "imoveis", saude: "saude", automotivo: "automotivo" };
 const meuNick = () => String(dados.nickname || "").toLowerCase();
 const linkCurto = (n) => (/^[a-z0-9._]{3,30}$/.test(meuNick()) ? `${location.origin}/@${meuNick()}/${SLUG_TIPO[n.tipo]}` : linkNegocio(n));
 // Compartilhar manda a arte (foto, nome, QR e link) junto com o texto: no WhatsApp chega a imagem com o link.
-const COR_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6" };
+const COR_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6", automotivo: "#f5b301" };
 const dadosArte = (n) => ({ nome: n.nome || NEGOCIOS[n.tipo].rotulo, rotulo: NEGOCIOS[n.tipo].rotulo, cor: COR_TIPO[n.tipo] || "#00adee", url: linkCurto(n), foto: urlSegura(n.foto) });
 async function compartilharNegocio(n) {
   try {
@@ -304,7 +310,7 @@ function avisoVerificacao() {
   if (dados.verificado || !meusNegocios.length) return;
   const d = el("div", "ng-verif"); d.id = "ngVerif";
   const b = btnIc("btn pri mini", "selo", "Verificar minha conta");
-  b.addEventListener("click", () => import("./verificacao.js?v=95").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
+  b.addEventListener("click", () => import("./verificacao.js?v=96").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
   d.append(el("strong", null, "Verifique sua conta para continuar anunciando"),
     el("span", null, `Agora todo anunciante do Help Floripa tem a conta verificada (selo azul). Verifique até ${PRAZO_VERIFICACAO.toLocaleDateString("pt-BR")}: depois disso, perfis de contas não verificadas saem do ar. Nada é apagado.`), b);
   $("painelNegocios").before(d);
@@ -367,7 +373,7 @@ function pintarPainel() {
         return d;
       })(),
       tipo === "imoveis" ? bloco(String(numeros.anuncios), numeros.anuncios === 1 ? "anúncio" : "anúncios")
-        : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos", saude: qtd === 1 ? "atendimento" : "atendimentos" }[tipo])
+        : bloco(String(qtd), { servicos: qtd === 1 ? "serviço" : "serviços", delivery: qtd === 1 ? "item" : "itens", lojinha: qtd === 1 ? "produto" : "produtos", saude: qtd === 1 ? "atendimento" : "atendimentos", automotivo: qtd === 1 ? "serviço" : "serviços" }[tipo])
     );
     // Quanto do perfil está preenchido e o que falta.
     const comp = completude(n);
@@ -524,7 +530,7 @@ async function abrirEstatisticas(n) {
   await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=108");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=109");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -577,7 +583,7 @@ function buscaDoNegocio(d) {
   const cats = ks.map((k) => (k === "outros" ? d.categoriaPersonalizada : CATS_NEGOCIO[d.tipo]?.[k] || ""));
   const sd = d.saude || {};
   const saude = d.tipo === "saude" ? [sd.profissao === "outros" ? sd.profissaoOutra : PROFISSOES_SAUDE[sd.profissao]?.nome, ...(sd.especialidades || [])] : [];
-  const sinonimos = d.tipo === "servicos" ? ks.map((k) => PALAVRAS_SERV[k] || "") : [];
+  const sinonimos = d.tipo === "servicos" ? ks.map((k) => PALAVRAS_SERV[k] || "") : d.tipo === "automotivo" ? ks.map((k) => PALAVRAS_AUTO[k] || "") : [];
   return termosBusca([d.nome, cats, saude, NEGOCIOS[d.tipo]?.rotulo, d.cidade, d.bairro, sinonimos, d.descricao]);
 }
 const buscaDoAnuncio = (a) => termosBusca([a.titulo, a.categoriaPersonalizada || CATS_NEGOCIO.imoveis[a.categoria], FINALIDADES[a.finalidade], "imóvel", a.bairro, a.cidade, a.descricao]);
@@ -647,13 +653,15 @@ const CATS_NEGOCIO = {
   delivery: { hamburguer: "Hambúrguer", pizza: "Pizza", sushi: "Sushi", doces: "Doces", bebidas: "Bebidas", outros: "Outra (escrever)" },
   lojinha: { roupas: "Moda e roupas", calcados: "Calçados", acessorios: "Acessórios", beleza: "Beleza", eletronicos: "Eletrônicos", casa: "Casa e decoração", mercado: "Mercado", artesanato: "Artesanato", infantil: "Infantil", esportes: "Esportes", outros: "Outra (escrever)" },
   imoveis: { apartamento: "Apartamento", casa: "Casa", kitnet: "Kitnet", terreno: "Terreno", comercial: "Comercial", outros: "Outro (escrever)" },
-  saude: CATEGORIAS_SAUDE
+  saude: CATEGORIAS_SAUDE,
+  automotivo: { ...CATEGORIAS_AUTO, outros: "Outra (escrever)" }
 };
 // "Outra (escrever)": o que a pessoa escreve vira um filtro próprio na página (até 30 letras).
 const CAT_PROPRIA = {
   servicos: ["Qual é a sua área?", "Ex.: Pianista, Fotógrafo, Aulas de inglês", "Aparece no seu perfil e vira um filtro próprio em Freelances."],
   delivery: ["Qual é a sua comida?", "Ex.: Açaí, Marmitas, Comida árabe", "Aparece no seu perfil e vira um filtro próprio no Delivery."],
   lojinha: ["Sua categoria", "Ex.: Papelaria, Plantas, Suplementos", "Vira um filtro próprio na página do Shopping."],
+  automotivo: ["Qual é a sua área?", "Ex.: Retífica, Tapeçaria, Blindagem", "Aparece no seu perfil e vira um filtro próprio no Automotivo."],
   imoveis: ["Qual é o tipo do imóvel?", "Ex.: Chácara, Galpão, Sítio, Cobertura", "Aparece no anúncio e vira um filtro próprio em Imóveis."]
 };
 const textoCatPropria = (v) => String(v || "").replace(/\s+/g, " ").trim().slice(0, 30);
@@ -662,6 +670,7 @@ const CONFIG_EXTRAS = {
   delivery: { itens: { titulo: "Cardápio", dica: "Cada prato com foto, preço, seção (Lanches, Bebidas...) e descrição.", max: 12, foto: true, proporcao: 1, rotulo: "Nome do prato" }, fotos: { titulo: "Foto de capa", max: 1, proporcao: 2 } },
   lojinha: { itens: { titulo: "Produtos", dica: "Toque em \"Detalhes do produto\" para tamanho, cor, marca, estado e ficha técnica.", max: 12, foto: true, proporcao: 3 / 4, rotulo: "Nome do produto" }, fotos: null },
   imoveis: { itens: null, fotos: null },
+  automotivo: { itens: { titulo: "Serviços e preços", dica: "Cada serviço ou peça com preço e como cobra. O cliente escolhe na hora de pedir orçamento.", max: 12, foto: false, rotulo: "Ex.: Troca de óleo, Alinhamento" }, fotos: { titulo: "Fotos do espaço e dos trabalhos", max: 3, proporcao: 4 / 3 } },
   saude: { itens: { titulo: "Consultas e procedimentos", dica: "Cada atendimento com valor (opcional) e duração. O paciente escolhe ao pedir o agendamento.", max: 12, foto: false, rotulo: "Ex.: Consulta, Retorno, Curativo" }, fotos: { titulo: "Fotos do local de atendimento", max: 3, proporcao: 4 / 3 } }
 };
 let negExtra = {};
@@ -829,7 +838,7 @@ function montarExtras() {
   mais.open = negMaisAberto;
   mais.addEventListener("toggle", () => { negMaisAberto = mais.open; });
   const sumMais = document.createElement("summary");
-  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "região, experiência, diferenciais e pagamento", delivery: "formas de pagamento", lojinha: "formas de pagamento", saude: "público, idiomas, formação e acessibilidade" }[t] || "" }));
+  sumMais.append(document.createTextNode("Mais detalhes (opcional)"), Object.assign(document.createElement("small"), { textContent: { servicos: "região, experiência, diferenciais e pagamento", delivery: "formas de pagamento", lojinha: "formas de pagamento", saude: "público, idiomas, formação e acessibilidade", automotivo: "região, experiência, diferenciais e pagamento" }[t] || "" }));
   mais.appendChild(sumMais);
   if (t === "servicos") {
     // Várias profissões: cada área de atuação aparece no filtro da página.
@@ -849,6 +858,14 @@ function montarExtras() {
     info.appendChild(campo("Como você atende", marcas("atendimento", { domicilio: "Vou até o cliente", local: "No meu local", online: "Online" })));
     mais.appendChild(grade("", campo("Região que atende", entrada("regiao", { placeholder: "Ex.: Ilha toda, Continente", max: 80 })), campo("Anos de experiência", entrada("experiencia", { numero: true, placeholder: "5", max: 3 }))));
     mais.appendChild(campo("Diferenciais", marcas("diferenciais", DIFERENCIAIS_SERV), "Aparecem em destaque no seu perfil."));
+    mais.appendChild(campo("Formas de pagamento", marcas("pagamentos", { pix: "Pix", credito: "Crédito", debito: "Débito", dinheiro: "Dinheiro" })));
+  } else if (t === "automotivo") {
+    info.appendChild(campo("Categoria", seletor("categoria", CATS_NEGOCIO.automotivo, () => montarExtras()), "Define em qual filtro do Automotivo você aparece"));
+    if (negExtra.categoria === "outros") info.appendChild(campo(CAT_PROPRIA.automotivo[0], entrada("categoriaPersonalizada", { placeholder: CAT_PROPRIA.automotivo[1], max: 30 }), CAT_PROPRIA.automotivo[2]));
+    info.appendChild(campo("A partir de (R$)", entrada("precoDesde", { numero: true, placeholder: "80" }), "O menor preço que você cobra. O horário fica em \"Horário de atendimento\", mais abaixo."));
+    info.appendChild(campo("Como você atende", marcas("atendimento", MODOS_AUTO)));
+    mais.appendChild(grade("", campo("Região que atende", entrada("regiao", { placeholder: "Ex.: Grande Florianópolis", max: 80 })), campo("Anos de experiência", entrada("experiencia", { numero: true, placeholder: "10", max: 3 }))));
+    mais.appendChild(campo("Diferenciais", marcas("diferenciais", DIFERENCIAIS_AUTO), "Aparecem em destaque no seu perfil."));
     mais.appendChild(campo("Formas de pagamento", marcas("pagamentos", { pix: "Pix", credito: "Crédito", debito: "Débito", dinheiro: "Dinheiro" })));
   } else if (t === "saude") {
     montarSaude(info, mais);
@@ -1117,7 +1134,7 @@ function detalhesItem(t, it) {
   const det = document.createElement("details");
   det.className = "item-det";
   const sum = document.createElement("summary");
-  sum.textContent = { servicos: "Detalhes do serviço", delivery: "Seção e descrição", lojinha: "Detalhes do produto", saude: "Duração e o que inclui" }[t] || "Detalhes";
+  sum.textContent = { servicos: "Detalhes do serviço", automotivo: "Detalhes do serviço", delivery: "Seção e descrição", lojinha: "Detalhes do produto", saude: "Duração e o que inclui" }[t] || "Detalhes";
   det.appendChild(sum);
   const corpo = document.createElement("div");
   corpo.className = "item-det-corpo";
@@ -1150,7 +1167,7 @@ function detalhesItem(t, it) {
     c.append(document.createTextNode(rotulo), i);
     return c;
   };
-  if (t === "servicos") {
+  if (t === "servicos" || t === "automotivo") {
     corpo.append(
       sel("unidade", "Como cobra", UNIDADES_SERV),
       txt("duracao", "Duração média", { placeholder: "Ex.: 2 horas", max: 30 }),
@@ -1474,7 +1491,7 @@ function montarHorario() {
   const box = $("negHorario");
   box.replaceChildren();
   const tit = el("div", "ng-bloco-tit");
-  const tx = el("div"); tx.append(el("strong", null, negTipo === "servicos" ? "Horário de atendimento" : "Horário de funcionamento"), el("small", null, "Seu perfil mostra \"Aberto agora\" e quando abre ou fecha"));
+  const tx = el("div"); tx.append(el("strong", null, negTipo === "servicos" || negTipo === "automotivo" ? "Horário de atendimento" : "Horário de funcionamento"), el("small", null, "Seu perfil mostra \"Aberto agora\" e quando abre ou fecha"));
   const icH = el("span", "ng-bloco-ic"); icH.appendChild(icone("relogio", "i s"));
   tit.append(icH, tx);
   const atalhos = el("div", "ng-hor-atalhos");
@@ -1728,7 +1745,7 @@ $("negSalvar").addEventListener("click", async () => {
       const cont = {}; semana.filter(Boolean).forEach((f) => { cont[f] = (cont[f] || 0) + 1; });
       const comum = Object.entries(cont).sort((a, b) => b[1] - a[1])[0][0].split("-");
       if (negTipo === "delivery") { x.horaAbre = comum[0]; x.horaFecha = comum[1]; }
-      if (negTipo === "servicos" || negTipo === "saude") x.horario = `${comum[0]} às ${comum[1]}`;
+      if (negTipo === "servicos" || negTipo === "saude" || negTipo === "automotivo") x.horario = `${comum[0]} às ${comum[1]}`;
     }
     const extras = { categoria: negTipo === "servicos" ? x.categorias[0] : negTipo === "saude" ? x.saude.profissao : (x.categoria || Object.keys(CATS_NEGOCIO[negTipo])[0]), fotos: [], itens: [] };
     const campos = {
@@ -1736,7 +1753,8 @@ $("negSalvar").addEventListener("click", async () => {
       delivery: ["horaAbre", "horaFecha", "tempoMin", "tempoMax", "taxaEntrega", "pedidoMinimo", "dias", "opcoesEntrega", "pagamentos", "categoriaPersonalizada"],
       lojinha: ["entrega", "pagamentos", "categoriaPersonalizada"],
       imoveis: ["tipoAnunciante", "creci"],
-      saude: ["dias", "horario"]
+      saude: ["dias", "horario"],
+      automotivo: ["precoDesde", "horario", "atendimento", "dias", "regiao", "experiencia", "diferenciais", "pagamentos", "categoriaPersonalizada"]
     }[negTipo];
     campos.forEach((k) => { extras[k] = x[k] ?? null; });
     if (negTipo !== "imoveis" && negTipo !== "saude") extras.categoriaPersonalizada = temOutra ? textoCatPropria(x.categoriaPersonalizada) : "";
@@ -1773,7 +1791,7 @@ $("negSalvar").addEventListener("click", async () => {
         });
       }
       if (negTipo === "delivery") Object.assign(item, { secao: curto(it.secao, 24), descricao: curto(it.descricao, 160), precoAntigo: Number(it.precoAntigo) > 0 ? Number(it.precoAntigo) : null });
-      if (negTipo === "servicos") Object.assign(item, { unidade: UNIDADES_SERV[it.unidade] ? it.unidade : "fixo", duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
+      if (negTipo === "servicos" || negTipo === "automotivo") Object.assign(item, { unidade: UNIDADES_SERV[it.unidade] ? it.unidade : "fixo", duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
       if (negTipo === "servicos") item.categoria = x.categorias.includes(it.categoria) ? it.categoria : x.categorias[0];
       if (negTipo === "saude") Object.assign(item, { duracao: curto(it.duracao, 30), descricao: curto(it.descricao, 160) });
       extras.itens.push(item);
@@ -1798,6 +1816,7 @@ $("negSalvar").addEventListener("click", async () => {
     catch (e) {
       // Saúde só existe nas regras novas: sem elas, não há como guardar o perfil ainda.
       if (e?.code === "permission-denied" && negTipo === "saude") throw new Error("o perfil de Saúde começa a funcionar quando a atualização do sistema for publicada.");
+      if (e?.code === "permission-denied" && negTipo === "automotivo" && !negEditando) throw new Error("o perfil Automotivo começa a funcionar quando a atualização do sistema for publicada.");
       // Regras novas ainda não publicadas: grava sem os campos novos e guarda eles na conta.
       if (e?.code !== "permission-denied") throw e;
       const novos = Object.fromEntries(NOVOS_NEG.map((k) => [k, dadosNeg[k]]));

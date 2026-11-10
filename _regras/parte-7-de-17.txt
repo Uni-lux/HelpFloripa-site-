@@ -48,7 +48,7 @@
                     && request.resource.data.vendedorId == request.auth.uid
                     && request.resource.data.clienteId is string
                     && request.resource.data.clienteId != request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
                     && exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
                     && request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes

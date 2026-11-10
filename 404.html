@@ -9,7 +9,7 @@
     // Link curto do perfil: helpfloripa.com.br/@nome (perfil da pessoa) ou /@nome/tipo (perfil de negócio).
     // O GitHub Pages abre esta página para qualquer endereço que não existe; link.html descobre de quem é o @.
     (function () {
-      var m = decodeURIComponent(location.pathname).match(/^\/@([a-z0-9._]{3,30})(?:\/(servicos|freelances|delivery|loja|lojinha|shopping|imoveis|saude))?\/?$/i);
+      var m = decodeURIComponent(location.pathname).match(/^\/@([a-z0-9._]{3,30})(?:\/(servicos|freelances|delivery|loja|lojinha|shopping|imoveis|saude|automotivo))?\/?$/i);
       if (m) location.replace("/link.html?n=" + encodeURIComponent(m[1].toLowerCase()) + (m[2] ? "&t=" + m[2].toLowerCase() : ""));
     })();
   </script>
@@ -221,6 +221,7 @@
             <option value="lojinha">Shopping</option>
             <option value="imoveis">Imóveis</option>
             <option value="saude">Saúde</option>
+            <option value="automotivo">Automotivo</option>
             <option value="comunidade">Comunidade</option>
           </select>
           <label class="sr" for="termo">O que você procura?</label>
@@ -313,9 +314,9 @@
       }
 
       // Busca: leva para a classe escolhida.
-      var PAGINA = { servicos: "/servicos.html", delivery: "/delivery.html", lojinha: "/shopping.html", imoveis: "/imoveis.html", saude: "/saude.html", comunidade: "/comunidade.html" };
-      var DICA = { servicos: "Ex.: diarista, eletricista", delivery: "Ex.: pizza, hambúrguer", lojinha: "Ex.: tênis, fone", imoveis: "Ex.: apartamento na Trindade", saude: "Ex.: pediatra, psicóloga", comunidade: "Ex.: berço, sofá" };
-      var COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)", saude: "#0fb5a6", comunidade: "#e5487f" };
+      var PAGINA = { servicos: "/servicos.html", delivery: "/delivery.html", lojinha: "/shopping.html", imoveis: "/imoveis.html", saude: "/saude.html", automotivo: "/automotivo.html", comunidade: "/comunidade.html" };
+      var DICA = { servicos: "Ex.: diarista, eletricista", delivery: "Ex.: pizza, hambúrguer", lojinha: "Ex.: tênis, fone", imoveis: "Ex.: apartamento na Trindade", saude: "Ex.: pediatra, psicóloga", automotivo: "Ex.: troca de óleo", comunidade: "Ex.: berço, sofá" };
+      var COR = { servicos: "var(--c-servicos)", delivery: "var(--c-delivery)", lojinha: "var(--c-lojinha)", imoveis: "var(--c-imoveis)", saude: "#0fb5a6", automotivo: "#f5b301", comunidade: "#e5487f" };
       function classe() { var c = $("classe").value; $("termo").placeholder = DICA[c]; $("busca").style.setProperty("--b", COR[c]); }
       $("classe").addEventListener("change", function () { classe(); $("termo").focus(); });
       classe();
@@ -335,7 +336,7 @@
   </script>
   <script type="module">
     // Seletor bonito no lugar da lista nativa do celular
-    import { enfeitarSelect } from "./escolha.js?v=4";
+    import { enfeitarSelect } from "./escolha.js?v=5";
     enfeitarSelect(document.getElementById("classe"), { titulo: "Onde você quer buscar?" });
   </script>
 </body>

@@ -84,7 +84,7 @@ export function creditoDias(atual, novoPlano) {
 // em negocios.principal o tipo escolhido; com plano ativo o campo é ignorado. Anúncios de imóveis seguem o perfil Imóveis.
 const tipoPerfil = (n) => (n?.tipo === "imovel" ? "imoveis" : n?.tipo);
 export const podeEstarPausado = (n) => !!n?.principal && n.principal !== tipoPerfil(n);
-export const NOMES_PERFIL = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde" };
+export const NOMES_PERFIL = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 export const TIPOS_PERFIL = Object.keys(NOMES_PERFIL);
 // Plano dado numa negociação pode liberar só alguns perfis (planos.tipos = ["servicos", "delivery"...]); sem a lista = todos.
 export const perfisDoPlano = (plano) => (nivelPlano(plano) && Array.isArray(plano.tipos) && plano.tipos.length ? plano.tipos : null);

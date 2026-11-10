@@ -2104,8 +2104,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   HELP no branco do texto, FLORIPA no ciano, espaçamento largo, slogan fino entre dois filetes ciano; a Saira saiu.
   **Tema da casca:** rede.html/rede-app.js `pintarTemaCasca` (meta theme-color #0f161b/#ffffff, `data-theme`, `color-scheme`,
   fundo #070b0e/#f1f4f6) seguem `hf-chat-config` (evento storage) — antes a barra de status do celular ficava sempre escura na
-  rede. **Em aberto:** ramo novo no lugar do cartão Comunidade das classes (recomendado Automotivo/Veículos; precisa de tipo novo
-  de negócio e muda regras). Teste `t-comunidade-rede.mjs` (10); `t-x-transicoes` atualizado; `t-marca-fab` saiu.
+  rede. Ramo novo no lugar do cartão Comunidade: **feito, Automotivo** (ver o item "Automotivo"). Teste `t-comunidade-rede.mjs` (10); `t-x-transicoes` atualizado; `t-marca-fab` saiu.
+- **Automotivo (10/11/2026, PR depois do #187, MUDA REGRAS — não publicadas; 17 partes, 827 testes):** decidido por ele:
+  o 6º cartão das classes vira **Automotivo** (no lugar da Comunidade, que continua na barra de baixo, no menu e na seção do
+  Início). Tipo novo `automotivo` em `negocios` (cor #f5b301 "amarelo de sinalização", `automotivo.html`,
+  `vitrine.js?tipo=automotivo`, arte `automotivo-arte.svg` gerada por `scripts/arte/gerar-artes.py`, ilustração
+  `automotivo.svg`, ícone `i-automotivo` = carro). Funciona como os Freelances (`comOrcamento(t)` em vitrine.js: serviços com
+  preço/unidade, "a partir de", pedido de orçamento com o veículo no texto, cartão de visita `cartaoPro`), mas com UMA
+  categoria (`CATEGORIAS_AUTO`/`AREAS_AUTO` com palavras de busca `PALAVRAS_AUTO`: mecânica, elétrica, funilaria, pneus,
+  lava-jato, guincho, peças, ar-condicionado, vidros/chaves, som, motos, compra e venda, aluguel, despachante, autoescola,
+  Outra (escrever)), `MODOS_AUTO` (local/domicilio/leva = "Busca e leva o carro") e `DIFERENCIAIS_AUTO` (emergência,
+  orçamento grátis, garantia, nota fiscal, parcela no cartão, hora marcada). Vitrine: bolinhas, destaques, fileiras,
+  "Socorro e emergência", filtros/preço próprios. Regras: `automotivo` em todas as listas de tipo (negocios, principal,
+  banimento, contexto da conversa, vínculos, avaliações, reclamações, link e "Publicar em" do Flash) e `planos.tipos` até 6.
+  Sem as regras publicadas, criar o perfil avisa que falta publicar. Classes das 6 vitrines, Explorar (atalhos), menu,
+  Início (cartão, "Anunciar", busca, populares, contagem), Meus negócios (7 lugares: Comunidade na linha de baixo inteira),
+  link curto `/@nick/automotivo`, painel, sino, estatísticas e Mensagens conhecem o tipo. Teste `t-automotivo.mjs` (14).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2168,7 +2182,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (17 partes em `_regras/`, 817 testes; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (17 partes em `_regras/`, 827 testes; inclui o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

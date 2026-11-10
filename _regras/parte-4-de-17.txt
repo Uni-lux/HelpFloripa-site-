@@ -63,7 +63,7 @@
             && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
             && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)))
             && (!m.hasAny(['principal']) || d.get('principal', null) == null
-                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']);
+                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']);
       }
 
       function negocioOk() {
@@ -89,7 +89,7 @@
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude']
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
                     && id == request.auth.uid + '_' + request.resource.data.tipo
                     && request.resource.data.keys().hasOnly(camposNegocio())
                     && naoTocaCamposProtegidosNoCreate()

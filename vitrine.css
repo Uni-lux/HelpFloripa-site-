@@ -32,6 +32,7 @@
 .vitrine[data-tipo="imoveis"] { --vc: #2fbf71; --vc-ink: #002612; }
 .vitrine[data-tipo="saude"] { --vc: #0fb5a6; --vc-ink: #00261f; }
 .vitrine[data-tipo="comunidade"] { --vc: #e5487f; --vc-ink: #2b0013; }
+.vitrine[data-tipo="automotivo"] { --vc: #f5b301; --vc-ink: #2a1a00; }
 .vitrine * { box-sizing: border-box; }
 .vitrine [hidden] { display: none !important; }
 .vitrine button { font: inherit; color: inherit; }

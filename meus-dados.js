@@ -28,7 +28,7 @@ const ROTULOS = {
 };
 const VALORES = {
   status: { aceito: "Aceito", pendente: "Pendente", aberta: "Aberta", resolvida: "Resolvida", nova: "Nova", em_analise: "Em análise", descartada: "Descartada", fechado: "Fechado", aberto: "Aberto" },
-  tipo: { seguir: "Seguir", servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", comunidade: "Comunidade", imovel: "Imóvel", duo: "Duo", namoro: "Namorado(a)",
+  tipo: { seguir: "Seguir", servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo", comunidade: "Comunidade", imovel: "Imóvel", duo: "Duo", namoro: "Namorado(a)",
     casamento: "Cônjuge", melhor_amigo: "Melhor amigo(a)", amigo: "Amigo(a)", irmao: "Irmão(ã)", pai_mae: "Pai/Mãe", filho: "Filho(a)", primo: "Primo(a)", tio: "Tio(a)",
     sobrinho: "Sobrinho(a)", avo: "Avô/Avó", neto: "Neto(a)", parceiro: "Parceiro(a) de trabalho", alerta: "Alerta", grave: "Grave", info: "Informativo" },
   finalidade: { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" },

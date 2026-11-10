@@ -1,7 +1,7 @@
 // =====================================================
 // Entrar (login.html)
 // =====================================================
-import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=5";
+import { $, destinoSeguro, mensagemErro, aviso, firebasePronto } from "./acesso.js?v=6";
 
 const destino = destinoSeguro("index.html");
 // Vindo de "Senha nova salva" (conta-acao.html) ou de outro link: o e-mail já vem preenchido.

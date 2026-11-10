@@ -9,7 +9,7 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF, abrirOpcoes
-} from "./rede.js?v=138";
+} from "./rede.js?v=139";
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
@@ -83,11 +83,11 @@ document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventL
   try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
   catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }));
-$("cfgFlash").addEventListener("click", () => import("./stories.js?v=110").then((m) => {
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=111").then((m) => {
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=102").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=103").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
@@ -95,7 +95,7 @@ $("cfgGosto").addEventListener("click", async () => {
 });
 
 // Verificação: tela completa (verificacao.js) com situação, requisitos e o pedido em passos.
-function solicitarVerificacao() { import("./verificacao.js?v=95").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
+function solicitarVerificacao() { import("./verificacao.js?v=96").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
 
 async function abrirContas(tipo) {
   const bloqueados = tipo === "bloqueados";
@@ -362,7 +362,7 @@ async function baixarDados(formato) {
   const b = $("cfgBaixarDados"); b.disabled = true;
   toast("Juntando seus dados... pode levar alguns segundos.");
   try {
-    const m = await import("./meus-dados.js?v=3");
+    const m = await import("./meus-dados.js?v=4");
     const pacote = await m.juntarDados(fb, eu.uid, obterPerfil);
     const dia = new Date().toISOString().slice(0, 10);
     if (formato === "json") baixarArquivo(m.jsonDos(pacote.dados), "application/json", `meus-dados-help-floripa-${dia}.json`);

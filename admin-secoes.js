@@ -6,19 +6,19 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=40";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=41";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=25";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=26";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
-import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, valorPeriodo, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=34";
+import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, valorPeriodo, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=35";
 import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma, seloEmail
-} from "./admin-base.js?v=28";
+} from "./admin-base.js?v=29";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -630,7 +630,7 @@ export function negocios(el) {
       const c0 = h("td"); c0.appendChild(pessoaCel({ nome: n.nome, fotoPerfil: n.foto }, n.categoria || "")); if (esc) c0.appendChild(selo("Escondido", "neutro"));
       const dono = h("td"); const a = h("a", null, pessoa(n.donoId).nome || n.donoId); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirFicha(n.donoId); }); dono.appendChild(a);
       const ac = h("td"); const w = h("div", "ad-acoes"); w.style.flexWrap = "nowrap";
-      const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", saude: "saude.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
+      const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", saude: "saude.html", automotivo: "automotivo.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
       w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
         if (!esc && !(await confirmarHF({ titulo: "Esconder da vitrine?", texto: `"${n.nome}" deixa de aparecer para todos até ser mostrado de novo.`, ok: "Esconder", icone: "olhoOff" }))) return;
         await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: !esc });

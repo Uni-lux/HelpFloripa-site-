@@ -42,7 +42,7 @@
     import { db } from "./firebase.js";
     import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     const PAGINAS = { servicos: ["servicos.html", "servicos"], freelances: ["servicos.html", "servicos"], delivery: ["delivery.html", "delivery"],
-      loja: ["shopping.html", "lojinha"], lojinha: ["shopping.html", "lojinha"], shopping: ["shopping.html", "lojinha"], imoveis: ["imoveis.html", "imoveis"], saude: ["saude.html", "saude"] };
+      loja: ["shopping.html", "lojinha"], lojinha: ["shopping.html", "lojinha"], shopping: ["shopping.html", "lojinha"], imoveis: ["imoveis.html", "imoveis"], saude: ["saude.html", "saude"], automotivo: ["automotivo.html", "automotivo"] };
     const p = new URLSearchParams(location.search);
     const nick = String(p.get("n") || "").toLowerCase(), tipo = String(p.get("t") || "").toLowerCase();
     function naoAchou() {

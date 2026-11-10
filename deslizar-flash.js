@@ -109,7 +109,7 @@ export function prepararAoTocar(escolher) {
 }
 // Vitrines: a página sozinha é preparada inteira; com ?negocio= / ?anuncio= / ?item= (abre um perfil e conta a visita
 // nas estatísticas do negócio) só o HTML, para não contar visita de quem não abriu.
-const VITRINES = /\/(servicos|delivery|shopping|imoveis|saude|comunidade|mural)\.html$/;
+const VITRINES = /\/(servicos|delivery|shopping|imoveis|saude|automotivo|comunidade|mural)\.html$/;
 export function escolherVitrine(u) {
   if (!VITRINES.test(u.pathname)) return null;
   return ["negocio", "anuncio", "item", "novo"].some((k) => u.searchParams.has(k)) ? "prefetch" : "prerender";
