@@ -1591,7 +1591,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=109").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=110").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2355,7 +2355,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=109").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=110").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2937,7 +2937,7 @@ function abrirAjustesPub() {
 // Cartão do texto com imagem casada (o mesmo no formulário, no Diário, no perfil e no Explorar):
 // a imagem em cima, num quadro com as bordas do cartão, se fundindo com o fundo; o texto embaixo em letra grande,
 // com aspas e a barra na cor do site. Um modelo só, para todos os textos com imagem.
-export function blocoCasado(texto, url, { curto = false, layout = "topo" } = {}) {
+export function blocoCasado(texto, url, { curto = false, layout = "topo", verMais = false } = {}) {
   // Modelos (diario.layout): "topo" (imagem em cima se fundindo), "lado" (imagem do lado) e "fundo" (texto por cima).
   const c = el("figure", "casada" + (layout === "lado" || layout === "fundo" ? " " + layout : ""));
   const f = el("div", "casada-foto");
@@ -2947,6 +2947,25 @@ export function blocoCasado(texto, url, { curto = false, layout = "topo" } = {})
   if ((texto || "").length > 180) t.classList.add("menor");
   if (curto) t.classList.add("curto");
   c.append(f, t);
+  // "ver mais / ver menos" (10/11/2026, pedido dele): texto longo fica recolhido em 7 linhas. Só mede com o cartão à
+  // vista (escondido, a altura é 0 e tudo pareceria caber).
+  if (verMais && !curto && ((texto || "").length > 200 || (texto || "").split("\n").length > 6)) {
+    t.classList.add("recolhido");
+    const vm = el("button", "ver-mais casada-ver", "ver mais"); vm.type = "button"; vm.setAttribute("aria-expanded", "false");
+    vm.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const abrir = t.classList.contains("recolhido");
+      t.classList.toggle("recolhido", !abrir); vm.textContent = abrir ? "ver menos" : "ver mais"; vm.setAttribute("aria-expanded", String(abrir));
+      if (!abrir) c.closest(".post-card")?.scrollIntoView?.({ block: "nearest" });
+    });
+    c.appendChild(vm);
+    const conferir = () => {
+      if (!t.isConnected || !t.clientHeight) return false;
+      if (t.classList.contains("recolhido") && t.scrollHeight <= t.clientHeight + 2) { t.classList.remove("recolhido"); vm.remove(); }
+      return true;
+    };
+    if (typeof ResizeObserver === "function") { const ro = new ResizeObserver(() => { if (conferir()) ro.disconnect(); }); ro.observe(t); }
+  }
   return c;
 }
 // Enquete no compositor: pergunta e de 2 a 4 opções.

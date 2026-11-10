@@ -222,3 +222,6 @@
 .mu-vazio-em { background: var(--panel-2); border: 1px solid var(--line); }
 .mu-vazio-tipo { background: var(--panel-2); border-color: var(--line); }
 .mu-vt-ic { background: transparent; color: var(--cc); box-shadow: none; border: 1px solid var(--line); }
+
+/* Janelas da Comunidade (anúncio e publicar, comunidade.css) abertas aqui no Mural: a cor da Comunidade. */
+.pg-mural { --classe: #e5487f; --classe-2: #ff8ab4; --classe-ink: #2a0614; }

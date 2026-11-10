@@ -2085,6 +2085,27 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   rede.html. "+" (`.fab-criar`) agora é SÓ o sinal (sem círculo), ciano com sombra; também na Comunidade (`#muFab` em
   mural.html → `link(filtro || "doacao")`). Celular sem barrinha de rolagem em todas as páginas (sem-menu-imagem.js,
   `pointer: coarse`). Testes `t-marca-fab.mjs` (8), `t-tema-rede` atualizado.
+- **Menu ⋮ da conversa e "ver mais" do texto com imagem (10/11/2026, PR depois do #186, sem regra nova):** relato dele.
+  "Configurações do chat" (e as outras ações do menu ⋮ da conversa) abria e sumia: fechar o menu tira o passo dele do histórico
+  (voltar.js `history.go(-1)`, que chega depois) e esse "voltar" fechava o painel recém-aberto. `depoisDoMenu(fn)` em
+  mensagens-app.js espera o popstate (máx. 450 ms) antes da ação. Cartão de texto com imagem (`blocoCasado`, opção `verMais`
+  no Diário e na tela da publicação do perfil) ganhou "ver mais / ver menos" (`.casada-texto.recolhido`, 7 linhas);
+  `descricaoPost` (feed.js) só mede com o texto à vista (ResizeObserver; escondido a altura 0 tirava o "ver mais").
+  Teste `t-menu-vermais.mjs` (7; precisa de `saida/seed-ids.json` = última linha do seed.mjs).
+- **Comunidade numa página só, "+" no topo, marca em Sora e barras do celular no tema (10/11/2026, PR depois do #187, sem regra
+  nova):** pedido dele. **Comunidade = só a aba da rede:** comunidade.js exporta `prepararEmbutido({fb, eu, perfil, aoMudar})`,
+  `abrirItemPorId(id, conhecido)` e `novoAnuncio(cat)`; o Mural (mural.js `carregarCom`/`abrirNaComunidade`/`ligarComunidadeAqui`)
+  abre o anúncio e o formulário como janela `cm-modal` por cima (mural.html carrega o comunidade.css; `--classe` rosa no
+  mural.css); toques em links `comunidade.html?item=/?novo=` são tratados ali; `?item=`/`?novo=` na chegada abrem a janela.
+  comunidade.html redireciona (script no `<head>`) para `rede.html?aba=comunidade&item=` (ou `mural.html?...` dentro de um quadro),
+  menos com `hf-sem-rede` (testes antigos); rede-app.js passa `item`/`novo` para o quadro do Mural na 1ª carga (`paramsComunidade`).
+  **"+"** voltou ao TOPO no lugar do lápis (`#btnComporFeed.topo-criar` com `.tc-ic` e um "+" em SVG) no Diário e na Comunidade
+  (`#btnPublicarMural`); o botão flutuante saiu. **Marca** (3ª versão): Sora 700/600 (`fonte-marca-sora-700/600.woff2`, SIL OFL),
+  HELP no branco do texto, FLORIPA no ciano, espaçamento largo, slogan fino entre dois filetes ciano; a Saira saiu.
+  **Tema da casca:** rede.html/rede-app.js `pintarTemaCasca` (meta theme-color #0f161b/#ffffff, `data-theme`, `color-scheme`,
+  fundo #070b0e/#f1f4f6) seguem `hf-chat-config` (evento storage) — antes a barra de status do celular ficava sempre escura na
+  rede. **Em aberto:** ramo novo no lugar do cartão Comunidade das classes (recomendado Automotivo/Veículos; precisa de tipo novo
+  de negócio e muda regras). Teste `t-comunidade-rede.mjs` (10); `t-x-transicoes` atualizado; `t-marca-fab` saiu.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

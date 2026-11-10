@@ -164,7 +164,7 @@ function escolherCat(cat) {
 }
 function pintar() {
   const grade = $("cmGrade"), info = $("cmInfo");
-  if (!grade) return;
+  if (!grade) { aoMudarFora?.(); return; }
   let lista = todos.filter(passa);
   if (ordem === "perto") lista = [...lista].sort((a, b) => (a._km ?? Infinity) - (b._km ?? Infinity));
   else lista = [...lista].sort(recentes);
@@ -680,3 +680,28 @@ async function iniciar() {
   });
 }
 if (document.getElementById("cmGrade")) iniciar();
+
+// ---------- dentro do Mural (a Comunidade na rede, numa página só) ----------
+// Pedido dele (10/11/2026): a Comunidade faz parte da rede social e não abre outra página. O Mural (mural.js) usa estas
+// funções: o anúncio inteiro e o formulário de publicar abrem como janela por cima do Mural; ao publicar/mudar, avisa
+// o Mural (aoMudar) para recarregar a lista.
+let aoMudarFora = null;
+export async function prepararEmbutido({ fb: f, eu: u, perfil, aoMudar }) {
+  aoMudarFora = aoMudar || null;
+  if (eu) return;
+  fb = f; eu = u; meuPerfil = perfil || {};
+  const [pos, ban] = await Promise.all([
+    minhaPosicao(meuPerfil).catch(() => null),
+    fb.getDoc(fb.doc(fb.db, "programa_banidos", `${u.uid}_comunidade`)).then((s) => (s.exists() ? s.data() : null)).catch(() => null)
+  ]);
+  posEu = pos;
+  banimento = ban && (!ms(ban.ate) || ms(ban.ate) > Date.now()) ? ban : null;
+}
+export async function abrirItemPorId(id, conhecido) {
+  let a = conhecido ? { ...conhecido } : todos.find((x) => x.id === id);
+  if (!a) { try { const s = await fb.getDoc(fb.doc(fb.db, "comunidade", id)); if (s.exists()) a = { id: s.id, ...s.data() }; } catch {} }
+  if (!a || !(a.donoId === eu?.uid || (!oculto(a) && a.status !== "concluido"))) { toast("Este anúncio não está mais disponível."); return; }
+  if (!todos.some((x) => x.id === a.id)) todos.push(a);
+  abrirItem(todos.find((x) => x.id === a.id));
+}
+export function novoAnuncio(cat) { abrirForm(null, CATEGORIAS_COM[cat] ? cat : "doacao"); }

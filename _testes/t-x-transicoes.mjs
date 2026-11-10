@@ -18,13 +18,12 @@ const W = await p.evaluate(() => innerWidth);
 // topo e "+"
 const f = feed();
 const info = await f.evaluate(() => {
-  const fab = document.getElementById("btnComporFeed"), r = fab.getBoundingClientRect(), b = document.getElementById("barraRede").getBoundingClientRect();
-  return { fab: fab.classList.contains("fab-criar"), dir: innerWidth - r.right, acima: b.top - r.bottom, lapis: !!document.querySelector(".topo .topo-criar"),
-    fonte: getComputedStyle(document.querySelector(".marca strong")).fontFamily, carregou: document.fonts.check('italic 900 20px "HF Marca"') };
+  const fab = document.getElementById("btnComporFeed");
+  return { fab: fab.classList.contains("fab-criar"), lapis: !!document.querySelector(".topo #btnComporFeed.topo-criar"),
+    fonte: getComputedStyle(document.querySelector(".marca strong")).fontFamily, carregou: document.fonts.check('700 20px "HF Marca"') };
 });
-ok(info.fab && !info.lapis, "o lápis saiu do topo e o + fica embaixo à direita");
-ok(info.dir > 8 && info.dir < 30 && info.acima > 0, `+ na lateral direita, acima da barra (${Math.round(info.dir)} px da borda, ${Math.round(info.acima)} px acima)`);
-ok(/HF Marca/.test(info.fonte) && info.carregou, "marca com a fonte nova (Saira Black itálico)");
+ok(!info.fab && info.lapis, "o + fica no topo (no lugar do lápis), sem botão flutuante");
+ok(/HF Marca/.test(info.fonte) && info.carregou, "marca com a fonte da marca (Sora)");
 await p.screenshot({ path: "saida/x-diario.png" });
 await f.locator("#btnComporFeed").tap(); await p.waitForTimeout(600);
 ok(await f.evaluate(() => !!document.querySelector("#folhaPublicar.aberta")), "tocar no + abre a nova publicação");

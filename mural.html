@@ -35,16 +35,17 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=91" />
+  <link rel="stylesheet" href="rede.css?v=93" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <link rel="stylesheet" href="mural.css?v=4" />
-  <script type="module" src="mural.js?v=62"></script>
+  <link rel="stylesheet" href="comunidade.css?v=5" />
+  <link rel="stylesheet" href="mural.css?v=5" />
+  <script type="module" src="mural.js?v=64"></script>
 </head>
 <body class="pg-mural">
   <header class="topo">
     <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
+    <button type="button" class="icone-btn topo-criar" id="btnPublicarMural" aria-label="Publicar na Comunidade" title="Publicar na Comunidade"><span class="tc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
     <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
     <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
     <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
@@ -120,7 +121,5 @@
       </aside>
     </div>
   </main>
-  <!-- Publicar na Comunidade: o mesmo "+" do Diário, embaixo à direita (pedido dele, 10/11/2026). -->
-  <button type="button" class="fab-criar" id="muFab" aria-label="Publicar na Comunidade" title="Publicar na Comunidade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 </body>
 </html>
