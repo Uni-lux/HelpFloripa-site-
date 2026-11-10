@@ -29,7 +29,7 @@ export function distanciaKm(a, b) {
 export function textoDistancia(km, aprox = false) {
   if (!Number.isFinite(km)) return "";
   if (aprox && km < 4) return "Na sua cidade";
-  const t = km < 1 ? `${Math.max(100, Math.round((km * 1000) / 100) * 100)} m` : km < 10 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km)} km`;
+  const t = km < 0.95 ? `${Math.max(100, Math.round((km * 1000) / 100) * 100)} m` : km < 10 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km)} km`;
   return aprox ? `~${t}` : t;
 }
 

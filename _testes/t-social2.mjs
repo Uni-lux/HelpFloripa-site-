@@ -146,8 +146,9 @@ await pb.screenshot({ path: "saida/flash-texto.png" });
 await pb.locator(".story-visor .story-btn[aria-label=Fechar]").tap(); await pb.waitForTimeout(500);
 ok(await pb.locator(".story-circ.novo").count() === 0, "depois de ver os dois, o anel fica cinza");
 // busca por hashtag
-await pb.goto(new URL("feed.html?tag=reforma", pb.url()).href); await pb.waitForTimeout(3500);
-ok((await pb.locator("#filtroAtual").textContent()) === "#reforma" && await pb.locator(".post-card", { hasText: "Banheiro novinho" }).count() === 1, "feed.html?tag=reforma mostra a publicação");
+await pb.goto(new URL("feed.html?tag=reforma", pb.url()).href); await pb.waitForSelector(".topico .exp-tile", { timeout: 25000 }).catch(() => {});
+ok((await pb.locator(".topico .tp-tx h1").textContent()) === "#reforma" && await pb.locator(".topico .exp-tile").count() >= 1, "feed.html?tag=reforma abre a página da hashtag no Explorar com a publicação");
+await pb.goBack().catch(() => {});
 // silenciar a Ana
 await pb.goto(new URL("feed.html?aba=registros", pb.url()).href); await pb.waitForSelector(".post-card", { timeout: 30000 }); await pb.waitForTimeout(1500);
 await pb.locator(".post-card", { hasText: "Banheiro novinho" }).first().locator(".post-cab .icone-btn").dispatchEvent("click");

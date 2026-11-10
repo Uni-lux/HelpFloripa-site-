@@ -16,15 +16,15 @@ import {
   barraInteracao, abrirCompositor, avisarPublicacaoGuardada, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=134";
+} from "./rede.js?v=135";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=106";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=107";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao } from "./explorar.js?v=119";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, atualizarAlta } from "./explorar.js?v=121";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
-import { distanciaKm, minhaPosicao } from "./perto.js?v=2";
+import { distanciaKm, minhaPosicao } from "./perto.js?v=3";
 import { combinaPublico, leitorDe, temPublico, resumoPublico } from "./publico-alvo.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
 import { lerRanking, juntarRanking, fatorTaxa } from "./ranking-diario.js?v=1";
@@ -60,13 +60,22 @@ let localAtual = (() => {
   const pg = new URLSearchParams(location.search), m = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(pg.get("local") || "");
   return m ? { lat: Number(m[1]), lng: Number(m[2]), nome: String(pg.get("n") || "Este lugar").slice(0, 80) } : null;
 })();
-function abrirLocal(l) {
-  localAtual = { lat: Number(l.lat), lng: Number(l.lng), nome: l.nome };
-  tagAtual = "";
-  history.pushState({ ...(history.state || {}), hfAbaFeed: "diario" }, "", `feed.html?local=${l.lat},${l.lng}&n=${encodeURIComponent(l.nome)}`);
-  if (aba !== "diario") trocarAba("diario"); else { pintarFiltro(); carregarFeed(); }
-  scrollTo({ top: 0, behavior: "smooth" });
-}
+// Hashtags e lugares agora abrem a página do assunto no EXPLORAR (como no Instagram), não um filtro do Diário (10/11/2026).
+// Links antigos feed.html?tag= / ?local= abrem o Explorar com a página do assunto por cima.
+const topicoDaUrl = tagAtual ? { tag: tagAtual } : localAtual ? { local: localAtual } : null;
+tagAtual = ""; localAtual = null;
+function abrirLocal(l) { abrirTopico({ local: { nome: l.nome, lat: Number(l.lat), lng: Number(l.lng) } }); }
+// Tocar numa #hashtag (texto, etiquetas, Em alta) ou num lugar: abre a página do assunto aqui mesmo, sem recarregar.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.('a[href*="feed.html?tag="], a[href*="feed.html?local="]');
+  if (!a || !eu || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  const u = new URL(a.href, location.href), q = u.searchParams;
+  const m = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(q.get("local") || "");
+  const alvo = q.get("tag") ? { tag: q.get("tag") } : m ? { local: { nome: q.get("n") || "Este lugar", lat: Number(m[1]), lng: Number(m[2]) } } : null;
+  if (!alvo) return;
+  e.preventDefault(); e.stopPropagation();
+  abrirTopico(alvo);
+}, true);
 async function buscarLocal(l) {
   const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(200)));
   return s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }))
@@ -94,7 +103,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=53").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=54").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -692,7 +701,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=101").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=102").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -922,7 +931,7 @@ async function pintarLateral() {
   primeirasPublicacoes.then(() => setTimeout(() => avisarPublicacaoGuardada(() => compor()), 600));
   // O Flash começa junto (ele mesmo espera a lista de quem você segue) e o Diário não espera a posição.
   const seguindo = carregarMeusSeguindo();
-  montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).catch((e) => console.warn("Flash:", e));
+  montarStories($("storiesFeed"), { esperar: primeirasPublicacoes }).then(() => atualizarAlta()).catch((e) => console.warn("Flash:", e));
   // Puxar para atualizar (como no Instagram): no Diário lê de novo as publicações e a fileira do Flash; no Explorar, tudo.
   ligarPuxar({ aoAtualizar: () => (aba === "explorar" ? recarregarExplorar() : Promise.all([atualizarDiario(), atualizarBarraFlash()])) });
   conferirDeTempos(conferirNovasPublicacoes, 120000);
@@ -931,8 +940,9 @@ async function pintarLateral() {
   pintarFiltro();
   pintarLateral();
   const p = new URLSearchParams(location.search);
-  trocarAba(abaPedida || abaDaUrl());
+  trocarAba(topicoDaUrl ? "explorar" : (abaPedida || abaDaUrl()));
   abaPedida = null;
+  if (topicoDaUrl) abrirTopico(topicoDaUrl, { daUrl: true });
   if (p.get("publicar")) compor();
   if (p.get("reels")) verReels(/^[A-Za-z0-9_-]{1,64}$/.test(p.get("reels")) ? p.get("reels") : null);
   if (/^[A-Za-z0-9_-]{1,64}$/.test(p.get("post") || "")) {
