@@ -2140,6 +2140,30 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Regras: `corridas` com UMA `allow update` que escolhe o caso (várias estouravam 1.000 expressões). Teste `t-entregas.mjs`
   (42). Falta (Blaze): avisar o entregador com o app fechado (push) e o GPS com a tela apagada (só com app instalado).
   Pendente de decisão dele: tarifas sugeridas, comissão (não implantada), regras municipais/seguro para corridas de passageiro.
+- **Presentes, localização em tempo real e mobilidade organizada (10/11/2026, PR depois do #190, MUDA REGRAS — não
+  publicadas; 19 partes, 940 testes):** pedido dele (prints do WhatsApp). **Onde fica cada coisa:** corridas/entregas no
+  Automotivo (bloco `.mob` com Pedir corrida · Enviar entrega · Seja motorista; lead do hero), no Início (`.mob-faixa` embaixo
+  das classes: Pedir corrida · Enviar entrega · Enviar presente; cartão Automotivo "Oficinas, guincho, corridas e entregas"),
+  no menu e no clipe do chat; CSS `.mob*` no fim do categoria.css. **Presentes** (`presentes-base.js` sem deps,
+  `presentes.html/js/css`, usa os componentes `ent-*` do entregas.css): tipos mimo (12 mimos `MIMOS`), pix (quem recebe manda
+  a chave no chat e quem deu paga), produto (loja delivery/lojinha com `itens`; ao aceitar, quem recebe escolhe o endereço e o
+  cartão de pedido vai para a loja com `cartao.presente {id, deNome, deId}` — quem deu NÃO vê o endereço), corrida/entrega
+  (`entregas.html?presente=ID`: oferta limitada ao valor, `corridas.presenteId/pagadorId`, pagamento "presente", o presente vira
+  "usado" na MESMA gravação, quem deu acompanha e recebe o cartão `papel: "pagador"`); gorjeta `presentes.html?gorjeta=CORRIDA`
+  (botão na corrida concluída; regra `gorjetaOk`). Status pendente → aceito/recusado/cancelado → usado → concluido. Quem pode
+  mandar: `pref_publicas.presentes` todos|seguindo (padrão: quem eu sigo + vínculos)|vinculos|ninguem (regra
+  `presentePermitido`). Entradas: menu "Presentes", ⋯ do perfil "Enviar um presente", Anexar "Presente", "Dar de presente"
+  no detalhe de delivery/lojinha (vitrine.js), atalho do Início. Chat: cartão `{tipo:"presente", id, ptipo, resumo, emoji}`
+  (`cartaoPresente` com Aceitar/Recusar). **Localização em tempo real** (`local-vivo.js` sem deps): Anexar → Localização abre
+  a tela `.lv-tela` (mapa Leaflet, "Localização em tempo real" 15 min/1 h/8 h, "Localização atual · precisão", busca de lugares
+  que vira cartão de endereço); `locais_vivos/{id}` {uid, conv, participantes, lat, lng, precisao, rumo, ate, parado}; cartão
+  `{tipo:"local_vivo", id, minutos}` (`cartaoLocalVivo`: mapa que atualiza, "Ao vivo · termina em", Ver ao vivo `.lv-ao-vivo`,
+  Parar). A posição sai de qualquer página aberta: firebase.js carrega o local-vivo.js só se `hf-local-vivo-<uid>` tem algo
+  ativo; Web Locks (`navigator.locks`) garantem uma janela só atualizando (10 s andando/15 m, 60 s parado). Marcadores do mapa
+  agora em `mapa/mapa-vivo.css` (o mapa-vivo.js carrega junto com o Leaflet). Ajuda (grupo "Corridas, entregas, localização e
+  presentes"), Termos seção 5, Privacidade (tabela de dados) e Sobre (Automotivo e mobilidade + linha do tempo) atualizados.
+  Teste `t-presentes-vivo.mjs` (31). `getCurrentPosition` falhava no teste com um `watchPosition` ativo: a tela passa a
+  posição que já tem (`compartilharAoVivo(..., inicial)`).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2202,7 +2226,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (19 partes em `_regras/`, 904 testes; inclui Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (19 partes em `_regras/`, 940 testes; inclui Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

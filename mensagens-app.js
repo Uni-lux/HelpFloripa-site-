@@ -1,4 +1,6 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
+import { DURACOES as DURACOES_VIVO, compartilharAoVivo, pararCompartilhar, ouvirLocalVivo, encerrado as vivoEncerrado, textoRestante as vivoRestante } from "./local-vivo.js?v=1";
+import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximoPasso } from "./presentes-base.js?v=1";
 import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
 import "./sem-menu-imagem.js?v=5";
 import "./fotos-suaves.js?v=1";
@@ -484,6 +486,7 @@ function cartaoPedido(m, c, tipo, href) {
   };
   if (p.modo) item(p.modo === "retirada" ? "st-recebido" : "local", p.modo === "retirada" ? "Recebimento" : "Entregar em", p.modo === "retirada" ? "Retirada no local" : String(p.endereco || "A combinar").slice(0, 200));
   if (p.pagamento) item("cartao", "Pagamento", (PAG_MSG[p.pagamento] || String(p.pagamento).slice(0, 20)) + (Number(p.troco) > 0 ? ` · troco para ${reais(p.troco)}` : "") + " · na entrega/retirada");
+  if (c.presente?.deNome) item("presente", "Presente", `De ${String(c.presente.deNome).slice(0, 60)} · o pagamento é com quem enviou`);
   if (p.obs) item("chat", "Observação", String(p.obs).slice(0, 300));
   if (info.children.length) box.appendChild(info);
 
@@ -761,6 +764,8 @@ function resumoMensagem(m) {
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao, m.remetenteId === eu?.uid);
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local_vivo") return "📍 Localização em tempo real";
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "presente") return `Presente: ${String(m.cartao.resumo || "").slice(0, 60)}`;
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "entrega") return (m.cartao.servico === "corrida" ? "Corrida: " : "Entrega: ") + String(m.cartao.titulo || "").replace(/^(Entrega|Corrida):?\s*/, "").slice(0, 60);
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pix") return `Pix${Number(m.cartao.valor) > 0 ? ": " + reais(m.cartao.valor) : ""}`;
   if (m.tipoArquivo === "avaliacao") return "Pedido de avaliação";
@@ -784,7 +789,7 @@ const PREVIAS = [
 ];
 const PREVIAS_TIPO = [
   [/^Foto$/, "imagem"], [/^Figurinha$/, "figurinha"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
-  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
+  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Presente:/, "presente"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
   [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
 ];
 function previaLista(texto) {
@@ -2301,6 +2306,12 @@ function criarLinhaMensagem(m, data, primeira) {
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") {
     bolha.classList.add("cartao-msg", "chamada-msg");
     bolha.appendChild(cartaoChamada(m.cartao, m.remetenteId === eu.uid));
+  } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local_vivo") {
+    bolha.classList.add("cartao-msg", "local-msg", "vivo-msg");
+    bolha.appendChild(cartaoLocalVivo(m.cartao, m.remetenteId === eu.uid));
+  } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "presente") {
+    bolha.classList.add("cartao-msg", "presente-msg");
+    bolha.appendChild(cartaoPresente(m.cartao, m.remetenteId === eu.uid));
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "entrega") {
     bolha.classList.add("cartao-msg", "entrega-msg");
     bolha.appendChild(cartaoEntrega(m.cartao, m.remetenteId === eu.uid));
@@ -2856,7 +2867,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=94"));
+  return (vitrineMod ||= import("./vitrine.js?v=95"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3272,13 +3283,14 @@ async function abrirAnexar() {
   };
   op("imagem", "Galeria", "#8b5cf6", () => $("inputArquivo").click(), storageFns ? "Fotos e vídeos" : "Fotos");
   op("camera", "Câmera", "#ec4899", () => $("inputCamera").click(), "Tirar foto");
-  op("local", "Localização", "#22c55e", enviarLocalizacao, "Onde estou agora");
+  op("local", "Localização", "#22c55e", abrirEnviarLocalizacao, "Atual ou em tempo real");
   op("casa", "Endereço", "#f59e0b", usarMeuEndereco, "O seu, salvo");
   op("pix", "Pix", "#32bcad", abrirCartaoPix, "Cobrar ou receber");
   // Entregas e corridas (entregas.html): enviar algo para esta pessoa (ela acompanha e recebe o PIN) ou pedir um carro.
   const outro = ativa.equipe ? "" : ativa.outroId || "";
   op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
   op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
+  if (outro) op("presente", "Presente", "#e5487f", () => irParaTopo(`presentes.html?para=${encodeURIComponent(outro)}`), `Para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}`);
   corpo.appendChild(grade);
   // A pessoa é entregador/motorista no Help Floripa: chamar direto.
   if (outro) fb.getDoc(fb.doc(fb.db, "entregadores", outro)).then((d) => {
@@ -3380,7 +3392,7 @@ function cartaoEntrega(c, minha) {
   const corrida = c.servico === "corrida";
   const cab = elm("div", "en-cab");
   const ic = elm("span", "en-ic"); ic.appendChild(usar(corrida ? "carro" : "pacote", "i"));
-  const papel = c.papel === "entregador" ? (minha ? "Você chamou para levar" : "Chamado para você levar") : minha ? (corrida ? "Você pediu uma corrida" : "Você enviou uma entrega") : (corrida ? "Corrida" : "Entrega para você");
+  const papel = c.papel === "pagador" ? (minha ? "Você usou o presente" : "Usou o seu presente") : c.papel === "entregador" ? (minha ? "Você chamou para levar" : "Chamado para você levar") : minha ? (corrida ? "Você pediu uma corrida" : "Você enviou uma entrega") : (corrida ? "Corrida" : "Entrega para você");
   const t = elm("div"); t.append(elm("small", null, papel), elm("b", null, String(c.titulo || (corrida ? "Corrida" : "Entrega")).slice(0, 80)));
   cab.append(ic, t);
   const rota = elm("div", "en-rota");
@@ -3523,6 +3535,205 @@ function confirmarEnvioLocal(titulo, cartao, rotuloBotao) {
   });
   corpo.append(prev, enviar);
   return { corpo, prev };
+}
+// ---------- Enviar localização (como no WhatsApp): mapa, tempo real, localização atual, lugares e busca ----------
+let mapaVivoMod = null;
+const carregarMapaVivo = () => (mapaVivoMod ||= import("./mapa-vivo.js?v=2"));
+async function abrirEnviarLocalizacao() {
+  if (!ativa) return;
+  document.querySelector(".lv-tela")?.remove();
+  const tela = elm("div", "lv-tela"); tela.setAttribute("role", "dialog"); tela.setAttribute("aria-modal", "true"); tela.setAttribute("aria-label", "Enviar localização");
+  const topo = elm("div", "lv-topo");
+  const voltar = elm("button", "lv-bt"); voltar.type = "button"; voltar.dataset.fechar = ""; voltar.setAttribute("aria-label", "Voltar"); voltar.appendChild(usar("voltar", "i"));
+  const titulo = elm("strong", null, "Enviar localização");
+  const busca = elm("input", "lv-busca"); busca.type = "search"; busca.placeholder = "Buscar um lugar"; busca.hidden = true; busca.setAttribute("aria-label", "Buscar um lugar");
+  const bBusca = elm("button", "lv-bt"); bBusca.type = "button"; bBusca.setAttribute("aria-label", "Buscar"); bBusca.appendChild(usar("lupa", "i"));
+  const bRec = elm("button", "lv-bt"); bRec.type = "button"; bRec.setAttribute("aria-label", "Atualizar a localização"); bRec.appendChild(usar("relogio", "i"));
+  topo.append(voltar, titulo, busca, bBusca, bRec);
+  const mapaEl = elm("div", "lv-mapa");
+  const centrar = elm("button", "lv-centro"); centrar.type = "button"; centrar.setAttribute("aria-label", "Minha localização"); centrar.appendChild(usar("bussola", "i"));
+  const mapaBox = elm("div", "lv-mapa-box"); mapaBox.append(mapaEl, centrar);
+  const lista = elm("div", "lv-lista");
+  tela.append(topo, mapaBox, lista);
+  document.body.appendChild(tela);
+  const fechar = () => { tela.remove(); try { mapa?.destruir(); } catch {} if (vigia != null) navigator.geolocation?.clearWatch(vigia); };
+  voltar.addEventListener("click", fechar);
+  tela.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
+  let mapa = null, minha = null, vigia = null;
+  // Linhas da lista
+  const linha = (cls, icone, tituloT, sub, fn) => {
+    const b = elm("button", "lv-op " + cls); b.type = "button";
+    const i = elm("span", "lv-ic"); i.appendChild(usar(icone, "i"));
+    const t = elm("span"); t.append(elm("b", null, tituloT)); if (sub) t.appendChild(elm("small", null, sub));
+    b.append(i, t); b.addEventListener("click", fn); return b;
+  };
+  const vivo = linha("vivo", "local", "Localização em tempo real", "Atualiza enquanto o Help Floripa estiver aberto", () => escolherDuracao());
+  const atualTx = elm("small", null, "Procurando...");
+  const atual = linha("atual", "local", "Localização atual", "", () => enviarPonto(minha, true));
+  atual.querySelector("span:last-child").appendChild(atualTx);
+  atual.disabled = true;
+  const titLocais = elm("p", "lv-sec", "Locais próximos");
+  const lugares = elm("div");
+  lista.append(vivo, titLocais, atual, lugares);
+  const enviarPonto = async (p, meu) => {
+    if (!p) return;
+    const cartao = meu ? { tipo: "local", lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)), precisao: Math.round(p.precisao || 0) } : { tipo: "endereco", endereco: String(p.nome || "").slice(0, 200), linha2: String(p.sub || "").slice(0, 120), lat: p.lat, lng: p.lng };
+    fechar();
+    const { prev } = confirmarEnvioLocal(meu ? "Enviar localização" : "Enviar local", cartao, meu ? "Enviar localização atual" : "Enviar este local");
+    if (meu) { const end = await enderecoDe(cartao.lat, cartao.lng); if (end && prev.isConnected) { cartao.endereco = end.slice(0, 200); prev.replaceChildren(cartaoLocal(cartao, true)); } }
+  };
+  const escolherDuracao = () => {
+    const { corpo, fechar: f2 } = abrirGaveta("Localização em tempo real");
+    corpo.appendChild(elm("p", "lv-nota", `${String(ativa.nome || "A pessoa").split(" ")[0]} vê onde você está, ao vivo, pelo tempo que escolher. Funciona enquanto alguma página do Help Floripa estiver aberta no seu aparelho. Você pode parar quando quiser.`));
+    const ops = elm("div", "lv-duracoes");
+    let min = 60;
+    DURACOES_VIVO.forEach(([m, nome]) => { const b = elm("button", "lv-dur", nome); b.type = "button"; b.setAttribute("aria-pressed", String(m === min)); b.dataset.min = String(m); b.addEventListener("click", () => { min = m; ops.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }); ops.appendChild(b); });
+    const ok = elm("button", "pv-btn pri"); ok.type = "button"; ok.id = "lvComecar"; ok.append(usar("enviar", "i s"), document.createTextNode("Compartilhar"));
+    ok.addEventListener("click", async () => {
+      ok.disabled = true;
+      try {
+        const id = await compartilharAoVivo(fb, eu.uid, ativa.id, min, minha ? { latitude: minha.lat, longitude: minha.lng, accuracy: minha.precisao } : null);
+        await publicarMensagem(ativa.id, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "local_vivo", id, minutos: min } });
+        f2(); fechar(); toast("Compartilhando a sua localização ao vivo");
+      } catch (e) {
+        ok.disabled = false;
+        toast(e?.message === "gps" ? "Não deu para pegar a localização. Confira a permissão do navegador." : e?.code === "permission-denied" ? "A localização em tempo real ainda está sendo liberada." : "Não foi possível compartilhar agora.");
+      }
+    });
+    corpo.append(ops, ok);
+  };
+  // Mapa + GPS
+  try { const mv = await carregarMapaVivo(); mapa = await mv.criarMapa(mapaEl, { zoom: 16 }); } catch { mapaEl.classList.add("lv-sem"); }
+  const mostrarMinha = (c) => {
+    minha = { lat: c.latitude, lng: c.longitude, precisao: c.accuracy };
+    atual.disabled = false;
+    atualTx.textContent = c.accuracy > 0 ? `Precisão de ${Math.round(c.accuracy)} metros` : "Pelo GPS do aparelho";
+    if (mapa) { if (!mapa.posicao("eu")) { mapa.marcar("eu", "eu", minha); mapa.irPara(minha, 17); } else mapa.mover("eu", minha, { ms: 600 }); }
+  };
+  const lerGps = () => {
+    if (!navigator.geolocation) { atualTx.textContent = "Este aparelho não informa a localização."; return; }
+    if (vigia != null) navigator.geolocation.clearWatch(vigia);
+    vigia = navigator.geolocation.watchPosition((p) => mostrarMinha(p.coords), () => { atualTx.textContent = "Permita a localização no navegador."; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
+  };
+  lerGps();
+  bRec.addEventListener("click", () => { atualTx.textContent = "Procurando..."; lerGps(); });
+  centrar.addEventListener("click", () => { if (minha) mapa?.irPara(minha, 17); else lerGps(); });
+  // Busca de lugares
+  let tm = 0;
+  bBusca.addEventListener("click", () => { busca.hidden = !busca.hidden; titulo.hidden = !busca.hidden ? true : false; if (!busca.hidden) busca.focus(); });
+  busca.addEventListener("input", () => {
+    clearTimeout(tm);
+    const q = busca.value.trim();
+    if (q.length < 3) { lugares.replaceChildren(); titLocais.textContent = "Locais próximos"; return; }
+    tm = setTimeout(async () => {
+      const mv = await carregarMapaVivo();
+      const r = await mv.buscarEndereco(q, minha || mapa?.centro());
+      titLocais.textContent = r.length ? "Resultados" : "Nada encontrado";
+      lugares.replaceChildren(...r.slice(0, 8).map((p) => { const b = linha("lugar", "local", p.nome, p.sub, () => enviarPonto(p, false)); b.dataset.lugar = ""; return b; }));
+    }, 450);
+  });
+}
+// Cartão da localização em tempo real: mapa que se atualiza, "Ao vivo · termina em", Ver ao vivo e Parar (só quem enviou).
+const vivosOuvindo = new Map();
+function cartaoLocalVivo(c, minha) {
+  const box = elm("div", "lc lv-cartao");
+  const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
+  const mapaBox = elm("div", "lv-c-mapa");
+  const tx = elm("div", "lc-tx");
+  const ic = elm("span", "lc-ic lv-pulso"); ic.appendChild(usar("local", "i"));
+  const t2 = elm("div"); const tit = elm("b", null, minha ? "Você está compartilhando a localização" : "Localização em tempo real"); const sub = elm("span", null, "Carregando..."); t2.append(tit, sub);
+  tx.append(ic, t2);
+  const acoes = elm("div", "lc-acoes");
+  const ver = elm("button"); ver.type = "button"; ver.append(usar("local", "i s"), document.createTextNode("Ver ao vivo"));
+  acoes.appendChild(ver);
+  let parar = null;
+  if (minha) { parar = elm("button", "lv-parar"); parar.type = "button"; parar.append(usar("fechar", "i s"), document.createTextNode("Parar")); acoes.appendChild(parar); }
+  box.append(mapaBox, tx, acoes);
+  let ultimo = null;
+  const pintar = (d) => {
+    ultimo = d;
+    if (!d) { sub.textContent = "Compartilhamento indisponível"; box.classList.add("acabou"); ver.disabled = true; if (parar) parar.hidden = true; return; }
+    const fim = vivoEncerrado(d);
+    box.classList.toggle("acabou", fim);
+    sub.textContent = vivoRestante(d);
+    if (fim) { tit.textContent = minha ? "Você parou de compartilhar" : "Localização em tempo real encerrada"; if (parar) parar.hidden = true; }
+    mapaBox.replaceChildren(mapaEstatico(d.lat, d.lng, 16));
+  };
+  if (id) {
+    if (!vivosOuvindo.has(id)) vivosOuvindo.set(id, { ouvintes: new Set(), ultimo: null, parar: ouvirLocalVivo(fb, id, (d) => { const v = vivosOuvindo.get(id); v.ultimo = d; v.ouvintes.forEach((f) => f(d)); }) });
+    const v = vivosOuvindo.get(id);
+    v.ouvintes.add((d) => { if (box.isConnected) pintar(d); });
+    if (v.ultimo !== null) pintar(v.ultimo);
+    // Atualiza o "termina em" a cada 30 s.
+    const relogio = setInterval(() => { if (!box.isConnected) { clearInterval(relogio); return; } if (ultimo) pintar(ultimo); }, 30000);
+  } else pintar(null);
+  ver.addEventListener("click", (e) => { e.stopPropagation(); if (id) abrirVivoNoMapa(id, minha); });
+  parar?.addEventListener("click", async (e) => { e.stopPropagation(); try { await pararCompartilhar(fb, eu.uid, id); toast("Você parou de compartilhar"); } catch { toast("Não foi possível parar agora."); } });
+  return box;
+}
+async function abrirVivoNoMapa(id, minha) {
+  document.querySelector(".lv-tela")?.remove();
+  const tela = elm("div", "lv-tela lv-ao-vivo"); tela.setAttribute("role", "dialog"); tela.setAttribute("aria-modal", "true"); tela.setAttribute("aria-label", "Localização em tempo real");
+  const topo = elm("div", "lv-topo");
+  const voltar = elm("button", "lv-bt"); voltar.type = "button"; voltar.dataset.fechar = ""; voltar.setAttribute("aria-label", "Voltar"); voltar.appendChild(usar("voltar", "i"));
+  const tit = elm("div", "lv-vivo-tit"); const nome = elm("strong", null, minha ? "Você" : ativa?.nome || "Localização"); const sub = elm("small", null, ""); tit.append(nome, sub);
+  topo.append(voltar, tit);
+  const mapaEl = elm("div", "lv-mapa");
+  const rodape = elm("div", "lv-rodape");
+  const rota = elm("a", "pv-btn"); rota.target = "_blank"; rota.rel = "noopener"; rota.append(usar("rota", "i s"), document.createTextNode("Como chegar"));
+  rodape.appendChild(rota);
+  tela.append(topo, mapaEl, rodape);
+  document.body.appendChild(tela);
+  let mapa = null, parar = null, primeiro = true;
+  const fechar = () => { parar?.(); tela.remove(); try { mapa?.destruir(); } catch {} };
+  voltar.addEventListener("click", fechar);
+  try { const mv = await carregarMapaVivo(); mapa = await mv.criarMapa(mapaEl, { zoom: 16 }); } catch {}
+  parar = ouvirLocalVivo(fb, id, (d) => {
+    if (!d) { sub.textContent = "Indisponível"; return; }
+    sub.textContent = vivoRestante(d) + (d.precisao ? ` · precisão de ${Math.round(d.precisao)} m` : "");
+    rota.href = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
+    if (!mapa) return;
+    const p = { lat: d.lat, lng: d.lng };
+    if (primeiro) { mapa.marcar("vivo", "veiculo", p, { veiculo: "pessoa", classe: vivoEncerrado(d) ? "livre" : "" }); mapa.irPara(p, 17); primeiro = false; }
+    else mapa.mover("vivo", p, { ms: 1500 });
+  });
+}
+// Cartão de presente no chat: o que é, a situação e Aceitar/Recusar para quem recebe.
+function cartaoPresente(c, minha) {
+  const box = elm("div", "pr-c");
+  const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
+  box.style.setProperty("--pc", TIPOS_PRESENTE[c.ptipo]?.cor || "#e5487f");
+  const em = elm("div", "pr-c-emoji", String(c.emoji || "🎁").slice(0, 4));
+  const t = elm("div", "pr-c-tx");
+  const lab = elm("small", null, minha ? "Você enviou um presente" : "Você recebeu um presente");
+  const tit = elm("b", null, String(c.resumo || "Presente").slice(0, 80));
+  const st = elm("span", "pr-c-st", "");
+  t.append(lab, tit, st);
+  const acoes = elm("div", "pr-c-acoes");
+  const abrir = elm("button", "pr-c-ver"); abrir.type = "button"; abrir.textContent = "Abrir";
+  abrir.addEventListener("click", (e) => { e.stopPropagation(); irParaTopo(`presentes.html?id=${encodeURIComponent(id)}`); });
+  box.append(em, t, acoes);
+  acoes.appendChild(abrir);
+  if (id) fb.getDoc(fb.doc(fb.db, "presentes", id)).then((d) => {
+    if (!d.exists()) return;
+    const p = { id, ...d.data() };
+    const s = STATUS_PRESENTE[p.status] || ["", ""];
+    st.textContent = s[0]; st.dataset.cor = s[1];
+    if (p.mensagem) t.appendChild(elm("i", "pr-c-msg", `“${String(p.mensagem).slice(0, 120)}”`));
+    if (!minha && p.status === "pendente" && p.para === eu.uid) {
+      const sim = elm("button", "pr-c-sim", "Aceitar"); sim.type = "button";
+      const nao = elm("button", "pr-c-nao", "Recusar"); nao.type = "button";
+      const responder = async (status) => {
+        sim.disabled = nao.disabled = true;
+        try { await fb.updateDoc(fb.doc(fb.db, "presentes", id), { status, respondidoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() }); st.textContent = STATUS_PRESENTE[status][0]; st.dataset.cor = STATUS_PRESENTE[status][1]; sim.remove(); nao.remove(); toast(status === "aceito" ? `Presente aceito! ${proximoPasso({ ...p, status }, true)}` : "Presente recusado"); }
+        catch { sim.disabled = nao.disabled = false; toast("Não foi possível responder agora."); }
+      };
+      sim.addEventListener("click", (e) => { e.stopPropagation(); responder("aceito"); });
+      nao.addEventListener("click", (e) => { e.stopPropagation(); responder("recusado"); });
+      acoes.prepend(sim, nao);
+    }
+  }).catch(() => { st.textContent = ""; });
+  return box;
 }
 function enviarLocalizacao() {
   if (!navigator.geolocation) { toast("Este aparelho não informa a localização."); return; }

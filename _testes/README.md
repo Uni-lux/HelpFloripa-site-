@@ -127,3 +127,4 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 - `usuarios/{uid}` precisa do campo `uid` para ser atualizado (as regras comparam): o seed já grava.
 - Regras: o limite é de **1.000 expressões por gravação**; mapas grandes (ex.: tabela de 27 estados) estouram. Use expressão regular.
 | `t-entregas.mjs` | Entregas e corridas: cadastro do entregador, online com GPS, pedido A → B com quem está perto e oferta, aceitar, placa/PIN/marcador andando, etapas, PIN errado, avaliação, favoritos, chamar pelo @, convite, chamado direto offline, Anexar do Mensagens e o painel no computador (tema escuro). |
+| `t-presentes-vivo.mjs` | Presentes (mimo aceito pelo chat, dinheiro com a chave Pix no chat, produto de uma loja com o endereço só para a loja, corrida de presente limitada ao valor e acompanhada por quem deu, quem pode mandar), localização em tempo real no chat (criar, posição atualizando, ver ao vivo, parar) e os atalhos do Início/Automotivo. |

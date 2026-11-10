@@ -1,7 +1,7 @@
 // =====================================================
 // Entregas e corridas: partes usadas pelas duas telas (quem pede e quem leva).
 // =====================================================
-import { svgIcone } from "./mapa-vivo.js?v=1";
+import { svgIcone } from "./mapa-vivo.js?v=2";
 import { VEICULOS, formatarPlaca } from "./corridas-base.js?v=1";
 
 export function h(tag, cls, texto) { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; }

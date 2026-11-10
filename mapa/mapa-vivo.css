@@ -1,0 +1,29 @@
+/* Mapa ao vivo (mapa-vivo.js): marcadores, rota e azulejos no tema escuro. Usado em Entregas, no painel do
+   entregador e na localização em tempo real do chat. */
+.mv-mapa { font-family: var(--font); }
+.mv-mapa .leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--panel) 80%, transparent); color: var(--muted); }
+.mv-mapa .leaflet-control-attribution a { color: var(--muted); }
+.mv-icone { background: transparent; border: 0; }
+.mv-svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mv-pino { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--accent); border: 3px solid #fff; box-shadow: 0 6px 14px rgba(0, 0, 0, .35); }
+.mv-pino b { transform: rotate(45deg); color: var(--accent-ink); font-size: 13px; font-weight: 900; }
+.mv-pino.destino { background: #f5b301; }
+.mv-pino.destino b { color: #241a00; }
+.mv-eu { display: block; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, #3b82f6 25%, transparent); position: relative; }
+.mv-eu i { position: absolute; inset: 5px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; box-shadow: 0 0 0 0 rgba(59, 130, 246, .6); animation: mv-eu 2s infinite; }
+@keyframes mv-eu { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, .55); } 100% { box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); } }
+.mv-veic { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #0f161b; color: #fff; border: 2.5px solid var(--accent); box-shadow: 0 6px 16px rgba(0, 0, 0, .4); }
+.mv-veic .mv-svg { width: 22px; height: 22px; }
+.mv-veic::after { content: ""; position: absolute; left: 50%; top: 50%; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid var(--accent); transform: translate(-50%, -50%) rotate(var(--rumo, 0deg)) translateY(-27px); }
+.mv-veic.livre { width: 30px; height: 30px; border-width: 2px; border-color: color-mix(in srgb, var(--accent) 60%, #fff); background: color-mix(in srgb, #0f161b 85%, transparent); }
+.mv-veic.livre .mv-svg { width: 17px; height: 17px; }
+.mv-veic.livre::after { display: none; }
+.mv-veic.pacote { background: #f5b301; color: #241a00; border-color: #fff; }
+.mv-veic.pacote::after { display: none; }
+.mv-veic em { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 11px; font-weight: 800; white-space: nowrap; padding: 2px 7px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); }
+.mv-radar { animation: mv-radar 2.4s ease-in-out infinite; }
+@keyframes mv-radar { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+/* OpenStreetMap no tema escuro: azulejos escurecidos (o Mapbox tem estilo escuro próprio). */
+:root[data-theme="dark"] .mv-osm { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.88) saturate(.55); }
+.mv-rota { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent)); }
+

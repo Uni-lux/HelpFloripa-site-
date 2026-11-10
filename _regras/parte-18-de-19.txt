@@ -1,15 +1,10 @@
-    match /corridas/{id} {
-      function c() { return resource.data; }
-      function n() { return request.resource.data; }
-      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
-      function cad() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
-      function pinCerto() { return n().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(id)/privado/pin).data.pin; }
-      allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId')
+      allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
                     || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
                     || podeModerar());
       allow create: if logado() && emailOk() && !banidoDoPrograma(request.auth.uid, 'entregas')
-                    && n().keys().hasOnly(['servico', 'modalidade', 'veiculo', 'clienteId', 'clienteNome', 'origem', 'destino', 'km', 'min', 'valor', 'valorSugerido', 'pagamento', 'pacote', 'status', 'paraId', 'destinatarioId', 'geo4', 'geo5', 'raioKm', 'pinEm', 'criadoEm', 'atualizadoEm'])
+                    && n().keys().hasOnly(['servico', 'modalidade', 'veiculo', 'clienteId', 'clienteNome', 'origem', 'destino', 'km', 'min', 'valor', 'valorSugerido', 'pagamento', 'pacote', 'status', 'paraId', 'destinatarioId', 'geo4', 'geo5', 'raioKm', 'pinEm', 'presenteId', 'pagadorId', 'criadoEm', 'atualizadoEm'])
                     && n().clienteId == request.auth.uid
+                    && (('presenteId' in n()) ? presenteCorridaOk() : (!('pagadorId' in n()) && n().pagamento != 'presente'))
                     && n().status == 'procurando'
                     && n().modalidade in ['entrega_bike', 'entrega_moto', 'entrega_carro', 'entrega_frete', 'corrida_moto', 'corrida_carro']
                     && n().servico == n().modalidade.split('_')[0]
@@ -19,7 +14,7 @@
                     && n().min is number && n().min >= 0 && n().min <= 900
                     && n().valor is number && n().valor >= 3 && n().valor <= 3000
                     && n().valorSugerido is number && n().valorSugerido >= 0 && n().valorSugerido <= 5000
-                    && n().pagamento in ['pix', 'dinheiro', 'cartao']
+                    && n().pagamento in ['pix', 'dinheiro', 'cartao', 'presente']
                     && (n().servico == 'corrida'
                         ? n().get('pacote', null) == null
                         : (n().pacote is map && n().pacote.keys().hasOnly(['tamanho', 'oque']) && n().pacote.tamanho in ['P', 'M', 'G', 'GG']
@@ -158,4 +153,16 @@
             && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
             && d().atualizadoEm == request.time;
       }
+      allow read: if logado();
+      allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
+                    && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
+      allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
+                    && resource.data.status != 'suspenso' && cadastroOk()
+                    && d().status in ['ativo', 'pausado'] && !mudou().hasAny(['suspensoMotivo', 'criadoEm']);
+      // A equipe suspende (ou devolve) quem leva.
+      allow update: if podeModerar() && mudou().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
+                    && d().status in ['ativo', 'pausado', 'suspenso'] && valorTextoAte(d().get('suspensoMotivo', ''), 200);
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
 // ===== FIM DA PARTE 18 DE 19 =====

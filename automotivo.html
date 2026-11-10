@@ -33,12 +33,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=17" />
+  <link rel="stylesheet" href="categoria.css?v=18" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=83"></script>
-  <script type="module" src="vitrine.js?tipo=automotivo&v=66"></script>
+  <script type="module" src="categoria.js?v=84"></script>
+  <script type="module" src="vitrine.js?tipo=automotivo&v=67"></script>
 </head>
 <body data-classe="automotivo" class="pg-compacta">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -96,7 +96,7 @@
       <div class="hero-corpo">
         <span class="selo-classe"><b><svg class="i xs" aria-hidden="true"><use href="#i-automotivo"/></svg></b>Automotivo</span>
         <h1 id="tituloPagina">Seu carro em <span>boas mãos</span></h1>
-        <p class="lead">Oficinas, auto elétrica, funilaria, pneus, lava-jato, guincho e peças. Veja os serviços e os preços, e peça orçamento pelo chat.</p>
+        <p class="lead">Oficinas, guincho, pneus, lava-jato e peças. E também corridas e entregas com o mapa ao vivo.</p>
         <form class="busca" id="searchForm" role="search">
           <svg class="i" aria-hidden="true"><use href="#i-lupa"/></svg>
           <label class="sr" for="searchInput">Buscar</label>
@@ -111,6 +111,20 @@
           <a class="classe-link saude" href="saude.html"><svg class="i s" aria-hidden="true"><use href="#i-saude"/></svg>Saúde</a>
           <a class="classe-link automotivo" href="automotivo.html" aria-current="page"><svg class="i s" aria-hidden="true"><use href="#i-automotivo"/></svg>Automotivo</a>
         </nav>
+      </div>
+    </section>
+
+
+    <!-- Mobilidade: corridas e entregas com acompanhamento no mapa (entregas.html / entregador.html) -->
+    <section class="mob" aria-labelledby="tituloMob">
+      <div class="mob-cab">
+        <h2 id="tituloMob">Corridas e entregas</h2>
+        <p>Peça um carro ou uma moto, ou mande algo, e acompanhe no mapa ao vivo. Paga direto para quem leva.</p>
+      </div>
+      <div class="mob-grade">
+        <a class="mob-op corrida" href="entregas.html?modo=corrida"><span class="mob-ic"><svg class="i" aria-hidden="true"><use href="#i-automotivo"/></svg></span><strong>Pedir corrida</strong><small>Carro ou moto</small></a>
+        <a class="mob-op entrega" href="entregas.html?modo=entrega"><span class="mob-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><strong>Enviar entrega</strong><small>Moto, carro ou frete</small></a>
+        <a class="mob-op motorista" href="entregador.html"><span class="mob-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2"/><path d="M3.8 10.5l6.3 1M13.9 11.5l6.3-1M12 14v6.5"/></svg></span><strong>Seja motorista</strong><small>Ou entregador</small></a>
       </div>
     </section>
 

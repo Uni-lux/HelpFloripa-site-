@@ -1418,6 +1418,61 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("programa: banido das entregas não muda o cadastro", () => assertFails(updateDoc(doc(ctx("moto2"), "entregadores", "moto2"), { modelo: "Outra", atualizadoEm: serverTimestamp() })));
 }
 
+// ===================== Presentes e localização em tempo real =====================
+{
+  await semRegras(async (db) => {
+    for (const u of ["gi", "go", "gu", "loja2"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: true });
+    await setDoc(doc(db, "relacoes", "go_gi"), { tipo: "seguir", seguidorId: "go", alvoId: "gi", criadoEm: antigo }); // go segue gi
+    await setDoc(doc(db, "negocios", "loja2_delivery"), { donoId: "loja2", tipo: "delivery", nome: "Lanches" });
+    await setDoc(doc(db, "conversas", "gi_go"), { participantes: ["gi", "go"], ultimaMensagem: "" });
+  });
+  const pres = (extra) => { const o = { de: "gi", deNome: "Gi", para: "go", paraNome: "Go", tipo: "mimo", mimo: "rosa", mensagem: "Pra você", status: "pendente", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra }; for (const k of Object.keys(o)) if (o[k] === undefined) delete o[k]; return o; };
+  await t("presente: quem a pessoa segue pode mandar (padrão)", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "pr1"), pres())));
+  await t("presente: quem ela não segue não manda", () => assertFails(setDoc(doc(ctx("gu"), "presentes", "pr2"), pres({ de: "gu" }))));
+  await t("presente: não manda em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("gu"), "presentes", "pr3"), pres())));
+  await t("presente: pessoa com 'todos' recebe de qualquer um", async () => { await setDoc(doc(ctx("go"), "pref_publicas", "go"), { presentes: "todos", atualizadoEm: serverTimestamp() }); await assertSucceeds(setDoc(doc(ctx("gu"), "presentes", "pr4"), pres({ de: "gu" }))); });
+  await t("presente: pessoa com 'ninguem' não recebe", async () => { await setDoc(doc(ctx("go"), "pref_publicas", "go"), { presentes: "ninguem" }, { merge: true }); await assertFails(setDoc(doc(ctx("gi"), "presentes", "pr5"), pres())); });
+  await t("pref: recusa valor desconhecido", () => assertFails(setDoc(doc(ctx("go"), "pref_publicas", "go"), { presentes: "amigos" }, { merge: true })));
+  await setDoc(doc(ctx("go"), "pref_publicas", "go"), { presentes: "seguindo" }, { merge: true });
+  await t("presente: dinheiro precisa de valor", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "pr6"), pres({ tipo: "pix", mimo: undefined }))));
+  await t("presente: dinheiro com valor", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "pr7"), pres({ tipo: "pix", mimo: undefined, valor: 50 }))));
+  await t("presente: dinheiro acima do limite", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "pr8"), pres({ tipo: "pix", mimo: undefined, valor: 5000 }))));
+  await t("presente: produto com o dono certo da loja", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "pr9"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X-burguer", qtd: 1, preco: 30 }], negocioId: "loja2_delivery", negocioNome: "Lanches", donoId: "loja2" }))));
+  await t("presente: produto com dono errado", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "pr10"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X", qtd: 1, preco: 30 }], negocioId: "loja2_delivery", donoId: "gu" }))));
+  await t("presente: quem mandou e quem recebe leem", async () => { await assertSucceeds(getDoc(doc(ctx("gi"), "presentes", "pr1"))); await assertSucceeds(getDoc(doc(ctx("go"), "presentes", "pr1"))); });
+  await t("presente: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("gu"), "presentes", "pr1"))));
+  await t("presente: quem mandou não aceita por quem recebe", () => assertFails(updateDoc(doc(ctx("gi"), "presentes", "pr1"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("presente: quem recebe aceita", () => assertSucceeds(updateDoc(doc(ctx("go"), "presentes", "pr1"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("presente: quem recebe recusa outro", () => assertSucceeds(updateDoc(doc(ctx("go"), "presentes", "pr7"), { status: "recusado", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("presente: recusado não volta a aceito", () => assertFails(updateDoc(doc(ctx("go"), "presentes", "pr7"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("presente: quem mandou desiste antes da resposta", () => assertSucceeds(updateDoc(doc(ctx("gi"), "presentes", "pr9"), { status: "cancelado", atualizadoEm: serverTimestamp() })));
+  await t("presente: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("gi"), "presentes", "pr1"))));
+  await t("presente: lista os recebidos", () => assertSucceeds(getDocs(query(collection(ctx("go"), "presentes"), where("para", "==", "go")))));
+  // Corrida de presente
+  await t("presente: corrida", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "prC"), pres({ tipo: "corrida", mimo: undefined, valor: 40 }))));
+  await updateDoc(doc(ctx("go"), "presentes", "prC"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+  const ponto = (lat, lng) => ({ lat, lng, nome: "Rua", sub: "" });
+  const corridaP = (extra) => ({ servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", clienteId: "go", clienteNome: "Go", origem: ponto(-27.59, -48.54), destino: ponto(-27.6, -48.52), km: 4, min: 10, valor: 30, valorSugerido: 20, pagamento: "presente", pacote: null, status: "procurando", paraId: "", destinatarioId: "", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "embarque", presenteId: "prC", pagadorId: "gi", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  const usar = (db, id, extra) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), corridaP(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin: "1111" }); b.update(doc(db, "presentes", "prC"), { status: "usado", corridaId: id, usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }); return b.commit(); };
+  await t("corrida de presente: valor acima do presente é recusado", () => assertFails(usar(ctx("go"), "corridaPres01", { valor: 60 })));
+  await t("corrida de presente: pagador tem que ser quem deu", () => assertFails(usar(ctx("go"), "corridaPres02", { pagadorId: "gu" })));
+  await t("corrida de presente: sem marcar o presente como usado é recusada", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres03"), corridaP()); b.set(doc(db, "corridas", "corridaPres03", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });
+  await t("corrida de presente: usa o presente", () => assertSucceeds(usar(ctx("go"), "corridaPres04")));
+  await t("corrida de presente: quem pagou acompanha", () => assertSucceeds(getDoc(doc(ctx("gi"), "corridas", "corridaPres04"))));
+  await t("corrida comum não usa pagamento 'presente'", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres05"), (() => { const o = corridaP(); delete o.presenteId; delete o.pagadorId; return o; })()); b.set(doc(db, "corridas", "corridaPres05", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });
+  // Localização em tempo real
+  const vivo = (extra) => ({ uid: "gi", conv: "gi_go", participantes: ["gi", "go"], lat: -27.59, lng: -48.54, precisao: 12, rumo: 0, ate: Timestamp.fromMillis(Date.now() + 3600e3), parado: false, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("local ao vivo: cria na conversa", () => assertSucceeds(setDoc(doc(ctx("gi"), "locais_vivos", "lv1"), vivo())));
+  await t("local ao vivo: mais de 8 horas é recusado", () => assertFails(setDoc(doc(ctx("gi"), "locais_vivos", "lv2"), vivo({ ate: Timestamp.fromMillis(Date.now() + 10 * 3600e3) }))));
+  await t("local ao vivo: sem conversa é recusado", () => assertFails(setDoc(doc(ctx("gu"), "locais_vivos", "lv3"), vivo({ uid: "gu", conv: "go_gu", participantes: ["go", "gu"] }))));
+  await t("local ao vivo: a outra pessoa da conversa lê", () => assertSucceeds(getDoc(doc(ctx("go"), "locais_vivos", "lv1"))));
+  await t("local ao vivo: quem não é da conversa não lê", () => assertFails(getDoc(doc(ctx("gu"), "locais_vivos", "lv1"))));
+  await t("local ao vivo: quem compartilha atualiza a posição", () => assertSucceeds(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { lat: -27.6, lng: -48.55, precisao: 8, rumo: 90, atualizadoEm: serverTimestamp() })));
+  await t("local ao vivo: a outra pessoa não mexe", () => assertFails(updateDoc(doc(ctx("go"), "locais_vivos", "lv1"), { lat: 0, atualizadoEm: serverTimestamp() })));
+  await t("local ao vivo: não aumenta o prazo", () => assertFails(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { ate: Timestamp.fromMillis(Date.now() + 7 * 3600e3), atualizadoEm: serverTimestamp() })));
+  await t("local ao vivo: parar", () => assertSucceeds(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { parado: true, atualizadoEm: serverTimestamp() })));
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

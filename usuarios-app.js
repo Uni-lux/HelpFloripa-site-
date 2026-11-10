@@ -13,7 +13,7 @@ import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=19";
-import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=94";
+import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=95";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=22";
 import { semPausados } from "./planos-base.js?v=16";
 import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=112";
@@ -1151,6 +1151,7 @@ function botaoOpcoesPerfil(uid, p) {
     abrirOpcoes(p.nome || "Opções", [
       !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
       p.comSocial && !bloq && { rotulo: "Ver o social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; } },
+      !bloq && !bloqueadoPor.has(uid) && { rotulo: "Enviar um presente", sub: "Mimo, lanche, roupa, dinheiro ou corrida", icone: "coracao", fn: () => { try { (window.top || window).location.href = `presentes.html?para=${encodeURIComponent(uid)}`; } catch { location.href = `presentes.html?para=${encodeURIComponent(uid)}`; } } },
       { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
       !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
       !bloq && { rotulo: silenciado(uid) ? "Mostrar no meu Diário de novo" : "Silenciar", sub: silenciado(uid) ? "As publicações e flashes voltam a aparecer" : "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir", fn: () => alternarSilenciar(uid, p.nome) },

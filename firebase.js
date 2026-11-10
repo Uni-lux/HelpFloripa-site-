@@ -71,7 +71,7 @@ setStatus(`Firebase conectado (${firebaseConfig.projectId})`, "ok");
 // Listas (<select>) e horários no visual do site, no lugar das janelas do celular (campos.js).
 import("./campos.js?v=3").then((m) => m.ligarCampos()).catch((e) => console.warn("[Campos]", e?.message || e));
 // "Voltar" fecha a janela que está aberta por cima, em vez de sair da página (voltar.js).
-import("./voltar.js?v=13").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
+import("./voltar.js?v=14").then((m) => m.ligarVoltar()).catch((e) => console.warn("[Voltar]", e?.message || e));
 // "Voltar" que tiraria a pessoa do site pergunta antes ("Sair do Help Floripa?").
 import("./confirmar.js?v=6").then((m) => m.guardarSaida()).catch((e) => console.warn("[Saída]", e?.message || e));
 
@@ -129,6 +129,12 @@ onAuthStateChanged(auth, async (u) => {
   import("./chamadas.js?v=7").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
   // Presença ("online agora"): a cada 4 min com a página à vista (presenca.js; respeita quem escondeu).
   import("./presenca.js?v=1").then((m) => m.ligarPresenca(db, u.uid)).catch((e) => console.warn("[Presença]", e?.message || e));
+  // Localização em tempo real do chat: continua enviando a posição em qualquer página aberta (local-vivo.js; só carrega
+  // se este aparelho está compartilhando algo agora).
+  try {
+    if ((JSON.parse(localStorage.getItem("hf-local-vivo-" + u.uid) || "[]") || []).some((x) => x && x.ate > Date.now()))
+      import("./local-vivo.js?v=1").then(async (m) => m.continuarCompartilhando({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid)).catch(() => {});
+  } catch {}
   const chave = "hf-conta-ok-" + u.uid;
   try { if (sessionStorage.getItem(chave) === "1") return; } catch {}
   try {

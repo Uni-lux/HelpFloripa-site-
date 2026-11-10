@@ -32,7 +32,10 @@ await p.locator(".ax-op", { hasText: "Galeria" }).click();
 ok(!!(await escolha), "Galeria abre o seletor de fotos");
 await p.waitForTimeout(500);
 await p.click("#btnAnexar"); await p.waitForTimeout(800);
-await p.locator(".ax-op", { hasText: "Localização" }).click(); await p.waitForTimeout(2500);
+await p.locator(".ax-op", { hasText: "Localização" }).click();
+// Tela "Enviar localização" (como no WhatsApp): Localização atual → prévia com mapa → enviar.
+await p.waitForFunction(() => /Precisão de|Pelo GPS/.test(document.querySelector(".lv-op.atual")?.textContent || ""), null, { timeout: 15000 });
+await p.click(".lv-op.atual"); await p.waitForTimeout(2500);
 ok(await p.locator(".pv-fundo .lc-previa .lc-mapa img").count() > 0, "localização: prévia com mapa antes de enviar");
 await p.screenshot({ path: "saida/local-previa.png" });
 await p.locator(".pv-fundo .pv-btn.pri", { hasText: "Enviar localização" }).click(); await p.waitForTimeout(2500);

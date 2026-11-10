@@ -11,8 +11,10 @@ export function carregarLeaflet() {
   if (carregando) return carregando;
   carregando = new Promise((ok, erro) => {
     if (!document.querySelector('link[data-leaflet]')) {
-      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "mapa/leaflet.css?v=1"; l.dataset.leaflet = "";
-      document.head.appendChild(l);
+      for (const href of ["mapa/leaflet.css?v=1", "mapa/mapa-vivo.css?v=1"]) {
+        const l = document.createElement("link"); l.rel = "stylesheet"; l.href = href; l.dataset.leaflet = "";
+        document.head.appendChild(l);
+      }
     }
     const s = document.createElement("script"); s.src = "mapa/leaflet.js?v=1"; s.async = true;
     s.onload = () => (window.L?.map ? ok(window.L) : erro(new Error("mapa")));
