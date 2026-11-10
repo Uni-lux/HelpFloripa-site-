@@ -403,7 +403,7 @@ function pintarTemaCasca() {
   h.dataset.theme = e ? "dark" : "light"; h.style.colorScheme = e ? "dark" : "light";
   let m = document.querySelector('meta[name="theme-color"]');
   if (!m) { m = document.createElement("meta"); m.name = "theme-color"; document.head.appendChild(m); }
-  m.content = e ? "#0f161b" : "#ffffff";
+  m.content = e ? "#10181d" : "#ffffff";
 }
 pintarTemaCasca();
 addEventListener("storage", (e) => { if (e.key === "hf-chat-config") pintarTemaCasca(); });

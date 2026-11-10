@@ -3837,3 +3837,15 @@ body.modo-lugar .fab-criar { display: none; }
 
 /* "+" de criar de volta no topo (no lugar do lápis), no Diário/Explorar e na Comunidade (10/11/2026, pedido dele). */
 .topo-criar .tc-ic svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+
+/* =====================================================================================================
+   Abas da rede (Diário, Explorar, Comunidade, Perfil) com as MESMAS cores do Mensagens (10/11/2026, pedido dele:
+   "a cor de fundo do chat nas abas das redes sociais, para deixar padrão"). Só nas páginas com a barra de baixo.
+   ===================================================================================================== */
+:root[data-theme="dark"]:has(#barraRede) {
+  --bg: #0b1014; --panel: #10181d; --panel-2: #152027; --hover: #1a262e; --line: #22313a;
+  --text: #e9eef1; --muted: #8b9ba6; --input: #1a262e; --tile: #152027;
+}
+:root[data-theme="light"]:has(#barraRede) {
+  --bg: #eef2f5; --panel: #ffffff; --panel-2: #f5f7f9; --hover: #f0f3f5; --line: #e2e8ec; --text: #0f1b22; --muted: #637684;
+}

@@ -35,6 +35,24 @@ if (!window.__hfSemMenuImagem) {
     const no = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
     if (!emCampo(no) && !emCampo(document.activeElement)) sel.removeAllRanges();
   });
+  // Barrinha de rolagem do Android na rede (10/11/2026): no celular o Chrome desenha a barra da página dentro de cada aba
+  // (iframe) por cima de tudo e ignora o CSS acima. A casca (rede.html) deixa o quadro 6 px mais largo que a tela
+  // (a barra fica fora da tela) e aqui a página devolve esses 6 px: margem à direita e as camadas de tela cheia
+  // terminando 6 px antes. O Mensagens rola dentro de uma caixa (onde o CSS funciona) e fica de fora.
+  try {
+    const casca = window.parent !== window && window.parent === window.top && !!window.top.__hfShell;
+    if (casca && toque() && window.frameElement?.dataset.id !== "mensagens") {
+      document.documentElement.classList.add("hf-corte");
+      const c = document.createElement("style");
+      c.textContent = `html.hf-corte { --hf-corte: 6px; padding-right: var(--hf-corte); }
+        html.hf-corte :is(.folha, .story-visor, .flash-criar, .visor-exp, .foto-grande, .pa-pagina, .reels, .md-visor, .topico, .cm-modal,
+          .vt-modal, .vt-local-fundo, .hf-confirma-fundo, .hf-den-fundo, .hf-aval-fundo, .hfe-fundo, .esc-lista, .pl-fundo, .pv-fundo,
+          .ad-modal-fundo, .hm-local-pop, .hfl, .hf-volta-flash) { right: var(--hf-corte) !important; }
+        html.hf-corte body.com-barra::after { right: var(--hf-corte); }
+        html.hf-corte .barra-rede { margin-left: calc(var(--hf-corte) / -2); }`;
+      (document.head || document.documentElement).appendChild(c);
+    }
+  } catch {}
   document.addEventListener("dragstart", (e) => { if (e.target?.closest?.("img, picture, video, canvas, svg")) e.preventDefault(); }, true);
 }
 export {};

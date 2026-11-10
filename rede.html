@@ -18,7 +18,7 @@
   <!-- Tema da casca (10/11/2026): a barra de status e a de navegação do celular seguem o tema escolhido (claro/escuro/
        automático, hf-chat-config), como no X. Antes ficavam sempre escuras, mesmo com o site claro. rede-app.js acompanha
        as mudanças depois. -->
-  <script>(function(){var t="sistema";try{t=JSON.parse(localStorage.getItem("hf-chat-config")||"{}").tema||"sistema"}catch(e){}var e=t==="escuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches),h=document.documentElement;h.dataset.theme=e?"dark":"light";h.style.colorScheme=e?"dark":"light";document.write('<meta name="theme-color" content="'+(e?"#0f161b":"#ffffff")+'" id="hfCorBarra">')})();</script>
+  <script>(function(){var t="sistema";try{t=JSON.parse(localStorage.getItem("hf-chat-config")||"{}").tema||"sistema"}catch(e){}var e=t==="escuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches),h=document.documentElement;h.dataset.theme=e?"dark":"light";h.style.colorScheme=e?"dark":"light";document.write('<meta name="theme-color" content="'+(e?"#10181d":"#ffffff")+'" id="hfCorBarra">')})();</script>
   <style>
     /* fonte da marca (a cópia do topo durante o deslize fica nesta página) */
     @font-face { font-family: "HF Marca"; src: url("fonte-marca-sora-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
@@ -27,11 +27,14 @@
     body > header a { color: inherit; text-decoration: none; }
     /* filetes do slogan na cópia do topo (os ::before/::after não vão no estilo copiado) */
     body > header .marca small::before, body > header .marca small::after { content: ""; width: 14px; height: 1px; background: #00adee; opacity: .75; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #070b0e; overscroll-behavior: none; }
-    html[data-theme="light"], html[data-theme="light"] body { background: #f1f4f6; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1014; overscroll-behavior: none; }
+    html[data-theme="light"], html[data-theme="light"] body { background: #eef2f5; }
     /* atrás do cubo (troca de aba deslizando) */
     body.girando { background: #000; }
     .hf-quadro { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; visibility: hidden; background: transparent; }
+    /* Celular: o quadro fica 6 px mais largo que a tela para a barrinha de rolagem do Android ficar fora dela
+       (a página dentro devolve os 6 px: sem-menu-imagem.js, html.hf-corte). O Mensagens rola numa caixa e fica igual. */
+    @media (pointer: coarse) { .hf-quadro:not([data-id="mensagens"]) { right: auto; width: calc(100% + 6px); } }
     .hf-quadro.ativo, .hf-quadro.movendo { visibility: visible; }
     .hf-quadro.movendo { will-change: transform; z-index: 2; }
     .hf-quadro.entra { z-index: 3; }
@@ -52,6 +55,6 @@
 </head>
 <body>
   <div class="hf-carregando" id="carregandoRede">Carregando...</div>
-  <script type="module" src="rede-app.js?v=12"></script>
+  <script type="module" src="rede-app.js?v=13"></script>
 </body>
 </html>

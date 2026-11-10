@@ -25,14 +25,10 @@ const p = await entrar(ctx, "ana", "mural.html");
 if (process.env.CLARO !== "1") await p.emulateMedia({ colorScheme: "dark" });
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector(".mu-post", { timeout: 25000 }); await p.waitForTimeout(1500);
-ok(await p.locator("#muNumeros .mu-num").count() >= 2, "números reais no topo: " + (await p.locator("#muNumeros").textContent()).replace(/\s+/g, " "));
-ok(await p.locator(".mu-tipo").count() === 5, "5 jeitos de publicar em cartões");
-ok(await p.locator('.mu-chip').count() === 6, "filtros com todos os tipos (Tudo + 5)");
+ok(await p.locator("#muNumeros, .mu-tipo, .mu-topo").count() === 0, "topo enxuto (sem números, cartões nem painel)");
+ok(await p.locator('.mu-chip[data-k]').count() === 6, "filtros com todos os tipos (Tudo + 5)");
 await p.screenshot({ path: "saida/mn-01-topo.png" });
-// Como funciona
-await p.locator("#muRegra summary").click(); await p.waitForTimeout(200);
-ok(await p.locator("#muRegra[open] .mu-passos li").count() === 3, "\"Como funciona\" abre os 3 passos");
-await p.locator("#muRegra summary").click();
+ok(await p.locator(".mu-aviso a[href='diretrizes.html']").count() === 1, "regra numa linha com o link das Regras");
 // busca
 await p.locator("#muBusca").fill("berço"); await p.waitForTimeout(500);
 const achados = await p.$$eval(".mu-post", (cs) => cs.map((c) => c.dataset.id));
@@ -44,12 +40,12 @@ await p.locator(".mu-vazio button", { hasText: "Limpar a busca" }).click(); awai
 await p.locator('.mu-chip[data-k="quarto"]').click(); await p.waitForTimeout(300);
 ok((await p.$$eval(".mu-post", (cs) => cs.map((c) => c.dataset.cat))).every((k) => k === "quarto"), "filtro de quartos");
 await p.locator('.mu-chip[data-k=""]').click(); await p.waitForTimeout(300);
-const temOrdem = await p.locator("#muOrdem:not([hidden]) button").count();
+const temOrdem = await p.locator(".mu-chip.mu-ordem").count();
 if (temOrdem) {
-  await p.locator("#muOrdem button", { hasText: "Mais perto" }).click(); await p.waitForTimeout(300);
+  await p.locator(".mu-chip.mu-ordem").click(); await p.waitForTimeout(300);
   ok((await p.locator(".mu-post").first().getAttribute("data-id")) === "mn_ped", "Mais perto: o do Centro primeiro");
-  ok(await p.locator("#muPertoSec:not([hidden]) .mu-mini").count() >= 3, "fileira Perto de você");
-} else ok(false, "com a posição, aparece o Ordenar");
+  ok(await p.locator("#muPertoSec:not([hidden]) .mu-bolha").count() >= 3, "Perto de você em bolinhas");
+} else ok(false, "com a posição, aparece o Mais perto");
 ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "cabe no celular sem rolar para o lado");
 await p.locator("#muPertoSec").scrollIntoViewIfNeeded().catch(() => {}); await p.waitForTimeout(300);
 await p.screenshot({ path: "saida/mn-02-perto.png" });

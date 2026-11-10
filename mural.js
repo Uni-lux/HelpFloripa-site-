@@ -7,7 +7,7 @@
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=4";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=139";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, abrirFolha, fecharFolha } from "./rede.js?v=140";
 import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
@@ -47,43 +47,45 @@ let todos = [], perfisAut = new Map(), filtro = "", mostrados = POR_VEZ, posEu =
 let termo = "", ordem = "recentes", tBusca = 0;
 const link = (k) => `comunidade.html?novo=${k}&volta=mural`;
 
-// ---------- topo: publicar ----------
+// ---------- "+" do topo: escolher o que publicar (folha) ----------
 function pintarTipos() {
   const w = $("muTipos"); w.replaceChildren();
   Object.entries(CAT_COM).forEach(([k, c]) => {
-    const a = el("a", "mu-tipo"); a.href = link(k); a.style.setProperty("--cc", c.cor);
-    const bola = el("span", "mu-tipo-em"); bola.appendChild(iconeCom(k));
-    a.append(bola, el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica));
+    const a = el("a", "mu-pub"); a.href = link(k); a.style.setProperty("--cc", c.cor);
+    const bola = el("span", "mu-pub-ic"); bola.appendChild(iconeCom(k));
+    const tx = el("span", "mu-pub-tx"); tx.append(el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica));
+    a.append(bola, tx, icone("avancar", "i xs mu-pub-seta"));
+    a.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); fecharFolha("folhaPublicar"); setTimeout(() => abrirNaComunidade(link(k)), 120); });
     w.appendChild(a);
   });
 }
-function pintarLocal() { $("muLocal").querySelector("span").textContent = rotuloLocal(lerLocal()); }
-
-// ---------- números de verdade do que foi carregado ----------
-function pintarNumeros() {
-  const w = $("muNumeros"), lista = visiveis(false, false);
-  const cont = (k) => lista.filter((a) => a.categoria === k).length;
-  const pessoas = new Set(lista.map((a) => a.donoId)).size;
-  const itens = [[lista.length, lista.length === 1 ? "publicação" : "publicações", "#ffffff"], [cont("doacao"), cont("doacao") === 1 ? "doação" : "doações", CAT_COM.doacao.cor],
-    [cont("pedido"), cont("pedido") === 1 ? "pedido de ajuda" : "pedidos de ajuda", CAT_COM.pedido.cor], [pessoas, pessoas === 1 ? "pessoa ajudando" : "pessoas ajudando", "#2fbf71"]].filter(([n], i) => i === 0 || n > 0);
-  w.hidden = !lista.length;
-  w.replaceChildren(...itens.map(([n, nome, cor]) => { const s = el("span", "mu-num"); s.style.setProperty("--cc", cor); s.append(el("b", null, String(n)), el("small", null, nome)); return s; }));
+function abrirPublicar() { abrirFolha("folhaPublicar"); }
+function pintarLocal() {
+  const l = lerLocal();
+  // Só a cidade (sem "/SC") para caber ao lado da busca; o nome inteiro fica no título.
+  $("muLocal").querySelector("span").textContent = l.uf ? (l.cidade || rotuloLocal(l)).replace(/\/[A-Z]{2}$/, "") : "Brasil";
+  $("muLocal").title = "Você está em " + rotuloLocal(l);
 }
 
-// ---------- filtros ----------
+// ---------- filtros (só os nomes, como no Diário) + "Mais perto" quando há posição ----------
 function pintarFiltros() {
   const w = $("muFiltros"), base = visiveis(false);
-  const tipos = Object.keys(CAT_COM);
   w.replaceChildren();
-  [["", "Tudo", base.length], ...tipos.map((k) => [k, CAT_COM[k].plural, base.filter((a) => a.categoria === k).length])].forEach(([k, nome, n]) => {
+  [["", "Tudo"], ...Object.keys(CAT_COM).map((k) => [k, CAT_COM[k].plural])].forEach(([k, nome]) => {
     const b = el("button", "mu-chip"); b.type = "button"; b.setAttribute("role", "tab"); b.dataset.k = k;
     b.setAttribute("aria-selected", String(k === filtro));
-    if (!n && k !== filtro) b.classList.add("zero");
-    if (k) { b.style.setProperty("--cc", CAT_COM[k].cor); const ic = el("span", "mu-chip-em"); ic.appendChild(iconeCom(k)); b.append(ic); }
-    b.append(document.createTextNode(nome), el("small", null, String(n)));
-    b.addEventListener("click", () => { filtro = k; mostrados = POR_VEZ; pintarFiltros(); pintarLista(); });
+    if (k && k !== filtro && !base.some((a) => a.categoria === k)) b.classList.add("zero");
+    if (k) b.style.setProperty("--cc", CAT_COM[k].cor);
+    b.textContent = nome;
+    b.addEventListener("click", () => { filtro = k; mostrados = POR_VEZ; pintarFiltros(); pintarPerto(); pintarLista(); });
     w.appendChild(b);
   });
+  if (posEu) {
+    const o = el("button", "mu-chip mu-ordem"); o.type = "button"; o.setAttribute("aria-pressed", String(ordem === "perto"));
+    o.append(icone("local", "i xs"), document.createTextNode("Mais perto"));
+    o.addEventListener("click", () => { ordem = ordem === "perto" ? "recentes" : "perto"; mostrados = POR_VEZ; pintarFiltros(); pintarLista(); });
+    w.appendChild(o);
+  } else ordem = "recentes";
 }
 
 // ---------- publicações ----------
@@ -178,31 +180,20 @@ function vazio() {
   v.appendChild(bts);
   return v;
 }
-// "Perto de você": as 10 mais perto (com a sua posição), em cartões pequenos que deslizam.
+// "Perto de você" em bolinhas (como a fileira do Flash no Diário): foto do item com o anel na cor do tipo, o nome e a distância.
 function pintarPerto() {
   const sec = $("muPertoSec");
-  const perto = posEu && !termo && !filtro ? visiveis(false).filter((a) => Number.isFinite(a._km) && a._km < 300).sort((a, b) => a._km - b._km).slice(0, 10) : [];
-  sec.hidden = perto.length < 3;
+  const perto = posEu && !termo && !filtro ? visiveis(false).filter((a) => Number.isFinite(a._km) && a._km < 300).sort((a, b) => a._km - b._km).slice(0, 12) : [];
+  sec.hidden = perto.length < 2;
   if (sec.hidden) return;
-  $("muPertoSub").textContent = "Pela distância até você";
   $("muPerto").replaceChildren(...perto.map((a) => {
     const c = CAT_COM[a.categoria] || CAT_COM.doacao;
-    const m = el("a", "mu-mini"); m.href = `comunidade.html?item=${encodeURIComponent(a.id)}&de=mural`; m.style.setProperty("--cc", c.cor);
-    const f = el("div", "mu-mini-foto"); const foto = (a.fotos || []).find(fotoOk);
-    if (foto) { const im = new Image(); im.src = foto; im.alt = ""; im.loading = "lazy"; f.appendChild(im); } else { const ic = el("span", "mu-mini-ic"); ic.appendChild(iconeCom(a.categoria)); f.appendChild(ic); }
-    const tg = el("span", "mu-mini-tag"); tg.append(iconeCom(a.categoria), document.createTextNode(c.nome)); f.appendChild(tg);
-    m.append(f, el("strong", null, a.titulo || c.nome), el("small", null, textoDistancia(a._km, a._aprox)));
+    const m = el("a", "mu-bolha"); m.href = `comunidade.html?item=${encodeURIComponent(a.id)}&de=mural`; m.style.setProperty("--cc", c.cor);
+    m.setAttribute("aria-label", `${a.titulo || c.nome}, ${textoDistancia(a._km, a._aprox)}`);
+    const f = el("span", "mu-bolha-foto"); const foto = (a.fotos || []).find(fotoOk);
+    if (foto) { const im = new Image(); im.src = foto; im.alt = ""; im.loading = "lazy"; f.appendChild(im); } else f.appendChild(iconeCom(a.categoria));
+    m.append(f, el("b", null, a.titulo || c.nome), el("small", null, textoDistancia(a._km, a._aprox)));
     return m;
-  }));
-}
-function pintarOrdem() {
-  const w = $("muOrdem");
-  w.hidden = !posEu;
-  if (!posEu) { ordem = "recentes"; return; }
-  w.replaceChildren(...[["recentes", "Recentes"], ["perto", "Mais perto"]].map(([k, n]) => {
-    const b = el("button", null, n); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(ordem === k));
-    b.addEventListener("click", () => { ordem = k; mostrados = POR_VEZ; pintarOrdem(); pintarLista(); });
-    return b;
   }));
 }
 function pintarLista() {
@@ -210,7 +201,7 @@ function pintarLista() {
   w.replaceChildren(...(lista.length ? lista.slice(0, mostrados).map(cartao) : [vazio()]));
   $("muMais").hidden = !(lista.length > mostrados || (maisNoServidor && !filtro));
 }
-function pintarTudo() { pintarNumeros(); pintarFiltros(); pintarOrdem(); pintarPerto(); pintarLista(); document.querySelector(".mu-barra").hidden = !visiveis(false, false).length; }
+function pintarTudo() { pintarFiltros(); pintarPerto(); pintarLista(); document.querySelector(".mu-barra").hidden = !visiveis(false, false).length; }
 
 // ---------- leitura ----------
 async function carregarPerfis(lista) {
@@ -293,10 +284,10 @@ function ligarComunidadeAqui() {
   try { await iniciarRede(); }
   catch (e) { $("muLista").replaceChildren(el("div", "mu-vazio", e.message || "Não foi possível carregar")); return; }
   montarBarraRede("comunidade"); pintarBarraRede(); ouvirAvisos();
-  pintarAvatar($("muAvatar"), dados.fotoPerfil, dados.nome);
   pintarLocal();
-  $("muCompor").addEventListener("click", () => abrirNaComunidade(link(filtro || "doacao")));
-  $("btnPublicarMural")?.addEventListener("click", () => abrirNaComunidade(link(filtro || "doacao")));
+  $("btnPublicarMural")?.addEventListener("click", abrirPublicar);
+  const fp = $("folhaPublicar");
+  fp.addEventListener("click", (e) => { if (e.target === fp || e.target.closest("[data-fechar]")) fecharFolha("folhaPublicar"); });
   ligarComunidadeAqui();
   $("muMais").addEventListener("click", verMais);
   // Busca: filtra o que já está na tela na hora e, com 3 letras ou mais, procura em todo o Brasil (busca.js).
