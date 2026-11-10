@@ -293,3 +293,16 @@ body.pg-compacta .classes-painel .classe-link svg { width: 15px; height: 15px; }
 
 /* Sem o retângulo azul que o celular pinta por cima do que é tocado (pedido do dono, 04/11/2026). */
 html { -webkit-tap-highlight-color: transparent; }
+
+/* ===================================================================================================
+   Marca no topo (10/11/2026, pedido dele: "como no X, letras agressivas"): Saira Black Itálico (SIL OFL,
+   fonte-marca-OFL.txt), apertada e inclinada para frente; cores de sempre (branco + ciano).
+   =================================================================================================== */
+@font-face { font-family: "HF Marca"; src: url("fonte-marca.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
+.marca { line-height: 1; }
+.marca strong { display: inline-block; font-family: "HF Marca", "Arial Black", system-ui, sans-serif; font-style: italic; font-weight: 900; font-size: 24px;
+  letter-spacing: -.04em; line-height: .92; text-transform: uppercase; color: var(--text); }
+.marca strong span { color: var(--accent); margin-left: .06em; }
+.marca small { margin-top: 4px; font-family: "HF Marca", system-ui, sans-serif; font-style: italic; font-weight: 900; font-size: 7.5px;
+  letter-spacing: .42em; margin-right: -.42em; color: var(--muted); }
+@media (max-width: 360px) { .marca strong { font-size: 21px; } }

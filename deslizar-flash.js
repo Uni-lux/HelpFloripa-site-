@@ -11,7 +11,7 @@
 // Não atrapalha: começa a 24 px das bordas (o "voltar" do celular usa as bordas), ignora campos, vídeos e
 // janelas abertas; carrossel só fica com o gesto se ainda pode rolar para aquele lado.
 
-import { casca } from "./quadro-rede.js?v=1";
+import { casca } from "./quadro-rede.js?v=2";
 
 const CAMADAS = [
   ".folha.aberta", ".story-visor", ".flash-criar", ".visor-exp", ".reels", "div.hfc", ".hf-confirma-fundo",
@@ -148,7 +148,7 @@ function destino(lado) {
     const viz = S.vizinho(k, lado);
     if (!viz) return null;
     // Diário ↔ Explorar ficam no mesmo quadro (o feed troca por dentro).
-    if (["diario", "explorar"].includes(viz) && ["diario", "explorar"].includes(k)) return { nome: S.nomeDe(viz), aqui: true, ir: () => S.ir(viz) };
+    if (["diario", "explorar"].includes(viz) && ["diario", "explorar"].includes(k)) return { nome: S.nomeDe(viz), k: viz, aqui: true, ir: () => S.ir(viz) };
     return { cruzado: true, k: viz, nome: S.nomeDe(viz) };
   }
   if (lado === "dir") {
@@ -171,7 +171,7 @@ export function ligarDeslizarFlash() {
   // Tocar num item da barra já prepara a página dele.
   if (!casca()) document.addEventListener("touchstart", (e) => { const a = e.target.closest?.("#barraRede a"); if (a) preparar(a.href); }, { passive: true, capture: true });
 
-  let ini = null, lado = "", alvo = null, mover = null, painel = null, pronto = false, pontos = [];
+  let ini = null, lado = "", alvo = null, mover = null, painel = null, previa = null, pronto = false, pontos = [];
   const W = () => innerWidth;
 
   const zerar = () => { ini = null; lado = ""; alvo = null; pronto = false; pontos = []; };
@@ -198,6 +198,13 @@ export function ligarDeslizarFlash() {
     }
     const d = lado === "dir" ? Math.max(0, dx) : Math.min(0, dx);
     mover.style.transform = `translate3d(${d}px,0,0)`;
+    if (previa) {
+      // A outra aba de verdade entra pelo lado, colada na que sai (sem painel, sem sombra).
+      previa.el.style.transform = `translate3d(${(lado === "dir" ? -W() : W()) + d}px,0,0)`;
+      const ok = Math.abs(d) >= W() * 0.33;
+      if (ok !== pronto) { pronto = ok; if (ok && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(10); }
+      return;
+    }
     const largura = Math.abs(d);
     painel.style.width = largura + "px";
     const p = Math.min(1, largura / (W() * 0.33));
@@ -209,8 +216,14 @@ export function ligarDeslizarFlash() {
   }
 
   function voltarAoLugar() {
-    const m = mover, pn = painel;
-    painel = null;
+    const m = mover, pn = painel, pv = previa;
+    painel = null; previa = null;
+    if (pv) {
+      for (const x of [m, pv.el]) x.classList.add("df-anima");
+      m.style.transform = "translate3d(0,0,0)"; pv.el.style.transform = `translate3d(${lado === "dir" ? -W() : W()}px,0,0)`;
+      setTimeout(() => { pv.cancelar(); limparEstilo(m); }, 230);
+      return;
+    }
     if (!m) { pn?.remove(); return; }
     m.classList.add("df-anima"); m.style.transform = "translate3d(0,0,0)";
     if (pn) { pn.classList.add("df-anima"); pn.style.width = "0px"; }
@@ -218,8 +231,14 @@ export function ligarDeslizarFlash() {
   }
 
   function concluir() {
-    const m = mover, pn = painel, a = alvo, l = lado;
-    painel = null;
+    const m = mover, pn = painel, a = alvo, l = lado, pv = previa;
+    painel = null; previa = null;
+    if (pv) {
+      for (const x of [m, pv.el]) x.classList.add("df-anima");
+      m.style.transform = `translate3d(${l === "dir" ? W() : -W()}px,0,0)`; pv.el.style.transform = "translate3d(0,0,0)";
+      setTimeout(() => { a.ir(); pv.fim(); limparEstilo(m); }, 220);
+      return;
+    }
     if (a.flash) { painel = pn; voltarAoLugar(); setTimeout(() => a.ir(), 60); return; }
     const fim = l === "dir" ? W() : -W();
     m.classList.add("df-anima"); m.style.transform = `translate3d(${fim}px,0,0)`;
@@ -278,12 +297,17 @@ export function ligarDeslizarFlash() {
         return;
       }
       mover = conteudo();
+      const kAlvo = alvo?.k || alvo?.a?.dataset?.barra;
+      if (alvo?.aqui && kAlvo && typeof window.__hfPreviaAba === "function") {
+        previa = window.__hfPreviaAba(kAlvo);
+        if (previa) { mover = previa.atual; previa.el.classList.add("df-movendo"); }
+      }
       if (!mover) { zerar(); return; }
       ini.x = t.clientX - Math.sign(dx) * 2; // começa a seguir daqui (sem pulo)
       document.documentElement.classList.add("df-puxando");
       mover.classList.remove("df-anima"); mover.classList.add("df-movendo");
       document.querySelectorAll(".df-painel").forEach((x) => x.remove()); painel = null;
-      if (alvo) { montarPainel(); if (alvo.a && !alvo.aqui) preparar(alvo.a.href); }
+      if (alvo && !previa) { montarPainel(); if (alvo.a && !alvo.aqui) preparar(alvo.a.href); }
     }
     if (e.cancelable) e.preventDefault();
     if (ini.cruzado) {

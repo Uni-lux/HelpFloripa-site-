@@ -16,8 +16,8 @@ import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, med
 import { abrirQueixa } from "./queixas.js?v=18";
 import { docComValidade, docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=21";
-import { ligarPuxar } from "./puxar-atualizar.js?v=2";
-import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=8";
+import { ligarPuxar } from "./puxar-atualizar.js?v=3";
+import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=9";
 import { fundoSuave } from "./fotos-suaves.js?v=1"; // fotos dos cartões entram suaves (o brilho fica até a foto chegar)
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";

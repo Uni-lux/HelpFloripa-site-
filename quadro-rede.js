@@ -36,6 +36,8 @@ export function ligarQuadro() {
     return;
   }
   document.documentElement.classList.add("na-rede");
+  // Sem barra de rolagem nas abas da rede (o "tracinho" cinza aparecia na beirada durante o deslize entre abas).
+  { const st = document.createElement("style"); st.textContent = "html.na-rede{scrollbar-width:none}html.na-rede::-webkit-scrollbar{display:none}"; document.head.appendChild(st); }
   document.addEventListener("click", (e) => {
     if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
     const a = e.target.closest?.("a[href]");
