@@ -1099,6 +1099,7 @@ function rotuloFlash(c, meu) {
       return meu ? `Você reagiu ao flash de ${quem}` : "Reagiu ao seu flash";
     case "mencao": return meu ? "Você mencionou no seu flash" : "Mencionou você no flash";
     case "repost": return meu ? "Você repostou o flash" : "Repostou o seu flash";
+    case "negocio": { const n = String(c.negocioNome || "seu negócio").slice(0, 60); return meu ? `Você marcou ${n} no seu flash` : `Marcou ${n} no flash`; }
     default: return meu ? `Você enviou o flash de ${quem}` : `Enviou o flash de ${quem}`;
   }
 }
