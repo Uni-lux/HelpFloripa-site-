@@ -14,11 +14,11 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=140";
+} from "./rede.js?v=141";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=6";
+import { escolherPublico } from "./publico-tela.js?v=7";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
 import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=22";
@@ -143,6 +143,9 @@ async function carregar() {
       docs = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).reverse();
     } catch (e2) { console.warn("Flash:", e2?.code || e2?.message); }
   }
+  // Flash com público "perto de um lugar": espera a posição de quem vê (até 1,5 s) antes de filtrar; antes a 1ª
+  // leitura saía sem a posição e o flash ficava escondido de quem estava dentro do raio.
+  if (docs.some((x) => x.autorId !== eu.uid && x.alvo?.local === "perto")) await posicaoDoLeitor();
   porAutor = new Map();
   docs.filter((x) => ativo(x) && (x.autorId === eu.uid || (x.perfil !== false && meusSeguindo.has(x.autorId) && !escondido(x.autorId) && !silenciado(x.autorId) && podeVer(x))))
     .forEach((x) => { if (!porAutor.has(x.autorId)) porAutor.set(x.autorId, []); porAutor.get(x.autorId).push(x); });
@@ -165,6 +168,11 @@ function leitorAgora() {
   if (!eu?.uid) return null;
   if (!pedindoPos) { pedindoPos = true; minhaPosicao(dados).then((p) => { posFlash = p || null; leitorFlash = null; }).catch(() => {}); }
   return (leitorFlash ||= leitorDe({ uid: eu.uid, dados, local: lerLocal(), pos: posFlash, segue: (u) => meusSeguindo.has(u) }));
+}
+let posP = null;
+function posicaoDoLeitor() {
+  posP ||= minhaPosicao(dados).then((p) => { posFlash = p || null; leitorFlash = null; pedindoPos = true; }).catch(() => {});
+  return Promise.race([posP, new Promise((ok) => setTimeout(ok, 1500))]);
 }
 const noPublico = (x) => !x.alvo || x.autorId === eu?.uid || combinaPublico({ autorId: x.autorId, publico: x.alvo }, leitorAgora());
 const podeVer = (x) => !(Array.isArray(x.ocultoPara) && x.ocultoPara.includes(eu.uid)) && (x.publico !== "amigos" || (Array.isArray(x.lista) && x.lista.includes(eu.uid))) && noPublico(x);
@@ -839,8 +847,50 @@ export function figurinhasDe(s) {
     caixa: de("caixa"),
     contagem: (s?.contagem?.titulo && s.contagem.fim) ? s : (o?.contagem?.titulo && o.contagem.fim) ? o : null,
     link: linkOk(s?.link) ? s.link : linkOk(o?.link) ? o.link : null,
+    links: linksDoFlash(s) || linksDoFlash(o) || null,
     toques: [...figurinhasTocaveis(s || {}), ...(o ? figurinhasTocaveis(o) : [])].slice(0, 12)
   };
+}
+// Lista "Negócios" do flash (quem vê): tocar abre o perfil do negócio. O autor vê também os ocultos (olho cortado).
+function abrirNegociosDoFlash(lista, meu, aoFechar) {
+  const corpo = abrirLista(lista.length === 1 ? "Negócio marcado" : "Negócios marcados");
+  const f = $("folhaLista");
+  const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
+  const ROT = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
+  lista.forEach((l) => {
+    const a = el("a", "linha-neg-flash" + (l.modo === "oculto" ? " oculto" : "")); a.href = linkNegocio(l);
+    const av = el("span", "avatar neg-av " + l.tipo); av.appendChild(icone(ICONE_NEGOCIO[l.tipo] || "loja", "i s"));
+    const tx = el("span", "tx"); const sub = el("small", null, ROT[l.tipo] || "Negócio");
+    if (meu && l.modo === "oculto") { sub.append(" · "); sub.appendChild(icone("olho-off", "i xs")); sub.append(" Oculto · só você vê"); }
+    tx.append(el("strong", null, l.nome), sub);
+    a.append(av, tx, icone("avancar", "i xs"));
+    corpo.appendChild(a);
+  });
+  // nome e foto de agora (o nome gravado no flash é de quando foi publicado; sem o negócio, some da lista)
+  Promise.all(lista.map((l) => fb.getDoc(fb.doc(fb.db, "negocios", l.negocioId)).then((d) => (d.exists() ? d.data() : null)).catch(() => undefined))).then((docs) => {
+    [...corpo.querySelectorAll(".linha-neg-flash")].forEach((a, i) => {
+      const n = docs[i]; if (n === null) { a.remove(); return; } if (!n) return;
+      if (n.nome) a.querySelector("strong").textContent = n.nome;
+      if (n.foto && /^(data:image|https:)/.test(n.foto)) { const av = a.querySelector(".avatar"); av.replaceChildren(); pintarAvatar(av, n.foto, n.nome); }
+    });
+    if (!corpo.querySelector(".linha-neg-flash")) corpo.appendChild(el("div", "lista-vazia", "Esses negócios não estão mais no Help Floripa."));
+  });
+}
+// Negócios marcados (até 10), dentro de stories.toques: "n|id|t|nome|x|y|k|0" (na tela), "n|id|l|nome|0|0|0|0" (na
+// lista) e "n|id|o|nome|0|0|0|0" (oculto).
+export function linksDoFlash(s) {
+  const itens = (Array.isArray(s?.toques) ? s.toques : []).filter((x) => String(x).startsWith("n|"));
+  if (!itens.length) return null;
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.5; };
+  const l = itens.slice(0, 10).map((x) => {
+    const p = String(x).split("|"), id = p[1], tipo = (/^[A-Za-z0-9]{1,64}_(servicos|delivery|lojinha|imoveis|saude|automotivo)$/.exec(id) || [])[1];
+    if (!tipo || !p[3]) return null;
+    const k = Number(p[6]);
+    if (p[2] === "t") return { negocioId: id, tipo, nome: p[3], modo: "tela", x: num(p[4]), y: num(p[5]), ...(k && Math.abs(k - 1) > 0.02 ? { k: Math.min(1.3, Math.max(0.6, k)) } : {}) };
+    if (p[2] === "l" || p[2] === "o") return { negocioId: id, tipo, nome: p[3], modo: p[2] === "l" ? "lista" : "oculto" };
+    return null;
+  }).filter(Boolean);
+  return l.length ? l : null;
 }
 function figurinhasTocaveis(s) {
   const l = [], num = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null; };
@@ -1062,7 +1112,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     toast(paraAmigos ? `Este flash vai só para os Amigos próximos (${n} ${n === 1 ? "pessoa" : "pessoas"})` : "Este flash vai para todos que seguem você");
   });
   // Público deste flash (idade, gênero, lugar, seguidores), como no Diário: a página "Público" em tela cheia.
-  let alvo = null;
+  // Começa com o público padrão das Configurações do Flash (se tiver); dá para mudar em cada flash.
+  let alvo = configFlash().alvo || null;
   const bAlvo = el("button", "flash-ferr-btn flash-alvo"); bAlvo.type = "button"; bAlvo.appendChild(icone("alvo", "i s"));
   const pintarAlvo = () => {
     const tem = !!alvo; bAlvo.classList.toggle("on", tem);
@@ -1070,7 +1121,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     bAlvo.setAttribute("aria-label", tem ? `Público deste flash: ${resumoPublico(alvo)} (toque para mudar)` : "Público deste flash: todos (toque para escolher)");
   };
   bAlvo.addEventListener("click", async () => {
-    const v = await escolherPublico(alvo, { ...ajudaPublico(), sub: "Quem vê este flash" });
+    const v = await escolherPublico(alvo, { ...ajudaPublico(), sub: "Quem vê este flash", flash: true });
     if (v === undefined) return; // voltou sem mudar
     alvo = v ? (publicoParaGravar(v) || null) : null; pintarAlvo();
     if (!meusNeg.length) dica.textContent = dicaPadrao();
@@ -1487,6 +1538,16 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     e.style.background = t.destaque ? t.cor : t.vidro ? FUNDO_VIDRO : "transparent";
     e.classList.toggle("destaque", !!(t.destaque || t.vidro));
     e.classList.toggle("neon", LETRAS[t.letra].sombra && !t.destaque && !t.vidro);
+    // @ escrito pelo teclado aparece sublinhado (igual sai na foto)
+    if (!t.emoji && String(t.texto).includes("@")) {
+      const partes = []; let i = 0;
+      for (const m of String(t.texto).matchAll(RE_ARROBA)) {
+        const ini = m.index + m[1].length;
+        partes.push(document.createTextNode(t.texto.slice(i, ini)), el("span", "fe-arroba-u", "@" + m[2]));
+        i = ini + 1 + m[2].length;
+      }
+      if (partes.length) { partes.push(document.createTextNode(t.texto.slice(i))); e.replaceChildren(...partes); }
+    }
   }
   // ---------- fotos: fundo, por cima e modelos ----------
   // Modelos (colagem): células em fração do cartão 9:16; a montagem vira a foto de fundo (dá para pôr figurinhas depois).
@@ -1796,7 +1857,25 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   window.addEventListener("pointermove", moverGesto, { capture: true, passive: false });
   window.addEventListener("pointerup", soltarGesto, true);
   window.addEventListener("pointercancel", soltarGesto, true);
+  // Anti-spam (11/11/2026): quanto cabe em um flash. Passou, a figurinha nova não entra e o aviso explica.
+  const LIMITE_FIG = { texto: 10, emoji: 12, hashtag: 5, local: 1, hora: 2, data: 2, mencao: 10, lk: MAX_LINKS_FIG };
+  const TOTAL_FIG = 30;
+  const tipoFig = (t) => (t.lk ? "lk" : t.emoji ? "emoji" : t.fig ? t.fig : t.ft || t.enq || t.cx || t.ct ? null : "texto");
+  function passaDoLimite(t) {
+    const k = tipoFig(t);
+    if (textos.length >= TOTAL_FIG) return `Até ${TOTAL_FIG} figurinhas e textos em cada flash.`;
+    if (k && LIMITE_FIG[k] && textos.filter((x) => tipoFig(x) === k).length >= LIMITE_FIG[k]) {
+      return { texto: "Até 10 textos em cada flash.", emoji: "Até 12 emojis em cada flash.", hashtag: `Até ${MAX_HASHTAGS} hashtags por flash.`, local: "Uma localização por flash: toque na que já está para trocar.",
+        hora: "Já tem horário neste flash.", data: "Já tem data neste flash.", mencao: "Dá para mencionar até 10 pessoas em cada flash.", lk: "Dá para marcar até 10 negócios em cada flash." }[k];
+    }
+    if (k === "hashtag" && hashtagsFora(null) + 1 > MAX_HASHTAGS) return `Até ${MAX_HASHTAGS} hashtags por flash (somando figurinhas, textos e legenda).`;
+    return "";
+  }
+  // hashtags já usadas fora de "t" (figurinhas #, textos Aa, texto do fundo e legenda)
+  const hashtagsFora = (t) => textos.filter((x) => x !== t && x.fig === "hashtag").length
+    + contarHashtags([modo === "texto" ? area.value : "", legenda.value, ...textos.filter((x) => x !== t && tipoFig(x) === "texto").map((x) => x.texto)].join(" "));
   function criarTexto(t) {
+    if (!restaurando) { const motivo = passaDoLimite(t); if (motivo) { toast(motivo); return false; } }
     const e = el("div", "flash-txt"); e.setAttribute("role", "button"); e.tabIndex = 0;
     e.setAttribute("aria-label", t.ft ? "Foto por cima: arraste para mover, dois dedos para aumentar ou girar, toque para trocar a moldura" : "Texto na foto: toque para editar, arraste para mover, dois dedos para aumentar ou girar");
     marcar(`Adicionar ${nomeFig(t)}`);
@@ -1832,7 +1911,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     pilula("caixa", "Perguntas", "#e5487f", () => { pn.remove(); editarCaixa(textos.find((t) => t.cx) || null); });
     pilula("relogio", "Contagem", "#7c5cff", () => { pn.remove(); editarContagem(textos.find((t) => t.ct) || null); }, "regressiva");
     pilula("pessoa-mais", "Menção", "#ff8a00", () => { pn.remove(); escolherMencao(); });
-    pilula("loja", "Link do negócio", "#00adee", () => { pn.remove(); escolherNegocio(textos.find((t) => t.lk) || null); });
+    pilula("loja", "Negócios", "#00adee", () => { pn.remove(); escolherNegocio(); }, totalLinks() ? `${totalLinks()} marcados` : "até 10");
     // Localização de verdade (como no Instagram): busca o lugar e quem vê toca na figurinha e vê as publicações de lá.
     pilula("local", "Localização", "#7c5cff", () => { pn.remove(); escolherLugarFig(); });
     pilula("hashtag", "Hashtag", "#ff3d7f", () => escolherHashtag());
@@ -1875,7 +1954,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     // A mesma pessoa não é mencionada duas vezes (se estava oculta, vira figurinha).
     if (fig === "mencao" && extra.uid) {
       if (figMencoes().some((t) => t.uid === extra.uid)) { toast(`${texto} já está mencionado neste flash.`); return; }
-      avisos.delete(extra.uid);
+      avisos.delete(extra.uid); listaM.delete(extra.uid);
     }
     const y = 0.22 + (textos.filter((t) => t.fig).length % 4) * 0.1;
     criarTexto({ fig, texto, estilo: 0, x: 0.5, y, tam: fig === "hora" ? 0.11 : 0.055, letra: 0, cor: "#fff", destaque: false, ...extra });
@@ -2118,64 +2197,160 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     });
   }
   const editarCaixa = (t) => editorVivo("cx", t);
-  // Link para o perfil de um negócio: os seus primeiro, e a busca entre todos os negócios do site.
+  // Links para perfis de negócio (11/11/2026: até 10 por flash, como as menções). Cada link num jeito:
+  // - Na tela: a figurinha do link na foto (t.lk; pode ter mais de uma);
+  // - Na lista: quem vê encontra em "Negócios" (chip embaixo do flash);
+  // - Oculto: só você vê (o dono do negócio recebe o aviso, como na menção oculta).
+  // Os seus primeiro, e a busca entre todos os negócios do site.
+  const negLista = new Map(); // negocioId -> { negocio: {id, nome, tipo}, oculto }
+  const MAX_LINKS = 10;
+  const ROT_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
+  const figLinks = () => textos.filter((t) => t.lk);
+  const totalLinks = () => new Set([...figLinks().map((t) => t.negocio.id), ...negLista.keys()]).size;
+  const jaLinkado = (id) => figLinks().some((t) => t.negocio.id === id) || negLista.has(id);
+  const limparNome = (n) => String(n || "").replace(/[|\n\r]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 60) || "Negócio";
   let negociosP = null;
-  async function escolherNegocio(t) {
+  const lerNegocios = () => (negociosP ||= fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.limit(300))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && PAGINA_NEGOCIO[n.tipo] && !escondido(n.donoId))).catch(() => []));
+  const avatarNeg = (n) => { const av = el("span", "avatar neg-av " + n.tipo); if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo] || "loja", "i s")); return av; };
+  function porNaTela(negocio) {
+    const k = figLinks().length;
+    criarTexto({ lk: true, negocio, texto: "", x: 0.5, y: Math.max(0.2, 0.7 - (k % 6) * 0.09), tam: 0.05, letra: 0, cor: "#111", destaque: false });
+  }
+  // Lista "Links de negócios": o que está no flash, em que jeito, e o botão para marcar mais.
+  function abrirLinks() {
     palco.querySelector(".flash-figs")?.remove();
-    const pn = el("div", "flash-figs");
-    // "Fechar" só fecha (antes, com o link já posto, o botão do topo era "Tirar": quem abria a lista só para olhar apagava
-    // o link). Com o link posto, ele aparece em cima ("No flash agora") com "Tirar o link" separado.
-    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
-    cab.append(el("strong", "figs-tit", t ? "Trocar o negócio do link" : "Link para um negócio"), el("span", "esp"), ok);
-    const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar negócio pelo nome"; busca.setAttribute("aria-label", "Buscar negócio");
-    const lista = el("div", "mencao-lista");
-    const atual = el("div", "lk-atual");
-    if (t) {
-      const tirar = el("button", "lk-tirar", "Tirar o link"); tirar.type = "button";
-      const tx = el("span", "tx"); tx.append(el("small", null, "No flash agora"), el("strong", null, t.negocio?.nome || "Perfil do negócio"));
-      atual.append(icone(ICONE_NEGOCIO[t.negocio?.tipo] || "loja", "i s"), tx, tirar);
-      tirar.addEventListener("click", () => { pn.remove(); marcar("Tirar link do negócio"); t.el.remove(); textos.splice(textos.indexOf(t), 1); toast("Link tirado · toque em ↶ para desfazer"); });
-    }
+    esconderArroba();
+    const pn = el("div", "flash-figs flash-mencoes");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Links de negócios"), el("span", "esp"), ok);
     const corpo = el("div", "mencao-corpo");
-    corpo.append(...(t ? [atual] : []), busca, el("p", "figs-dica", "Pode ser o seu negócio ou o de outra pessoa do Help Floripa (um link por flash). Quem vê toca no link e vai direto para o perfil do negócio."), lista);
-    pn.append(cab, corpo);
-    palco.appendChild(pn);
+    const add = el("button", "fm-add"); add.type = "button"; add.append(icone("loja", "i s"), el("span", null, "Marcar negócios"));
+    const lista = el("div", "mencao-lista");
+    corpo.append(add, el("p", "figs-dica", "Pode ser o seu negócio ou o de outra pessoa do Help Floripa. Na tela: a figurinha do link na foto. Na lista: quem vê encontra em “Negócios”. Oculto: só você vê (o dono recebe o aviso)."), lista);
+    pn.append(cab, corpo); palco.appendChild(pn);
     ok.addEventListener("click", () => pn.remove());
+    add.addEventListener("click", () => { if (totalLinks() >= MAX_LINKS) { toast(`Dá para marcar até ${MAX_LINKS} negócios em cada flash.`); return; } escolherNegocios(); });
+    const SUB = { tela: "Na tela: a figurinha do link na foto", lista: "Na lista: quem vê encontra em “Negócios”", oculto: "Oculto: só você vê" };
+    const mudar = (e, k) => {
+      if (e.modo === k) return;
+      marcar("Mudar o link do negócio");
+      if (e.t) { e.t.el.remove(); textos.splice(textos.indexOf(e.t), 1); }
+      negLista.delete(e.negocio.id);
+      if (k === "tela") porNaTela(e.negocio); else negLista.set(e.negocio.id, { negocio: e.negocio, oculto: k === "oculto" });
+      pintarL();
+    };
+    function pintarL() {
+      const ents = [
+        ...figLinks().map((t) => ({ negocio: t.negocio, modo: "tela", t })),
+        ...[...negLista.values()].filter((x) => !figLinks().some((t) => t.negocio.id === x.negocio.id)).map((x) => ({ negocio: x.negocio, modo: x.oculto ? "oculto" : "lista" }))
+      ];
+      const blocos = [el("p", "fm-total", `${ents.length} de ${MAX_LINKS} negócios marcados`)];
+      for (const [modoL, titulo] of [["tela", "Na tela"], ["lista", "Na lista “Negócios”"], ["oculto", "Ocultos (só você vê)"]]) {
+        const grupo = ents.filter((e) => e.modo === modoL);
+        if (!grupo.length) continue;
+        blocos.push(el("p", "figs-sec", titulo));
+        grupo.forEach((e) => {
+          const l = el("div", "mencao-item fm-linha" + (modoL === "oculto" ? " fm-oculta" : ""));
+          const info = el("div", "fm-usar"); const tx = el("span", "tx");
+          tx.append(el("strong", null, e.negocio.nome), el("small", null, `${ROT_NEG[e.negocio.tipo] || "Negócio"} · ${SUB[modoL]}`));
+          info.append(avatarNeg(e.negocio), tx);
+          const lixo = el("button", "fa-oculta"); lixo.type = "button"; lixo.title = "Tirar o link"; lixo.setAttribute("aria-label", `Tirar o link de ${e.negocio.nome}`); lixo.appendChild(icone("lixo", "i xs"));
+          lixo.addEventListener("click", () => { marcar("Tirar link do negócio"); if (e.t) { e.t.el.remove(); textos.splice(textos.indexOf(e.t), 1); } negLista.delete(e.negocio.id); pintarL(); });
+          l.append(info, lixo);
+          const seg = el("div", "fm-seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Como o link aparece");
+          [["tela", "Na tela"], ["lista", "Na lista"], ["oculto", "Oculto"]].forEach(([k, rot]) => {
+            const b = el("button", "fm-seg-op" + (k === modoL ? " on" : "")); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoL));
+            if (k === "oculto") b.appendChild(icone("olho-off", "i xs"));
+            b.appendChild(document.createTextNode(rot));
+            b.addEventListener("click", () => mudar(e, k));
+            seg.appendChild(b);
+          });
+          const w = el("div", "fm-bloco"); w.append(l, seg); blocos.push(w);
+        });
+      }
+      lista.replaceChildren(...(ents.length ? blocos : [el("p", "figs-dica fm-vazio", "Nenhum negócio marcado ainda.")]));
+    }
+    pintarL();
+  }
+  // Marcar negócios: um ou vários de uma vez (com o olho cortado para marcar oculto).
+  async function escolherNegocios() {
+    palco.querySelector(".flash-figs")?.remove();
+    const pn = el("div", "flash-figs fm-escolher");
+    const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
+    cab.append(el("strong", "figs-tit", "Marcar negócios"), el("span", "esp"), ok);
+    const busca = el("input", "fe-local"); busca.type = "search"; busca.maxLength = 40; busca.placeholder = "Buscar negócio pelo nome"; busca.setAttribute("aria-label", "Buscar negócio");
+    const lista = el("div", "mencao-lista");
+    const corpo = el("div", "mencao-corpo");
+    const sel = new Map(); // id -> { negocio, oculto }
+    const rodape = el("div", "fm-rodape"); const usar = el("button", "fm-usar-todos"); usar.type = "button"; const contador = el("small", "fm-cont");
+    rodape.append(contador, usar);
+    corpo.append(busca, el("p", "figs-dica", "Pode ser o seu ou o de outra pessoa do Help Floripa. Toque para marcar um ou vários. Um só vai na foto como figurinha; vários entram na lista “Negócios” (dá para mudar em “Links de negócios”). Olho cortado: só você vê."), lista);
+    pn.append(cab, corpo, rodape); palco.appendChild(pn);
+    ok.addEventListener("click", () => abrirLinks());
+    const vagas = () => Math.max(0, MAX_LINKS - totalLinks());
+    const pintarRodape = () => {
+      const n = sel.size; usar.disabled = !n;
+      usar.textContent = n ? `Marcar ${n} ${n === 1 ? "negócio" : "negócios"}` : "Marque os negócios";
+      contador.textContent = `${totalLinks() + n} de ${MAX_LINKS}`;
+    };
+    usar.addEventListener("click", () => {
+      if (!sel.size) return;
+      marcar(sel.size === 1 ? "Marcar negócio" : "Marcar negócios");
+      const umSo = sel.size === 1 && !figLinks().length;
+      for (const { negocio, oculto } of sel.values()) {
+        if (umSo && !oculto) porNaTela(negocio); else negLista.set(negocio.id, { negocio, oculto });
+      }
+      toast(sel.size === 1 ? `${[...sel.values()][0].negocio.nome} marcado no flash` : `${sel.size} negócios marcados`);
+      abrirLinks();
+    });
     lista.appendChild(el("p", "figs-dica", "Carregando..."));
-    negociosP ||= fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.limit(300))).then((x) => x.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => n.nome && PAGINA_NEGOCIO[n.tipo] && !escondido(n.donoId))).catch(() => []);
-    const todos = await negociosP;
+    const todos = await lerNegocios();
     const meus = todos.filter((n) => n.donoId === eu.uid);
-    const ROT = { servicos: "Freelances", delivery: "Delivery", lojinha: "Lojinha", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo", automotivo: "Automotivo" };
     const item = (n) => {
-      const b = el("button", "mencao-item"); b.type = "button";
-      const av = el("span", "avatar neg-av " + n.tipo); if (n.foto && /^(data:image|https:)/.test(n.foto)) pintarAvatar(av, n.foto, n.nome); else av.appendChild(icone(ICONE_NEGOCIO[n.tipo], "i s"));
-      const tx = el("span", "tx"); tx.append(el("strong", null, n.nome), el("small", null, [ROT[n.tipo], n.donoId === eu.uid ? "seu negócio" : ""].filter(Boolean).join(" · ")));
-      b.append(av, tx);
-      b.addEventListener("click", () => {
-        pn.remove();
-        const negocio = { id: n.id, nome: n.nome, tipo: n.tipo };
-        if (t) { if (t.negocio?.id === negocio.id) return; marcar("Trocar link do negócio"); t.negocio = negocio; pintarTexto(t); toast(`Link trocado para ${n.nome}`); }
-        else { textos.filter((x) => x.lk).forEach((x) => { x.el.remove(); textos.splice(textos.indexOf(x), 1); }); criarTexto({ lk: true, negocio, texto: "", x: 0.5, y: 0.68, tam: 0.05, letra: 0, cor: "#111", destaque: false }); }
-      });
-      return b;
+      const negocio = { id: n.id, nome: limparNome(n.nome), tipo: n.tipo };
+      const ja = jaLinkado(n.id), marcada = sel.get(n.id);
+      const linha = el("div", "mencao-item fm-linha" + (marcada ? " marcada" : "") + (ja ? " ja" : ""));
+      const b = el("button", "fm-usar"); b.type = "button"; b.setAttribute("aria-pressed", String(!!marcada));
+      const tx = el("span", "tx"); tx.append(el("strong", null, negocio.nome), el("small", null, [ROT_NEG[n.tipo], n.donoId === eu.uid ? "seu negócio" : "", ja ? "já marcado" : marcada?.oculto ? "oculto" : ""].filter(Boolean).join(" · ")));
+      b.append(el("span", "fm-check"), avatarNeg(n), tx);
+      const oc = el("button", "fa-oculta" + (marcada?.oculto ? " on" : "")); oc.type = "button"; oc.title = "Marcar oculto (só você vê)"; oc.setAttribute("aria-label", `Marcar ${negocio.nome} oculto`); oc.appendChild(icone("olho-off", "i xs"));
+      if (ja) { b.disabled = true; oc.disabled = true; }
+      const alternar = (oculto) => {
+        const x = sel.get(n.id);
+        if (x && oculto == null) sel.delete(n.id);
+        else if (x) x.oculto = !x.oculto;
+        else { if (sel.size >= vagas()) { toast(`Dá para marcar até ${MAX_LINKS} negócios em cada flash.`); return; } sel.set(n.id, { negocio, oculto: !!oculto }); }
+        pintarRodape(); pintarL();
+      };
+      b.addEventListener("click", () => alternar(null));
+      oc.addEventListener("click", () => alternar(true));
+      linha.append(b, oc);
+      return linha;
     };
     const pintarL = () => {
-      const q = busca.value.trim().toLowerCase();
-      const outros = todos.filter((n) => n.donoId !== eu.uid && (!q || String(n.nome).toLowerCase().includes(q))).slice(0, 30);
-      const m = meus.filter((n) => !q || String(n.nome).toLowerCase().includes(q));
+      const q = semAc(busca.value.trim());
+      const bate = (n) => !q || semAc(n.nome).includes(q);
+      const marcados = todos.filter((n) => sel.has(n.id) && !bate(n));
+      const m = meus.filter(bate), outros = todos.filter((n) => n.donoId !== eu.uid && bate(n)).slice(0, 30);
       const blocos = [];
+      if (marcados.length) blocos.push(el("p", "figs-sec", "Marcados"), ...marcados.map(item));
       if (m.length) blocos.push(el("p", "figs-sec", "Seus negócios"), ...m.map(item));
       if (outros.length) blocos.push(el("p", "figs-sec", q ? "Encontrados" : "Outros negócios"), ...outros.map(item));
       lista.replaceChildren(...(blocos.length ? blocos : [el("p", "figs-dica", q ? "Nenhum negócio com esse nome." : "Ainda não há negócios no site.")]));
     };
     busca.addEventListener("input", pintarL);
-    pintarL();
+    pintarRodape(); pintarL();
   }
+  // (compatível com quem chamava: figurinha tocada / pílula das figurinhas)
+  const escolherNegocio = () => (totalLinks() ? abrirLinks() : escolherNegocios());
   // ---------- menções (@) ----------
   // Três jeitos de mencionar: a figurinha "@usuário" (dá para ocultar), o "@" escrito no texto ou na legenda (as
   // sugestões aparecem enquanto digita, como nos apps) e a menção OCULTA (a pessoa é avisada e pode pôr o flash no dela,
   // mas o nome não aparece para quem vê). Até 10 pessoas. O botão "@" organiza tudo numa lista.
   const avisos = new Map();  // uid -> perfil (menção oculta, sem figurinha nem texto)
+  // "Só na lista" (11/11/2026): escolhidas na lista de pessoas (uma ou várias de uma vez). Não aparecem na foto: quem vê
+  // encontra em "Mencionados". O @ só aparece na tela quando a pessoa escreve @ pelo teclado (fica sublinhado).
+  const listaM = new Map();  // uid -> perfil
   const nickUid = new Map(); // nick -> uid (escolhidos nas sugestões)
   let pessoasMenc = null;
   const RECENTES_M = "hf-mencoes-rec-" + eu.uid;
@@ -2212,7 +2387,13 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   const textosComArroba = () => [modo === "texto" ? area.value : "", legenda.value, ...textos.filter((t) => !t.fig && !t.enq && !t.cx && !t.lk && !t.ct && !t.emoji).map((t) => t.texto)].join("\n");
   const nicksNoTexto = () => [...new Set([...textosComArroba().matchAll(/(^|[^\w@#])@([a-z0-9._]{3,20})/gi)].map((m) => m[2].toLowerCase().replace(/\.+$/, "")))];
   const figMencoes = () => textos.filter((t) => t.fig === "mencao" && t.uid);
-  const totalMencoes = () => new Set([...figMencoes().map((t) => t.uid), ...nicksNoTexto().map((n) => nickUid.get(n) || "@" + n), ...avisos.keys()]).size;
+  const totalMencoes = () => new Set([...figMencoes().map((t) => t.uid), ...nicksNoTexto().map((n) => nickUid.get(n) || "@" + n), ...listaM.keys(), ...avisos.keys()]).size;
+  // Cada pessoa num lugar só (figurinha > lista > oculta): depois de desfazer/refazer, nada fica repetido.
+  function arrumarMencoes() {
+    for (const t of figMencoes()) { listaM.delete(t.uid); avisos.delete(t.uid); }
+    for (const u of listaM.keys()) avisos.delete(u);
+  }
+  const jaMencionado = (p) => figMencoes().some((t) => t.uid === p.uid) || listaM.has(p.uid) || avisos.has(p.uid) || nicksNoTexto().includes(String(p.nickname || "").toLowerCase());
   function pintarArroba() {
     publicar.disabled = !prontoParaPublicar() || enviando;
     const n = totalMencoes();
@@ -2279,50 +2460,85 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   }
   // Escolher alguém para mencionar (figurinha no modo foto; no modo texto, "@usuário" no texto). Cada pessoa tem
   // também o botão de menção oculta.
+  // Mencionar (11/11/2026): marca UMA ou VÁRIAS pessoas de uma vez (antes era de uma em uma) e elas entram na lista
+  // "Mencionados" do flash, sem encher a foto de @. O olho cortado em cada linha deixa a pessoa oculta (só o aviso).
+  // Na lista "Menções" dá para pôr qualquer uma na tela como figurinha.
   async function escolherMencao() {
     palco.querySelector(".flash-figs")?.remove();
-    const pn = el("div", "flash-figs");
+    esconderArroba();
+    const pn = el("div", "flash-figs fm-escolher");
     const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Fechar"); ok.type = "button";
-    cab.append(el("strong", "figs-tit", "Mencionar"), el("span", "esp"), ok);
+    cab.append(el("strong", "figs-tit", "Mencionar pessoas"), el("span", "esp"), ok);
     const busca = el("input", "fe-local"); busca.type = "search"; busca.placeholder = "Buscar pelo nome ou @"; busca.setAttribute("aria-label", "Buscar pessoas"); busca.autocomplete = "off";
+    busca.maxLength = 30;
     const lista = el("div", "mencao-lista");
     const corpo = el("div", "mencao-corpo");
-    corpo.append(busca, el("p", "figs-dica", modo === "texto" ? "Toque para pôr o @ no texto · olho cortado: a pessoa é avisada sem o nome aparecer" : "Toque para pôr a figurinha · olho cortado: a pessoa é avisada sem o nome aparecer"), lista);
-    pn.append(cab, corpo);
+    const vagas = () => Math.max(0, 10 - totalMencoes());
+    const sel = new Map(); // uid -> { p, oculta }
+    const rodape = el("div", "fm-rodape");
+    const usar = el("button", "fm-usar-todos"); usar.type = "button";
+    const contador = el("small", "fm-cont");
+    rodape.append(contador, usar);
+    corpo.append(busca, el("p", "figs-dica", "Toque para marcar uma ou várias pessoas. Elas aparecem para quem vê em “Mencionados” (o @ não vai para a foto). Olho cortado: a pessoa é avisada, mas ninguém vê o nome. Para o @ aparecer na tela, escreva @ no texto."), lista);
+    pn.append(cab, corpo, rodape);
     palco.appendChild(pn);
     ok.addEventListener("click", () => pn.remove());
+    const pintarRodape = () => {
+      const n = sel.size, oc = [...sel.values()].filter((x) => x.oculta).length;
+      usar.disabled = !n;
+      usar.textContent = n ? `Mencionar ${n} ${n === 1 ? "pessoa" : "pessoas"}` : "Marque quem mencionar";
+      contador.textContent = `${totalMencoes() + n} de 10${oc ? ` · ${oc} oculta${oc > 1 ? "s" : ""}` : ""}`;
+    };
+    usar.addEventListener("click", async () => {
+      if (!sel.size) return;
+      usar.disabled = true;
+      let feitas = 0, ocultas = 0;
+      for (const { p, oculta } of sel.values()) {
+        if (!(await podeEsta(p))) continue;
+        lembrarM(p.uid); nickUid.set(String(p.nickname).toLowerCase(), p.uid);
+        if (oculta) { avisos.set(p.uid, p); ocultas++; } else listaM.set(p.uid, p);
+        feitas++;
+      }
+      pn.remove(); pintarArroba();
+      if (feitas) toast(feitas === 1 ? (ocultas ? `@${[...sel.values()][0].p.nickname} recebe o aviso, mas o nome não aparece` : `@${[...sel.values()][0].p.nickname} está em “Mencionados”`) : `${feitas} pessoas mencionadas${ocultas ? ` (${ocultas} oculta${ocultas > 1 ? "s" : ""})` : ""}`);
+    });
     lista.appendChild(el("p", "figs-dica", "Carregando..."));
     let id = 0;
     const pintarL = async () => {
       const q = semAc(busca.value.trim()).replace(/^@/, ""), meu = ++id;
       const l = await sugerirPessoas(q);
       if (meu !== id) return;
-      lista.replaceChildren(...(l.length ? l.map((p) => {
-        const linha = el("div", "mencao-item fm-linha");
-        const b = el("button", "fm-usar"); b.type = "button";
+      // as já marcadas continuam à vista mesmo quando a busca muda
+      const todas = [...[...sel.values()].map((x) => x.p).filter((p) => !l.some((y) => y.uid === p.uid)), ...l];
+      lista.replaceChildren(...(todas.length ? todas.map((p) => {
+        const ja = jaMencionado(p), marcada = sel.get(p.uid);
+        const linha = el("div", "mencao-item fm-linha" + (marcada ? " marcada" : "") + (ja ? " ja" : ""));
+        const b = el("button", "fm-usar"); b.type = "button"; b.setAttribute("aria-pressed", String(!!marcada));
         const av = el("span", "avatar"); pintarAvatar(av, p.fotoPerfil, p.nome);
-        const tx = el("span", "tx"); tx.append(el("strong", null, p.nome || "Usuário"), el("small", null, "@" + p.nickname));
-        b.append(av, tx);
-        const oc = el("button", "fa-oculta"); oc.type = "button"; oc.title = "Mencionar sem aparecer"; oc.setAttribute("aria-label", `Mencionar @${p.nickname} sem aparecer`);
-        oc.append(icone("olho-off", "i xs"));
-        if (avisos.has(p.uid)) oc.classList.add("on");
-        b.addEventListener("click", async () => {
-          if (figMencoes().some((t) => t.uid === p.uid) || (modo === "texto" && nicksNoTexto().includes(p.nickname))) { toast(`@${p.nickname} já está mencionado neste flash.`); return; }
-          if (!avisos.has(p.uid) && !(await podeEsta(p))) return;
-          pn.remove(); lembrarM(p.uid); nickUid.set(p.nickname, p.uid);
-          if (modo === "texto") {
-            area.value = (area.value.trimEnd() + " @" + p.nickname + " ").replace(/^ /, "").slice(0, area.maxLength);
-            area.dispatchEvent(new Event("input")); area.focus(); pintarArroba(); return;
-          }
-          colocarFig("mencao", "@" + p.nickname, { uid: p.uid });
+        const tx = el("span", "tx"); tx.append(el("strong", null, p.nome || "Usuário"), el("small", null, ja ? `@${p.nickname} · já mencionado` : marcada?.oculta ? `@${p.nickname} · oculta` : "@" + p.nickname));
+        const caixa = el("span", "fm-check"); caixa.setAttribute("aria-hidden", "true");
+        b.append(caixa, av, tx);
+        const oc = el("button", "fa-oculta"); oc.type = "button"; oc.title = "Mencionar sem aparecer (oculta)"; oc.setAttribute("aria-label", `Mencionar @${p.nickname} sem aparecer`);
+        oc.append(icone("olho-off", "i xs")); oc.setAttribute("aria-pressed", String(!!marcada?.oculta));
+        if (marcada?.oculta) oc.classList.add("on");
+        if (ja) { b.disabled = true; oc.disabled = true; }
+        b.addEventListener("click", () => {
+          if (sel.has(p.uid)) sel.delete(p.uid);
+          else { if (sel.size >= vagas()) { toast("Dá para mencionar até 10 pessoas em cada flash."); return; } sel.set(p.uid, { p, oculta: false }); }
+          pintarRodape(); pintarL();
         });
-        oc.addEventListener("click", async () => { if (await mencionarOculta(p)) pn.remove(); });
+        oc.addEventListener("click", () => {
+          const x = sel.get(p.uid);
+          if (x) x.oculta = !x.oculta;
+          else { if (sel.size >= vagas()) { toast("Dá para mencionar até 10 pessoas em cada flash."); return; } sel.set(p.uid, { p, oculta: true }); }
+          pintarRodape(); pintarL();
+        });
         linha.append(b, oc);
         return linha;
       }) : [el("p", "figs-dica", q ? "Ninguém com esse nome ou @." : "Siga pessoas para mencionar no flash.")]));
     };
     busca.addEventListener("input", pintarL);
-    pintarL();
+    pintarRodape(); pintarL();
     setTimeout(() => busca.focus(), 50);
   }
   // Lista de quem está mencionado: figurinhas (mostrar/ocultar, tirar), escritos no texto e os ocultos.
@@ -2333,9 +2549,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     const cab = el("div", "fe-cab"); const ok = el("button", "fe-pronto", "Pronto"); ok.type = "button";
     cab.append(el("strong", "figs-tit", "Menções"), el("span", "esp"), ok);
     const corpo = el("div", "mencao-corpo");
-    const add = el("button", "fm-add"); add.type = "button"; add.append(icone("pessoa-mais", "i s"), el("span", null, "Mencionar alguém"));
+    const add = el("button", "fm-add"); add.type = "button"; add.append(icone("pessoa-mais", "i s"), el("span", null, "Mencionar pessoas"));
     const lista = el("div", "mencao-lista");
-    corpo.append(add, el("p", "figs-dica", "Quem você menciona recebe um aviso e pode pôr o seu flash no dele. Oculta: a pessoa é avisada, mas o nome não aparece para quem vê. Dica: escreva @ no texto ou na legenda."), lista);
+    corpo.append(add, el("p", "figs-dica", "Quem você menciona recebe um aviso e pode pôr o seu flash no dele. Na lista: aparece em “Mencionados”, sem ir para a foto. Oculta: a pessoa é avisada, mas só você vê. Para o @ aparecer na foto, escreva @ no texto ou na legenda (fica sublinhado)."), lista);
     pn.append(cab, corpo); palco.appendChild(pn);
     ok.addEventListener("click", () => pn.remove());
     add.addEventListener("click", () => { if (totalMencoes() >= 10) { toast("Dá para mencionar até 10 pessoas em cada flash."); return; } escolherMencao(); });
@@ -2347,27 +2563,59 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       l.append(info, ...botoes); return l;
     };
     const botao = (ic, rot, fn, extra = "") => { const b = el("button", "fa-oculta" + extra); b.type = "button"; b.title = rot; b.setAttribute("aria-label", rot); b.appendChild(icone(ic, "i xs")); b.addEventListener("click", fn); return b; };
+    // Cada pessoa num jeito só: Na tela (figurinha @), Na lista (em "Mencionados") ou Oculta (só o aviso).
+    const mudarModo = (e, k) => {
+      if (e.modo === k) return;
+      marcar("Mudar a menção");
+      if (e.t) { e.t.el.remove(); textos.splice(textos.indexOf(e.t), 1); }
+      listaM.delete(e.uid); avisos.delete(e.uid);
+      const p = { uid: e.uid, ...e.p };
+      if (k === "tela") colocarFig("mencao", "@" + (p.nickname || ""), { uid: e.uid });
+      else if (k === "lista") listaM.set(e.uid, p); else avisos.set(e.uid, p);
+      pintarL();
+    };
+    const tirar = (e) => {
+      marcar("Tirar a menção");
+      if (e.t) { e.t.el.remove(); textos.splice(textos.indexOf(e.t), 1); }
+      listaM.delete(e.uid); avisos.delete(e.uid); pintarL();
+    };
     async function pintarL() {
+      arrumarMencoes();
       const blocos = [];
-      const figs = figMencoes(), nicks = nicksNoTexto();
-      // Muitas menções: um toque junta todas na lista "Mencionados" (sem encher a foto de @).
+      const nicks = nicksNoTexto();
+      // figurinhas antigas "só na lista"/"oculta" (rascunhos de antes) entram no jeito novo
+      for (const t of figMencoes()) {
+        if (!t.oculta && !t.soLista) continue;
+        t.el.remove(); textos.splice(textos.indexOf(t), 1);
+        (t.oculta ? avisos : listaM).set(t.uid, { uid: t.uid, nickname: t.texto.replace(/^@/, "") });
+      }
+      const ents = [
+        ...figMencoes().map((t) => ({ uid: t.uid, modo: "tela", t, nick: t.texto.replace(/^@/, "") })),
+        ...[...listaM.values()].map((p) => ({ uid: p.uid, modo: "lista", p, nick: p.nickname })),
+        ...[...avisos.values()].map((p) => ({ uid: p.uid, modo: "oculta", p, nick: p.nickname }))
+      ];
       blocos.push(el("p", "fm-total", `${totalMencoes()} de 10 pessoas mencionadas`));
-      if (figs.filter((t) => !t.soLista && !t.oculta).length >= 3) {
+      const naTela = ents.filter((e) => e.modo === "tela");
+      if (naTela.length >= 2) {
         const j = el("button", "fm-add fm-juntar"); j.type = "button"; j.append(icone("pessoa-mais", "i s"), el("span", null, "Tirar os @ da foto e mostrar só em “Mencionados”"));
-        j.addEventListener("click", () => { figs.forEach((t) => { if (!t.oculta) { t.soLista = true; pintarTexto(t); } }); pintarL(); toast("Os @ saíram da foto: quem vê encontra todos em “Mencionados”"); });
+        j.addEventListener("click", () => { naTela.forEach((e) => mudarModo(e, "lista")); toast("Os @ saíram da foto: quem vê encontra todos em “Mencionados”"); });
         blocos.push(j);
       }
-      if (figs.length) {
-        blocos.push(el("p", "figs-sec", "Figurinhas"));
-        for (const t of figs) {
-          const p = await obterPerfil(t.uid).catch(() => ({}));
-          const modoM = t.oculta ? "oculta" : t.soLista ? "lista" : "tela";
-          const sub = { tela: "Na tela: o @ aparece no flash e abre o perfil", lista: "Só na lista: não aparece na foto, mas quem vê encontra em “Mencionados”", oculta: "Oculta: só recebe o aviso, ninguém vê" }[modoM];
-          const l = linha({ ...p, nickname: t.texto.replace(/^@/, "") || p.nickname }, sub, [botao("lixo", "Tirar a menção", () => { t.el.remove(); textos.splice(textos.indexOf(t), 1); pintarArroba(); pintarL(); })]);
+      const SUB = { tela: "Na tela: o @ aparece na foto e abre o perfil", lista: "Na lista: não aparece na foto; quem vê encontra em “Mencionados”", oculta: "Oculta: recebe o aviso, mas ninguém vê o nome (só você)" };
+      for (const [modoM, titulo] of [["tela", "Na tela"], ["lista", "Na lista “Mencionados”"], ["oculta", "Ocultas (só você vê)"]]) {
+        const grupo = ents.filter((e) => e.modo === modoM);
+        if (!grupo.length) continue;
+        blocos.push(el("p", "figs-sec", titulo));
+        for (const e of grupo) {
+          e.p = { ...(await obterPerfil(e.uid).catch(() => ({}))), ...(e.p || {}) };
+          const l = linha({ ...e.p, nickname: e.nick || e.p.nickname }, SUB[modoM], [botao("lixo", "Tirar a menção", () => tirar(e))]);
+          if (modoM === "oculta") l.classList.add("fm-oculta");
           const seg = el("div", "fm-seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Como a menção aparece");
-          [["tela", "Na tela"], ["lista", "Só na lista"], ["oculta", "Oculta"]].forEach(([k, rot]) => {
-            const b = el("button", "fm-seg-op" + (k === modoM ? " on" : ""), rot); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoM));
-            b.addEventListener("click", () => { marcar("Mudar a menção"); t.oculta = k === "oculta"; t.soLista = k === "lista"; pintarTexto(t); pintarL(); });
+          [["tela", "Na tela"], ["lista", "Na lista"], ["oculta", "Oculta"]].forEach(([k, rot]) => {
+            const b = el("button", "fm-seg-op" + (k === modoM ? " on" : "")); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === modoM));
+            if (k === "oculta") b.appendChild(icone("olho-off", "i xs"));
+            b.appendChild(document.createTextNode(rot));
+            b.addEventListener("click", () => mudarModo(e, k));
             seg.appendChild(b);
           });
           const w = el("div", "fm-bloco"); w.append(l, seg);
@@ -2378,17 +2626,10 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         blocos.push(el("p", "figs-sec", "Escritos no texto"));
         for (const n of nicks) {
           const u = nickUid.get(n); const p = u ? await obterPerfil(u).catch(() => ({})) : {};
-          blocos.push(linha({ ...p, nickname: n }, "Aparece onde você escreveu · para tirar, apague do texto", []));
+          blocos.push(linha({ ...p, nickname: n }, "Na tela, sublinhado onde você escreveu · para tirar, apague do texto", []));
         }
       }
-      if (avisos.size) {
-        blocos.push(el("p", "figs-sec", "Ocultas (só o aviso)"));
-        [...avisos.values()].forEach((p) => blocos.push(linha(p, "Não aparece para quem vê", [
-          ...(modo === "foto" && img ? [botao("olho", "Mostrar como figurinha", () => { avisos.delete(p.uid); colocarFig("mencao", "@" + p.nickname, { uid: p.uid }); pintarL(); })] : []),
-          botao("lixo", "Tirar a menção", () => { avisos.delete(p.uid); pintarArroba(); pintarL(); })
-        ])));
-      }
-      lista.replaceChildren(...(blocos.length ? blocos : [el("p", "figs-dica fm-vazio", "Ninguém mencionado ainda.")]));
+      lista.replaceChildren(...(blocos.length > 1 ? blocos : [el("p", "figs-dica fm-vazio", "Ninguém mencionado ainda.")]));
       pintarArroba();
     }
     pintarL();
@@ -2399,7 +2640,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
   async function mencoesParaGravar() {
     const nicks = nicksNoTexto();
     const doTexto = nicks.length ? await uidsMencionados(nicks.map((n) => "@" + n).join(" ")).catch(() => []) : [];
-    const vis = [...new Set([...figMencoes().filter((t) => !t.oculta).map((t) => t.uid), ...doTexto])];
+    arrumarMencoes();
+    const vis = [...new Set([...figMencoes().filter((t) => !t.oculta).map((t) => t.uid), ...listaM.keys(), ...doTexto])];
     const oc = [...new Set([...figMencoes().filter((t) => t.oculta).map((t) => t.uid), ...avisos.keys()])].filter((u) => !vis.includes(u));
     const todas = [...vis, ...oc].slice(0, 10);
     const ocultas = oc.filter((u) => todas.includes(u));
@@ -2456,8 +2698,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     bDe.addEventListener("click", () => { if (tmp.destaque) { tmp.destaque = false; tmp.vidro = true; } else if (tmp.vidro) tmp.vidro = false; else tmp.destaque = true; pintarEd(); });
     tam.addEventListener("input", () => { tmp.tam = Number(tam.value); pintarEd(); });
     const concluir = () => {
-      const texto = campo.value.trim();
+      const texto = limparSpam(campo.value, 6).trim();
       ed.remove();
+      if (texto && contarHashtags(texto) + hashtagsFora(t) > MAX_HASHTAGS) { toast(`Até ${MAX_HASHTAGS} hashtags por flash (somando figurinhas, textos e legenda).`); return; }
       if (t && !texto) { marcar(`Apagar ${nomeFig(t)}`); t.el.remove(); textos.splice(textos.indexOf(t), 1); return; }
       if (!texto) return;
       tmp.texto = texto;
@@ -2776,7 +3019,7 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       const r = {
         id: rascId || "r" + Date.now().toString(36), quando: Date.now(), modo: video ? "foto" : modo, fundoI, letraI, texto: area.value, legenda: legenda.value,
         foto: fotoUrl, filtro: filtro.id, z, ox: ox / (W || 1), oy: oy / (W || 1), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })), paraAmigos, alvo,
-        textos: textos.map(({ el: _e, _area, _arrobas, img: im, ...t }) => ({ ...t, ...(im ? { imgSrc: im.src } : {}) })), avisos: [...avisos.values()]
+        textos: textos.map(({ el: _e, _area, _arrobas, img: im, ...t }) => ({ ...t, ...(im ? { imgSrc: im.src } : {}) })), avisos: [...avisos.values()], lista: [...listaM.values()], neg: [...negLista.values()]
       };
       await guardarRascunho(r);
       rascId = r.id;
@@ -2806,7 +3049,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       : t.fig === "mencao" ? "menção" : t.fig === "local" ? "localização" : t.fig === "hashtag" ? "hashtag" : t.fig ? "figurinha" : "texto";
     return maiuscula ? n[0].toUpperCase() + n.slice(1) : n;
   }
-  const instantaneo = () => ({ textos: textos.map(({ el: _e, _area, _arrobas, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })) });
+  const instantaneo = () => ({ textos: textos.map(({ el: _e, _area, _arrobas, ...t }) => ({ ...t })), tracos: tracos.map((t) => ({ ...t, pts: t.pts.slice() })),
+    avisos: [...avisos.values()], lista: [...listaM.values()], neg: [...negLista.values()].map((x) => ({ ...x })) });
   let tRot = 0;
   function avisarHist(txt, comDesfazer = false) {
     rotHist.textContent = txt; hist.classList.add("com-rot", "pisca"); clearTimeout(tRot);
@@ -2833,6 +3077,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     textos.splice(0).forEach((t) => t.el?.remove());
     h.textos.forEach((t) => criarTexto({ ...t }));
     tracos.splice(0, tracos.length, ...h.tracos); pintarDesenho();
+    avisos.clear(); (h.avisos || []).forEach((p) => avisos.set(p.uid, p));
+    listaM.clear(); (h.lista || []).forEach((p) => listaM.set(p.uid, p));
+    negLista.clear(); (h.neg || []).forEach((x) => negLista.set(x.negocio.id, x));
     restaurando = false;
     pintarArroba();
     publicar.disabled = !prontoParaPublicar() || enviando;
@@ -2988,6 +3235,9 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         }
         g.fillText(l, x, y);
         g.shadowBlur = 0;
+        // @ escrito pelo teclado: sublinhado, como no Instagram (quem vê toca e abre o perfil)
+        const wl = g.measureText(l).width, esq = al === "left" ? x : al === "right" ? x - wl : x - wl / 2;
+        sublinharArrobas(g, l, esq, y, px);
       });
   }
   function desenharFoto() {
@@ -3006,8 +3256,24 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     while (url.length > 860000 && q > 0.45) { q -= 0.08; url = c.toDataURL("image/jpeg", q); }
     return url;
   }
+  // Dono do negócio marcado (de outra pessoa) recebe o aviso no Mensagens, uma vez por flash, se aceita ser marcado
+  // por você ("Quem pode me marcar"). Os seus negócios não avisam ninguém.
+  async function avisarDonosNegocios(flashId, negs) {
+    const porDono = new Map();
+    negs.forEach((n) => { const dono = String(n.id).split("_")[0]; if (dono && dono !== eu.uid && !porDono.has(dono)) porDono.set(dono, n); });
+    for (const [dono, n] of [...porDono].slice(0, MAX_LINKS)) {
+      if (escondido(dono) || !(await podeMarcar(dono).catch(() => false))) continue;
+      mandarMensagem(dono, msgFlash({ id: flashId, autorId: eu.uid, nome: dados.nome }, "negocio", { negocioId: n.id, negocioNome: limparNome(n.nome) }), `Marcou ${limparNome(n.nome)} no flash`).catch(() => {});
+    }
+  }
   publicar.addEventListener("click", async () => {
     if (enviando || !prontoParaPublicar()) return;
+    // Anti-spam: textos sem letras repetidas sem fim, até 10 menções e até 5 hashtags (somando tudo).
+    const antes = [area.value, legenda.value];
+    area.value = limparSpam(area.value, 10); legenda.value = limparSpam(legenda.value, 1).replace(/\n/g, " ");
+    if (antes[0] !== area.value || antes[1] !== legenda.value) pintarArroba();
+    if (totalMencoes() > 10) { toast("Dá para mencionar até 10 pessoas em cada flash: tire alguns @."); return; }
+    if (hashtagsFora(null) > MAX_HASHTAGS) { toast(`Até ${MAX_HASHTAGS} hashtags por flash (somando figurinhas, textos e legenda): tire algumas.`); return; }
     enviando = true; publicar.disabled = true; publicar.classList.add("enviando"); publicar.firstChild.textContent = "Publicando...";
     try {
       if (video && modo !== "texto") {
@@ -3019,7 +3285,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         await gravar({ tipo: "video", midia: await storageFns.getDownloadURL(r), duracao: Math.min(60, Math.round(video.dur)), ...(texto ? { texto } : {}), ...camposDestino(), ...(await mencoesParaGravar()) });
       } else {
         // Texto ou foto: as figurinhas (enquete, perguntas, local, @, fotos por cima, pincel) valem nos dois.
-        const imagem = modo === "texto" ? desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI), (g, W, H) => desenharCamada(g, W, H)) : desenharFoto();
+        const arrobasTexto = [];
+        const imagem = modo === "texto" ? desenharTexto(area.value.trim(), FUNDOS[fundoI], LETRAS[letraI], corTexto(fundoI), (g, W, H) => desenharCamada(g, W, H), arrobasTexto) : desenharFoto();
         const url = await salvarImagem(imagem, `stories/${eu.uid}/${Date.now()}.jpg`);
         const texto = modo === "texto" ? "" : legenda.value.trim().slice(0, 150);
         const enq = textos.find((t) => t.enq);
@@ -3048,20 +3315,29 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
         if (local) toques.unshift(local);
         // @ escrito nos textos: vira área tocável também (só quem está mesmo nas menções)
         const visiveis = new Set((mencoes.mencoes || []).filter((u) => !(mencoes.mencoesOcultas || []).includes(u)));
-        for (const t of textos) {
+        for (const t of [{ _arrobas: arrobasTexto }, ...textos]) {
           for (const a of t._arrobas || []) {
             if (toques.length >= 8) break;
             const uid = nickUid.get(a.nick) || (await fb.getDoc(fb.doc(fb.db, "nicknames", a.nick)).then((d) => (d.exists() ? d.data().uid : null)).catch(() => null));
             if (uid && visiveis.has(uid) && !toques.some((z) => z.startsWith(`m|${uid}|`))) toques.push(["m", uid, ...pos(a)].join("|"));
           }
         }
-        const lk = textos.find((t) => t.lk);
+        // Negócios marcados: o 1º na tela vai também em "link" (como sempre: versões antigas do site e regras do ar);
+        // com mais de um, ou na lista/oculto, todos vão nas figurinhas tocáveis ("toques"): "n|id|t|nome|x|y|k|0" (na tela),
+        // "n|id|l|nome|0|0|0|0" (na lista) e "n|id|o|nome|0|0|0|0" (oculto). Mesmo campo, mesma regra (sem custo novo).
+        const lks = figLinks().slice(0, MAX_LINKS), lk = lks[0];
         const link = lk ? { negocioId: lk.negocio.id, nome: String(lk.negocio.nome || "").slice(0, 80), tipo: lk.negocio.tipo, x: Math.round(lk.x * 1000) / 1000, y: Math.round(lk.y * 1000) / 1000, ...kDe(lk) } : null;
+        const extrasNeg = [...negLista.values()].filter((x) => !lks.some((t) => t.negocio.id === x.negocio.id));
+        const links = lks.length > 1 || extrasNeg.length ? [
+          ...lks.map((t) => ["n", t.negocio.id, "t", limparNome(t.negocio.nome), r3(t.x), r3(t.y), Math.min(1.3, Math.max(0.6, kDe(t).k || 1)), 0].join("|")),
+          ...extrasNeg.map((x) => ["n", x.negocio.id, x.oculto ? "o" : "l", limparNome(x.negocio.nome), 0, 0, 0, 0].join("|"))
+        ].slice(0, MAX_LINKS) : [];
         const repostDe = repost ? { storyId: repost.id, autorId: repost.autorId, nome: String(repost.nome || "").slice(0, 80) } : null;
         const postDe = post ? { postId: post.id, autorId: post.autorId, nome: String(post.nome || "").slice(0, 80) } : null;
         const ref = await gravar({ tipo: "imagem", midia: url, ...(texto ? { texto } : {}), ...camposDestino(), ...(enquete ? { enquete } : {}), ...(caixa ? { caixa } : {}), ...(contagem ? { contagem } : {}), ...(link ? { link } : {}), ...(repostDe ? { repostDe } : {}), ...(postDe ? { postDe } : {}),
-          ...mencoes, ...(toques.length ? { toques } : {}) }, { imagem });
+          ...mencoes, ...(toques.length + links.length ? { toques: [...toques.slice(0, 8), ...links] } : {}) }, { imagem });
         if (enquete && !Number.isInteger(enquete.certa)) registrarEnquete("f_" + ref.id, enquete);
+        avisarDonosNegocios(ref.id, [...lks.map((t) => t.negocio), ...extrasNeg.map((x) => x.negocio)]);
         if (repost && repost.autorId !== eu.uid) mandarMensagem(repost.autorId, msgFlash({ id: ref.id, autorId: eu.uid, nome: dados.nome }, "repost", { original: repost.id }), "Repostou seu flash").catch(() => {});
       }
       if (rascId) apagarRascunho(rascId).catch(() => {});
@@ -3089,6 +3365,8 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
     alvo = rascunho.alvo || null; pintarAlvo();
     filtro = FILTROS.find((f) => f.id === rascunho.filtro) || FILTROS[0];
     (rascunho.avisos || []).forEach((p2) => p2?.uid && avisos.set(p2.uid, p2));
+    (rascunho.lista || []).forEach((p2) => p2?.uid && listaM.set(p2.uid, p2));
+    (rascunho.neg || []).forEach((x) => x?.negocio?.id && negLista.set(x.negocio.id, x));
     tracos.splice(0, tracos.length, ...(rascunho.tracos || []));
     const carregarImg2 = (src) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; });
     const pore = async () => {
@@ -3134,11 +3412,11 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
       if (e?.pergunta) doOriginal.push({ enq: true, pergunta: e.pergunta, opcoes: e.opcoes || [], ...(Number.isInteger(e.certa) ? { certa: e.certa } : {}), anonima: !!e.anonima, duracao: ms(e.fimEm) ? { fim: ms(e.fimEm) } : { dur: 1440 }, ...pos(e) });
       if (c?.pergunta) doOriginal.push({ cx: true, pergunta: c.pergunta, anonima: !!c.anonima, ...pos(c) });
       if (k?.titulo && ms(k.fim)) doOriginal.push({ ct: true, titulo: k.titulo, fim: ms(k.fim), ...pos(k) });
-      if (l?.negocioId) doOriginal.push({ lk: true, negocio: { id: l.negocioId, nome: l.nome, tipo: l.tipo }, ...pos(l) });
+      (linksDoFlash(repost)?.filter((x) => x.modo === "tela") || (l?.negocioId ? [l] : [])).forEach((x) => doOriginal.push({ lk: true, negocio: { id: x.negocioId, nome: x.nome, tipo: x.tipo }, ...pos(x) }));
       doOriginal.forEach((t) => { t.el = el("div"); t.el.setAttribute("aria-hidden", "true"); camada.appendChild(t.el); pintarOriginal(t); });
       separarOriginal();
       // As figurinhas que funcionam (enquete, perguntas, contagem, link, lugar, # e @) vão junto e continuam valendo.
-      const tem = [repost.enquete && (repost.enquete.certa != null ? "teste" : "enquete"), repost.caixa && "perguntas", repost.contagem && "contagem", repost.link && "link", Array.isArray(repost.toques) && repost.toques.length && "lugar, # e @"].filter(Boolean);
+      const tem = [repost.enquete && (repost.enquete.certa != null ? "teste" : "enquete"), repost.caixa && "perguntas", repost.contagem && "contagem", (repost.link || repost.links) && "negócios", Array.isArray(repost.toques) && repost.toques.length && "lugar, # e @"].filter(Boolean);
       if (tem.length) toast(`As figurinhas do flash original vão junto: ${tem.join(", ")}.`);
     }).catch((e) => toast(erroAmigavel(e)));
     return;
@@ -3159,7 +3437,30 @@ function abrirCriador({ repost = null, post = null, imagem = null, selo: seloTex
 }
 
 // Flash de texto: quadro 1080×1920 com o fundo e a letra escolhidos (vira uma foto JPEG).
-function desenharTexto(texto, [a, b], letra, cor, extra = null) {
+// Anti-spam nos textos do flash: no máximo 5 letras iguais seguidas ("kkkkkkkkkk" → "kkkkk"), espaços e linhas em
+// branco repetidos viram um só, e um número máximo de linhas.
+const MAX_HASHTAGS = 5, MAX_LINKS_FIG = 10;
+function limparSpam(t, maxLinhas = 8) {
+  let x = String(t || "").replace(/(.)\1{5,}/gu, "$1$1$1$1$1").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n");
+  const ls = x.split("\n");
+  return ls.length > maxLinhas ? ls.slice(0, maxLinhas).join("\n") : x;
+}
+const contarHashtags = (txt) => (String(txt || "").match(/(^|[^\p{L}\p{N}_&])#[\p{L}\p{N}_]{1,40}/gu) || []).length;
+// Sublinha cada "@usuário" de uma linha já desenhada (esq = onde a linha começa, y = meio da linha, px = tamanho da
+// letra). Devolve onde ficou cada um (para virar área tocável no visor).
+const RE_ARROBA = /(^|[^\w@#])@([a-z0-9._]{3,20})/gi;
+function sublinharArrobas(g, linha, esq, y, px) {
+  const achados = [];
+  for (const m of String(linha).matchAll(RE_ARROBA)) {
+    const ini = m.index + m[1].length, w = g.measureText("@" + m[2]).width, x0 = esq + g.measureText(linha.slice(0, ini)).width;
+    g.save(); g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetY = 0;
+    g.fillRect(x0, y + px * 0.5, w, Math.max(2, px * 0.075));
+    g.restore();
+    achados.push({ nick: m[2].toLowerCase().replace(/\.+$/, ""), x0, w });
+  }
+  return achados;
+}
+function desenharTexto(texto, [a, b], letra, cor, extra = null, arrobas = null) {
   const W = 1080, H = 1920;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -3187,7 +3488,12 @@ function desenharTexto(texto, [a, b], letra, cor, extra = null) {
     linhas.push(atual);
   });
   const alt = tam * 1.28, y0 = H / 2 - ((linhas.length - 1) * alt) / 2;
-  linhas.slice(0, 14).forEach((l, i) => g.fillText(l, W / 2, y0 + i * alt));
+  linhas.slice(0, 14).forEach((l, i) => {
+    const y = y0 + i * alt;
+    g.fillText(l, W / 2, y);
+    // @ escrito: sublinhado e guardado (o visor deixa tocar e abrir o perfil)
+    sublinharArrobas(g, l, W / 2 - g.measureText(l).width / 2, y, tam).forEach((r) => arrobas?.push({ nick: r.nick, x: (r.x0 + r.w / 2) / W, y: y / H, w: (r.w + tam * 0.3) / W, h: alt / H }));
+  });
   // Marca discreta embaixo.
   g.shadowBlur = 0; g.shadowOffsetY = 0;
   g.font = "700 30px system-ui, sans-serif"; g.fillStyle = cor === "#ffffff" ? "rgba(255,255,255,.55)" : "rgba(0,0,0,.45)";
@@ -3255,7 +3561,7 @@ function semCamposNovos(d) {
   if ("contagem" in c) { delete c.contagem; c._semContagem = true; mudou = true; }
   ["enquete", "caixa"].forEach((k) => { if (c[k]?.cor) { const { cor, ...resto } = c[k]; c[k] = resto; mudou = true; } });
   // tamanho das figurinhas interativas (k, 09/11/2026): sem as regras novas vão no tamanho de sempre
-  ["enquete", "caixa", "link"].forEach((k) => { if (c[k] && "k" in c[k]) { const { k: _k, ...resto } = c[k]; c[k] = resto; mudou = true; } });
+  ["enquete", "caixa", "link", "contagem"].forEach((k) => { if (c[k] && "k" in c[k]) { const { k: _k, ...resto } = c[k]; c[k] = resto; mudou = true; } });
   // Teste (quiz) sem as regras novas: vai como enquete comum, com prazo de 24 h.
   if (c.enquete && "certa" in c.enquete) { const { certa, ...resto } = c.enquete; c.enquete = { ...resto, fimEm: c.enquete.fimEm || fb.Timestamp.fromMillis(Date.now() + 864e5) }; c._eraTeste = true; mudou = true; }
   return mudou ? c : null;
@@ -3278,7 +3584,8 @@ export function configFlash() {
     modoInicial: c.modoInicial === "texto" ? "texto" : "foto", // o criador abre em Foto ou em Texto
     perguntarRascunho: c.perguntarRascunho !== false, // ao sair com algo feito, pergunta se guarda como rascunho
     ondePerfil: c.ondePerfil !== false,               // onde publicar por padrão: seu perfil...
-    ondeNegocios: Array.isArray(c.ondeNegocios) ? c.ondeNegocios.slice(0, 4) : [] // ...e estes negócios
+    ondeNegocios: Array.isArray(c.ondeNegocios) ? c.ondeNegocios.slice(0, 4) : [], // ...e estes negócios
+    alvo: c.alvo && typeof c.alvo === "object" ? (publicoParaGravar(c.alvo) || null) : null // público padrão dos flashes novos
   };
 }
 async function salvarConfigFlash(c) {
@@ -3334,9 +3641,15 @@ export function abrirConfigFlash() {
     k0.appendChild(acoes0);
 
     // 2) Quem vê
-    const k1 = cartao("olho", "#00adee", "Quem vê os seus flashes", "Cada flash começa para todos que seguem você. Para mandar só para os Amigos próximos, toque na estrela verde no alto do criador (vale só para aquele flash).");
+    const k1 = cartao("olho", "#00adee", "Quem vê os seus flashes", "Cada flash começa para todos que seguem você (ou para o público padrão abaixo). No criador: a estrela verde manda só para os Amigos próximos e o alvo escolhe o público daquele flash.");
     k1.append(
       linha("Amigos próximos", c.amigos.length ? `${c.amigos.length} na lista` : "Ninguém na lista ainda", seta(), async () => { const l = await escolherPessoas("Amigos próximos", c.amigos); if (l) await salvarConfigFlash({ ...configFlash(), amigos: l }); abrirConfigFlash(); }),
+      linha("Público padrão", c.alvo ? resumoPublico(c.alvo) : "Todos (sem filtro de lugar, idade ou gênero)", seta(), async () => {
+        fecharLista();
+        const v = await escolherPublico(c.alvo, { ...ajudaPublico(), sub: "Público padrão dos flashes novos", flash: true });
+        if (v !== undefined) { await salvarConfigFlash({ ...configFlash(), alvo: v ? (publicoParaGravar(v) || null) : null }); toast(v ? `Flashes novos vão para: ${resumoPublico(v)}` : "Flashes novos vão para todos"); }
+        setTimeout(() => abrirConfigFlash(), 120);
+      }),
       linha("Ocultar flash de", c.ocultarDe.length ? `${c.ocultarDe.length} ${c.ocultarDe.length === 1 ? "pessoa não vê" : "pessoas não veem"} (e não sabem disso)` : "Ninguém oculto", seta(), async () => { const l = await escolherPessoas("Ocultar flash de", c.ocultarDe); if (l) await salvarConfigFlash({ ...configFlash(), ocultarDe: l }); abrirConfigFlash(); })
     );
 
@@ -3353,7 +3666,7 @@ export function abrirConfigFlash() {
     }
 
     // 4) Criar flash: como o criador abre, figurinhas e rascunhos
-    const kc = cartao("lapis", "", "Criar flash", "Figurinhas: Enquete, Teste (quiz com a resposta certa), Perguntas, Menção, Link do negócio, Localização, Hashtag, Emoji, Horário e Data. Desfazer e refazer guardam até 40 passos.");
+    const kc = cartao("lapis", "", "Criar flash", "Figurinhas: Enquete, Teste (quiz com a resposta certa), Perguntas, Contagem, Menção, Negócios, Localização, Hashtag, Emoji, Horário e Data. Desfazer e refazer guardam até 40 passos.");
     opcoes(kc, [["foto", "Começar em Foto", "Câmera ou galeria"], ["texto", "Começar em Texto", "Fundo colorido para escrever"]], c.modoInicial, (v) => salvar({ modoInicial: v }));
     kc.append(
       linha("Perguntar antes de sair", "Ao fechar com algo feito: salvar como rascunho, descartar ou continuar. Desligado, fecha e descarta direto", chave(c.perguntarRascunho, (on) => salvar({ perguntarRascunho: on }))),
@@ -3392,7 +3705,8 @@ export function abrirConfigFlash() {
     );
 
     // 7) Menções
-    const k6 = cartao("pessoa-mais", "#00adee", "Menções", "Quem pode mencionar você nos flashes e publicações.");
+    const k6 = cartao("pessoa-mais", "#00adee", "Menções e negócios", "Até 10 pessoas e 10 negócios por flash, marcados de uma vez. Cada um pode ficar na tela, só na lista (“Mencionados” e “Negócios”) ou oculto: recebe o aviso, mas só você vê, com o olho cortado.");
+    k6.appendChild(el("p", "cfg2-nota cfg2-limites", "Contra spam, cada flash aceita até 5 hashtags, 10 textos, 12 emojis, 1 localização e 30 figurinhas no total. Letras repetidas demais (“kkkkkkkkk”) ficam com 5."));
     const a = el("a", "cfg2-linha"); a.href = "configuracoes.html#diario";
     a.append(el("span", "tx"), seta()); a.firstChild.append(el("strong", null, "Quem pode mencionar você"), el("small", null, "Ajuste em Configurações → Diário e Flash"));
     k6.appendChild(a);
@@ -3998,9 +4312,10 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       quadro.append(area, a);
     }
     // Link para o perfil de um negócio (figurinha): tocar vai para o perfil.
-    caixa.querySelector(".story-link:not(.story-post)")?.remove();
-    if (fig.link) {
-      const lk = fig.link;
+    caixa.querySelectorAll(".story-link:not(.story-post)").forEach((x) => x.remove());
+    // Com "links" (vários negócios) valem as figurinhas de lá; sem ele, o "link" de sempre.
+    const naTelaLinks = fig.links ? fig.links.filter((l) => l.modo === "tela") : fig.link ? [fig.link] : [];
+    for (const lk of naTelaLinks) {
       const a = el("a", "story-link"); a.href = linkNegocio(lk);
       a.style.left = `${(lk.x ?? 0.5) * 100}%`; a.style.top = `${(lk.y ?? 0.68) * 100}%`;
       a.dataset.fx = lk.x ?? 0.5; a.dataset.fy = lk.y ?? 0.68;
@@ -4055,8 +4370,21 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     // Menção oculta: a pessoa foi avisada, mas não aparece para quem vê (o autor vê todas).
     const ocultas = Array.isArray(s.mencoesOcultas) ? s.mencoesOcultas : [];
     const visiveis = (Array.isArray(s.mencoes) ? s.mencoes : []).filter((u) => meu || !ocultas.includes(u));
+    // Negócios marcados na lista (e, para o autor, os ocultos): chip "N negócios" ao lado dos mencionados.
+    const negsLista = (linksDoFlash(s) || []).filter((l) => meu || l.modo !== "oculto");
+    if (negsLista.length && (negsLista.some((l) => l.modo !== "tela") || negsLista.length > 1)) {
+      const bn = el("button", "pilha-pessoas story-mencoes escuro story-negs"); bn.type = "button";
+      const ic = el("span", "pilha-rostos negs-ic"); ic.appendChild(icone(ICONE_NEGOCIO[negsLista[0].tipo] || "loja", "i xs"));
+      const tx = el("span", "pilha-tx"); tx.append(el("b", null, negsLista.length === 1 ? negsLista[0].nome : `${negsLista.length} negócios`));
+      bn.append(ic, tx); bn.setAttribute("aria-label", `Negócios marcados: ${negsLista.length}`);
+      bn.addEventListener("click", (e) => {
+        e.stopPropagation(); pausar(true);
+        abrirNegociosDoFlash(negsLista, meu, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); });
+      });
+      linhaAcoes().prepend(bn);
+    }
     if (visiveis.length) {
-      const bm = pessoasEmPilha(visiveis, { classe: "story-mencoes escuro", prefixo: "", titulo: visiveis.length === 1 ? "Mencionado" : "Mencionados", abrirPerfil: irParaPerfil,
+      const bm = pessoasEmPilha(visiveis, { classe: "story-mencoes escuro", prefixo: "", titulo: visiveis.length === 1 ? "Mencionado" : "Mencionados", abrirPerfil: irParaPerfil, ocultos: meu ? ocultas : [],
         aoAbrir: () => pausar(true), aoFechar: () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); } });
       linhaAcoes().prepend(bm);
     }

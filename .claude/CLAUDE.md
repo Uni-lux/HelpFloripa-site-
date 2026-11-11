@@ -2185,6 +2185,27 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   chat (SOS), Mural da Comunidade (`alertas-faixa.js`: SOS · Pets · Alertas com números perto, lê só com `hf-perto`), cartões
   `cartaoSos`/`cartaoPet` no Mensagens. Ajuda (grupo "SOS, pets e alertas"), Termos seção 5 e Privacidade atualizados.
   Sem push (Blaze) o aviso é pelo Mensagens e pelas listas ao vivo. Teste `t-sos-pets.mjs` (26).
+- **Flash: menções e negócios em lote, ocultos, limites e público (11/11/2026, PR depois do #191, MUDA REGRA — não
+  publicada; 20 partes, 995 testes; sem campo novo):** prints dele. **Menções:** "Mencionar pessoas" marca várias de uma vez
+  (`escolherMencao`: caixinhas, olho cortado por pessoa = oculta, rodapé "Mencionar N pessoas · N de 10"); elas vão para a
+  lista "Mencionados" (`listaM`, sem @ na foto); o @ só aparece na tela quando é escrito pelo teclado e sai **sublinhado**
+  (`sublinharArrobas` no canvas do Aa e do texto de fundo — que agora também vira área tocável —, `.fe-arroba-u` no criador).
+  Lista "Menções": Na tela (figurinha) | Na lista | Oculta (`mudarModo`; figurinhas antigas soLista/oculta viram lista/oculta;
+  `arrumarMencoes` deixa cada pessoa num lugar só; desfazer/rascunho guardam `avisos`, `listaM` e `negLista`). **Negócios:**
+  até 10 por flash (`abrirLinks` "Links de negócios" com Na tela | Na lista | Oculto, `escolherNegocios` em lote; pílula
+  "Negócios"); gravados DENTRO de `stories.toques` (`n|uid_tipo|t|nome|x|y|k|0`, `n|uid_tipo|l|nome|0|0|0|0`, `…|o|…`; regra
+  `toquesOk` aceita até 18 itens num regex só — um campo `links` novo estourava o limite de 1.000 do "flash com TUDO junto");
+  o 1º na tela continua em `link` (versões antigas). Visor: `linksDoFlash`, várias `.story-link`, chip `.story-negs` "N
+  negócios" → `abrirNegociosDoFlash` (nome/foto de agora; o que não existe some). Dono do negócio de outra pessoa recebe o
+  cartão `acao: "negocio"` (`avisarDonosNegocios`, 1 por dono, só se `podeMarcar`). **Ocultos para quem criou:**
+  `pessoasEmPilha(..., { ocultos })` (rede.js) põe olho cortado + "Oculta · só você vê"; negócios ocultos idem.
+  **Anti-spam** (`passaDoLimite`, `limparSpam`): até 5 hashtags (figurinhas + textos + legenda), 10 textos Aa, 12 emojis,
+  1 localização, 2 horários/datas, 30 figurinhas; 5 letras iguais seguidas no máximo; Aa até 6 linhas, texto 10, legenda 1;
+  publicar recusa > 10 menções / > 5 hashtags. **Público:** `escolherPublico(..., { flash: true })` sem números de alcance
+  (decidido por ele: "não é para impulsionar"), sem "só quem ainda não segue", resumo do que vale e onde; Configurações do
+  Flash → "Público padrão" (`flashConfig.alvo`, o criador começa com ele); público "perto" espera a posição de quem vê
+  (`posicaoDoLeitor`, 1,5 s). Teste `t-flash-lote.mjs` (35); `t-flash-mencoes`, `t-flash-gestos`, `t-flash3`,
+  `t-flash-correcoes3` atualizados (seleção em lote; pílula "Negócios").
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2247,7 +2268,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (20 partes em `_regras/`, 986 testes; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (20 partes em `_regras/`, 995 testes; inclui os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
@@ -2260,6 +2281,10 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
    real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
    passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+4b. **Música no Flash (ele adiou, 11/11/2026: "deixa pra depois"):** sugerido biblioteca livre (Pixabay Music/YouTube Audio
+   Library, 30–50 faixas por clima) com figurinha da música e trecho de 15 s (campo novo + Storage/Blaze); músicas famosas só
+   com licenciamento (ECAD/gravadoras ou Epidemic Sound/Soundstripe) e advogado; áudio enviado pela pessoa não recomendado.
+   A rede daqui bloqueia os sites de música: ele baixaria as faixas.
 **Programação (dá para fazer):**
 5. **Quem posta muito toma o espaço dos outros que você segue:** `buscarSeguindo` lê 20 publicações por lote de 30 autores
    (no total). Limite por autor (ex.: até 3 de cada); o jeito certo é um "feed por pessoa" montado no servidor (Cloud Function,

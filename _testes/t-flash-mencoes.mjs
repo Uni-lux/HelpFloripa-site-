@@ -81,8 +81,12 @@ await p.locator(".fe-local").fill("#praia"); await p.locator(".fe-linha-local .f
 await p.locator(".flash-arroba").tap(); await p.waitForTimeout(300);
 ok(await p.locator(".flash-mencoes").count() === 1, "botão @ abre a lista de Menções");
 await p.locator(".fm-add").tap(); await p.waitForTimeout(800);
-await p.locator(".flash-figs .fm-usar", { hasText: "brunoreparos" }).first().tap(); await p.waitForTimeout(400);
-ok(await p.locator(".flash-fig.fig-mencao").count() === 1, "menção do Bruno como figurinha");
+await p.locator(".flash-figs .fm-usar", { hasText: "brunoreparos" }).first().tap(); await p.waitForTimeout(300);
+await p.locator(".fm-usar-todos").tap(); await p.waitForTimeout(300);
+await p.locator(".flash-arroba").tap(); await p.waitForTimeout(500);
+await p.locator(".fm-bloco", { hasText: "brunoreparos" }).locator(".fm-seg-op", { hasText: "Na tela" }).tap(); await p.waitForTimeout(400);
+await p.locator(".flash-mencoes .fe-pronto").tap(); await p.waitForTimeout(200);
+ok(await p.locator(".flash-fig.fig-mencao").count() === 1, "menção do Bruno como figurinha (Na tela)");
 // @ na legenda → menção oculta do Edu (que a Ana não segue: vem da busca de @)
 await p.locator(".flash-legenda").tap();
 await p.keyboard.type("Fim de tarde @edu");

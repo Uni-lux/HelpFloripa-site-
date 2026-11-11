@@ -21,7 +21,7 @@ import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=4";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=1";
-import { escolherPublico } from "./publico-tela.js?v=6";
+import { escolherPublico } from "./publico-tela.js?v=7";
 import { avisoPlano } from "./planos-base.js?v=16";
 import { lerReacoesFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, ouvirFonte } from "./sino-fontes.js?v=2";
@@ -698,7 +698,19 @@ export function pessoasEmPilha(uids, opc = {}) {
     const f = $("folhaLista");
     if (opc.aoFechar) { const volta = () => { f?.removeEventListener("fechada", volta); opc.aoFechar(); }; f?.addEventListener("fechada", volta); }
     const ps = await Promise.all(lista.map((u) => obterPerfil(u).then((p) => ({ uid: u, ...p })).catch(() => ({ uid: u }))));
-    ps.forEach((p) => corpo.appendChild(linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", aoClicar: () => { fecharFolha("folhaLista"); opc.aoPerfil?.(); (opc.abrirPerfil || ganchos.abrirPerfil)(p.uid); } })));
+    // opc.ocultos: menções ocultas (só o autor recebe a lista com elas): olho cortado + "Oculta · só você vê", no fim.
+    const ocultos = new Set(opc.ocultos || []);
+    if (ocultos.size) ps.sort((x, y) => ocultos.has(x.uid) - ocultos.has(y.uid));
+    ps.forEach((p) => {
+      const l = linhaPessoa({ uid: p.uid, nome: p.nome || "Usuário", foto: p.fotoPerfil, sub: p.nickname ? "@" + p.nickname : "", aoClicar: () => { fecharFolha("folhaLista"); opc.aoPerfil?.(); (opc.abrirPerfil || ganchos.abrirPerfil)(p.uid); } });
+      if (ocultos.has(p.uid)) {
+        l.classList.add("linha-oculta");
+        const sm = l.querySelector(".txt small") || l.querySelector(".txt").appendChild(document.createElement("small"));
+        sm.replaceChildren(icone("olho-off", "i xs"), document.createTextNode(` Oculta · só você vê${p.nickname ? " · @" + p.nickname : ""}`));
+        l.setAttribute("aria-label", `${p.nome || "Usuário"}: menção oculta, só você vê`);
+      }
+      corpo.appendChild(l);
+    });
   });
   return b;
 }
@@ -1592,7 +1604,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=112").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=113").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2356,7 +2368,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=112").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=113").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

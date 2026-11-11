@@ -61,11 +61,15 @@ export function escolherPublico(atual, ajuda) {
   const { el, icone, toast, fb, uid, dados = {}, salvarConta, posicaoDe, pedirLocalizacao, rotuloPosicao } = ajuda;
   const x = JSON.parse(JSON.stringify(atual || {}));
   x.local ||= "brasil"; x.seguidores ||= "todos"; x.ufs ||= []; x.cidades ||= [];
+  // Flash (11/11/2026): é para escolher QUEM VÊ, não para impulsionar. Sem números de alcance nem contagem de contas,
+  // e sem "só quem ainda não segue" (a fileira do Flash só mostra quem a pessoa segue).
+  const flash = !!ajuda.flash;
+  if (flash && x.seguidores === "novos") x.seguidores = "todos";
   let modo = temPublico({ publico: atual }) ? "personalizado" : "automatico";
   const nomes = new Map(); // código IBGE -> "Cidade/UF"
   const nomeCidade = (c) => nomes.get(String(c)) || c;
   return new Promise((resolver) => {
-    const pagina = el("div", "pa-pagina"); pagina.setAttribute("role", "dialog"); pagina.setAttribute("aria-modal", "true"); pagina.setAttribute("aria-label", "Público da publicação");
+    const pagina = el("div", "pa-pagina"); pagina.setAttribute("role", "dialog"); pagina.setAttribute("aria-modal", "true"); pagina.setAttribute("aria-label", flash ? "Público do flash" : "Público da publicação");
     const topo = el("header", "pa-topo");
     const voltar = el("button", "pa-voltar"); voltar.type = "button"; voltar.setAttribute("aria-label", "Voltar sem mudar"); voltar.setAttribute("data-fechar", ""); voltar.appendChild(icone("voltar", "i"));
     const tit = el("div", "pa-titulo"); tit.append(el("strong", null, "Público"), el("small", null, ajuda.sub || "Quem vê esta publicação no Diário"));
@@ -124,14 +128,27 @@ export function escolherPublico(atual, ajuda) {
     };
 
     // ---------- resumo e alcance ----------
-    const resumo = el("div", "pa-resumo");
+    const resumo = el("div", "pa-resumo" + (flash ? " pa-resumo-flash" : ""));
     const rTit = el("small", null, "Quem vai ver"), rTx = el("strong"), rAlc = el("div", "pa-alcance"), rNota = el("p", "pa-alc-nota");
     resumo.append(rTit, rTx, rAlc);
     let vezAlcance = 0;
     function pintarAlcance() {
       const minha = ++vezAlcance;
       const pub = modo === "automatico" ? null : publicoParaGravar(x);
-      rTx.textContent = modo === "automatico" ? "Todos, em todo o Brasil" : resumoPublico(pub || {}, nomeCidade);
+      rTx.textContent = modo === "automatico" ? (flash ? "Todos que podem ver os seus flashes" : "Todos, em todo o Brasil") : resumoPublico(pub || {}, nomeCidade);
+      if (flash) {
+        // Só o resumo do que foi escolhido (o que vale e o que continua valendo), sem números.
+        const itens = modo === "automatico"
+          ? ["Quem segue você vê na fileira do Flash", "Quem abre o seu perfil vê no anel da foto"]
+          : [x.seguidores === "seguidores" ? "Só quem já segue você" : "Quem segue você e quem abre o seu perfil",
+            x.local === "brasil" ? "Em todo o Brasil" : "Só no lugar escolhido (o lugar do site ou a cidade do perfil)",
+            ...(x.idadeMin || x.idadeMax || x.genero ? ["Idade e gênero: só entra quem informou na conta"] : [])];
+        const ul = el("ul", "pa-flash-lista");
+        itens.forEach((t) => ul.appendChild(el("li", null, t)));
+        rAlc.replaceChildren(ul);
+        rNota.textContent = "Amigos próximos e “Ocultar flash de” continuam valendo junto. A conferência é feita no aparelho de quem vê: você não fica sabendo a idade ou o gênero de ninguém.";
+        return;
+      }
       rAlc.replaceChildren(el("span", "pa-alc-n", "…"), el("span", "pa-alc-rot", "calculando o alcance"));
       rNota.textContent = "";
       if (!fb) { rAlc.replaceChildren(); return; }
@@ -182,16 +199,17 @@ export function escolherPublico(atual, ajuda) {
       const sm = secao("pessoa-mais", "Tipo de público");
       const gm = el("div", "pa-opcoes");
       gm.append(
-        opcaoGrande("automatico", "Automático", "Para todos, em todo o Brasil. O Diário mostra a quem combinar mais.", "estrela", modo === "automatico", (v) => { modo = v; }),
+        opcaoGrande("automatico", flash ? "Todos" : "Automático", flash ? "Todos que podem ver os seus flashes: quem segue você e quem abre o seu perfil." : "Para todos, em todo o Brasil. O Diário mostra a quem combinar mais.", "estrela", modo === "automatico", (v) => { modo = v; }),
         opcaoGrande("personalizado", "Personalizado", "Você escolhe quem vê: lugar, idade, gênero e seguidores.", "config", modo === "personalizado", (v) => { modo = v; })
       );
       sm.appendChild(gm);
       if (modo === "personalizado") {
         // Quem vê
-        const sq = secao("pessoa-mais", "Quem vê", "Entre quem já segue você e quem ainda não segue.");
+        const sq = secao("pessoa-mais", "Quem vê", flash ? "Entre quem segue você e quem abre o seu perfil." : "Entre quem já segue você e quem ainda não segue.");
         const gq = el("div", "pa-opcoes");
-        const desc = { todos: "Seguidores e quem ainda não segue você", seguidores: "Só quem já segue você", novos: "Só quem ainda não segue (para conquistar seguidores)" };
-        SEGUIDORES.forEach(([v, nome]) => gq.appendChild(opcaoGrande(v, nome, desc[v], v === "novos" ? "pessoa-mais" : "olho", x.seguidores === v, (k) => { x.seguidores = k; })));
+        const desc = flash ? { todos: "Quem segue você e quem abre o seu perfil", seguidores: "Só quem já segue você" }
+          : { todos: "Seguidores e quem ainda não segue você", seguidores: "Só quem já segue você", novos: "Só quem ainda não segue (para conquistar seguidores)" };
+        SEGUIDORES.filter(([v]) => !flash || v !== "novos").forEach(([v, nome]) => gq.appendChild(opcaoGrande(v, nome, desc[v], v === "novos" ? "pessoa-mais" : "olho", x.seguidores === v, (k) => { x.seguidores = k; })));
         sq.appendChild(gq);
         // Localização
         const sl = secao("local", "Localização", "Pelo lugar que a pessoa escolheu no site (\"Você está em\") ou a cidade do perfil.");
@@ -215,7 +233,7 @@ export function escolherPublico(atual, ajuda) {
         const sg = secao("pessoa-mais", "Gênero", "De quem informou o gênero nas Configurações (privado).");
         sg.appendChild(chips([["", "Todos"], ...GENEROS], (v) => (x.genero || "") === v, (v) => { x.genero = v; }, "pa-seg"));
         // Salvar este público
-        const sv = secao("salvo", "Salvar este público", "Para usar de novo nas próximas publicações.");
+        const sv = secao("salvo", "Salvar este público", flash ? "Para usar de novo nos próximos flashes e publicações." : "Para usar de novo nas próximas publicações.");
         const f = el("form", "pa-salvar");
         const nome = el("input"); nome.type = "text"; nome.maxLength = 30; nome.placeholder = "Ex.: Clientes de SC"; nome.setAttribute("aria-label", "Nome do público");
         const ok = el("button", "btn sec", "Salvar"); ok.type = "submit";
@@ -229,7 +247,7 @@ export function escolherPublico(atual, ajuda) {
           toast("Público salvo"); pintar();
         });
       }
-      corpo.appendChild(el("p", "pa-nota", "Vale no Diário, no Explorar e em Vídeos. No seu perfil e pelo link da publicação, todos continuam vendo. Quem publica não fica sabendo a idade ou o gênero de ninguém: a conferência é feita no aparelho de quem lê."));
+      corpo.appendChild(el("p", "pa-nota", flash ? "Vale na fileira do Flash, no anel do seu perfil, nos perfis de negócio e pelo link do flash: quem não está no público não vê este flash. Você continua vendo todos os seus." : "Vale no Diário, no Explorar e em Vídeos. No seu perfil e pelo link da publicação, todos continuam vendo. Quem publica não fica sabendo a idade ou o gênero de ninguém: a conferência é feita no aparelho de quem lê."));
     }
 
     function blocoEstados() {

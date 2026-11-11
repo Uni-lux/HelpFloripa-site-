@@ -103,13 +103,14 @@ ok(fb1.width < fb0.width * 0.8, `pinça diminui a foto por cima (${Math.round(fb
 for (let k = 0; k < 2; k++) {
   await p.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await p.waitForTimeout(300);
   await p.locator(".fig-pilula", { hasText: "Menção" }).tap(); await p.waitForTimeout(900);
-  await p.locator(".flash-figs .fm-usar", { hasText: "brunoreparos" }).first().tap(); await p.waitForTimeout(400);
-  await p.locator(".flash-figs .fe-pronto").first().tap().catch(() => {}); await p.waitForTimeout(200);
+  if (k === 1) ok(await p.locator(".fm-escolher .fm-linha.ja", { hasText: "brunoreparos" }).count() === 1, "quem já foi mencionado aparece como “já mencionado”");
+  await p.locator(".flash-figs .fm-usar", { hasText: "brunoreparos" }).first().tap({ force: true }); await p.waitForTimeout(300);
+  if (k === 0) await p.locator(".fm-usar-todos").tap(); else await p.locator(".flash-figs .fe-pronto").first().tap().catch(() => {});
+  await p.waitForTimeout(300);
 }
-ok(await p.locator(".flash-fig.fig-mencao").count() === 1, "a mesma pessoa não é mencionada duas vezes");
+ok((await p.locator(".flash-arroba .flash-onde-n").textContent()) === "1", "a mesma pessoa não é mencionada duas vezes");
 await p.locator(".flash-arroba").tap(); await p.waitForTimeout(500);
-await p.locator(".fm-seg-op", { hasText: "Só na lista" }).tap(); await p.waitForTimeout(300);
-ok(await p.locator(".fm-seg-op.on", { hasText: "Só na lista" }).count() === 1, "menção “Só na lista” escolhida");
+ok(await p.locator(".fm-seg-op.on", { hasText: "Na lista" }).count() === 1 && await p.locator(".flash-fig.fig-mencao").count() === 0, "menção vai “Na lista” (sem @ na foto)");
 await p.screenshot({ path: "saida/fg-mencoes.png" });
 await p.locator(".flash-mencoes .fe-pronto").tap(); await p.waitForTimeout(200);
 await p.screenshot({ path: "saida/fg-foto.png" });
