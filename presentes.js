@@ -9,7 +9,7 @@ import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, mon
 import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
 import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=1";
-import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=2";
+import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
 
 const params = new URLSearchParams(location.search);
 let aba = params.get("aba") === "enviados" ? "enviados" : "recebidos";

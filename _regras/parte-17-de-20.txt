@@ -183,4 +183,4 @@
             && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
             && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
       }
-// ===== FIM DA PARTE 17 DE 19 =====
+// ===== FIM DA PARTE 17 DE 20 =====

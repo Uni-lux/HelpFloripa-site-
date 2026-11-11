@@ -187,4 +187,4 @@ service cloud.firestore {
           && (!('repostDe' in d) || repostOk(d.repostDe))
           && (!('postDe' in d) || postFlashOk(d.postDe));
     }
-// ===== FIM DA PARTE 1 DE 19 =====
+// ===== FIM DA PARTE 1 DE 20 =====

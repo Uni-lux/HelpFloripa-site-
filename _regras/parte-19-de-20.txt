@@ -119,6 +119,44 @@
       allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
 
-  }
-}
-// ===== FIM DA PARTE 19 DE 19 =====
+    // =====================================================
+    // SOS E ALERTAS (alertas.html)
+    // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
+    // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
+    // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
+    function pontoAlertaOk(d) {
+      return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
+          && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
+    }
+    match /sos/{id} {
+      function d() { return request.resource.data; }
+      function r() { return resource.data; }
+      allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
+                    || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm'])
+                    && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
+                    && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
+                    && valorTextoAte(d().get('texto', ''), 300)
+                    && pontoAlertaOk(d()) && d().precisao is number
+                    && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
+                    && d().status == 'aberto' && d().ajudanteId == ''
+                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
+      function sosMuda(k, st, ns) {
+        let dono = r().uid == request.auth.uid;
+        let ajudante = r().ajudanteId == request.auth.uid;
+        return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
+            || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
+                && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
+            || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
+                && !bloqueioEntre(request.auth.uid, r().uid)
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
+                && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
+            || (ajudante && st == 'atendido' && ns == 'aberto'
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
+      }
+      allow delete: if false;
+    }
+
+// ===== FIM DA PARTE 19 DE 20 =====

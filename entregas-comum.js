@@ -50,8 +50,8 @@ export function iniciais(nome) {
 // Beep curto e vibração (pedido novo, motorista chegou...). Só depois de um toque na página.
 let ctxSom = null;
 export function avisarSom(tipo = "novo") {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // vibrar e tocar só depois de um toque
   try { navigator.vibrate?.(tipo === "novo" ? [120, 60, 120] : [200]); } catch {}
-  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   try {
     ctxSom = ctxSom || new (window.AudioContext || window.webkitAudioContext)();
     const t = ctxSom.currentTime;

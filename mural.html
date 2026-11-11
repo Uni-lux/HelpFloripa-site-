@@ -39,8 +39,9 @@
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <link rel="stylesheet" href="comunidade.css?v=5" />
-  <link rel="stylesheet" href="mural.css?v=6" />
+  <link rel="stylesheet" href="mural.css?v=7" />
   <script type="module" src="mural.js?v=67"></script>
+  <script type="module" src="alertas-faixa.js?v=1"></script>
 </head>
 <body class="pg-mural">
   <header class="topo">
@@ -62,6 +63,11 @@
           <button type="button" class="mu-local" id="muLocal" aria-haspopup="dialog"><svg class="i xs"><use href="#i-local"/></svg><span>Todo o Brasil</span></button>
         </div>
 
+        <nav class="mu-alertas" id="muAlertas" aria-label="SOS e alertas perto de você">
+          <a class="mu-al sos" href="alertas.html?aba=sos"><span>SOS</span><b>0</b></a>
+          <a class="mu-al pets" href="alertas.html?aba=pets"><span>Pets</span><b>0</b></a>
+          <a class="mu-al roubos" href="alertas.html?aba=roubos"><span>Alertas</span><b>0</b></a>
+        </nav>
         <section class="mu-bolhas-sec" id="muPertoSec" hidden aria-label="Perto de você">
           <div class="mu-bolhas" id="muPerto"></div>
         </section>

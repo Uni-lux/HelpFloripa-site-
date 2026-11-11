@@ -65,10 +65,11 @@
   <link rel="stylesheet" href="categoria.css?v=18" />
   <link rel="stylesheet" href="info.css?v=11" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=84"></script>
+  <script type="module" src="categoria.js?v=85"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
     <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 014.8.9c0 1.7-2.4 2-2.4 3.6M12 17h.01"/></symbol>
     <symbol id="i-casa" viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 01-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 014 19z"/></symbol>
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 00-12 0c0 6.5-2.5 8-2.5 8h17S18 16 18 9.5z"/><path d="M10.2 20.5a2 2 0 003.6 0"/></symbol>
@@ -175,6 +176,16 @@
         <details id="p-local-vivo"><summary>Como compartilho a minha localização em tempo real?</summary><div class="resp"><p>Na conversa, toque no clipe › <strong>Localização</strong> › <strong>Localização em tempo real</strong> e escolha por quanto tempo: 15 minutos, 1 hora ou 8 horas. A pessoa vê você se mover no mapa. Toque em <strong>Parar</strong> no cartão quando quiser.</p><p>A posição é atualizada enquanto alguma página do Help Floripa estiver aberta no seu aparelho. Só você e a pessoa da conversa veem.</p></div></details>
         <details id="p-presentes"><summary>Como envio um presente?</summary><div class="resp"><p>Em <a href="presentes.html">Presentes</a>, no perfil da pessoa (⋯ › Enviar um presente), no clipe do chat ou no botão <strong>Dar de presente</strong> de um delivery ou loja. Pode ser um mimo, um lanche ou produto, dinheiro por Pix, uma corrida ou uma entrega. A pessoa <strong>aceita ou recusa</strong>.</p><ul><li><strong>Lanche ou produto:</strong> quem recebe escolhe onde receber e o pedido vai para a loja. Você combina o pagamento com a loja e não vê o endereço.</li><li><strong>Dinheiro:</strong> quem recebe manda a chave Pix no chat e você paga pelo app do banco.</li><li><strong>Corrida ou entrega:</strong> a pessoa pede quando quiser, até o valor do presente, e você paga direto para quem levar.</li></ul></div></details>
         <details><summary>Quem pode me enviar presentes?</summary><div class="resp"><p>Você escolhe em <a href="presentes.html">Presentes</a> › <strong>Quem pode me enviar presentes</strong>: todo mundo, quem você segue e seus vínculos do Social (padrão), só os vínculos do Social ou ninguém. Gorjeta de uma entrega ou corrida que você fez sempre pode chegar.</p></div></details>
+      </div>
+    </section>
+    <section class="faq-grupo" id="sos" aria-label="SOS, pets e alertas">
+      <h2><span class="ic"><svg class="i s" aria-hidden="true"><use href="#i-alerta"/></svg></span>SOS, pets e alertas</h2>
+      <div class="faq">
+        <details id="p-sos"><summary>Como funciona o SOS?</summary><div class="resp"><p>Em <a href="alertas.html">SOS e alertas</a> (também no clipe do chat e na Comunidade), toque em <strong>SOS</strong>, diga o que está acontecendo e envie. Avisamos o seu <strong>Social</strong> (família, amigos, duo) pelo Mensagens e, se você deixar, quem está perto. Quando alguém toca em <strong>Vou ajudar</strong>, todos veem que já tem gente indo, para ninguém ir à toa.</p><p><strong>O SOS não chama a polícia, o SAMU nem os bombeiros.</strong> Em emergência, ligue 190, 192 ou 193.</p></div></details>
+        <details id="p-pet"><summary>O que é o RG do pet?</summary><div class="resp"><p>É o cadastro do seu pet: foto, espécie, raça, cores, porte, sinais e microchip, com um QR Code para imprimir na coleira. Se ele sumir, toque em <strong>Sumiu</strong>: quem estiver perto vê o aviso e, quando alguém publicar <strong>Encontrei um animal</strong> parecido (ou com o mesmo microchip), você é avisado no Mensagens com a semelhança em porcentagem.</p></div></details>
+        <details><summary>Encontrei um animal. O que faço?</summary><div class="resp"><p>Em SOS e alertas › Pets › <strong>Encontrei um animal</strong>, conte como ele é e onde estava. Procuramos os pets perdidos parecidos e com o mesmo microchip e avisamos os tutores mais prováveis. Você também pode avisar os outros da lista.</p></div></details>
+        <details id="p-roubo"><summary>Como registro um roubo ou furto? Posso ficar anônimo?</summary><div class="resp"><p>Em SOS e alertas › <strong>Roubos e furtos</strong> › <strong>Registrar ocorrência</strong>. Por padrão ela sai <strong>anônima</strong>: só a moderação sabe quem registrou. Coloque o IMEI, a placa ou o número de série: quem consultar esse número antes de comprar um usado é avisado, e você recebe uma pista. Faça também o boletim de ocorrência na polícia.</p><p>Viu algo? Toque na ocorrência e mande uma <strong>pista</strong>, também anônima se quiser.</p></div></details>
+        <details><summary>Como consulto se um celular, bike ou carro é roubado?</summary><div class="resp"><p>Em SOS e alertas › Roubos e furtos › <strong>Consultar IMEI, placa ou série</strong>. Se houver ocorrência registrada no Help Floripa, avisamos para não comprar. Nada encontrado não garante a origem: peça nota fiscal e desconfie de preço muito baixo.</p></div></details>
       </div>
     </section>
     <section class="faq-grupo" id="brasil" aria-label="Em todo o Brasil">

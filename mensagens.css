@@ -1567,3 +1567,22 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 .pr-c-acoes { grid-column: 1 / -1; display: flex; gap: 8px; }
 .pr-c-acoes button { flex: 1; min-height: 40px; border-radius: 12px; border: 1px solid var(--line, #213038); background: var(--panel, #0f161b); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
 .pr-c-acoes .pr-c-sim { background: #2fbf71; border-color: #2fbf71; color: #03200f; }
+
+/* SOS e pet no chat (alertas.html) */
+.bolha.cartao-msg.sos-msg, .bolha.cartao-msg.pet-msg { width: min(300px, 86%); padding: 0; overflow: hidden; background: var(--panel-2, #151f25); color: var(--text); border: 1px solid color-mix(in srgb, #e5484d 55%, var(--line, #213038)); }
+.bolha.cartao-msg.pet-msg { border-color: color-mix(in srgb, #00adee 45%, var(--line, #213038)); }
+.minha .bolha.cartao-msg.sos-msg, .minha .bolha.cartao-msg.pet-msg { background: var(--panel-2, #151f25); color: var(--text); }
+.sos-c { display: grid; gap: 8px; padding: 12px; background: linear-gradient(150deg, color-mix(in srgb, #e5484d 16%, transparent), transparent 70%); }
+.pet-c { background: linear-gradient(150deg, color-mix(in srgb, #00adee 14%, transparent), transparent 70%); }
+.sos-c-cab { display: flex; gap: 10px; align-items: center; }
+.sos-c-cab > div { display: grid; min-width: 0; }
+.sos-c-cab small { font-size: 11.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.sos-c-cab b { font-size: 15px; line-height: 1.3; }
+.sos-c-ic { width: 48px; height: 48px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: #e5484d; color: #fff; font-weight: 900; font-size: 14px; letter-spacing: .04em; }
+.sos-c-ic.pet { background: var(--panel, #0f161b); font-size: 24px; }
+.sos-c-st { font-size: 13px; font-weight: 700; color: #e5484d; }
+.sos-c-st[data-st="atendido"] { color: #f59e0b; } .sos-c-st[data-st="resolvido"] { color: #2fbf71; } .sos-c-st[data-st="cancelado"] { color: var(--muted); }
+.pet-c .sos-c-st { color: #00adee; }
+.sos-c-ver { min-height: 42px; border-radius: 12px; border: 0; background: #e5484d; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.pet-c .sos-c-ver { background: #00adee; color: #001a24; }
+.sos-c.acabou .sos-c-ver { background: var(--panel, #0f161b); color: var(--text); border: 1px solid var(--line, #213038); }

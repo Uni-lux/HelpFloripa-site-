@@ -155,4 +155,4 @@
                             && request.resource.data.agendadoPara > request.time
                             && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
 
-// ===== FIM DA PARTE 16 DE 19 =====
+// ===== FIM DA PARTE 16 DE 20 =====

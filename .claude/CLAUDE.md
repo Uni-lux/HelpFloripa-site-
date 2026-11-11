@@ -2164,6 +2164,27 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   presentes"), Termos seção 5, Privacidade (tabela de dados) e Sobre (Automotivo e mobilidade + linha do tempo) atualizados.
   Teste `t-presentes-vivo.mjs` (31). `getCurrentPosition` falhava no teste com um `watchPosition` ativo: a tela passa a
   posição que já tem (`compartilharAoVivo(..., inicial)`).
+- **SOS, roubos e RG do pet (11/11/2026, PR #191 (2º commit), MUDA REGRAS — não publicadas; 20 partes, 986 testes):** pedido
+  dele. Hub `alertas.html/js/css` + `alertas-base.js` (sem deps), abas SOS | Pets | Roubos e furtos, telefones de emergência
+  sempre à mostra (o botão SOS e os telefones respondem antes de a conta carregar: `pronto`). **SOS** `sos/{id}` {uid, nome,
+  tipo `TIPOS_SOS`, texto, lat, lng, precisao, geo4, publico, avisados (Social: `vinculos` aceitos, ≤30), status aberto|
+  atendido|resolvido|cancelado, ajudanteId/Nome, aceitoEm}: Social recebe cartão `{tipo:"sos", id, sosTipo, nome}` no
+  Mensagens; quem está perto vê em "Perto de você" (publico + geo4 vizinhas, raio de `usuarios.alertas.raio`); "Vou ajudar" por
+  transação (só um; os outros veem "Fulano já está ajudando"; regra só aceita de `aberto`); quem ajuda desiste ou marca
+  resolvido; quem pediu atualiza a posição a cada 20 s com a tela aberta; some da área em 3 h (`sosVivo`). **Roubos**
+  `ocorrencias/{id}` (anônima por padrão: `autorId: ""` + `ocorrencias_autoria/{id}`; ids próprios em
+  `usuarios.minhasOcorrencias`), `identificador` normalizado (IMEI 15 números / placa / série) → "Consultar antes de comprar"
+  (status ativo + identificador) e, se bate, pista anônima automática "alguém consultou" (1×/sessão); pistas
+  `ocorrencias/{id}/pistas` (anônima com `pistas_autoria/{oc}_{p}` só p/ moderação); dicas por objeto (`DICAS_OCORRENCIA`).
+  **RG do pet** `pets/{id}` (cartão `.al-rg` com `rgPet` HF-PET-XXXXXX e QR → `alertas.html?pet=ID`; foto JPEG ≤250 KB no doc;
+  `visivel` entra nas buscas) e `pets_achados/{id}`; `semelhanca(pet, achado)` 0–100 (microchip igual = 100, espécie diferente =
+  0, cores, porte, sexo, raça sem SRD, distância, tempo, sinais) → `AVISO_AUTOMATICO` 70 manda o cartão `{tipo:"pet", acao:
+  achado|dono|vi, petId, achadoId, nota}` sozinho, a partir de 45 mostra com botão "Avisar". Marcar perdido cruza com os achados
+  perto e avisa quem achou; publicar achado cruza com os perdidos perto e o mesmo microchip e avisa os tutores. **Onde fica:**
+  menu (Explorar: SOS e alertas; Minha conta: Meus pets), Configurações (bloco "Segurança, presentes e mobilidade"), clipe do
+  chat (SOS), Mural da Comunidade (`alertas-faixa.js`: SOS · Pets · Alertas com números perto, lê só com `hf-perto`), cartões
+  `cartaoSos`/`cartaoPet` no Mensagens. Ajuda (grupo "SOS, pets e alertas"), Termos seção 5 e Privacidade atualizados.
+  Sem push (Blaze) o aviso é pelo Mensagens e pelas listas ao vivo. Teste `t-sos-pets.mjs` (26).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2226,7 +2247,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (19 partes em `_regras/`, 940 testes; inclui Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (20 partes em `_regras/`, 986 testes; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

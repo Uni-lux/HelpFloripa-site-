@@ -165,4 +165,4 @@
       allow delete: if logado() && request.auth.uid == uid;
     }
 
-// ===== FIM DA PARTE 18 DE 19 =====
+// ===== FIM DA PARTE 18 DE 20 =====

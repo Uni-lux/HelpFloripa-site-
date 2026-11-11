@@ -146,4 +146,4 @@
       allow delete: if admin() && request.auth.uid == uid;
     }
 
-// ===== FIM DA PARTE 11 DE 19 =====
+// ===== FIM DA PARTE 11 DE 20 =====

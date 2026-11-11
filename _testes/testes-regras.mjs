@@ -1473,6 +1473,66 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("local ao vivo: parar", () => assertSucceeds(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { parado: true, atualizadoEm: serverTimestamp() })));
 }
 
+// ===================== SOS, ocorrências e RG do pet =====================
+{
+  await semRegras(async (db) => {
+    for (const u of ["sa", "sb", "sc"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true });
+  });
+  const sos = (extra) => ({ uid: "sa", nome: "Sa", tipo: "saude", texto: "Passando mal", lat: -27.59, lng: -48.54, precisao: 10, geo4: "6gj7", publico: true, avisados: ["sb"], status: "aberto", ajudanteId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("sos: pede ajuda", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s1"), sos())));
+  await t("sos: não pede em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("sb"), "sos", "s2"), sos())));
+  await t("sos: tipo desconhecido", () => assertFails(setDoc(doc(ctx("sa"), "sos", "s3"), sos({ tipo: "xyz" }))));
+  await t("sos: só do Social (privado)", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s4"), sos({ publico: false }))));
+  await t("sos privado: o Social lê", () => assertSucceeds(getDoc(doc(ctx("sb"), "sos", "s4"))));
+  await t("sos privado: quem não é do Social não lê", () => assertFails(getDoc(doc(ctx("sc"), "sos", "s4"))));
+  await t("sos público: quem está perto lista", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "sos"), where("publico", "==", true), where("geo4", "in", ["6gj7"])))));
+  await t("sos: o Social lista os avisados", () => assertSucceeds(getDocs(query(collection(ctx("sb"), "sos"), where("avisados", "array-contains", "sb")))));
+  const aceitar = (u, id) => updateDoc(doc(ctx(u), "sos", id), { status: "atendido", ajudanteId: u, ajudanteNome: u, aceitoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+  await t("sos: quem pediu não aceita o próprio", () => assertFails(aceitar("sa", "s1")));
+  await t("sos: alguém perto aceita ajudar", () => assertSucceeds(aceitar("sc", "s1")));
+  await t("sos: o segundo não aceita depois", () => assertFails(aceitar("sb", "s1")));
+  await t("sos privado: quem não é do Social não aceita", () => assertFails(aceitar("sc", "s4")));
+  await t("sos: quem pediu atualiza a posição", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s1"), { lat: -27.6, lng: -48.55, precisao: 8, geo4: "6gj7", atualizadoEm: serverTimestamp() })));
+  await t("sos: quem ajuda não muda a posição", () => assertFails(updateDoc(doc(ctx("sc"), "sos", "s1"), { lat: 0, lng: 0, precisao: 1, geo4: "6gj7", atualizadoEm: serverTimestamp() })));
+  await t("sos: quem ajuda desiste (volta a aberto)", () => assertSucceeds(updateDoc(doc(ctx("sc"), "sos", "s1"), { status: "aberto", ajudanteId: "", ajudanteNome: "", aceitoEm: null, atualizadoEm: serverTimestamp() })));
+  await t("sos: o Social aceita", () => assertSucceeds(aceitar("sb", "s1")));
+  await t("sos: quem ajuda marca resolvido", () => assertSucceeds(updateDoc(doc(ctx("sb"), "sos", "s1"), { status: "resolvido", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("sos: quem pediu cancela", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { status: "cancelado", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("sos: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("sa"), "sos", "s1"))));
+  // Ocorrências
+  const oc = (extra) => ({ anonimo: false, autorId: "sa", autorNome: "Sa", tipo: "furto", objeto: "celular", identificador: "356789012345678", descricao: "Levaram meu celular no ônibus", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("ocorrência: com nome", () => assertSucceeds(setDoc(doc(ctx("sa"), "ocorrencias", "o1"), oc())));
+  await t("ocorrência: anônima com a autoria junto", () => { const db = ctx("sb"); const b = writeBatch(db); const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; b.set(doc(db, "ocorrencias", "o2"), o); b.set(doc(db, "ocorrencias_autoria", "o2"), { uid: "sb" }); return assertSucceeds(b.commit()); });
+  await t("ocorrência anônima: sem a autoria é recusada", () => { const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; return assertFails(setDoc(doc(ctx("sb"), "ocorrencias", "o3"), o)); });
+  await t("ocorrência anônima: não leva o nome", () => { const db = ctx("sb"); const b = writeBatch(db); b.set(doc(db, "ocorrencias", "o4"), oc({ anonimo: true, autorId: "" })); b.set(doc(db, "ocorrencias_autoria", "o4"), { uid: "sb" }); return assertFails(b.commit()); });
+  await t("ocorrência: identificador fora do formato", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "o5"), oc({ identificador: "356-789" }))));
+  await t("ocorrência: data no futuro", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "o6"), oc({ quando: Timestamp.fromMillis(Date.now() + 864e5) }))));
+  await t("autoria: outra pessoa não lê quem registrou", () => assertFails(getDoc(doc(ctx("sc"), "ocorrencias_autoria", "o2"))));
+  await t("autoria: quem registrou lê a própria", () => assertSucceeds(getDoc(doc(ctx("sb"), "ocorrencias_autoria", "o2"))));
+  await t("consulta: busca pelo IMEI", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "ocorrencias"), where("status", "==", "ativo"), where("identificador", "==", "356789012345678")))));
+  await t("pista anônima com a autoria só para a moderação", () => { const db = ctx("sc"); const b = writeBatch(db); b.set(doc(db, "ocorrencias", "o2", "pistas", "p1"), { texto: "Vi à venda na praça", anonimo: true, criadoEm: serverTimestamp() }); b.set(doc(db, "pistas_autoria", "o2_p1"), { uid: "sc" }); return assertSucceeds(b.commit()); });
+  await t("pista anônima: sem a autoria é recusada", () => assertFails(setDoc(doc(ctx("sc"), "ocorrencias", "o2", "pistas", "p2"), { texto: "Vi", anonimo: true, criadoEm: serverTimestamp() })));
+  await t("pista com nome", () => assertSucceeds(setDoc(doc(ctx("sc"), "ocorrencias", "o1", "pistas", "p3"), { texto: "Vi na feira", anonimo: false, uid: "sc", nome: "Sc", criadoEm: serverTimestamp() })));
+  await t("pistas: quem registrou (anônimo) lê", () => assertSucceeds(getDocs(collection(ctx("sb"), "ocorrencias", "o2", "pistas"))));
+  await t("pistas: outra pessoa não lê", () => assertFails(getDocs(collection(ctx("sc"), "ocorrencias", "o2", "pistas"))));
+  await t("pistas_autoria: só a moderação lê", () => assertFails(getDoc(doc(ctx("sb"), "pistas_autoria", "o2_p1"))));
+  await t("ocorrência anônima: quem registrou marca recuperado", () => assertSucceeds(updateDoc(doc(ctx("sb"), "ocorrencias", "o2"), { status: "recuperado", atualizadoEm: serverTimestamp() })));
+  await t("ocorrência: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sc"), "ocorrencias", "o1"), { status: "removido", atualizadoEm: serverTimestamp() })));
+  // Pets
+  const pet = (extra) => ({ donoId: "sa", donoNome: "Sa", nome: "Pipoca", especie: "cao", raca: "SRD", cores: ["caramelo", "branco"], porte: "M", sexo: "f", sinais: "coleira vermelha", microchip: "985112003456789", cidade: "Florianópolis", uf: "SC", geo4: "6gj7", status: "casa", visivel: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("pet: cadastra o RG", () => assertSucceeds(setDoc(doc(ctx("sa"), "pets", "pt1"), pet())));
+  await t("pet: não cadastra em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("sb"), "pets", "pt2"), pet())));
+  await t("pet: outra pessoa não edita", () => assertFails(setDoc(doc(ctx("sb"), "pets", "pt1"), pet({ donoId: "sb" }))));
+  await t("pet: marca como perdido", () => assertSucceeds(updateDoc(doc(ctx("sa"), "pets", "pt1"), { status: "perdido", perdidoEm: serverTimestamp(), perdidoLocal: { lat: -27.59, lng: -48.54, nome: "Praça" }, atualizadoEm: serverTimestamp() })));
+  await t("pet: perdidos perto (visíveis)", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "pets"), where("visivel", "==", true), where("status", "==", "perdido"), where("geo4", "in", ["6gj7"])))));
+  await t("pet escondido: outra pessoa não lê", async () => { await setDoc(doc(ctx("sa"), "pets", "pt3"), pet({ visivel: false })); await assertFails(getDoc(doc(ctx("sc"), "pets", "pt3"))); });
+  await t("pet: microchip inválido", () => assertFails(setDoc(doc(ctx("sa"), "pets", "pt4"), pet({ microchip: "985-112" }))));
+  const achado = (extra) => ({ autorId: "sc", autorNome: "Sc", especie: "cao", raca: "", cores: ["caramelo"], porte: "M", sexo: "", sinais: "coleira vermelha", microchip: "", local: { lat: -27.591, lng: -48.541, nome: "Rua X" }, geo4: "6gj7", quando: serverTimestamp(), status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("achado: publica animal encontrado", () => assertSucceeds(setDoc(doc(ctx("sc"), "pets_achados", "a1"), achado())));
+  await t("achado: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sa"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
+  await t("achado: quem achou marca devolvido", () => assertSucceeds(updateDoc(doc(ctx("sc"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

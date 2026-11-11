@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex" /><!-- área de quem tem conta: fora da busca do Google -->
+  <!-- Segurança: só carrega recursos de origens conhecidas e não deixa outro site embutir esta página -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com https://upload.wikimedia.org https://randomuser.me https://www.gstatic.com https://www.google.com https://tile.openstreetmap.org https://api.mapbox.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' https://southamerica-east1-helpfloripa-61e0d.cloudfunctions.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://viacep.com.br https://nominatim.openstreetmap.org https://router.project-osrm.org https://api.mapbox.com https://www.google.com https://www.gstatic.com; frame-src 'self' https://helpfloripa-61e0d.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; upgrade-insecure-requests" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <script>if (window.top !== window.self) { var hfRede = false; try { hfRede = window.top.location.origin === window.location.origin && window.parent === window.top && !!window.top.__hfShell; } catch (e) {} if (!hfRede) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} } }</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- Só mostra a página depois de confirmar o login (auth-guard.js; sem conta vai para o login) -->
+  <style>html.hf-auth-checking { visibility: hidden; }</style>
+  <script>document.documentElement.classList.add("hf-auth-checking");</script>
+  <meta name="description" content="Peça ajuda ao seu Social e a quem está perto, cadastre o RG do seu pet e avise a vizinhança sobre roubos e furtos." />
+  <meta name="theme-color" content="#0f161b" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Help Floripa" />
+  <title>SOS e alertas | Help Floripa</title>
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <script>
+    // Tema claro/escuro: o mesmo do perfil, das mensagens e do menu.
+    (function () {
+      var c = {};
+      try { c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); } catch (e) {}
+      var tema = c.tema || "sistema";
+      var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = escuro ? "dark" : "light";
+    })();
+  </script>
+  <link rel="stylesheet" href="rede.css?v=95" />
+  <link rel="stylesheet" href="entregas.css?v=2" />
+  <link rel="stylesheet" href="presentes.css?v=1" />
+  <link rel="stylesheet" href="alertas.css?v=1" />
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth-guard.js"></script>
+  <script type="module" src="alertas.js?v=1"></script>
+</head>
+<body class="com-barra">
+  <header class="topo">
+    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
+    <span class="topo-espaco" aria-hidden="true"></span>
+    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <button type="button" class="icone-btn" id="alConfig" aria-label="Configurações de alertas" title="Configurações de alertas"><svg class="i"><use href="#i-config"/></svg></button>
+  </header>
+  <main class="pagina pr-pagina al-pagina">
+    <section class="al-hero">
+      <div>
+        <h1>SOS e alertas</h1>
+        <p>Peça ajuda ao seu Social e a quem está perto, encontre pets perdidos e avise a vizinhança sobre roubos e golpes.</p>
+      </div>
+      <button type="button" class="al-sos-bt" id="alSos" aria-label="Pedir ajuda (SOS)"><b>SOS</b><small>Pedir ajuda</small></button>
+      <div class="al-tels" id="alEmerg" aria-label="Telefones de emergência"></div>
+    </section>
+    <div class="ent-abas al-abas" role="tablist">
+      <button type="button" role="tab" data-aba="sos" aria-selected="true">SOS</button>
+      <button type="button" role="tab" data-aba="pets" aria-selected="false">Pets</button>
+      <button type="button" role="tab" data-aba="roubos" aria-selected="false">Roubos e furtos</button>
+    </div>
+    <div id="alCorpo"><p class="ent-vazio">Carregando...</p></div>
+    <p class="pr-rodape">O SOS não chama a polícia, o SAMU nem os bombeiros: em emergência, ligue 190, 192 ou 193. Ocorrências e pistas podem ser anônimas; só a moderação sabe quem registrou, para evitar abusos.</p>
+  </main>
+</body>
+</html>

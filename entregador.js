@@ -15,7 +15,7 @@ import {
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=2";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;

@@ -1,4 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
+import { TIPOS_SOS, STATUS_SOS, sosVivo, ESPECIES as ESPECIES_PET, textoSemelhanca } from "./alertas-base.js?v=1";
 import { DURACOES as DURACOES_VIVO, compartilharAoVivo, pararCompartilhar, ouvirLocalVivo, encerrado as vivoEncerrado, textoRestante as vivoRestante } from "./local-vivo.js?v=1";
 import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximoPasso } from "./presentes-base.js?v=1";
 import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
@@ -764,6 +765,8 @@ function resumoMensagem(m) {
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao, m.remetenteId === eu?.uid);
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "sos") return `SOS: ${(TIPOS_SOS[m.cartao.sosTipo] || TIPOS_SOS.outro)[0]}`;
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pet") return `Pet: ${String(m.cartao.nome || "").slice(0, 40)}`;
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local_vivo") return "📍 Localização em tempo real";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "presente") return `Presente: ${String(m.cartao.resumo || "").slice(0, 60)}`;
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "entrega") return (m.cartao.servico === "corrida" ? "Corrida: " : "Entrega: ") + String(m.cartao.titulo || "").replace(/^(Entrega|Corrida):?\s*/, "").slice(0, 60);
@@ -789,7 +792,7 @@ const PREVIAS = [
 ];
 const PREVIAS_TIPO = [
   [/^Foto$/, "imagem"], [/^Figurinha$/, "figurinha"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
-  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Presente:/, "presente"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
+  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Presente:/, "presente"], [/^SOS:/, "alerta"], [/^Pet:/, "estrela"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
   [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
 ];
 function previaLista(texto) {
@@ -2306,6 +2309,12 @@ function criarLinhaMensagem(m, data, primeira) {
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") {
     bolha.classList.add("cartao-msg", "chamada-msg");
     bolha.appendChild(cartaoChamada(m.cartao, m.remetenteId === eu.uid));
+  } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "sos") {
+    bolha.classList.add("cartao-msg", "sos-msg");
+    bolha.appendChild(cartaoSos(m.cartao, m.remetenteId === eu.uid));
+  } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pet") {
+    bolha.classList.add("cartao-msg", "pet-msg");
+    bolha.appendChild(cartaoPet(m.cartao, m.remetenteId === eu.uid));
   } else if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local_vivo") {
     bolha.classList.add("cartao-msg", "local-msg", "vivo-msg");
     bolha.appendChild(cartaoLocalVivo(m.cartao, m.remetenteId === eu.uid));
@@ -3290,6 +3299,7 @@ async function abrirAnexar() {
   const outro = ativa.equipe ? "" : ativa.outroId || "";
   op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
   op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
+  op("alerta", "SOS", "#e5484d", () => irParaTopo("alertas.html?sos=novo"), "Pedir ajuda");
   if (outro) op("presente", "Presente", "#e5487f", () => irParaTopo(`presentes.html?para=${encodeURIComponent(outro)}`), `Para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}`);
   corpo.appendChild(grade);
   // A pessoa é entregador/motorista no Help Floripa: chamar direto.
@@ -3697,6 +3707,46 @@ async function abrirVivoNoMapa(id, minha) {
     if (primeiro) { mapa.marcar("vivo", "veiculo", p, { veiculo: "pessoa", classe: vivoEncerrado(d) ? "livre" : "" }); mapa.irPara(p, 17); primeiro = false; }
     else mapa.mover("vivo", p, { ms: 1500 });
   });
+}
+// SOS no chat: o tipo, a situação ao vivo ("Fulano já está ajudando") e o botão para abrir.
+function cartaoSos(c, minha) {
+  const box = elm("div", "sos-c");
+  const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
+  const t = TIPOS_SOS[c.sosTipo] || TIPOS_SOS.outro;
+  const cab = elm("div", "sos-c-cab");
+  cab.append(elm("span", "sos-c-ic", "SOS"), elm("div"));
+  const quem = c.acao === "ajudando" ? (minha ? "Você avisou que está indo ajudar" : `${String(c.nome || "Alguém").split(" ")[0]}: estou indo ajudar`) : minha ? "Você pediu ajuda" : `${String(c.nome || "Alguém").split(" ")[0]} pediu ajuda`;
+  cab.lastChild.append(elm("small", null, quem), elm("b", null, `${t[1]} ${t[0]}`));
+  const st = elm("span", "sos-c-st", "");
+  const abrir = elm("button", "sos-c-ver"); abrir.type = "button"; abrir.textContent = minha ? "Ver" : "Ver e ajudar";
+  abrir.addEventListener("click", (e) => { e.stopPropagation(); irParaTopo(`alertas.html?sos=${encodeURIComponent(id)}`); });
+  box.append(cab, st, abrir);
+  if (id) fb.getDoc(fb.doc(fb.db, "sos", id)).then((d) => {
+    if (!d.exists()) return;
+    const s = d.data();
+    st.textContent = s.status === "atendido" && s.ajudanteNome ? `${s.ajudanteNome.split(" ")[0]} já está ajudando` : !sosVivo(s) && ["aberto", "atendido"].includes(s.status) ? "Pedido expirado" : (STATUS_SOS[s.status] || [""])[0];
+    st.dataset.st = s.status;
+    if (!sosVivo(s)) { box.classList.add("acabou"); abrir.textContent = "Ver"; }
+  }).catch(() => {});
+  return box;
+}
+// Pet no chat: "Encontraram um animal parecido com X", "Pode ser o seu pet", "Vi o seu pet".
+function cartaoPet(c, minha) {
+  const box = elm("div", "sos-c pet-c");
+  const cab = elm("div", "sos-c-cab");
+  const n = Number(c.nota) || 0;
+  const txt = c.acao === "achado" ? (minha ? `Você avisou: encontrou um animal parecido com ${c.nome || "o pet"}` : `Encontraram um animal parecido com ${c.nome || "o seu pet"}`)
+    : c.acao === "dono" ? (minha ? "Você avisou que pode ser o seu pet" : `Pode ser o pet ${c.nome ? "“" + c.nome + "” " : ""}de quem escreveu`)
+    : (minha ? `Você avisou que viu ${c.nome || "o pet"}` : `Viram o seu pet ${c.nome || ""}`);
+  cab.append(elm("span", "sos-c-ic pet", "🐾"), elm("div"));
+  cab.lastChild.append(elm("small", null, "RG do pet · Help Floripa"), elm("b", null, txt));
+  box.appendChild(cab);
+  if (n) box.appendChild(elm("span", "sos-c-st", `${textoSemelhanca(n)} (${n}%)`));
+  const id = (x) => (/^[A-Za-z0-9]{10,40}$/.test(String(x || "")) ? x : "");
+  const abrir = elm("button", "sos-c-ver"); abrir.type = "button"; abrir.textContent = c.achadoId ? "Ver o animal encontrado" : "Ver o RG do pet";
+  abrir.addEventListener("click", (e) => { e.stopPropagation(); irParaTopo(c.achadoId && id(c.achadoId) ? `alertas.html?aba=pets&achado=${c.achadoId}` : `alertas.html?aba=pets&pet=${id(c.petId)}`); });
+  box.appendChild(abrir);
+  return box;
 }
 // Cartão de presente no chat: o que é, a situação e Aceitar/Recusar para quem recebe.
 function cartaoPresente(c, minha) {
