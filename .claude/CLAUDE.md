@@ -2281,6 +2281,10 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
    real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
    passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+4b. **Música no Flash (ele adiou, 11/11/2026: "deixa pra depois"):** sugerido biblioteca livre (Pixabay Music/YouTube Audio
+   Library, 30–50 faixas por clima) com figurinha da música e trecho de 15 s (campo novo + Storage/Blaze); músicas famosas só
+   com licenciamento (ECAD/gravadoras ou Epidemic Sound/Soundstripe) e advogado; áudio enviado pela pessoa não recomendado.
+   A rede daqui bloqueia os sites de música: ele baixaria as faixas.
 **Programação (dá para fazer):**
 5. **Quem posta muito toma o espaço dos outros que você segue:** `buscarSeguindo` lê 20 publicações por lote de 30 autores
    (no total). Limite por autor (ex.: até 3 de cada); o jeito certo é um "feed por pessoa" montado no servidor (Cloud Function,
