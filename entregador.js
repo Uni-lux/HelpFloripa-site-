@@ -9,13 +9,13 @@
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=140";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=7";
-import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=1";
+import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
 import {
   SERVICOS, VEICULOS, MODALIDADES, TAMANHOS, ATIVAS, NOMES_ETAPA, CNH,
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=1";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;
@@ -361,7 +361,7 @@ function cartaoPedido(c) {
   if (c.paraId === eu.uid) { const e = h("span", "ent-etq ciano", `${(c.clienteNome || "Um cliente").split(" ")[0]} chamou você`); b.appendChild(e); }
   const end = h("div", "end"); end.append(h("i"), h("span", null, [c.origem?.nome, c.origem?.sub].filter(Boolean).join(" · ")), h("i", "b"), h("span", null, [c.destino?.nome, c.destino?.sub].filter(Boolean).join(" · ")));
   b.appendChild(end);
-  const info = h("small", null, `${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : "Cartão"}${c.pacote ? ` · ${c.pacote.oque}` : ""} · pedido ${dataCurta(c.criadoEm).replace("Hoje, ", "às ")}`);
+  const info = h("small", null, `${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : c.pagamento === "presente" ? "Presente (paga quem deu)" : "Cartão"}${c.pacote ? ` · ${c.pacote.oque}` : ""} · pedido ${dataCurta(c.criadoEm).replace("Hoje, ", "às ")}`);
   b.appendChild(info);
   const ac = botao("Aceitar", "ent-btn ok", () => aceitar(c, ac)); ac.style.marginTop = "6px"; ac.dataset.aceitar = c.id;
   b.appendChild(ac);
@@ -488,6 +488,7 @@ function telaTrabalho() {
   link("bussola", "Waze", linkNavegar(alvo, "waze"));
   const acao = (icone, nome, fn) => { const b = h("button", "ent-acao"); b.type = "button"; b.append(icone === "telefone" ? icExtra(icone) : ic(icone), document.createTextNode(nome)); b.addEventListener("click", fn); nav.appendChild(b); };
   acao("chat", "Mensagem", () => conversar(c.clienteId));
+  if (c.pagadorId) acao("chat", "Quem paga", () => conversar(c.pagadorId));
   acao("telefone", "Ligar", () => ligarPara(c.clienteId, c.clienteNome));
   frag.appendChild(nav);
   // Detalhes
@@ -497,7 +498,7 @@ function telaTrabalho() {
   if (c.pacote) lin("O que vai", `${c.pacote.oque} (${TAMANHOS[c.pacote.tamanho]?.nome || ""})`);
   if (contatoJob?.nome) lin("Quem recebe", contatoJob.nome);
   if (contatoJob?.telefone) lin("Telefone", contatoJob.telefone);
-  lin("Valor", `${reais(c.valor)} · ${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : "Cartão"}`);
+  lin("Valor", `${reais(c.valor)} · ${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : c.pagamento === "presente" ? "Presente (paga quem deu)" : "Cartão"}`);
   lin("Viagem", `${textoKm(c.km || 0)} · ~${textoMin(c.min || 0)}`);
   frag.appendChild(r);
   if (contatoJob?.obs) { const n = h("div", "ent-nota"); n.append(ic("chat"), h("span", null, contatoJob.obs)); frag.appendChild(n); }
@@ -575,7 +576,7 @@ function telaFim(c) {
   M?.tirarRota(); M?.tirar("origem"); M?.tirar("destino");
   const p = painel(), frag = document.createDocumentFragment();
   const box = h("div", "ent-fim"); const i = h("div", "ok"); i.appendChild(ic("check"));
-  box.append(i, h("h2", null, c.servico === "corrida" ? "Viagem concluída" : "Entrega concluída"), h("p", "ent-sub", `Receba ${reais(c.valor)} (${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "dinheiro" : "cartão"}) de ${(c.clienteNome || "quem pediu").split(" ")[0]}.`));
+  box.append(i, h("h2", null, c.servico === "corrida" ? "Viagem concluída" : "Entrega concluída"), h("p", "ent-sub", c.pagamento === "presente" ? `Foi um presente: receba ${reais(c.valor)} de quem deu o presente.` : `Receba ${reais(c.valor)} (${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "dinheiro" : "cartão"}) de ${(c.clienteNome || "quem pediu").split(" ")[0]}.`));
   frag.appendChild(box);
   if (!c.avaliacaoEntregador) {
     frag.appendChild(h("h3", null, `Como foi com ${(c.clienteNome || "quem pediu").split(" ")[0]}?`));
@@ -591,6 +592,7 @@ function telaFim(c) {
     }
     frag.appendChild(est);
   }
+  if (c.pagadorId) frag.appendChild(botao("Falar com quem paga", "ent-btn sec", () => conversar(c.pagadorId)));
   frag.appendChild(botao(online ? "Voltar aos pedidos" : "Voltar", "ent-btn", () => telaPainel()));
   p.replaceChildren(frag);
 }

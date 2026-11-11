@@ -1238,6 +1238,14 @@ export function abrirDetalhe(n, opcoes = {}) {
     const end = [[n.rua, n.numero].filter(Boolean).join(", "), n.bairro, textoCidade(n), n.uf].filter(Boolean).join(", ");
     linkExt("rota", "Como chegar", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end)}`, "rota");
   }
+  // Presente: um lanche ou produto desta loja para alguém (presentes.html).
+  if ((tipo === "delivery" || tipo === "lojinha") && (n.itens || []).some((i) => Number(i.preco) > 0) && neg.donoId !== window.firebaseAuth?.currentUser?.uid) {
+    const a = el("a", "vd-link vd-presente"); a.href = `presentes.html?negocio=${encodeURIComponent(neg.id)}`;
+    const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", "i s"); sv.setAttribute("viewBox", "0 0 24 24"); sv.setAttribute("aria-hidden", "true");
+    sv.innerHTML = '<rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 00-1-1h-17a1 1 0 00-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/>';
+    a.append(sv, el("span", null, "Dar de presente"));
+    links.appendChild(a);
+  }
   {
     const b = el("button", "vd-link"); b.type = "button";
     b.append(icone("compartilhar"), el("span", null, "Compartilhar"));

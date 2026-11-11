@@ -170,4 +170,17 @@
           && p.em == request.time;
     }
 
-// ===== FIM DA PARTE 17 DE 19 =====
+    match /corridas/{id} {
+      function c() { return resource.data; }
+      function n() { return request.resource.data; }
+      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
+      function cad() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
+      function pinCerto() { return n().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(id)/privado/pin).data.pin; }
+      // Corrida ou entrega de presente: quem deu o presente paga (direto para quem leva) e acompanha.
+      function presenteCorridaOk() {
+        let p = get(/databases/$(database)/documents/presentes/$(n().presenteId)).data;
+        return p.para == request.auth.uid && p.status == 'aceito' && p.tipo == n().servico
+            && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
+            && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
+      }
+// ===== FIM DA PARTE 17 DE 20 =====

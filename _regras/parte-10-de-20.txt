@@ -166,4 +166,4 @@
                     && valorTextoAte(request.resource.data.get('motivo', ''), 300);
       allow delete: if false;
     }
-// ===== FIM DA PARTE 10 DE 19 =====
+// ===== FIM DA PARTE 10 DE 20 =====

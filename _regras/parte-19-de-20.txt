@@ -1,0 +1,162 @@
+    // Quem está online agora (posição arredondada, para quem pede ver os veículos perto e quanto tempo levam).
+    match /entregadores_online/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && request.auth.uid == uid && entregadorAtivo(uid)
+                    && request.resource.data.keys().hasOnly(['uid', 'lat', 'lng', 'geo4', 'geo5', 'veiculo', 'servicos', 'ocupado', 'em'])
+                    && request.resource.data.uid == uid
+                    && request.resource.data.lat is number && request.resource.data.lat >= -34 && request.resource.data.lat <= 6
+                    && request.resource.data.lng is number && request.resource.data.lng >= -75 && request.resource.data.lng <= -28
+                    && request.resource.data.geo4 is string && request.resource.data.geo4.matches('^[0-9a-z]{4}$')
+                    && request.resource.data.geo5 is string && request.resource.data.geo5.matches('^' + request.resource.data.geo4 + '[0-9a-z]$')
+                    && request.resource.data.veiculo == get(/databases/$(database)/documents/entregadores/$(uid)).data.veiculo
+                    && request.resource.data.servicos is list && request.resource.data.servicos.hasOnly(['entrega', 'corrida'])
+                    && request.resource.data.ocupado is bool
+                    && request.resource.data.em == request.time;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+    // Resumo das notas de quem leva: sobe na MESMA gravação da avaliação do pedido (não dá para inventar nota).
+    match /entregadores_notas/{uid} {
+      function cor() { return getAfter(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
+      function antes() { return get(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
+      function deUmPedido() {
+        return request.resource.data.keys().hasOnly(['soma', 'n', 'ultima'])
+            && request.resource.data.ultima is string && request.resource.data.ultima.matches('^[A-Za-z0-9]{10,40}$')
+            && antes().get('avaliacao', null) == null
+            && cor().entregadorId == uid && cor().clienteId == request.auth.uid && cor().status == 'concluida';
+      }
+      allow read: if logado();
+      allow create: if logado() && deUmPedido() && request.resource.data.n == 1 && request.resource.data.soma == cor().avaliacao.nota;
+      allow update: if logado() && deUmPedido() && request.resource.data.n == resource.data.n + 1
+                    && request.resource.data.soma == resource.data.soma + cor().avaliacao.nota;
+      allow delete: if false;
+    }
+
+      // =====================================================
+    // PRESENTES (presentes.html): alguém manda um presente (mimo, dinheiro por Pix, produto ou lanche de um negócio,
+    // corrida ou entrega) e quem recebe aceita ou recusa. Quem pode mandar: pref_publicas/{uid}.presentes
+    // (todos | seguindo = quem eu sigo e meus vínculos do Social | vinculos | ninguem; padrão "seguindo").
+    // Gorjeta (Pix) para quem levou uma entrega/corrida concluída vale sempre. O site não cobra nem recebe nada.
+    function presentePermitido(de, para) {
+      let p = /databases/$(database)/documents/pref_publicas/$(para);
+      let q = exists(p) ? get(p).data.get('presentes', 'seguindo') : 'seguindo';
+      let v = /databases/$(database)/documents/vinculos/$(par(de, para));
+      return q == 'todos'
+          || (q in ['seguindo', 'vinculos'] && exists(v) && get(v).data.status == 'aceito')
+          || (q == 'seguindo' && exists(/databases/$(database)/documents/relacoes/$(para + '_' + de)));
+    }
+    function gorjetaOk(d) {
+      let c = get(/databases/$(database)/documents/corridas/$(d.corridaId)).data;
+      return d.tipo == 'pix' && c.clienteId == request.auth.uid && c.entregadorId == d.para && c.status == 'concluida';
+    }
+    match /presentes/{id} {
+      function d() { return request.resource.data; }
+      function r() { return resource.data; }
+      allow get, list: if logado() && (r().de == request.auth.uid || r().para == request.auth.uid);
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().de == request.auth.uid && d().para is string && d().para != request.auth.uid
+                    && !bloqueioEntre(request.auth.uid, d().para)
+                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega']
+                    && d().status == 'pendente'
+                    && valorTextoAte(d().get('mensagem', ''), 300) && valorTextoAte(d().get('deNome', ''), 80) && valorTextoAte(d().get('paraNome', ''), 80)
+                    && (d().tipo != 'mimo' || d().get('mimo', '').matches('^[a-z]{2,20}$'))
+                    && (d().tipo == 'mimo' || (d().valor is number && d().valor >= 0 && d().valor <= 2000))
+                    && (d().tipo in ['mimo', 'produto'] || d().valor >= 1)
+                    && (d().tipo != 'produto'
+                        ? !('itens' in d())
+                        : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
+                           && valorTextoAte(d().get('negocioNome', ''), 80)
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                    && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
+                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
+      function presenteMuda(k, st, ns) {
+        return d().atualizadoEm == request.time && (
+             // quem recebe aceita ou recusa
+             (request.auth.uid == r().para && st == 'pendente' && ns in ['aceito', 'recusado']
+              && k.hasOnly(['status', 'respondidoEm', 'atualizadoEm']) && d().respondidoEm == request.time)
+             // quem mandou desiste antes da resposta
+          || (request.auth.uid == r().de && st == 'pendente' && ns == 'cancelado' && k.hasOnly(['status', 'atualizadoEm']))
+             // quem recebe usa: corrida/entrega (o pedido é criado na mesma gravação) ou o pedido na loja
+          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['corrida', 'entrega']
+              && k.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time
+              && getAfter(/databases/$(database)/documents/corridas/$(d().corridaId)).data.presenteId == id)
+          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo == 'produto'
+              && k.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time)
+             // pago/recebido: qualquer um dos dois fecha
+          || (request.auth.uid in [r().de, r().para] && st in ['aceito', 'usado'] && ns == 'concluido'
+              && k.hasOnly(['status', 'concluidoEm', 'atualizadoEm']) && d().concluidoEm == request.time));
+      }
+      allow delete: if false;
+    }
+
+    // Localização em tempo real no chat (como no WhatsApp): só os dois da conversa leem; quem compartilha atualiza a
+    // posição enquanto o site está aberto, até a hora escolhida (no máximo 8 h), e pode parar antes.
+    match /locais_vivos/{id} {
+      function d() { return request.resource.data; }
+      function coordOk() {
+        return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
+            && d().precisao is number && d().precisao >= 0 && d().rumo is number;
+      }
+      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
+                    && d().uid == request.auth.uid
+                    && d().participantes is list && d().participantes.size() == 2 && request.auth.uid in d().participantes
+                    && d().participantes[0] < d().participantes[1]
+                    && d().conv == d().participantes[0] + '_' + d().participantes[1]
+                    && exists(/databases/$(database)/documents/conversas/$(d().conv))
+                    && !bloqueioEntre(d().participantes[0], d().participantes[1])
+                    && coordOk()
+                    && d().ate is timestamp && d().ate > request.time && d().ate <= request.time + duration.value(485, 'm')
+                    && d().parado == false && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
+                    && coordOk() && d().ate <= resource.data.ate && d().parado is bool
+                    && (resource.data.ate > request.time || d().parado == true)
+                    && d().atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // SOS E ALERTAS (alertas.html)
+    // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
+    // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
+    // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
+    function pontoAlertaOk(d) {
+      return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
+          && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
+    }
+    match /sos/{id} {
+      function d() { return request.resource.data; }
+      function r() { return resource.data; }
+      allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
+                    || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm'])
+                    && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
+                    && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
+                    && valorTextoAte(d().get('texto', ''), 300)
+                    && pontoAlertaOk(d()) && d().precisao is number
+                    && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
+                    && d().status == 'aberto' && d().ajudanteId == ''
+                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
+      function sosMuda(k, st, ns) {
+        let dono = r().uid == request.auth.uid;
+        let ajudante = r().ajudanteId == request.auth.uid;
+        return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
+            || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
+                && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
+            || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
+                && !bloqueioEntre(request.auth.uid, r().uid)
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
+                && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
+            || (ajudante && st == 'atendido' && ns == 'aberto'
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
+      }
+      allow delete: if false;
+    }
+
+// ===== FIM DA PARTE 19 DE 20 =====

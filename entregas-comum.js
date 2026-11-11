@@ -1,7 +1,7 @@
 // =====================================================
 // Entregas e corridas: partes usadas pelas duas telas (quem pede e quem leva).
 // =====================================================
-import { svgIcone } from "./mapa-vivo.js?v=1";
+import { svgIcone } from "./mapa-vivo.js?v=2";
 import { VEICULOS, formatarPlaca } from "./corridas-base.js?v=1";
 
 export function h(tag, cls, texto) { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; }
@@ -50,8 +50,8 @@ export function iniciais(nome) {
 // Beep curto e vibração (pedido novo, motorista chegou...). Só depois de um toque na página.
 let ctxSom = null;
 export function avisarSom(tipo = "novo") {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; // vibrar e tocar só depois de um toque
   try { navigator.vibrate?.(tipo === "novo" ? [120, 60, 120] : [200]); } catch {}
-  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   try {
     ctxSom = ctxSom || new (window.AudioContext || window.webkitAudioContext)();
     const t = ctxSom.currentTime;

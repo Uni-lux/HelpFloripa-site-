@@ -100,6 +100,8 @@ const ICONES_MENU = {
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   seta: '<path d="M9 5l7 7-7 7"/>',
   entregas: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  coracao: '<path d="M12 20s-7.5-4.4-7.5-10A4.3 4.3 0 0112 7.3 4.3 4.3 0 0119.5 10c0 5.6-7.5 10-7.5 10z"/>',
+  presente: '<rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 00-1-1h-17a1 1 0 00-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/>',
   volante: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2"/><path d="M3.8 10.5l6.3 1M13.9 11.5l6.3-1M12 14v6.5"/>',
   alerta: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   feed: '<rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/>',
@@ -124,7 +126,8 @@ const SECOES_MENU = [
     ["saude.html", "saude", "Saúde", "#0fb5a6"],
     ["automotivo.html", "automotivo", "Automotivo", "#f5b301"],
     ["comunidade.html", "comunidade", "Comunidade", "#e5487f"],
-    ["entregas.html", "entregas", "Entregas e corridas", "#f5b301", null, "Envie algo ou peça um carro e acompanhe no mapa"]
+    ["entregas.html", "entregas", "Entregas e corridas", "#f5b301", null, "Envie algo ou peça um carro e acompanhe no mapa"],
+    ["alertas.html", "alerta", "SOS e alertas", "#e5484d", null, "Pedir ajuda, pets perdidos e roubos perto de você"]
   ]],
   ["Minha conta", [
     ["feed.html", "feed", "Diário"],
@@ -132,6 +135,8 @@ const SECOES_MENU = [
     ["notificacoes.html", "sino", "Notificações"],
     ["mensagens.html", "chat", "Mensagens", null, "menuBadge"],
     ["social.html", "social", "Social e conexões"],
+    ["presentes.html", "presente", "Presentes", "#e5487f", null, "Mimos, lanches, Pix e corridas para quem você gosta"],
+    ["alertas.html?aba=pets", "coracao", "Meus pets (RG)", null, null, "Cadastro para achar o seu pet se ele sumir"],
     ["configuracoes.html", "config", "Configurações"]
   ]],
   ["Para quem anuncia", [

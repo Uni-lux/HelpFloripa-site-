@@ -10,13 +10,13 @@
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=140";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=7";
-import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=1";
+import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
 import {
   SERVICOS, VEICULOS, MODALIDADES, TAMANHOS, PAGAMENTOS, ATIVAS, NOMES_ETAPA, ELOGIOS, MOTIVOS_CANCELAR, RAIOS, VALOR_MIN, VALOR_MAX,
   modalidadesDe, modalidadesDoVeiculo, textoStatus, passo, pinEm, expirada, faixaValor, valorSugerido, minutosAte, distanciaKm, kmPelaRua,
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=1";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
 
 const params = new URLSearchParams(location.search);
 const S = {
@@ -24,7 +24,7 @@ const S = {
   origem: null, destino: null, rota: null,
   mod: "", tamanho: "P", oque: "", contato: { nome: "", telefone: "", obs: "" },
   pagamento: "pix", valor: 0, valorMexido: false,
-  para: null, dest: null, conversaId: params.get("conversa") || "",
+  para: null, dest: null, conversaId: params.get("conversa") || "", presente: null,
   minha: null, perto: []
 };
 let M = null, vista = "", atual = null, pararPedido = null, pinPedido = "", notaEnt = null, fotoEnt = "", rotaViva = null, enviando = false;
@@ -58,7 +58,18 @@ const painel = () => $("painel");
 })();
 
 async function prepararParametros() {
-  const para = params.get("para"), ent = params.get("entregador");
+  const para = params.get("para"), ent = params.get("entregador"), pres = params.get("presente");
+  // Corrida ou entrega de presente: quem deu paga (direto para quem leva), até o valor do presente.
+  if (pres) {
+    try {
+      const d = await fb.getDoc(fb.doc(fb.db, "presentes", pres));
+      const p = d.exists() ? { id: d.id, ...d.data() } : null;
+      if (p && p.para === eu.uid && p.status === "aceito" && (p.tipo === "corrida" || p.tipo === "entrega")) {
+        S.presente = p; S.servico = p.tipo; S.pagamento = "presente";
+        S.mod = p.tipo === "corrida" ? "corrida_carro" : "entrega_moto";
+      } else if (p) toast(p.status === "usado" ? "Esse presente já foi usado." : "Esse presente não pode ser usado aqui.");
+    } catch { toast("Não foi possível ler o presente."); }
+  }
   if (para && para !== eu.uid) {
     try {
       const p = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", para));
@@ -128,8 +139,9 @@ function pintar() {
   for (const [k, nome, v] of [["entrega", "Entrega", "pacote"], ["corrida", "Corrida", "carro"]]) {
     const b = h("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(S.servico === k)); b.dataset.servico = k;
     b.append(veicIcone(v), document.createTextNode(nome));
+    if (S.presente && S.presente.tipo !== k) b.disabled = true;
     b.addEventListener("click", () => {
-      if (S.servico === k) return;
+      if (S.servico === k || S.presente) return;
       S.servico = k; S.mod = k === "corrida" ? "corrida_carro" : "entrega_moto"; S.valorMexido = false;
       if (S.para && !modalidadesDoVeiculo(S.para.veiculo, [k]).length) { toast(`${S.para.nome} não faz ${k === "corrida" ? "corridas" : "entregas"}. Vamos procurar qualquer pessoa perto.`); S.para = null; }
       else if (S.para) S.mod = modalidadesDoVeiculo(S.para.veiculo, [k])[0];
@@ -144,6 +156,11 @@ function pintar() {
   rota.append(linhaEndereco("origem", "a", S.servico === "corrida" ? "Partida" : "Coleta", S.origem, "De onde sai?"),
     linhaEndereco("destino", "b", S.servico === "corrida" ? "Destino" : "Entrega", S.destino, S.servico === "corrida" ? "Para onde vamos?" : "Para onde vai?"));
   frag.appendChild(rota);
+  if (S.presente) {
+    const n = h("div", "ent-nota"); n.dataset.presente = "";
+    n.append(ic("estrela"), h("span", null, `🎁 Presente de ${S.presente.deNome || "alguém"}: até ${reais(S.presente.valor)}. ${(S.presente.deNome || "Quem deu").split(" ")[0]} paga direto para quem levar e acompanha no mapa.`));
+    frag.appendChild(n);
+  }
   if (S.dest) {
     const n = h("div", "ent-nota"); n.append(ic("pessoa"), h("span", null, `Para ${S.dest.nome}: ${S.dest.nome.split(" ")[0]} acompanha a entrega pelo Mensagens e recebe o PIN.`));
     frag.appendChild(n);
@@ -198,7 +215,9 @@ function pintar() {
   frag.appendChild(blocoOferta());
   frag.appendChild(h("h3", null, "Pagamento"));
   const pg = h("div", "ent-chips");
-  for (const [k, nome] of Object.entries(PAGAMENTOS)) {
+  if (S.presente) pg.appendChild(h("span", "ent-chip", `Presente · pago por ${(S.presente.deNome || "quem deu").split(" ")[0]}`)).setAttribute("aria-pressed", "true");
+  else
+  for (const [k, nome] of Object.entries(S.presente ? {} : PAGAMENTOS)) {
     const b = h("button", "ent-chip", k === "pix" ? "Pix" : k === "dinheiro" ? "Dinheiro" : "Cartão"); b.type = "button"; b.title = nome; b.setAttribute("aria-pressed", String(S.pagamento === k));
     b.addEventListener("click", () => { S.pagamento = k; pg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
     pg.appendChild(b);
@@ -273,9 +292,11 @@ function opcaoModalidade(m) {
   b.addEventListener("click", () => { S.mod = m.k; S.valorMexido = false; recalcularValor(); pintar(); aoMudarRota(true); });
   return b;
 }
+const valorTeto = () => (S.presente ? Math.min(VALOR_MAX, Number(S.presente.valor) || 0) : VALOR_MAX);
 function recalcularValor() {
-  if (!S.rota || S.valorMexido) return;
-  S.valor = valorSugerido(S.mod, S.rota.km, minutosDe(S.mod));
+  if (!S.rota) return;
+  if (!S.valorMexido) S.valor = valorSugerido(S.mod, S.rota.km, minutosDe(S.mod));
+  S.valor = Math.min(S.valor, valorTeto());
 }
 function blocoOferta() {
   recalcularValor();
@@ -295,9 +316,13 @@ function blocoOferta() {
     const baixo = S.valor < f.baixo;
     dica.className = baixo ? "baixo" : "";
     dica.textContent = baixo ? `Abaixo do sugerido (${reais(f.sugerido)}): pode demorar` : `Sugerido: ${reais(f.sugerido)}`;
+    if (S.presente) dica.textContent += ` · presente até ${reais(valorTeto())}`;
     atualizarBotao();
   };
-  const mudar = (v) => { S.valor = Math.min(VALOR_MAX, Math.max(VALOR_MIN, Math.round(v * 2) / 2)); S.valorMexido = true; mostrar(); };
+  const mudar = (v) => {
+    if (v > valorTeto() && S.presente) toast(`O presente cobre até ${reais(valorTeto())}.`);
+    S.valor = Math.min(valorTeto(), Math.max(VALOR_MIN, Math.round(v * 2) / 2)); S.valorMexido = true; mostrar();
+  };
   menos.addEventListener("click", () => mudar(S.valor - 1));
   mais.addEventListener("click", () => mudar(S.valor + 1));
   inp.addEventListener("focus", () => { inp.value = String(S.valor).replace(".", ","); inp.select(); });
@@ -610,12 +635,14 @@ async function criarPedido() {
     paraId: S.para?.uid || "", destinatarioId: S.dest?.uid || "",
     geo4: geohash(S.origem.lat, S.origem.lng, 4), geo5: geohash(S.origem.lat, S.origem.lng, 5),
     raioKm: S.para ? 40 : RAIOS[0], pinEm: pinEm(S.servico),
+    ...(S.presente ? { presenteId: S.presente.id, pagadorId: S.presente.de, pagamento: "presente" } : {}),
     criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
   };
   try {
     const lote = fb.writeBatch(fb.db);
     lote.set(ref, pedido);
     lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "pin"), { pin });
+    if (S.presente) lote.update(fb.doc(fb.db, "presentes", S.presente.id), { status: "usado", corridaId: ref.id, usadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
     lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "contato"), { nome: S.contato.nome.trim().slice(0, 80), telefone: S.contato.telefone.trim().slice(0, 20), obs: S.contato.obs.trim().slice(0, 300) });
     await lote.commit();
   } catch (e) {
@@ -627,6 +654,7 @@ async function criarPedido() {
   // Avisos pelo Mensagens: quem recebe acompanha; o entregador escolhido vê o chamado mesmo se estiver fora do painel.
   const cartao = { tipo: "entrega", id: ref.id, servico: S.servico, titulo: S.servico === "corrida" ? "Corrida" : `Entrega: ${S.oque.trim().slice(0, 60)}`, de: S.origem.nome.slice(0, 80), para: S.destino.nome.slice(0, 80) };
   if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "📦 Entrega a caminho de você").catch(() => {});
+  if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `🎁 Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`).catch(() => {});
   if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "🚗 Chamado de corrida para você" : "📦 Chamado de entrega para você").catch(() => {});
   acompanhar(ref.id);
 }
@@ -647,7 +675,7 @@ function acompanhar(id) {
     if (!snap.exists()) { painel().replaceChildren(h("p", "ent-vazio", "Pedido não encontrado."), botao("Fazer um pedido", "ent-btn", () => novoPedido())); return; }
     const antes = atual;
     atual = { id: snap.id, ...snap.data() };
-    papel = atual.clienteId === eu.uid ? "cliente" : atual.destinatarioId === eu.uid ? "destinatario" : atual.entregadorId === eu.uid ? "entregador" : "outro";
+    papel = atual.clienteId === eu.uid ? "cliente" : atual.destinatarioId === eu.uid ? "destinatario" : atual.entregadorId === eu.uid ? "entregador" : atual.pagadorId === eu.uid ? "pagador" : "outro";
     if (papel === "entregador") { irPara("entregador.html"); return; }
     if (!pinPedido && (papel === "cliente" || papel === "destinatario")) fb.getDoc(fb.doc(fb.db, "corridas", id, "privado", "pin")).then((p) => { pinPedido = p.data()?.pin || ""; desenharPedido(); }).catch(() => {});
     if (atual.entregadorId && atual.entregadorId !== antes?.entregadorId) lerQuemLeva(atual.entregadorId);
@@ -693,7 +721,7 @@ function resumoPedido(c) {
   if (c.pacote) lin("O que vai", `${c.pacote.oque} (${TAMANHOS[c.pacote.tamanho]?.nome || ""})`);
   lin("Veículo", MODALIDADES[c.modalidade]?.nome || "");
   lin("Distância", `${textoKm(c.km || 0)} · ~${textoMin(c.min || 0)}`);
-  lin("Oferta", `${reais(c.valor)} · ${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : "Cartão"}`);
+  lin("Oferta", `${reais(c.valor)} · ${c.pagamento === "pix" ? "Pix" : c.pagamento === "dinheiro" ? "Dinheiro" : c.pagamento === "presente" ? "Presente (paga quem deu)" : "Cartão"}`);
   return r;
 }
 
@@ -886,11 +914,13 @@ function telaConcluida() {
   const i = h("div", "ok"); i.appendChild(ic("check")); box.appendChild(i);
   box.appendChild(h("h2", null, c.servico === "corrida" ? "Você chegou!" : papel === "destinatario" ? "Encomenda entregue" : "Entregue!"));
   const dur = ms(c.concluidaEm) && ms(c.aceitaEm) ? Math.round((ms(c.concluidaEm) - ms(c.aceitaEm)) / 60000) : 0;
-  box.appendChild(h("p", "ent-sub", `${hora(c.concluidaEm)}${dur ? ` · ${textoMin(dur)} desde o aceite` : ""} · ${reais(c.valor)} (${PAGAMENTOS[c.pagamento] || ""})`));
+  box.appendChild(h("p", "ent-sub", `${hora(c.concluidaEm)}${dur ? ` · ${textoMin(dur)} desde o aceite` : ""} · ${reais(c.valor)} (${c.pagamento === "presente" ? "presente" : PAGAMENTOS[c.pagamento] || ""})`));
   const frag = document.createDocumentFragment();
   frag.appendChild(box);
   if (papel === "cliente" && !c.avaliacao) frag.appendChild(blocoAvaliar(c));
   else if (c.avaliacao) frag.appendChild(h("p", "ent-sub", `Sua avaliação: ${"★".repeat(c.avaliacao.nota)}${"☆".repeat(5 - c.avaliacao.nota)}`));
+  if (papel === "cliente" && c.entregadorId) frag.appendChild(botao(`Dar uma gorjeta para ${(e.nome || "quem levou").split(" ")[0]}`, "ent-btn sec", () => irPara(`presentes.html?gorjeta=${encodeURIComponent(c.id)}`)));
+  if (papel === "pagador") frag.appendChild(h("p", "ent-sub", `Você deu esta ${c.servico} de presente: pague ${reais(c.valor)} direto para ${(e.nome || "quem levou").split(" ")[0]}.`));
   if (papel === "cliente" && c.entregadorId) {
     const fav = (dados.entregadoresFavoritos || []).includes(c.entregadorId);
     const b = botao(fav ? `${(e.nome || "").split(" ")[0]} está nos seus favoritos` : `Salvar ${(e.nome || "").split(" ")[0] || "entregador"} nos favoritos`, "ent-btn sec", async () => {

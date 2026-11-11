@@ -1512,3 +1512,77 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 .en-passos i.feito, .en-passos i.agora { background: #00adee; }
 .en-passos i.agora { opacity: .55; }
 .en-btn { display: flex; align-items: center; justify-content: center; margin-top: 10px; min-height: 42px; border-radius: 12px; background: #00adee; color: #001a24; font-weight: 800; font-size: 14px; text-decoration: none; }
+
+/* Enviar localização (tela como no WhatsApp) e localização em tempo real */
+.lv-tela { position: fixed; inset: 0; z-index: 2900; background: var(--bg, #070b0e); color: var(--text); display: flex; flex-direction: column; }
+.lv-topo { display: flex; align-items: center; gap: 6px; padding: calc(8px + env(safe-area-inset-top)) 8px 8px; background: var(--panel, #0f161b); border-bottom: 1px solid var(--line, #213038); }
+.lv-topo strong { flex: 1; font-size: 18px; }
+.lv-busca { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line, #213038); background: var(--input, #121b21); color: var(--text); }
+.lv-bt { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; color: var(--text); display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
+.lv-bt svg.i { width: 22px; height: 22px; }
+.lv-mapa-box { position: relative; height: 42vh; min-height: 220px; flex: 0 0 auto; }
+.lv-mapa { position: absolute; inset: 0; background: var(--panel-2, #151f25); }
+.lv-ao-vivo .lv-mapa { position: relative; flex: 1; }
+.lv-mapa.lv-sem::after { content: "Mapa indisponível"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+.lv-centro { position: absolute; z-index: 1100; right: 12px; top: 12px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #111; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.3); cursor: pointer; }
+.lv-lista { flex: 1; overflow: auto; padding-bottom: env(safe-area-inset-bottom); }
+.lv-op { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 0; border-bottom: 1px solid var(--line, #213038); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.lv-op:disabled { opacity: .6; }
+.lv-op > span:last-child { display: grid; min-width: 0; }
+.lv-op b { font-size: 16px; font-weight: 600; }
+.lv-op small { color: var(--muted); font-size: 13px; }
+.lv-ic { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; background: var(--panel-2, #151f25); color: #22c55e; border: 2px solid currentColor; }
+.lv-op.vivo .lv-ic { background: #22c55e; color: #fff; border-color: #22c55e; }
+.lv-op.lugar .lv-ic { border: 0; color: var(--muted); }
+.lv-sec { margin: 0; padding: 14px 16px 4px; color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.lv-nota { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 12px; }
+.lv-duracoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.lv-dur { min-height: 46px; border-radius: 12px; border: 1.5px solid var(--line, #213038); background: var(--panel-2, #151f25); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.lv-dur[aria-pressed="true"] { border-color: #22c55e; background: color-mix(in srgb, #22c55e 14%, transparent); }
+.lv-vivo-tit { flex: 1; display: grid; }
+.lv-vivo-tit small { color: #22c55e; font-size: 12.5px; }
+.lv-rodape { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--panel, #0f161b); }
+.lv-rodape .pv-btn { display: flex; justify-content: center; text-decoration: none; }
+.lv-cartao .lv-c-mapa { position: relative; }
+.lv-pulso { position: relative; background: #22c55e !important; color: #fff !important; }
+.lv-pulso::after { content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid #22c55e; animation: lv-pulso 1.6s ease-out infinite; }
+@keyframes lv-pulso { from { transform: scale(.85); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.lv-cartao.acabou .lv-pulso { background: var(--muted) !important; }
+.lv-cartao.acabou .lv-pulso::after { display: none; }
+.lv-cartao.acabou .lv-c-mapa { filter: grayscale(.8); opacity: .7; }
+.lv-cartao .lc-tx span { color: #22c55e; font-weight: 600; }
+.lv-cartao.acabou .lc-tx span { color: var(--muted); }
+.lv-parar { color: #e5484d !important; }
+/* Presente no chat */
+.bolha.cartao-msg.presente-msg { width: min(300px, 86%); padding: 0; overflow: hidden; background: var(--panel-2, #151f25); color: var(--text); border: 1px solid color-mix(in srgb, #e5487f 45%, var(--line, #213038)); }
+.minha .bolha.cartao-msg.presente-msg { background: var(--panel-2, #151f25); color: var(--text); }
+.pr-c { display: grid; grid-template-columns: 64px 1fr; gap: 10px 12px; padding: 12px; background: linear-gradient(150deg, color-mix(in srgb, var(--pc) 18%, transparent), transparent 70%); }
+.pr-c-emoji { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 36px; background: var(--panel, #0f161b); }
+.pr-c-tx { display: grid; align-content: center; gap: 2px; min-width: 0; }
+.pr-c-tx small { font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pr-c-tx b { font-size: 15px; line-height: 1.3; }
+.pr-c-st { font-size: 12.5px; font-weight: 700; color: #f59e0b; }
+.pr-c-st[data-cor="verde"] { color: #2fbf71; } .pr-c-st[data-cor="vermelho"] { color: #e5484d; } .pr-c-st[data-cor="ciano"] { color: #00adee; }
+.pr-c-msg { font-size: 13px; color: var(--muted); }
+.pr-c-acoes { grid-column: 1 / -1; display: flex; gap: 8px; }
+.pr-c-acoes button { flex: 1; min-height: 40px; border-radius: 12px; border: 1px solid var(--line, #213038); background: var(--panel, #0f161b); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.pr-c-acoes .pr-c-sim { background: #2fbf71; border-color: #2fbf71; color: #03200f; }
+
+/* SOS e pet no chat (alertas.html) */
+.bolha.cartao-msg.sos-msg, .bolha.cartao-msg.pet-msg { width: min(300px, 86%); padding: 0; overflow: hidden; background: var(--panel-2, #151f25); color: var(--text); border: 1px solid color-mix(in srgb, #e5484d 55%, var(--line, #213038)); }
+.bolha.cartao-msg.pet-msg { border-color: color-mix(in srgb, #00adee 45%, var(--line, #213038)); }
+.minha .bolha.cartao-msg.sos-msg, .minha .bolha.cartao-msg.pet-msg { background: var(--panel-2, #151f25); color: var(--text); }
+.sos-c { display: grid; gap: 8px; padding: 12px; background: linear-gradient(150deg, color-mix(in srgb, #e5484d 16%, transparent), transparent 70%); }
+.pet-c { background: linear-gradient(150deg, color-mix(in srgb, #00adee 14%, transparent), transparent 70%); }
+.sos-c-cab { display: flex; gap: 10px; align-items: center; }
+.sos-c-cab > div { display: grid; min-width: 0; }
+.sos-c-cab small { font-size: 11.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.sos-c-cab b { font-size: 15px; line-height: 1.3; }
+.sos-c-ic { width: 48px; height: 48px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; background: #e5484d; color: #fff; font-weight: 900; font-size: 14px; letter-spacing: .04em; }
+.sos-c-ic.pet { background: var(--panel, #0f161b); font-size: 24px; }
+.sos-c-st { font-size: 13px; font-weight: 700; color: #e5484d; }
+.sos-c-st[data-st="atendido"] { color: #f59e0b; } .sos-c-st[data-st="resolvido"] { color: #2fbf71; } .sos-c-st[data-st="cancelado"] { color: var(--muted); }
+.pet-c .sos-c-st { color: #00adee; }
+.sos-c-ver { min-height: 42px; border-radius: 12px; border: 0; background: #e5484d; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.pet-c .sos-c-ver { background: #00adee; color: #001a24; }
+.sos-c.acabou .sos-c-ver { background: var(--panel, #0f161b); color: var(--text); border: 1px solid var(--line, #213038); }

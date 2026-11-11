@@ -122,26 +122,40 @@
 > `entregadores_notas/{uid}` (nota sobe na mesma gravação da avaliação). Banimento de programa aceita `entregas`.
 > Sem as regras publicadas, pedir e se cadastrar avisam que falta liberar. Agora são **19 partes**, 904 testes.
 
+> **Atualização (10/11/2026 – Presentes e localização em tempo real):** coleções novas `presentes/{id}` (mimo, dinheiro,
+> produto de uma loja, corrida ou entrega; quem recebe aceita/recusa; quem pode mandar segue `pref_publicas.presentes` =
+> todos | seguindo | vinculos | ninguem, padrão "seguindo"; gorjeta para quem levou uma corrida concluída vale sempre) e
+> `locais_vivos/{id}` (localização em tempo real no chat: só os dois da conversa leem, até 8 h, quem compartilha para quando
+> quiser). `corridas` aceita `presenteId`/`pagadorId` (corrida de presente: até o valor do presente, quem deu acompanha).
+> Continuam **19 partes**, 940 testes.
+
+> **Atualização (11/11/2026 – SOS, roubos e RG do pet):** coleções novas `sos/{id}` (pedido de ajuda: o Social em
+> `avisados` e, se a pessoa deixar, quem está perto; só UMA pessoa aceita ajudar e os outros veem; quem pediu ou quem ajuda
+> encerra), `ocorrencias/{id}` (roubo, furto, golpe, suspeita; anônima com `ocorrencias_autoria/{id}` só para a pessoa e a
+> moderação; IMEI/placa/série para a consulta), `ocorrencias/{id}/pistas` (só quem registrou lê; anônima com
+> `pistas_autoria` só para a moderação), `pets/{id}` (RG do pet) e `pets_achados/{id}` (animal encontrado).
+> Agora são **20 partes**, 986 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **19 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **20 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (216.604 bytes, 3.480 linhas, sha256 começa com `27cfc75586fc31fa`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 19 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (235.485 bytes, 3.719 linhas, sha256 começa com `0079896b33e88b7b`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 20 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 19 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **904 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 20 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **986 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-19.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 19 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 19, **em ordem**.
+3. Abra `parte-1-de-20.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 20 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 20, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 19 DE 19 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 20 DE 20 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 19 linhas `FIM DA PARTE` aparecem, de 1 a 19, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 20 linhas `FIM DA PARTE` aparecem, de 1 a 20, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
 

@@ -312,3 +312,19 @@ html { -webkit-tap-highlight-color: transparent; }
   font-weight: 600; font-size: 7.5px; letter-spacing: .34em; line-height: 1; color: var(--muted); text-transform: uppercase; margin-right: -.34em; }
 .marca small::before, .marca small::after { content: ""; width: 14px; height: 1px; background: var(--accent); opacity: .75; }
 @media (max-width: 360px) { .marca strong { font-size: 18px; } .marca small { letter-spacing: .26em; } }
+
+/* Corridas, entregas e presentes: bloco no Automotivo e atalhos no Início */
+.mob { margin: 14px 0 6px; padding: 16px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, #f5b301 12%, var(--panel, #0f161b)), var(--panel, #0f161b)); border: 1px solid color-mix(in srgb, #f5b301 30%, var(--line, #213038)); }
+.mob-cab h2 { margin: 0 0 4px; font-size: 19px; }
+.mob-cab p { margin: 0 0 12px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.mob-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mob-op { display: grid; justify-items: center; text-align: center; gap: 4px; padding: 14px 6px; border-radius: 16px; background: var(--panel-2, #151f25); border: 1px solid var(--line, #213038); color: var(--text); text-decoration: none; min-height: 112px; align-content: center; }
+.mob-op:hover { border-color: var(--mc); }
+.mob-op strong { font-size: 14px; }
+.mob-op small { color: var(--muted); font-size: 12px; }
+.mob-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, var(--mc) 18%, transparent); color: var(--mc); }
+.mob-ic .i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mob-op.corrida, .mob-chip.corrida { --mc: #00adee; } .mob-op.entrega, .mob-chip.entrega { --mc: #f5b301; } .mob-op.motorista { --mc: #2fbf71; } .mob-chip.presente { --mc: #e5487f; }
+.mob-faixa { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 4px; }
+.mob-chip { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--mc) 40%, var(--line, #213038)); background: color-mix(in srgb, var(--mc) 10%, var(--panel, #0f161b)); color: var(--text); text-decoration: none; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.mob-chip .i { color: var(--mc); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

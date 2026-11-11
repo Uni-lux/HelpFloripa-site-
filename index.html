@@ -50,12 +50,12 @@
       document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=17" />
+  <link rel="stylesheet" href="categoria.css?v=18" />
   <link rel="stylesheet" href="inicio.css?v=19" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=83"></script>
-  <script type="module" src="inicio.js?v=96"></script>
+  <script type="module" src="categoria.js?v=85"></script>
+  <script type="module" src="inicio.js?v=97"></script>
 </head>
 <body data-classe="inicio">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -164,9 +164,16 @@
       <a class="classe-card automotivo" href="automotivo.html" style="--img: url('automotivo.svg')">
         <span class="conta" id="conta-automotivo">&nbsp;</span>
         <span class="ic"><svg class="i" aria-hidden="true"><use href="#i-automotivo"/></svg></span>
-        <span class="cc-tx"><strong>Automotivo</strong><small>Oficinas, peças, guincho e lava-jato.</small></span>
+        <span class="cc-tx"><strong>Automotivo</strong><small>Oficinas, guincho, corridas e entregas.</small></span>
         <span class="cc-seta" aria-hidden="true"><svg class="i xs"><use href="#i-seta"/></svg></span>
       </a>
+    </nav>
+
+    <!-- Corridas, entregas e presentes: atalhos logo abaixo das classes -->
+    <nav class="mob-faixa" aria-label="Corridas, entregas e presentes">
+      <a class="mob-chip corrida" href="entregas.html?modo=corrida"><svg class="i s" aria-hidden="true"><use href="#i-automotivo"/></svg>Pedir corrida</a>
+      <a class="mob-chip entrega" href="entregas.html?modo=entrega"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Enviar entrega</a>
+      <a class="mob-chip presente" href="presentes.html"><svg class="i s" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 00-1-1h-17a1 1 0 00-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/></svg>Enviar presente</a>
     </nav>
 
     <section class="banner" aria-label="Anúncios do Help Floripa" aria-roledescription="carrossel">

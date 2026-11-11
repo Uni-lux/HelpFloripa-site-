@@ -49,7 +49,8 @@
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'atualizadoEm'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm'])
+                    && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
                     && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
                     && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
       allow delete: if logado() && uid == request.auth.uid;
@@ -200,4 +201,4 @@
       allow delete: if podeModerar();
     }
 
-// ===== FIM DA PARTE 15 DE 19 =====
+// ===== FIM DA PARTE 15 DE 20 =====

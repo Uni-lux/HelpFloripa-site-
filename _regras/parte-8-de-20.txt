@@ -218,4 +218,4 @@
                     && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
 
-// ===== FIM DA PARTE 8 DE 19 =====
+// ===== FIM DA PARTE 8 DE 20 =====
