@@ -2385,6 +2385,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   fina e item ativo branco com contorno branco (`box-shadow inset 0 0 0 1px rgba(255,255,255,.78)`); topo preto com linha
   branca; "+" (`.fab-hf` e `.fab-nova`) escuros com borda branca; rede.html/rede-app.js theme-color #000. Testes
   `t-x-preto.mjs` (11); `t-tema-rede`, `t-comunidade-rede`, `t-mural-enxuto` esperam #000.
+- **Barra e topo no jeito do X, Explorar/Comunidade com a busca no topo (12/11/2026, PR depois do #201, sem regra nova):**
+  prints dele (X). Barra de baixo de ponta a ponta (`left/right 0`, sem cantos), só ícones 26 px (o nome fica `clip`, para o
+  leitor de tela), linha fina em cima e linha curta (24×2 px) sobre o item ativo (branco no escuro, `--text` no claro); preta
+  no escuro. Mesmo CSS no fim do rede.css, no `CSS` do barra-rede.js e no mensagens.css (lá a barra fica no fluxo).
+  `body.com-barra` padding 64 px, sem o esmaecido `::after`; "+" (`.fab-hf`/`.fab-nova`) a 72 px. **Topo e barra acompanham o
+  dedo** (`ligarTopoQueSome` refeito em barra-rede.js): `desl` 0…altura do topo somado a cada rolagem; topo `translate3d(0,-desl)`,
+  barra e "+" descem na mesma proporção, `--topo-desl` puxa `.abas`/`.mu-barra`; parou no meio = termina por
+  requestAnimationFrame em 200 ms (vale com "remover animações"); `window.__hfMostrarTopo()` (feed.js ao trocar Diário/Explorar
+  e `hf:gaveta` quando a aba da rede aparece). Cor do app: `manifest.theme_color` e `meta theme-color` de feed/mural/usuarios/
+  mensagens = #000 (mensagens-app.js também); topo escuro opaco #000. **Perfil:** topo = casinha · `#topoNick` (@nome em Sora
+  com degradê prata, "@" azul) · engrenagem. **Explorar:** `#buscaPessoas` foi para o `header.topo` (`.topo-exp-busca`,
+  "Pesquisar"); com `body.aba-explorar` só ela aparece no topo. **Comunidade:** `.mu-linha` (busca + lugar) no `header.topo
+  .topo-com` (sem casinha e sino), alertas em pílulas pequenas (número só com `.tem`), aviso menor e vazio compacto
+  (tipos em pílulas). Teste `t-x-preto.mjs` (17, com `reducedMotion: reduce`).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

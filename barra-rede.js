@@ -34,7 +34,31 @@ body.com-barra { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 .barra-rede .mini-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #0a4a63, #00adee); }
 .barra-rede .mini-av img { width: 100%; height: 100%; object-fit: cover; }
 .barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px var(--accent, #00adee); }
-.barra-rede .ponto-badge { position: absolute; top: 0; right: calc(50% - 22px); }`;
+.barra-rede .ponto-badge { position: absolute; top: 0; right: calc(50% - 22px); }
+/* Barra de baixo no jeito do X (12/11/2026, pedido dele): de ponta a ponta, só ícones (o nome fica para o leitor de tela),
+   linha fina em cima e uma linha curta sobre o item ativo. Preta no tema escuro, branca no claro. */
+body.com-barra { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+body.com-barra::after { display: none; }
+.barra-rede { left: 0; right: 0; bottom: 0; transform: none; width: auto; max-width: none; margin: 0; padding: 0 4px env(safe-area-inset-bottom);
+  border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--panel); box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none; will-change: transform; }
+.barra-rede a, .barra-rede button { height: 54px; padding: 0; border-radius: 0; place-items: center; align-content: center; background: none !important; box-shadow: none !important; color: var(--muted); }
+.barra-rede a > span:not(.mini-av) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.barra-rede .bi { width: 26px; height: 26px; stroke-width: 1.9; }
+.barra-rede [aria-current="page"], .barra-rede [aria-current="page"]:hover { color: var(--text); }
+.barra-rede [aria-current="page"] .bi { stroke-width: 2.5; }
+.barra-rede [aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 50%; width: 24px; height: 2px; margin-left: -12px; border-radius: 0 0 2px 2px; background: var(--text); }
+.barra-rede .mini-av { width: 28px; height: 28px; }
+.barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--text); }
+.barra-rede .ponto-badge { top: 9px; right: calc(50% - 18px); }
+:root[data-theme="dark"] .barra-rede { background: #000; border-top-color: rgba(255, 255, 255, .14); }
+:root[data-theme="dark"] .barra-rede [aria-current="page"], :root[data-theme="dark"] .barra-rede [aria-current="page"]:hover { color: #fff; }
+:root[data-theme="dark"] .barra-rede [aria-current="page"]::before { background: #fff; }
+:root[data-theme="dark"] .barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px #000, 0 0 0 3.5px #fff; }
+@media (hover: hover) { .barra-rede a:hover { color: var(--text); } }
+body.com-barra .fab-hf { bottom: calc(72px + env(safe-area-inset-bottom)); }
+body.com-barra .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
+`;
 function estilo() {
   if (document.getElementById("hf-barra-css") || document.querySelector('link[href*="rede.c' + 'ss"]')) return;
   const s = document.createElement("style"); s.id = "hf-barra-css"; s.textContent = CSS; document.head.appendChild(s);
@@ -42,23 +66,53 @@ function estilo() {
 const svg = (k) => `<svg class="i bi" viewBox="0 0 24 24" aria-hidden="true">${ICONES[k]}</svg>`;
 
 // Monta a barra (uma vez por página). ativo = "diario" | "explorar" | "comunidade" | "mensagens" | "perfil" | "".
-// Topo que some ao descer e volta ao subir (como Instagram, X e TikTok): o conteúdo fica com a tela toda.
-// Só some depois de 90 px de rolagem e com um movimento de pelo menos 28 px no mesmo sentido (sem piscar).
+// Topo e barra de baixo que acompanham o dedo (como Instagram, X e TikTok): ao descer, o topo sobe e a barra desce na
+// mesma medida da rolagem; ao subir, voltam. Quando o dedo para no meio, completam o movimento por requestAnimationFrame
+// (funciona com "remover animações" ligado, que desliga as transições do CSS). --topo-desl leva as faixas presas logo
+// abaixo do topo (abas, filtros da Comunidade) junto.
 export function ligarTopoQueSome() {
   if (window.__hfTopoSome) return;
   window.__hfTopoSome = true;
-  let ultimo = scrollY, acum = 0;
-  const b = document.body;
+  const raiz = document.documentElement, corpo = document.body;
+  let ultimo = Math.max(0, scrollY), desl = 0, H = 0, anim = 0, tFim = 0;
+  const pecas = () => ({ t: document.querySelector("header.topo"), b: document.getElementById("barraRede"), f: document.querySelectorAll(".fab-hf") });
+  const aplicar = (v) => {
+    desl = v;
+    const { t, b, f } = pecas();
+    const k = H ? v / H : 0;
+    if (t) t.style.transform = v ? `translate3d(0, ${-v}px, 0)` : "";
+    raiz.style.setProperty("--topo-desl", v + "px");
+    const bh = b ? b.offsetHeight + 2 : 0;
+    if (b) b.style.transform = k ? `translate3d(0, ${(k * bh).toFixed(1)}px, 0)` : "";
+    f.forEach((x) => { x.style.transform = k ? `translate3d(0, ${(k * bh).toFixed(1)}px, 0)` : ""; });
+    corpo.classList.toggle("topo-some", H > 0 && v >= H - 1);
+  };
+  const animar = (alvo) => {
+    cancelAnimationFrame(anim);
+    const de = desl, t0 = performance.now(), dur = 200;
+    if (de === alvo) return;
+    const passo = (agora) => {
+      const p = Math.min(1, (agora - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      aplicar(de + (alvo - de) * e);
+      if (p < 1) anim = requestAnimationFrame(passo);
+    };
+    anim = requestAnimationFrame(passo);
+  };
   addEventListener("scroll", () => {
-    const y = scrollY, d = y - ultimo; ultimo = y;
-    if (!document.querySelector("header.topo")) return;
-    if (y < 90) { b.classList.remove("topo-some"); acum = 0; return; }
-    if (b.classList.contains("travado")) return;
-    if ((d > 0) !== (acum > 0)) acum = 0;
-    acum += d;
-    if (acum > 28) b.classList.add("topo-some");
-    else if (acum < -28) b.classList.remove("topo-some");
+    H = pecas().t?.offsetHeight || 0;
+    const y = Math.max(0, scrollY), d = y - ultimo;
+    ultimo = y;
+    if (!H || corpo.classList.contains("travado")) return;
+    cancelAnimationFrame(anim);
+    let v = Math.min(H, Math.max(0, desl + d));
+    if (y < H) v = Math.min(v, y); // perto do começo, nunca esconde mais do que rolou
+    aplicar(v);
+    clearTimeout(tFim);
+    tFim = setTimeout(() => { if (desl > 0 && desl < H) animar(desl > H / 2 && scrollY > H ? H : 0); }, 120);
   }, { passive: true });
+  // Mostrar de novo (trocar Diário/Explorar, a aba volta a aparecer na rede)
+  window.__hfMostrarTopo = () => { H = pecas().t?.offsetHeight || H; animar(0); };
+  addEventListener("hf:gaveta", () => { if (window.__hfGavetaAberta !== false) window.__hfMostrarTopo(); });
 }
 export function montarBarra(ativo) {
   ligarTopoQueSome();

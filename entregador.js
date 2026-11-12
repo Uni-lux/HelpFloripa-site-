@@ -6,7 +6,7 @@
 // A posição vai para o pedido a cada poucos segundos: é ela que move o carrinho no mapa de quem pediu.
 // Parâmetros: ?convite=NICK (quem convidou), ?pedido=ID (abrir um chamado vindo do Mensagens).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=150";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=151";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=8";
 import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
@@ -65,7 +65,7 @@ async function telaCadastro(editar = false) {
   // Conta verificada (selo) é obrigatória para levar pessoas e encomendas.
   if (!dados.verificado && !cad) {
     const n = h("div", "ent-nota alerta"); n.append(ic("alerta"), h("span", null, "Para fazer entregas e corridas, sua conta precisa ser verificada (documento com foto e selfie). A equipe confere e libera."));
-    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=107"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
+    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=108"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
     frag.appendChild(botao("Pedir uma entrega", "ent-btn sec", () => irPara("entregas.html")));
     p.replaceChildren(frag);
     return;

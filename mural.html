@@ -15,7 +15,7 @@
   <style>html.hf-auth-checking { visibility: hidden; }</style>
   <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <meta name="description" content="Mural da Comunidade do Help Floripa: doações, trocas, pedidos de ajuda, quartos para dividir e achados e perdidos perto de você. Sem venda e sem cobrança." />
-  <meta name="theme-color" content="#0b1014" />
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Help Floripa" />
@@ -35,19 +35,21 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=103" />
+  <link rel="stylesheet" href="rede.css?v=104" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <link rel="stylesheet" href="comunidade.css?v=5" />
-  <link rel="stylesheet" href="mural.css?v=7" />
-  <script type="module" src="mural.js?v=77"></script>
+  <link rel="stylesheet" href="mural.css?v=8" />
+  <script type="module" src="mural.js?v=78"></script>
   <script type="module" src="alertas-faixa.js?v=1"></script>
 </head>
 <body class="pg-mural">
-  <header class="topo">
-    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-meio" aria-hidden="true"></span>
-    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+  <header class="topo topo-com">
+    <!-- Comunidade: busca e lugar no topo (12/11/2026, como no Instagram), sem a casinha e o sino -->
+    <div class="mu-linha">
+      <label class="mu-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar na Comunidade</span><input type="search" id="muBusca" placeholder="Pesquisar na Comunidade" autocomplete="off" enterkeyhint="search" /></label>
+      <button type="button" class="mu-local" id="muLocal" aria-haspopup="dialog"><svg class="i xs"><use href="#i-local"/></svg><span>Todo o Brasil</span></button>
+    </div>
   </header>
   <!-- "+" do lado, como no X (12/11/2026): só no Diário e na Comunidade, no mesmo estilo do quadradinho de antes. -->
   <button type="button" class="fab-hf" id="btnPublicarMural" aria-label="Publicar na Comunidade" title="Publicar na Comunidade"><span class="tc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
@@ -58,10 +60,6 @@
         <!-- Topo enxuto no jeito do Diário (10/11/2026): busca + lugar numa linha, "Perto de você" em bolinhas (como a
              fileira do Flash), filtros compactos e a regra numa linha. Publicar fica no "+" do topo. -->
         <h1 class="sr">Comunidade</h1>
-        <div class="mu-linha">
-          <label class="mu-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar na Comunidade</span><input type="search" id="muBusca" placeholder="Buscar na Comunidade" autocomplete="off" enterkeyhint="search" /></label>
-          <button type="button" class="mu-local" id="muLocal" aria-haspopup="dialog"><svg class="i xs"><use href="#i-local"/></svg><span>Todo o Brasil</span></button>
-        </div>
 
         <nav class="mu-alertas" id="muAlertas" aria-label="SOS e alertas perto de você">
           <a class="mu-al sos" href="alertas.html?aba=sos"><span>SOS</span><b>0</b></a>

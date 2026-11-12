@@ -22,8 +22,8 @@ await p.waitForTimeout(1200);
 const quadro = (re) => p.frames().find((f) => f.parentFrame() && re.test(f.url()));
 // cores do Mensagens nas abas
 const corDe = (f) => f.evaluate(() => getComputedStyle(document.body).backgroundColor);
-ok(await corDe(quadro(/feed\.html/)) === "rgb(11, 16, 20)", "Diário com o fundo do Mensagens (#0b1014)");
-ok(await corDe(quadro(/usuarios\.html/)) === "rgb(11, 16, 20)", "Perfil com o fundo do Mensagens");
+ok(await corDe(quadro(/feed\.html/)) === "rgb(0, 0, 0)", "Diário com o preto do X");
+ok(await corDe(quadro(/usuarios\.html/)) === "rgb(0, 0, 0)", "Perfil com o preto do X");
 ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#000000", "barra do celular na cor do topo do Mensagens");
 // barrinha fora da tela
 const larg = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll(".hf-quadro")].map((q) => [q.dataset.id, q.getBoundingClientRect().width - innerWidth])));
@@ -44,7 +44,7 @@ ok(!t.painel && t.linha, "sem o painel do topo; busca e lugar numa linha");
 ok(t.chips[0] === "Tudo" && t.chips.every((c) => !/\d/.test(c)), "filtros só com o nome: " + t.chips.join(" · "));
 ok(/Proibido vender/.test(t.aviso) && /Regras/.test(t.aviso), "regra numa linha só");
 ok(t.altura < 360, "a 1ª publicação aparece logo (topo da lista em " + Math.round(t.altura) + " px)");
-ok(t.cor === "rgb(11, 16, 20)", "Comunidade com o fundo do Mensagens");
+ok(t.cor === "rgb(0, 0, 0)", "Comunidade com o preto do X");
 await p.screenshot({ path: "saida/me-comunidade.png" });
 await m.locator(".mu-chip", { hasText: "Trocas" }).tap(); await p.waitForTimeout(300);
 ok((await m.locator(".mu-post").count()) >= 1 && (await m.locator(".mu-post").allTextContents()).every((x) => /troca/i.test(x)), "filtro Trocas");
