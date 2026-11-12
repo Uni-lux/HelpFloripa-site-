@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=29" />
+  <link rel="stylesheet" href="mensagens.css?v=30" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -78,6 +78,7 @@
     <symbol id="i-figurinha" viewBox="0 0 24 24"><path d="M20 12.5V7a3.5 3.5 0 00-3.5-3.5h-9A3.5 3.5 0 004 7v10a3.5 3.5 0 003.5 3.5H12"/><path d="M20 12.5L12 20.5V16a3.5 3.5 0 013.5-3.5z"/></symbol>
     <symbol id="i-apagar-tecla" viewBox="0 0 24 24"><path d="M8.5 5.5H20a1 1 0 011 1v11a1 1 0 01-1 1H8.5L3 12z"/><path d="M11.5 9.5l5 5M16.5 9.5l-5 5"/></symbol>
     <symbol id="i-estrela-c" viewBox="0 0 24 24"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.5l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/></symbol>
+    <symbol id="i-mais-sinal" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 4 3v2H6v-2l4-3-1-6zM12 15v6"/></symbol>
     <symbol id="i-nota" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V19a1.5 1.5 0 01-1.5 1.5h-9.5A1.5 1.5 0 015.5 19V5A1.5 1.5 0 017 3.5z"/><path d="M14 3.5V8h4M8.5 12.5h7M8.5 16h5"/></symbol>
     <symbol id="i-pedido" viewBox="0 0 24 24"><path d="M4 7.5l8-4 8 4v9l-8 4-8-4z"/><path d="M4 7.5l8 4 8-4M12 11.5v9"/></symbol>
@@ -320,6 +321,17 @@
           </div>
         </footer>
       </section>
+      <!-- Notas: uma "conversa" fixa só sua, aberta aqui mesmo (a página notas.html dentro) -->
+      <section class="chat-pane notas-pane" id="notasPane" hidden aria-label="Notas">
+        <header class="chat-top">
+          <button type="button" class="icon-btn btn-voltar" id="btnFecharNotas" aria-label="Voltar para conversas"><svg class="i"><use href="#i-voltar"/></svg></button>
+          <div class="quem notas-quem-top">
+            <div class="avatar sm notas-av" aria-hidden="true"><svg class="i"><use href="#i-nota"/></svg></div>
+            <div class="quem-txt"><strong class="quem-nome"><span>Notas</span></strong><div class="quem-sub"><small>Só você vê · anotações, listas e ideias</small></div></div>
+          </div>
+        </header>
+        <iframe id="quadroMinhasNotas" title="Notas"></iframe>
+      </section>
     </main>
   </div>
 
@@ -561,6 +573,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=49"></script>
+  <script type="module" src="mensagens-app.js?v=50"></script>
 </body>
 </html>

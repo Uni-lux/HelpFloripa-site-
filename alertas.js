@@ -5,7 +5,7 @@
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=145";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=146";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {

@@ -29,7 +29,7 @@ import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis 
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
-import { corrigirTexto, carregarLexico } from "./corretor.js?v=3";
+import { corrigirTexto, carregarLexico } from "./corretor.js?v=4";
 import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
 import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
@@ -1579,6 +1579,9 @@ function renderizarLista() {
     lista.appendChild(f);
   }
 
+  // Notas: conversa fixa só sua no alto da aba Pessoal (como as conversas fixadas)
+  if (modo === "pessoal" && filtro === "todas" && (!termo || "notas anotações anotacoes".includes(termo))) lista.appendChild(itemNotas());
+
   if (!itens.length) {
     const vazio = document.createElement("div");
     vazio.className = "lista-vazia";
@@ -1870,6 +1873,7 @@ async function abrirConversa(id, { historico = true } = {}) {
   $("topStatus").className = "";
   pintarAvatar($("topAvatar"), c.foto, c.nome);
   $("chatVazio").hidden = true;
+  $("notasPane").hidden = true; document.body.classList.remove("notas-aberto");
   $("chatPane").hidden = false;
   document.body.classList.add("chat-aberto");
   window.__hfMedirTela?.(); // confere se o campo de mensagem cabe na tela (app instalado)
@@ -1915,6 +1919,8 @@ window.addEventListener("popstate", (e) => {
     if (fechouDentro) { history.pushState({ ...(history.state || {}), painel: "painelSuporte" }, "", location.href); return; }
   }
   if (!e.state?.painel && document.querySelector(".painel.aberto")) fecharPaineis();
+  if (new URLSearchParams(location.search).has("notas")) { if (!minhasNotasAbertas()) abrirMinhasNotas({ historico: false }); return; }
+  if (minhasNotasAbertas()) fecharMinhasNotas({ historico: false });
   const id = new URLSearchParams(location.search).get("conversa");
   if (id) { if (ativa?.id !== id) abrirConversa(id, { historico: false }); }
   else if (ativa) fecharConversa({ historico: false });
@@ -4197,7 +4203,7 @@ $("chipCorretor")?.addEventListener("pointerdown", (e) => e.preventDefault()); /
 $("chipCorretor")?.addEventListener("click", async (e) => {
   const campo = $("texto");
   if (e.target.closest("#chipCorretorX")) { corretorDispensado = campo.value; $("chipCorretor").hidden = true; return; }
-  const { revisarTexto } = await import("./corretor-tela.js?v=3");
+  const { revisarTexto } = await import("./corretor-tela.js?v=4");
   const novo = await revisarTexto(campo.value, { modo: "chat", titulo: "Revisar mensagem" });
   if (novo !== null && novo !== campo.value) { campo.value = novo; ajustarAltura(); }
   corretorDispensado = campo.value; $("chipCorretor").hidden = true;
@@ -5144,6 +5150,76 @@ $("notasSalvar").addEventListener("click", async () => {
 });
 
 // ======================================================
+// Notas (12/11/2026, pedido do dono): uma "conversa" fixa só sua no alto da lista, como um grupo só com você.
+// Abre aqui mesmo, no lugar da conversa (a página notas.html dentro), sem sair das Mensagens.
+// ======================================================
+function resumoNotas() {
+  let g = null;
+  try { g = JSON.parse(localStorage.getItem(`hf-notas-${eu?.uid}`) || "null"); } catch {}
+  const vivas = (g?.notas || []).filter((n) => !n.lixeira && !n.arquivada).sort((a, b) => (b.em || 0) - (a.em || 0));
+  const ult = vivas[0];
+  const tarefas = vivas.reduce((t, n) => t + (String(n.texto || "").match(/^\s*\[ \]/gm) || []).length, 0);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const atrasadas = vivas.filter((n) => n.prazo && n.prazo < hoje && /\[ \]/.test(n.texto || "")).length;
+  const linha = ult ? (String(ult.titulo || "").trim() || String(ult.texto || "").split("\n").map((l) => l.replace(/^\s*(\[[ xX]\]|[•*-]|#+)\s*/, "").trim()).find(Boolean) || "Nota sem título") : "";
+  return { n: vivas.length, ult, tarefas, atrasadas, linha };
+}
+function itemNotas() {
+  const r = resumoNotas();
+  const item = document.createElement("button");
+  item.type = "button"; item.id = "convNotas";
+  item.className = "conv-item conv-notas" + (minhasNotasAbertas() ? " ativa" : "");
+  const av = document.createElement("div"); av.className = "avatar notas-av"; av.setAttribute("aria-hidden", "true"); av.appendChild(icone("nota", "i"));
+  const main = document.createElement("div"); main.className = "conv-main";
+  const l1 = document.createElement("div"); l1.className = "conv-linha";
+  const nome = document.createElement("div"); nome.className = "conv-nome";
+  const nm = document.createElement("span"); nm.className = "conv-nm"; nm.textContent = "Notas";
+  const so = document.createElement("span"); so.className = "notas-so"; so.textContent = "Só você";
+  const pin = icone("pin", "i xs"); pin.setAttribute("aria-label", "Fixada"); pin.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px";
+  nome.append(nm, so, pin);
+  const quando = document.createElement("div"); quando.className = "conv-hora"; quando.textContent = r.ult ? dataLista(new Date(r.ult.em)) : "";
+  l1.append(nome, quando);
+  const l2 = document.createElement("div"); l2.className = "conv-linha";
+  const pv = document.createElement("div"); pv.className = "conv-previa";
+  if (r.atrasadas) { const a = document.createElement("span"); a.className = "notas-atraso"; a.textContent = `${r.atrasadas} ${r.atrasadas === 1 ? "atrasada" : "atrasadas"} · `; pv.appendChild(a); }
+  const t = document.createElement("span");
+  t.textContent = r.ult ? r.linha : "Anotações, listas e ideias · só você vê";
+  if (!r.ult) t.className = "pv-nova";
+  pv.appendChild(t);
+  l2.appendChild(pv);
+  if (r.tarefas) { const b = document.createElement("span"); b.className = "notas-tarefas"; b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.6-5"/></svg>'; b.append(r.tarefas > 99 ? "99+" : String(r.tarefas)); b.title = `${r.tarefas} ${r.tarefas === 1 ? "tarefa aberta" : "tarefas abertas"}`; b.setAttribute("aria-label", b.title); l2.appendChild(b); }
+  main.append(l1, l2);
+  item.append(av, main);
+  item.setAttribute("aria-label", `Notas, só você vê${r.n ? `: ${r.n} ${r.n === 1 ? "nota" : "notas"}` : ""}${r.tarefas ? `, ${r.tarefas} ${r.tarefas === 1 ? "tarefa aberta" : "tarefas abertas"}` : ""}`);
+  item.addEventListener("click", () => { if (selecionando || toqueTravado()) return; abrirMinhasNotas(); });
+  return item;
+}
+const minhasNotasAbertas = () => !$("notasPane").hidden;
+function abrirMinhasNotas({ historico = true } = {}) {
+  if (ativa) fecharConversa({ historico: false });
+  fecharPaineis();
+  const q = $("quadroMinhasNotas");
+  if (!q.getAttribute("src")) q.src = "notas.html";
+  $("chatVazio").hidden = true; $("chatPane").hidden = true; $("notasPane").hidden = false;
+  document.body.classList.add("chat-aberto", "notas-aberto");
+  const url = "mensagens.html?notas=1";
+  if (historico && !history.state?.notas) history.pushState({ notas: 1 }, "", url);
+  else history.replaceState({ ...(history.state || {}), notas: 1 }, "", url);
+  renderizarLista();
+}
+function fecharMinhasNotas({ historico = true } = {}) {
+  if (!minhasNotasAbertas()) return;
+  $("notasPane").hidden = true;
+  document.body.classList.remove("chat-aberto", "notas-aberto");
+  if (!ativa) $("chatVazio").hidden = false;
+  if (historico) { if (history.state?.notas) history.back(); else history.replaceState({}, "", "mensagens.html"); }
+  renderizarLista();
+}
+$("btnFecharNotas").addEventListener("click", () => fecharMinhasNotas());
+// a página das notas grava no aparelho: a prévia da lista acompanha
+addEventListener("storage", (e) => { if (e.key === `hf-notas-${eu?.uid}`) { const it = $("convNotas"); if (it) it.replaceWith(itemNotas()); } });
+
+// ======================================================
 // Ajuda e suporte sem sair das mensagens
 // ======================================================
 // link: abre direto um chamado ou aviso (suporte.html?chamado=... / ?aviso=...).
@@ -5459,7 +5535,8 @@ async function iniciar() {
 
     // A lista fica no histórico, então "voltar" na conversa retorna para ela.
     const inicial = new URLSearchParams(location.search).get("conversa");
-    if (inicial) {
+    if (new URLSearchParams(location.search).has("notas")) { history.replaceState({}, "", "mensagens.html"); abrirMinhasNotas(); }
+    else if (inicial) {
       // Na gaveta (por cima de outra página, ex.: "Responder" de dentro de um flash), a conversa abre sem passo
       // novo no histórico: um "voltar" fecha a gaveta e a pessoa volta para onde estava.
       let naGaveta = false; try { naGaveta = window.top !== window.self && window.top.location.origin === location.origin && !document.documentElement.classList.contains("na-rede"); } catch {}

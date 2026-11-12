@@ -2293,6 +2293,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Corrigir · N" conta correções + sugestões + não encontradas. Medido: 63/63 frases (`t-corretor.mjs`, sem emulador), 108 de 112
   erros comuns e ZERO mudança nos textos certos das páginas Termos/Ajuda/Sobre/Privacidade/Diretrizes/Segurança; ~8 ms num texto de
   1.600 letras. Teste de tela `t-corretor-tela.mjs` (14).
+- **Corretor 2ª etapa + Notas no Mensagens (12/11/2026, PR depois do #195, sem regra nova):** texto do dono que o corretor
+  não pegava. `corretor.js`: `concordarSujeito` (passo 3b depois das REGRAS): quem faz a ação (nós/nois, eu, eles/vocês, artigo
+  no plural + palavra, menos depois de preposição) → 1º verbo (pula não/já/me...) conjugado por `conjugar(w, pessoa, tempo)`
+  (`VERBOS_IRR` + `TERMINACOES` ava/ia/ou/eu/iu/asse/esse/isse/ará/presente; a forma nova PRECISA existir no léxico) e o verbo
+  ligado por "e" sem outro sujeito ("fomos ao mercado e compra" → "compramos"; depois de passado, presente -ar vira passado:
+  "fui ... e compra" → "comprei"); oração sem sujeito depois de "quando/assim que" = sugestão. REGRAS novas: "foi umas X" →
+  "uma", plural com `pluralizar` (ão/el/ol/l/m/r/z; alta, sugestão só com os/as/nos/nas + cara de verbo), "sem compra nada" →
+  "sem comprar", "ninguém não" → "ninguém", ", mais quando" → ", mas", "agente" + verbo, "ir no mercado" → "ao", "na praia" →
+  "à", "vamos ... ontem" → "fomos", gênero `generoAdj` ("uma situação muito complicado", "a casa é muito bonito"; sem
+  intensificador só com cara de adjetivo; não depois de infinitivo). Sub das REGRAS pode devolver `{para, conf}`. "Como se" não é
+  pergunta. Falsos alarmes: ZERO nas páginas Termos/Ajuda/Sobre/Privacidade/Diretrizes/Segurança/Como ordenamos/Clientes/
+  Profissionais. `t-corretor.mjs` 95/95. **Notas como conversa:** linha fixa `#convNotas` no alto da aba Pessoal (`itemNotas`,
+  `resumoNotas` lê `hf-notas-<uid>`: última nota, tarefas abertas, atrasadas; evento storage atualiza), abre `#notasPane`
+  (iframe `notas.html`, `html.embutido` sem topo/barra) no lugar da conversa, `mensagens.html?notas=1`, voltar/seta fecham
+  (`abrirMinhasNotas`/`fecharMinhasNotas`; `abrirNotas` antigo = notas do CLIENTE). Teste `t-notas-chat.mjs` (16).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
