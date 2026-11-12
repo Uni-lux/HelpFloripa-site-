@@ -2322,6 +2322,25 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "o carro e azul" → é, "ontem ... pode vir" → pôde, "mau educado" → mal-educado. REGRA com lookahead precisa de sub função
   (a troca por texto re-aplica a regex só no trecho casado). Falsos alarmes nas 9 páginas: só 3 sugestões desligadas.
   `t-corretor` 110/110; `t-corretor-tela` confere o contexto.json e o aprendizado.
+- **Corretor com textos atuais + regressão logística (12/11/2026, PR depois do #197, sem regra nova):** pedido dele ("treinar
+  com textos atuais"). `gerar-contexto.py` agora: `python3 gerar-contexto.py ../../corretor/contexto.json machado.txt:1
+  modernos.txt:6` (fonte:peso; `HF_C` = regularização, padrão 1.0; usa scikit-learn: `pip install scikit-learn`).
+  modernos.txt = frases "# text =" dos .conllu das Universal Dependencies (GSD, Bosque só ids "CF", PUD, PetroGold, Porttinari,
+  DANTEStocks; CC BY/CC BY-SA; baixar de raw.githubusercontent.com/UniversalDependencies/UD_Portuguese-X/master/pt_x-ud-
+  {train,dev,test}.conllu; os .conllu ficam na MESMA pasta do 1º arquivo, o script lê as classes deles). Modelo v3: regressão
+  logística por grupo (`m[grupo] = {c, b, w}`), traços l/r/ll/rr (palavras), lp/rp/pp/rq/lq (classes: `pos` = "palavra=N,..."
+  12 mil palavras, reserva pela terminação em `classeCtx`, igual ao `classe` do python) e rs/ls (3 últimas letras);
+  `lim[grupo] = [alta, media]` = probabilidade mínima medida fora do treino (99,7% de acerto com 30+ casos / 95%; 1 = nunca),
+  no aparelho com piso 0,9/0,7 (`probCtx`). Grupos só se as formas sem acento são palavras do lexico.txt. contexto.json ~230 KB
+  comprimido (`?v=2`). **Padrões com classe** em `corrigirPeloContexto`: artigo + substantivo + "e" + adjetivo/advérbio no fim
+  da frase → "é" (`fecha`), "já e tarde" → "já é", "esta" + adjetivo depois de pronome ou artigo+substantivo → "está".
+  **Falsos alarmes medidos** (`_testes/corretor-falsos.mjs PASTA`: 6 mil frases certas de cada fonte, mudanças automáticas):
+  128 → 23 (vários são erros de verdade nos tweets). Correções nas regras antigas: plural só com substantivo/adjetivo
+  (`classeSegura`), "fazem" só com tempo, haver/desde/ora/presente não conjugam, "eu é que"/"X é que" não mexe, pronome depois
+  de preposição não é sujeito (lookbehind nas regras de eles/nós/eu), "nos" sem acento só com vai/está/foi/precisa/ficou,
+  artigo+palavra depois de "e/ou" vira sugestão, expressões de tempo ("alguns minutos") e "outros/alguns" no meio da frase
+  não são sujeito, gênero não depois de preposição nem com "mais/menos" + palavra que não é adjetivo, "como esta" só no fim.
+  `t-corretor` 129/129.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
