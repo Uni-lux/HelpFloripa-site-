@@ -29,6 +29,7 @@ import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis 
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
+import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 // ======================================================
@@ -890,7 +891,26 @@ let filtro = "todas";
 // Pessoal ou Negócios (conversas ligadas a um perfil de negócio). Lembra a última escolha.
 let modo = "pessoal";
 try { if (localStorage.getItem("hf-chat-modo") === "negocios") modo = "negocios"; } catch {}
-const modoDe = (c) => (assuntoDe(c.dados) === "pessoal" ? "pessoal" : "negocios");
+// Aba Negócios só para quem tem pelo menos 1 negócio (12/11/2026). Sem negócio, tudo fica em Pessoal (inclusive as
+// conversas em que você foi cliente de um negócio). Guardado no aparelho para a aba já nascer certa.
+let temNegocio = null;
+const modoDe = (c) => (temNegocio === false || assuntoDe(c.dados) === "pessoal" ? "pessoal" : "negocios");
+function pintarAbaNegocios() {
+  const b = document.querySelector('.modos [data-modo="negocios"]');
+  if (b) b.hidden = temNegocio === false;
+  document.querySelector(".modos")?.classList.toggle("sem-negocios", temNegocio === false);
+  if (temNegocio === false && modo === "negocios") { modo = "pessoal"; try { localStorage.setItem("hf-chat-modo", "pessoal"); } catch {} }
+}
+async function conferirTemNegocio() {
+  const chave = "hf-tem-negocio-" + eu.uid;
+  try { const v = localStorage.getItem(chave); if (v != null) { temNegocio = v === "1"; pintarAbaNegocios(); } } catch {}
+  let n;
+  try { n = (await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", eu.uid), fb.limit(1)))).size; }
+  catch { return; } // sem conexão: fica como estava
+  temNegocio = n > 0;
+  try { localStorage.setItem(chave, temNegocio ? "1" : "0"); } catch {}
+  pintarAbaNegocios(); renderizarLista();
+}
 function trocarModo(novo) {
   if (novo === modo) return;
   modo = novo;
@@ -1426,7 +1446,7 @@ $("selApagar").addEventListener("click", async () => {
 });
 
 function pintarModos() {
-  const visiveis = conversas.filter((c) => !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId));
+  const visiveis = conversas.filter((c) => !c.pedido && !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId));
   document.querySelectorAll(".modos [data-modo]").forEach((b) => {
     b.setAttribute("aria-selected", b.dataset.modo === modo ? "true" : "false");
     const n = b.dataset.modo === "chamadas" ? perdidasNovas() : visiveis.filter((c) => c.naoLida && modoDe(c) === b.dataset.modo).length;
@@ -1507,17 +1527,23 @@ function renderizarLista() {
   let itens = conversas.filter((c) => !termo || c.nome.toLowerCase().includes(termo) || (c.nick || "").toLowerCase().includes(termo));
   // Apagada "só para mim": some até chegar mensagem nova. Arquivada: só no filtro Arquivadas.
   itens = itens.filter((c) => !conversaOculta(c));
+  // Solicitações de mensagem: só no filtro "Solicitações" (como nas grandes redes).
+  const pedidos = conversas.filter((c) => c.pedido && !conversaOculta(c) && !bloqueado(c.outroId));
+  itens = filtro === "solicitacoes" ? itens.filter((c) => c.pedido) : itens.filter((c) => !c.pedido);
   itens = filtro === "arquivadas" ? itens.filter(conversaArquivada) : itens.filter((c) => !conversaArquivada(c));
   itens = filtro === "restritas" ? itens.filter((c) => restritos.has(c.outroId)) : itens.filter((c) => !restritos.has(c.outroId));
   if (filtro === "naoLidas") itens = itens.filter((c) => c.naoLida);
   if (filtro.startsWith("assunto:")) itens = itens.filter((c) => assuntoDe(c.dados) === filtro.slice(8));
   // Restritas e arquivadas mostram tudo; o resto fica na aba escolhida.
-  if (filtro !== "restritas" && filtro !== "arquivadas") itens = itens.filter((c) => modoDe(c) === modo);
+  if (filtro !== "restritas" && filtro !== "arquivadas" && filtro !== "solicitacoes") itens = itens.filter((c) => modoDe(c) === modo);
   pintarModos();
   visiveisNaLista = itens;
   if (selecionando) { [...selecionadas].forEach((id) => { if (!itens.some((c) => c.id === id)) selecionadas.delete(id); }); pintarSelecao(); }
   $("pillRestritas").hidden = !conversas.some((c) => restritos.has(c.outroId)) && filtro !== "restritas";
   $("pillArquivadas").hidden = !conversas.some((c) => conversaArquivada(c) && !conversaOculta(c)) && filtro !== "arquivadas";
+  const pSol = $("pillSolicitacoes");
+  pSol.hidden = !pedidos.length && filtro !== "solicitacoes";
+  { let q = pSol.querySelector(".pill-n"); if (!q) { q = document.createElement("b"); q.className = "pill-n"; pSol.appendChild(q); } q.textContent = String(pedidos.length); q.hidden = !pedidos.length; }
   pintarPillsAssunto();
   // Número de não lidas na pílula (da aba atual)
   const pNl = document.querySelector('.pill[data-filtro="naoLidas"]');
@@ -1535,6 +1561,20 @@ function renderizarLista() {
   }
   lista.replaceChildren();
   const vivosLista = config.mostrarOnline === false ? new Set() : onlineSet();
+  // Faixa "Solicitações de mensagem" no alto da lista (com as fotos de quem pediu).
+  if (pedidos.length && filtro === "todas" && !termo) {
+    const f = document.createElement("button"); f.type = "button"; f.className = "sol-faixa";
+    const rostos = document.createElement("span"); rostos.className = "sol-rostos";
+    pedidos.slice(0, 3).forEach((c) => { const a = document.createElement("span"); a.className = "avatar"; pintarAvatar(a, c.foto, c.nome); rostos.appendChild(a); });
+    const tx = document.createElement("span"); tx.className = "sol-tx";
+    const t1 = document.createElement("strong"); t1.textContent = "Solicitações de mensagem";
+    const t2 = document.createElement("small"); t2.textContent = pedidos.length === 1 ? `${nomeCurto(pedidos[0].nome)} quer conversar com você` : `${nomeCurto(pedidos[0].nome)} e mais ${pedidos.length - 1} querem conversar`;
+    tx.append(t1, t2);
+    const n = document.createElement("b"); n.className = "pill-n"; n.textContent = String(pedidos.length);
+    f.append(rostos, tx, n);
+    f.addEventListener("click", () => $("pillSolicitacoes").click());
+    lista.appendChild(f);
+  }
 
   if (!itens.length) {
     const vazio = document.createElement("div");
@@ -1546,6 +1586,9 @@ function renderizarLista() {
     } else if (filtro === "restritas") {
       titulo.textContent = "Nenhuma conversa restrita";
       vazio.append(titulo, "Conversas de contas que você restringiu aparecem aqui, sem notificações.");
+    } else if (filtro === "solicitacoes") {
+      titulo.textContent = "Nenhuma solicitação";
+      vazio.append(titulo, "Mensagens de quem você não segue chegam aqui. Você escolhe quem pode mandar em Configurações → Quem pode mandar mensagem.");
     } else if (filtro === "arquivadas") {
       titulo.textContent = "Nenhuma conversa arquivada";
       vazio.append(titulo, "Segure uma conversa na lista e toque em Arquivar.");
@@ -1708,8 +1751,10 @@ function ouvirConversas() {
       const dados = d.data({ serverTimestamps: "estimate" });
       const outroId = (dados.participantes || []).find((p) => p !== eu.uid) || eu.uid;
       const perfil = await obterPerfil(outroId);
-      const naoLida = calcularNaoLida(dados) && !(ativa?.id === d.id && !escondida());
-      return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", verificado: !!perfil.verificado, foto: perfil.fotoPerfil || "", naoLida };
+      // Solicitação de mensagem que eu recebi: fica em "Solicitações", sem contar como não lida nem avisar.
+      const pedido = solicitacaoParaMim(dados, eu.uid);
+      const naoLida = !pedido && calcularNaoLida(dados) && !(ativa?.id === d.id && !escondida());
+      return { id: d.id, dados, outroId, nome: perfil.nome || "Usuário", nick: perfil.nickname || "", verificado: !!perfil.verificado, foto: perfil.fotoPerfil || "", naoLida, pedido };
     }));
     // Fixadas primeiro; depois a mais recente.
     lista.sort((a, b) => (Number(!!b.dados.fixadaPara?.[eu.uid]) - Number(!!a.dados.fixadaPara?.[eu.uid])) || (ms(b.dados.atualizadoEm) - ms(a.dados.atualizadoEm)));
@@ -1717,7 +1762,7 @@ function ouvirConversas() {
     lista.forEach((c) => {
       const agora = ms(c.dados.atualizadoEm);
       const antes = ultimaAtualizacaoVista.get(c.id);
-      const nova = !primeiraCarga && (antes === undefined || agora > antes) && calcularNaoLida(c.dados);
+      const nova = !primeiraCarga && !c.pedido && (antes === undefined || agora > antes) && calcularNaoLida(c.dados);
       if (nova && !restritos.has(c.outroId) && !bloqueado(c.outroId) && !c.dados.silenciadaPara?.[eu.uid] && (ativa?.id !== c.id || escondida())) {
         notificar(c.nome, c.dados.ultimaMensagem || "Nova mensagem", () => abrirConversa(c.id));
       }
@@ -1904,12 +1949,30 @@ function aplicarBloqueio() {
   const fui_bloqueado = bloqueios.deles.has(ativa.outroId);
   // Conta desativada (conta.js): as regras também recusam a mensagem.
   const desativado = (perfilOutroAtual?.desativadaAte?.toMillis?.() ?? 0) > Date.now();
-  const travado = eu_bloqueei || fui_bloqueado || desativado;
+  // Solicitação de mensagem (conversa-acesso.js): quem recebeu decide antes de responder; quem pediu espera e, se
+  // recusada, não escreve mais.
+  const pd = ativa.dados?.pedido;
+  const paraMim = !eu_bloqueei && !fui_bloqueado && solicitacaoParaMim(ativa.dados, eu.uid);
+  const recusada = pd?.de === eu.uid && pd.status === "recusado";
+  const travado = eu_bloqueei || fui_bloqueado || desativado || recusada;
+  $("barraPedido").hidden = !paraMim;
+  if (paraMim) {
+    const n = nomeCurto(ativa.nome || "Esta pessoa").split(" ")[0];
+    $("barraPedidoTit").textContent = `${n} quer conversar com você`;
+    $("barraPedidoSub").textContent = `Você não segue ${n}. ${n} só fica sabendo que você viu se você aceitar.`;
+  }
   $("barraBloqueio").hidden = !travado;
-  $("rodapeConversa").hidden = travado;
+  $("rodapeConversa").hidden = travado || paraMim;
   $("barraBloqueioTxt").textContent = eu_bloqueei ? "Você bloqueou este contato."
-    : desativado ? "Esta pessoa desativou a conta. Você poderá escrever quando ela reativar." : "Não é possível enviar mensagens para este contato.";
+    : desativado ? "Esta pessoa desativou a conta. Você poderá escrever quando ela reativar."
+    : recusada ? `${nomeCurto(ativa.nome || "Esta pessoa").split(" ")[0]} não aceitou sua solicitação de mensagem.` : "Não é possível enviar mensagens para este contato.";
   $("barraBloqueioBtn").hidden = !eu_bloqueei;
+  // Ligações só depois de aceita (as regras também recusam).
+  const semLigar = !!pd && pd.status !== "aceito";
+  $("btnLigar").hidden = $("btnVideo").hidden = semLigar || !ativa.outroId || ativa.outroId === eu.uid;
+  const minha = pd?.de === eu.uid && pd.status === "pendente";
+  $("avisoPedido").hidden = !minha;
+  if (minha) $("avisoPedidoTx").textContent = `Solicitação enviada. ${nomeCurto(ativa.nome || "A pessoa").split(" ")[0]} vê suas mensagens quando aceitar.`;
 }
 
 async function alternarBloqueio() {
@@ -1938,6 +2001,27 @@ async function alternarBloqueio() {
   }
 }
 $("barraBloqueioBtn").addEventListener("click", alternarBloqueio);
+// Solicitação de mensagem: Aceitar (vira conversa normal), Recusar (some da lista; quem pediu não escreve mais) e Bloquear.
+async function decidirPedido(aceitar) {
+  if (!ativa) return;
+  const c = ativa;
+  if (!aceitar && !(await confirmarHF({ titulo: "Recusar a solicitação?", texto: `A conversa sai da sua lista e ${nomeCurto(c.nome || "a pessoa").split(" ")[0]} não consegue mais mandar mensagem nela. Ela não é avisada.`, ok: "Recusar", icone: "lixo" }))) return;
+  try {
+    await decidirSolicitacao(fb, eu.uid, c.id, aceitar);
+    if (aceitar) {
+      toast("Solicitação aceita. Agora vocês conversam normalmente.");
+      c.dados = { ...c.dados, pedido: { ...(c.dados.pedido || {}), status: "aceito" } };
+      const item = conversas.find((x) => x.id === c.id); if (item) { item.pedido = false; item.dados = c.dados; }
+      aplicarBloqueio(); renderizarLista(); marcarComoLida();
+    } else {
+      toast("Solicitação recusada");
+      fecharConversa();
+    }
+  } catch (e) { console.error(e); toast("Não foi possível " + (aceitar ? "aceitar" : "recusar") + " agora."); }
+}
+$("pedidoAceitar").addEventListener("click", () => decidirPedido(true));
+$("pedidoRecusar").addEventListener("click", () => decidirPedido(false));
+$("pedidoBloquear").addEventListener("click", async () => { await alternarBloqueio(); if (ativa && bloqueios.meus.has(ativa.outroId)) { decidirSolicitacao(fb, eu.uid, ativa.id, false).catch(() => {}); fecharConversa(); } });
 
 async function alternarRestricao() {
   if (!ativa) return;
@@ -1957,6 +2041,7 @@ async function alternarRestricao() {
 
 function marcarComoLida() {
   if (!ativa || escondida() || !calcularNaoLida(ativa.dados || {})) return;
+  if (solicitacaoParaMim(ativa.dados, eu.uid)) return; // solicitação: quem pediu não sabe que você viu até aceitar
   fb.setDoc(refConversa(ativa.id), { [campoLeitura(ativa.outroId)]: { [eu.uid]: fb.serverTimestamp() } }, { merge: true })
     .catch((e) => console.warn("Não foi possível marcar como lida:", e));
 }
@@ -1970,6 +2055,7 @@ function ouvirConversaAtiva() {
     if (!ativa || ativa.id !== id || !s.exists()) return;
     ativa.dados = s.data({ serverTimestamps: "estimate" });
     pintarAssuntoTopo();
+    aplicarBloqueio();
     if (!s.metadata.hasPendingWrites) marcarComoLida();
     atualizarStatusTopo();
     atualizarChecks();
@@ -2877,7 +2963,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=95"));
+  return (vitrineMod ||= import("./vitrine.js?v=96"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4341,19 +4427,16 @@ async function renderizarChamadas(ler = true) {
   const termo = semAcentoCham(buscaChamadas.trim());
   const itens = todas.filter(passa).filter((c) => !termo || semAcentoCham(quem(c).nome).includes(termo));
 
-  // Topo: Nova chamada + limpar; filtros com contagem; busca (com várias ligações).
-  const topo = elm("div", "rc-topo");
-  const nova = elm("button", "rc-nova"); nova.type = "button"; nova.append(usar("telefone", "i s"), document.createTextNode("Nova chamada"));
-  nova.addEventListener("click", abrirNovaChamada);
-  topo.appendChild(nova);
-  if (todas.length) {
-    const limpar = elm("button", "rc-limpar"); limpar.type = "button"; limpar.setAttribute("aria-label", "Limpar o registro de chamadas"); limpar.title = "Limpar registro";
-    limpar.append(usar("lixo", "i s"), document.createTextNode("Limpar"));
+  // Topo: só os filtros com contagem (12/11/2026: "Nova chamada" saiu daqui, o botão flutuante do telefone já faz isso;
+  // "Limpar registro" foi para o fim da lista).
+  const limpar = todas.length ? elm("button", "rc-limpar rc-limpar-fim") : null;
+  if (limpar) {
+    limpar.type = "button"; limpar.setAttribute("aria-label", "Limpar o registro de chamadas");
+    limpar.append(usar("lixo", "i s"), document.createTextNode("Limpar registro de chamadas"));
     limpar.addEventListener("click", async () => {
       if (!(await confirmarHF({ titulo: "Limpar o registro de chamadas?", texto: "As ligações somem desta lista só neste aparelho. Os cartões das ligações nas conversas continuam.", ok: "Limpar", icone: "lixo" }))) return;
       gravarCfgCham({ limpo: Date.now() }); renderizarChamadas();
     });
-    topo.appendChild(limpar);
   }
   const filtros = elm("div", "rc-filtros"); filtros.setAttribute("role", "tablist"); filtros.setAttribute("aria-label", "Filtrar chamadas");
   FILTROS_CHAM.forEach(([k, rot]) => {
@@ -4365,7 +4448,7 @@ async function renderizarChamadas(ler = true) {
     b.addEventListener("click", () => { filtroChamadas = k; renderizarChamadas(); });
     filtros.appendChild(b);
   });
-  const nos = [topo, filtros];
+  const nos = [filtros];
   if (!itens.length) {
     const vazio = elm("div", "rc-vazio");
     const ic = elm("span", "rc-vazio-ic"); ic.appendChild(usar(filtroChamadas === "perdidas" ? "check" : "telefone", "i"));
@@ -4420,6 +4503,7 @@ async function renderizarChamadas(ler = true) {
     item.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
     nos.push(item);
   }
+  if (limpar && itens.length) nos.push(limpar);
   lista.replaceChildren(...nos);
 }
 const semAcentoCham = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -4553,7 +4637,7 @@ function abrirPainel(id) {
   if (history.state?.painel) history.replaceState(estado, "", location.href);
   else history.pushState(estado, "", location.href);
   if (id === "painelNova") { carregarPessoas(); setTimeout(() => $("buscaPessoas").focus(), 200); }
-  if (id === "painelConfig") { pintarStatusNotificacao(); pintarRespostas(); pintarBloqueados(); pintarConfigAtendimento(); }
+  if (id === "painelConfig") { pintarStatusNotificacao(); pintarRespostas(); pintarBloqueados(); pintarConfigAtendimento(); pintarQuemManda(); }
 }
 function fecharPaineis() { document.querySelectorAll(".painel.aberto").forEach((p) => p.classList.remove("aberto")); }
 // Fechar pelo botão da tela desfaz a entrada do histórico criada ao abrir.
@@ -4636,14 +4720,13 @@ async function iniciarConversaCom(uid) {
   const ids = [eu.uid, uid].sort();
   const id = `${ids[0]}_${ids[1]}`;
   try {
-    let existe = false;
-    try { existe = (await fb.getDoc(refConversa(id))).exists(); } catch {}
-    if (!existe) await fb.setDoc(refConversa(id), { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+    // Nova conversa vira solicitação se a pessoa escolheu assim; "só quem eu sigo" não deixa começar.
+    await garantirConversa(fb, eu.uid, uid);
     fecharPaineis();
     abrirConversa(id);
   } catch (e) {
     console.error(e);
-    toast("Não foi possível iniciar a conversa.");
+    toast(e?.code === "conversa-fechada" ? e.message : "Não foi possível iniciar a conversa.");
   }
 }
 
@@ -5199,6 +5282,34 @@ $("btnBloqueados").addEventListener("click", () => {
   pintarBloqueados();
 });
 
+// Quem pode mandar mensagem (pref_publicas: msgPessoal / msgNegocios, conversa-acesso.js). Negócios só para quem tem.
+async function pintarQuemManda() {
+  const pref = await prefMensagens(fb, eu.uid, true);
+  const grupo = (alvo, lista, campo) => {
+    alvo.replaceChildren(...lista.map(([k, rot, sub]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "cfg-msg-op" + (pref[campo] === k ? " on" : "");
+      b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(pref[campo] === k));
+      const r = document.createElement("span"); r.className = "radio";
+      const tx = document.createElement("span"); tx.className = "tx";
+      const t = document.createElement("strong"); t.textContent = rot; const sm = document.createElement("small"); sm.textContent = sub;
+      tx.append(t, sm); b.append(r, tx);
+      b.addEventListener("click", async () => {
+        if (pref[campo] === k) return;
+        try {
+          await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { [campo]: k, atualizadoEm: fb.serverTimestamp() }, { merge: true });
+          esquecerPrefMensagens(eu.uid); toast("Salvo"); pintarQuemManda();
+        } catch (e) { toast(e?.code === "permission-denied" ? "Essa escolha passa a valer depois da publicação das regras novas." : "Não foi possível salvar agora."); }
+      });
+      return b;
+    }));
+  };
+  grupo($("cfgMsgPessoal"), MSG_PESSOAL, "msgPessoal");
+  $("cfgMsgNegBox").hidden = temNegocio !== true;
+  if (temNegocio) grupo($("cfgMsgNegocios"), MSG_NEGOCIOS, "msgNegocios");
+  const n = conversas.filter((c) => c.pedido && !conversaOculta(c)).length;
+  $("cfgSolResumo").textContent = n ? `${n} ${n === 1 ? "solicitação esperando" : "solicitações esperando"}` : "Nenhuma solicitação esperando.";
+}
+
 // Atalhos para as conversas restritas e arquivadas.
 document.querySelectorAll("[data-ir-filtro]").forEach((b) => b.addEventListener("click", () => {
   const f = b.dataset.irFiltro;
@@ -5300,6 +5411,7 @@ async function iniciar() {
 
     atualizarBotaoEnviar();
     marcarPresenca();
+    conferirTemNegocio();
     ouvirConversas();
     ligarPuxarConversas();
     ouvirItensEquipe(fb, fb.db, eu.uid, pintarFaixaSuporte);

@@ -2,7 +2,11 @@
 // lista de conversas aparecendo ao trocar de aba e Negócios em 2 linhas (nome ✓ · tipo / prévia).
 // Uso: node seed.mjs && node t-mensagens-ajustes2.mjs
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
-import { navegador, entrar } from "./nav.mjs";
+import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
+import { initializeApp } from "firebase-admin/app"; import { getFirestore, FieldValue } from "firebase-admin/firestore";
+initializeApp({ projectId: "demo-hf" });
+// A aba Negócios só aparece para quem tem negócio (12/11/2026): a Ana ganha um perfil para o teste.
+await getFirestore().doc(`negocios/${U.ana}_servicos`).set({ donoId: U.ana, tipo: "servicos", nome: "Ana Serviços", criadoEm: FieldValue.serverTimestamp(), atualizadoEm: FieldValue.serverTimestamp() });
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 const esperar = async (fn, ms = 10000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn().catch(() => false)) return true; await new Promise((r) => setTimeout(r, 50)); } return false; };
 
@@ -28,12 +32,12 @@ await p.waitForTimeout(120);
 const restou = await p.locator("#listaConversas .conv-item").count();
 ok(restou === 0, `ao trocar para Chamadas a lista de conversas some na hora (${restou} sobrando)`);
 await A.ctx.unroute(/127\.0\.0\.1:8085\/.*Listen\/channel/);
-await esperar(async () => (await p.locator(".rc-topo").count()) === 1, 15000);
+await esperar(async () => (await p.locator(".rc-filtros").count()) === 1, 15000);
 // volta e vai de novo: desenha com o que já tinha
 await p.locator('.modos [data-modo="pessoal"]').tap(); await p.waitForTimeout(400);
 await A.ctx.route(/127\.0\.0\.1:8085\/.*Listen\/channel/, async (r) => { await new Promise((ok) => setTimeout(ok, 2500)); r.continue().catch(() => {}); });
 await p.locator('.modos [data-modo="chamadas"]').tap();
-ok(await esperar(async () => (await p.locator(".rc-topo").count()) === 1 && (await p.locator("#listaConversas .conv-item").count()) === 0, 900), "2ª vez: Chamadas aparecem na hora com o que já foi lido");
+ok(await esperar(async () => (await p.locator(".rc-filtros").count()) === 1 && (await p.locator("#listaConversas .conv-item").count()) === 0, 900), "2ª vez: Chamadas aparecem na hora com o que já foi lido");
 await A.ctx.unroute(/127\.0\.0\.1:8085\/.*Listen\/channel/);
 
 // Figurinha segurada

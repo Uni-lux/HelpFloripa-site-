@@ -2206,6 +2206,32 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   Flash → "Público padrão" (`flashConfig.alvo`, o criador começa com ele); público "perto" espera a posição de quem vê
   (`posicaoDoLeitor`, 1,5 s). Teste `t-flash-lote.mjs` (35); `t-flash-mencoes`, `t-flash-gestos`, `t-flash3`,
   `t-flash-correcoes3` atualizados (seleção em lote; pílula "Negócios").
+- **Solicitações de mensagem, Negócios só para quem tem e atalhos no perfil (12/11/2026, PR depois do #192, MUDA REGRAS —
+  não publicadas; 21 partes, 1024 testes):** prints dele. `conversa-acesso.js` (sem deps): `MSG_PESSOAL` todos|seguindo
+  (padrão)|fechado e `MSG_NEGOCIOS` todos (padrão)|pedidos em `pref_publicas.msgPessoal/msgNegocios`; `acessoMensagem` (segue
+  quem escreve = `relacoes/{outro}_{eu}`, vínculo aceito = `vinculos/{idConversa}`, negócio = contexto do tipo + `negocios/
+  {outro}_{tipo}`) → direto | pedido | fechado; `garantirConversa(fb, eu, outro, {contexto, servico})` cria com
+  `pedido {de, status: pendente, em}` quando precisa (regras de antes recusam o campo → cria direto) e lança
+  `ConversaFechada` ("Essa pessoa só recebe mensagens de quem ela segue."); `servico {tipo: corrida|sos|pet|achado, id}` vai
+  direto (corrida/SOS/pet perdido/animal achado entre desconhecidos; regra `servicoOk` confere no documento do serviço);
+  `decidirSolicitacao` (aceito | recusado + `ocultaPara`). Todos os lugares que criavam conversa usam ele (rede.js
+  `mandarMensagem(uid, msg, resumo, {servico})` e `responderNoChat`, mensagens-app `iniciarConversaCom`, vitrine
+  `prepararConversa`, entregas-comum `garantirConversa(fb, meu, outro, servico)`, alertas, entregas, entregador). Regras:
+  `acessoNova()` no create de `conversas` (keys + `pedido`, `servico`), `pedidoMudaOk()` (só quem recebeu decide),
+  `pedidoLibera()` nas mensagens (pendente: só quem pediu escreve; recusado: ninguém), chamadas só com pedido aceito,
+  `pref_publicas` aceita msgPessoal/msgNegocios/negociosNoPerfil. Mensagens: solicitação recebida não entra em Todas, não
+  conta como não lida (mensagens-novas `temNovas`, rede.js, categoria.js), não avisa e não marca lida/vista; faixa
+  `.sol-faixa` "Solicitações de mensagem" + pílula `#pillSolicitacoes` (filtro "solicitacoes"); aberta: `#barraPedido`
+  Bloquear · Recusar · Aceitar no lugar do campo; quem pediu vê `#avisoPedido` e, recusada, a barra de bloqueio com o texto;
+  Vídeo/Ligar escondidos até aceitar. Configurações → "Quem pode mandar mensagem" (`#cfgQuemManda`, `pintarQuemManda`; a parte
+  dos negócios só para quem tem). **Aba Negócios só para quem tem negócio** (`temNegocio`, `conferirTemNegocio`, guardado em
+  `hf-tem-negocio-<uid>`; sem negócio tudo fica em Pessoal). Chamadas: "Nova chamada" saiu do topo (o botão flutuante faz isso),
+  "Limpar registro de chamadas" no fim da lista. Lista: `.conv-item` margem 4 px (fotos, busca e filtros alinhados em 14 px).
+  **Perfil:** sem negócio não aparece a fileira (nem o "Novo negócio"); o dono vê `.neg-visib` (Visível · Esconder / Escondido ·
+  Mostrar) → `pref_publicas.negociosNoPerfil` (`atalhosNoPerfil`), visitantes só veem se não for false. Ajuda: pergunta
+  "Quem pode me mandar mensagem?". Teste `t-solicitacoes.mjs` (27). **Conta privada (pedido dele no mesmo print) NÃO feita:**
+  perguntado o que deve ficar só para seguidores aprovados (é uma etapa à parte: pedidos para seguir + filtro em Diário,
+  Flash, perfil, listas e regras).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2268,7 +2294,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (20 partes em `_regras/`, 995 testes; inclui os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (21 partes em `_regras/`, 1024 testes; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

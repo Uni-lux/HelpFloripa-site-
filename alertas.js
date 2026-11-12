@@ -5,7 +5,7 @@
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=141";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=142";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {
@@ -13,7 +13,7 @@ import {
   ESPECIES, CORES_PET, PORTES, STATUS_PET, rgPet, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, MOSTRAR_A_PARTIR,
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=1";
-import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=3";
+import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=4";
 
 const params = new URLSearchParams(location.search);
 let aba = ["sos", "pets", "roubos"].includes(params.get("aba")) ? params.get("aba") : "sos";
@@ -179,7 +179,7 @@ async function abrirSos(id) {
     if (dono && vivo) {
       acoes.append(botao("Já estou bem (resolvido)", "ent-btn ok", () => mudar({ status: "resolvido", fimEm: fb.serverTimestamp() }, "Que bom! Pedido encerrado.")),
         botao("Cancelar o pedido", "ent-btn sec", () => mudar({ status: "cancelado", fimEm: fb.serverTimestamp() }, "Pedido cancelado")));
-      if (s.ajudanteId) acoes.appendChild(botao(`Conversar com ${(s.ajudanteNome || "quem ajuda").split(" ")[0]}`, "ent-btn sec", () => conversar(s.ajudanteId)));
+      if (s.ajudanteId) acoes.appendChild(botao(`Conversar com ${(s.ajudanteNome || "quem ajuda").split(" ")[0]}`, "ent-btn sec", () => conversar(s.ajudanteId, { tipo: "sos", id: s.id })));
       // Atualiza a posição de quem pediu enquanto esta tela estiver aberta.
       if (vigia == null && navigator.geolocation) vigia = navigator.geolocation.watchPosition((p) => {
         if (Date.now() - ultimaPos < 20000) return; ultimaPos = Date.now();
@@ -191,7 +191,7 @@ async function abrirSos(id) {
       if (ajudo) acoes.append(botao("Resolvido", "ent-btn ok", () => mudar({ status: "resolvido", fimEm: fb.serverTimestamp() }, "Obrigado por ajudar!")),
         botao("Não vou conseguir ir", "ent-btn sec", () => mudar({ status: "aberto", ajudanteId: "", ajudanteNome: "", aceitoEm: null }, "Pedido liberado para outra pessoa")));
       const rota = h("a", "ent-btn sec"); rota.href = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`; rota.target = "_blank"; rota.rel = "noopener"; rota.textContent = "Como chegar"; rota.style.textDecoration = "none";
-      acoes.append(rota, botao(`Conversar com ${(s.nome || "a pessoa").split(" ")[0]}`, "ent-btn sec", () => conversar(s.uid)));
+      acoes.append(rota, botao(`Conversar com ${(s.nome || "a pessoa").split(" ")[0]}`, "ent-btn sec", () => conversar(s.uid, { tipo: "sos", id: s.id })));
     }
     const tels = h("div", "al-tels"); pintarEmergencias(tels);
     frag.push(acoes, h("h3", null, "Emergência"), tels);
@@ -212,12 +212,12 @@ async function aceitar(s) {
       if (!d.exists() || d.data().status !== "aberto") throw new Error("pego");
       tx.update(ref, { status: "atendido", ajudanteId: eu.uid, ajudanteNome: String(dados.nome || "").slice(0, 80), aceitoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
     });
-    mandarMensagem(s.uid, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: s.id, sosTipo: s.tipo, nome: s.nome || "", acao: "ajudando" } }, "🆘 Estou indo ajudar").catch(() => {});
+    mandarMensagem(s.uid, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: s.id, sosTipo: s.tipo, nome: s.nome || "", acao: "ajudando" } }, "🆘 Estou indo ajudar", { servico: { tipo: "sos", id: s.id } }).catch(() => {});
     toast("Obrigado! A pessoa e os outros veem que você está indo.");
   } catch (e) { toast(e?.message === "pego" ? "Outra pessoa já aceitou ajudar." : "Não foi possível: " + erroAmigavel(e)); }
 }
-async function conversar(uid) {
-  try { const id = await garantirConversa(fb, eu.uid, uid); const m = await import("./chat-gaveta.js?v=4"); m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`); }
+async function conversar(uid, servico = null) {
+  try { const id = await garantirConversa(fb, eu.uid, uid, servico); const m = await import("./chat-gaveta.js?v=4"); m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`); }
   catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); }
 }
 
@@ -419,7 +419,9 @@ function avisarPar(uid, cartao, resumo) {
   const k = `${uid}:${cartao.achadoId}:${cartao.petId}`;
   if (avisados.has(k) || !uid || uid === eu.uid) return;
   avisados.add(k);
-  mandarMensagem(uid, { tipoArquivo: "cartao", cartao: { tipo: "pet", ...cartao } }, resumo).catch(() => {});
+  // conversa do pet: com quem achou (achado) ou com o tutor do pet perdido (pet) vai direto; as regras conferem
+  const servico = cartao.acao === "dono" ? { tipo: "achado", id: cartao.achadoId } : { tipo: "pet", id: cartao.petId };
+  mandarMensagem(uid, { tipoArquivo: "cartao", cartao: { tipo: "pet", ...cartao } }, resumo, { servico }).catch(() => {});
 }
 function achei() {
   const { corpo: c, fechar } = abrirTela("Encontrei um animal");
@@ -473,8 +475,8 @@ async function abrirRg(id) {
     c.appendChild(cartaoRg(p));
     if (p.status === "perdido") c.appendChild(h("div", "al-estado vermelho", `Perdido desde ${dataCurta(p.perdidoEm)}${p.perdidoLocal?.nome ? " · " + p.perdidoLocal.nome : ""}`));
     if (p.donoId !== eu.uid) c.appendChild(botao(p.status === "perdido" ? `Vi ${p.nome}! Avisar o tutor` : `Falar com o tutor de ${p.nome}`, "ent-btn", async () => {
-      await mandarMensagem(p.donoId, { tipoArquivo: "cartao", cartao: { tipo: "pet", acao: "vi", petId: p.id, nome: p.nome } }, `🐾 Vi o seu pet: ${p.nome}`).catch(() => {});
-      conversar(p.donoId);
+      await mandarMensagem(p.donoId, { tipoArquivo: "cartao", cartao: { tipo: "pet", acao: "vi", petId: p.id, nome: p.nome } }, `🐾 Vi o seu pet: ${p.nome}`, { servico: { tipo: "pet", id: p.id } }).catch(() => {});
+      conversar(p.donoId, { tipo: "pet", id: p.id });
     }));
   } catch { c.appendChild(vazio("Você não tem acesso a este pet.")); }
 }
@@ -499,7 +501,7 @@ async function abrirAchado(id) {
     if (meus[0]?.n >= MOSTRAR_A_PARTIR) c.appendChild(h("div", "al-estado verde", `${textoSemelhanca(meus[0].n)} com ${meus[0].p.nome} (${meus[0].n}%)`));
     c.appendChild(botao("É o meu! Falar com quem encontrou", "ent-btn", async () => {
       if (meus[0]) await mandarMensagem(a.autorId, { tipoArquivo: "cartao", cartao: { tipo: "pet", acao: "dono", petId: meus[0].p.id, achadoId: a.id, nota: meus[0].n, nome: meus[0].p.nome } }, "🐾 Acho que é o meu pet").catch(() => {});
-      conversar(a.autorId);
+      conversar(a.autorId, { tipo: "achado", id: a.id });
     }));
   } catch { c.appendChild(vazio("Indisponível agora.")); }
 }

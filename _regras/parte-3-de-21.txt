@@ -249,4 +249,4 @@
                     && request.resource.data.status == 'aceito'
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
 
-// ===== FIM DA PARTE 3 DE 20 =====
+// ===== FIM DA PARTE 3 DE 21 =====

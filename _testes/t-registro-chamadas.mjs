@@ -80,8 +80,9 @@ await p.screenshot({ path: "saida/registro-cartoes.png" });
 
 // Nova chamada + Tirar do registro + Limpar
 await p.goto(p.url().split("?")[0]); await p.waitForSelector(".modos [data-modo='chamadas']"); await p.waitForTimeout(1500);
-await p.locator(".modos [data-modo='chamadas']").click(); await p.waitForSelector(".rc-nova");
-await p.locator(".rc-topo .rc-nova").click();
+await p.locator(".modos [data-modo='chamadas']").click(); await p.waitForSelector(".rc-filtros");
+ok(await p.locator(".rc-topo").count() === 0, "sem “Nova chamada” no topo (o botão flutuante faz isso)");
+await p.locator("#btnNovaConversa").click();
 await p.waitForSelector(".pv-fundo.on .rcn-item", { timeout: 5000 });
 ok((await p.textContent(".rcn-lista")).includes("Ana") && await p.locator(".rcn-item .rc-ligar").count() >= 2, "Nova chamada: as suas conversas com voz e vídeo");
 await p.locator(".pv-fundo.on .rc-busca input").fill("zzz"); await p.waitForTimeout(300);

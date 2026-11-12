@@ -1,93 +1,3 @@
-    // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
-    // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
-    // gravado junto, da mesma pessoa e da mesma conversa.
-    function msgEquipeOk(conversa) {
-      let d = request.resource.data;
-      return d.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
-          && d.autorId == request.auth.uid
-          && valorTextoAte(d.get('nome', ''), 80)
-          && d.texto is string && d.texto.size() <= 2000
-          && (d.texto.size() >= 1 || 'anexo' in d)
-          && d.em == request.time
-          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
-          && (!('resposta' in d)
-              || (d.resposta is map
-                  && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
-                  && d.resposta.get('id', '') is string
-                  && d.resposta.get('autorId', '') is string
-                  && valorTextoAte(d.resposta.get('nome', ''), 80)
-                  && d.resposta.get('texto', '') is string && d.resposta.get('texto', '').size() <= 200))
-          && (!('reacoes' in d) || (d.reacoes is map && d.reacoes.size() == 0))
-          && (!('anexo' in d)
-              || (d.anexo is string
-                  && d.tipoArquivo in ['imagem', 'audio', 'arquivo']
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.autorId == request.auth.uid
-                  && getAfter(/databases/$(database)/documents/equipe_anexos/$(d.anexo)).data.conversa == conversa))
-          && (!('tipoArquivo' in d) || 'anexo' in d)
-          && valorTextoAte(d.get('nomeArquivo', ''), 120)
-          && (!('tamanho' in d) || (d.tamanho is int && d.tamanho >= 0))
-          && (!('duracao' in d) || (d.duracao is int && d.duracao >= 0 && d.duracao <= 600))
-          && (!('miniatura' in d) || (d.miniatura is string && d.miniatura.size() <= 30000 && d.miniatura.matches('^data:image/jpeg;base64,.*')));
-    }
-    // Reação a uma mensagem: cada pessoa guarda só a sua (reacoes[uid] = emoji).
-    // A edição só pode mexer no campo reacoes, e só na própria chave de quem edita.
-    function reacaoValida() {
-      let d = request.resource.data;
-      let a = resource.data;
-      let eu = request.auth.uid;
-      return d.diff(a).affectedKeys().hasOnly(['reacoes'])
-          && d.get('reacoes', {}) is map
-          && d.get('reacoes', {}).diff(a.get('reacoes', {})).affectedKeys().hasOnly([eu])
-          && (!(eu in d.get('reacoes', {})) || d.reacoes[eu] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
-    }
-    // Editar mensagem do chat da equipe (só quem escreveu): texto novo + versão anterior em "edicoes".
-    function edicaoEquipeOk() {
-      let d = request.resource.data;
-      let a = resource.data;
-      return a.autorId == request.auth.uid
-          && request.time < a.em + duration.value(10, 'm')
-          && !('apagada' in a)
-          && d.diff(a).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
-          && d.texto is string && d.texto.size() <= 2000
-          && (d.texto.size() > 0 || 'anexo' in a)
-          && d.editadaEm == request.time
-          && d.edicoes is list
-          && d.edicoes.size() == a.get('edicoes', []).size() + 1
-          && d.edicoes.size() <= 20
-          && d.edicoes == a.get('edicoes', []).concat([d.edicoes[a.get('edicoes', []).size()]])
-          && d.edicoes[a.get('edicoes', []).size()] is map
-          && d.edicoes[a.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
-          && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
-          && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
-    }
-    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
-    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
-    function apagarEquipeOk(id) {
-      let d = request.resource.data;
-      let a = resource.data;
-      return a.autorId == request.auth.uid
-          && request.time < a.em + duration.value(10, 'm')
-          && !('apagada' in a)
-          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
-          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
-          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
-          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
-          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
-    }
-    match /equipe_chat/{id} {
-      allow read: if admin();
-      allow create: if admin() && msgEquipeOk('equipe');
-      allow update: if admin() && reacaoValida();
-      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
-      allow delete: if false;
-    }
-    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
-    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
-    // os donos escrevem.
-    function canalEquipeOk(canal) {
-      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
-          && (canal != 'avisos' || papel() == 'dono');
-    }
     match /equipe_canais/{canal} {
       allow read: if admin();
       allow create, update: if admin() && canalEquipeOk(canal)
@@ -189,4 +99,103 @@
       allow delete: if false;
     }
 
-// ===== FIM DA PARTE 12 DE 20 =====
+    // Quadro de tarefas da equipe: quem faz o quê.
+    match /equipe_tarefas/{id} {
+      function tarefaOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
+            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
+            && valorTextoAte(d.get('descricao', null), 2000)
+            && d.status in ['a_fazer', 'fazendo', 'feito']
+            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
+            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
+            && valorTextoAte(d.get('responsavelNome', null), 80)
+            && (d.get('prazo', null) == null || d.prazo is timestamp)
+            && valorTextoAte(d.get('ligacao', null), 160)
+            && valorTextoAte(d.get('ligacaoNome', null), 120)
+            && valorTextoAte(d.get('criadoPorNome', null), 80)
+            && d.atualizadoEm == request.time;
+      }
+      allow read: if admin();
+      allow create: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == request.auth.uid
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == resource.data.criadoPor
+                    && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
+    }
+
+    // Notas internas da equipe sobre um usuário (só a equipe vê; ninguém edita).
+    match /notas_internas/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
+                    && request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('autorNome', null), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update: if false;
+      allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
+    }
+
+    match /admin_log/{id} {
+      // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
+      allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
+      allow create: if admin()
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
+      allow update, delete: if false;
+    }
+
+    match /estatisticas/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+    match /relatorios/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+
+    // =====================================================
+    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
+    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
+    // 20 publicações, 200 comentários, 3 propostas e 50 flashes. Cada ação soma exatamente 1 no seu tipo.
+    // =====================================================
+    match /ritmo/{uid} {
+      function limite(t) {
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : 200)));
+      }
+      function janelaNova() {
+        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+      }
+      function contaOk(k, t) {
+        let v = request.resource.data.get(k, 0);
+        return v is int
+            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
+                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
+      }
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
+                    && request.resource.data.ultimaEm == request.time
+                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
+                    && contaOk('msg', request.resource.data.ultimoTipo)
+                    && contaOk('pub', request.resource.data.ultimoTipo)
+                    && contaOk('com', request.resource.data.ultimoTipo)
+                    && contaOk('parc', request.resource.data.ultimoTipo)
+                    && contaOk('flash', request.resource.data.ultimoTipo)
+                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
+      allow delete: if false;
+    }
+
+
+// ===== FIM DA PARTE 13 DE 21 =====

@@ -992,6 +992,10 @@ service cloud.firestore {
                     && (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
                         || exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
                     && !bloqueioEntre(request.auth.uid, request.resource.data.para)
+                    // solicitação de mensagem ainda não aceita: ninguém liga (12/11/2026)
+                    && (!exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                        || get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.get('pedido', null) == null
+                        || get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.pedido.status == 'aceito')
                     && request.resource.data.tipo in ['audio', 'video']
                     && request.resource.data.status == 'chamando'
                     && sdpOk(request.resource.data.oferta)
@@ -1042,6 +1046,57 @@ service cloud.firestore {
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
+      // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
+      // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
+      // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
+      // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
+      // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
+      // do serviço mostra que os dois fazem parte dele.
+      function servicoOk(sv, p) {
+        return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
+            && (sv.tipo == 'corrida'
+                  ? [get(/databases/$(database)/documents/corridas/$(sv.id)).data.clienteId,
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('entregadorId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('destinatarioId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('pagadorId', '')].hasAll(p)
+              : sv.tipo == 'sos'
+                  ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
+                    && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
+              : sv.tipo == 'pet'
+                  ? get(/databases/$(database)/documents/pets/$(sv.id)).data.donoId in p
+                    && get(/databases/$(database)/documents/pets/$(sv.id)).data.status == 'perdido'
+              : sv.tipo == 'achado'
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.autorId in p
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.status == 'ativo');
+      }
+      function acessoNova() {
+        let d = request.resource.data;
+        let outro = d.participantes[0] == request.auth.uid ? d.participantes[1] : d.participantes[0];
+        let pr = /databases/$(database)/documents/pref_publicas/$(outro);
+        let ctx = d.get('contexto', null);
+        let neg = ctx != null && ctx.tipo != 'comunidade' && exists(/databases/$(database)/documents/negocios/$(outro + '_' + ctx.tipo));
+        let modo = exists(pr) ? get(pr).data.get(neg ? 'msgNegocios' : 'msgPessoal', neg ? 'todos' : 'seguindo') : (neg ? 'todos' : 'seguindo');
+        let vin = /databases/$(database)/documents/vinculos/$(conversaId);
+        let p = d.get('pedido', null);
+        return ('servico' in d)
+             ? (p == null && servicoOk(d.servico, d.participantes))
+             : p == null
+               ? (modo == 'todos'
+                  || exists(/databases/$(database)/documents/relacoes/$(outro + '_' + request.auth.uid))
+                  || (exists(vin) && get(vin).data.status == 'aceito'))
+               : (modo != 'fechado' && p is map && p.keys().hasOnly(['de', 'status', 'em'])
+                  && p.de == request.auth.uid && p.status == 'pendente' && p.em == request.time);
+      }
+      // Quem recebeu a solicitação decide (aceito ou recusado); quem pediu não mexe no pedido.
+      function pedidoMudaOk() {
+        let a = resource.data.get('pedido', null);
+        let n = request.resource.data.get('pedido', null);
+        return a != null && n is map && request.auth.uid != a.de
+            && n.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
+            && n.de == a.de && n.em == a.em
+            && n.status in ['aceito', 'recusado'];
+      }
+
       // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
       allow get: if logado()
                  && ((resource == null && request.auth.uid in conversaId.split('_'))
@@ -1062,8 +1117,9 @@ service cloud.firestore {
                     && !bloqueioEntre(request.resource.data.participantes[0],
                                       request.resource.data.participantes[1])
                     && emailOk()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
+                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm', 'pedido', 'servico'])
                     && contextoOk()
+                    && acessoNova()
                     && textoAte('ultimaMensagem', 200);
 
       // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
@@ -1072,7 +1128,8 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada'])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido'])
+                    && (!mudou().hasAny(['pedido']) || pedidoMudaOk())
                     // o resumo da última mensagem só pode ser escrito por quem mandou
                     && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
                         || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
@@ -1116,6 +1173,13 @@ service cloud.firestore {
         function semBloqueio() {
           let p = get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
           return !bloqueioEntre(p[0], p[1]);
+        }
+
+        // Solicitação de mensagem: enquanto pendente só quem pediu escreve; recusada, ninguém (quem recebeu responde
+        // depois de aceitar).
+        function pedidoLibera() {
+          let pd = get(/databases/$(database)/documents/conversas/$(conversaId)).data.get('pedido', null);
+          return pd == null || pd.status == 'aceito' || (pd.status == 'pendente' && pd.de == request.auth.uid);
         }
 
         // A outra pessoa da conversa não pode estar com a conta desativada.
@@ -1171,6 +1235,7 @@ service cloud.firestore {
                       && emailOk()
                       && participante()
                       && semBloqueio()
+                      && pedidoLibera()
                       && outroAtivo()
                       && ritmoOk('msg')
                       && request.resource.data.remetenteId == request.auth.uid
@@ -2792,7 +2857,11 @@ service cloud.firestore {
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil'])
+                    // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
+                    && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
+                    && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
+                    && request.resource.data.get('negociosNoPerfil', true) is bool
                     && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
                     && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
                     && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);

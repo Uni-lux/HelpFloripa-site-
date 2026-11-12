@@ -141,15 +141,21 @@
 > lista) e `n|uid_tipo|o|nome|0|0|0|0` (oculto) — até 18 itens no total, num regex só (o flash "com tudo" está no limite de
 > 1.000 expressões). Continuam **20 partes**, 995 testes.
 
+> **Atualização (12/11/2026 – solicitações de mensagem):** `conversas` aceita `pedido {de, status, em}` e `servico {tipo, id}` na
+> criação (`acessoNova`: vai direto se quem recebe aceita todos, segue quem escreve ou tem vínculo aceito; senão nasce como
+> solicitação; "fechado" nem isso; serviço confere corrida/SOS/pet no documento), só quem recebeu decide (`pedidoMudaOk`),
+> mensagens com `pedidoLibera` e ligações só com a solicitação aceita; `pref_publicas` aceita `msgPessoal`, `msgNegocios` e
+> `negociosNoPerfil`. Agora são **21 partes**, 1024 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **20 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **21 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (235.846 bytes, 3.721 linhas, sha256 começa com `6e68069131a27b17`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 20 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (241.049 bytes, 3.790 linhas, sha256 começa com `7c1387a43a72b467`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 21 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 20 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **995 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 21 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1024 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

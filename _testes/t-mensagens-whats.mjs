@@ -7,6 +7,8 @@ import { initializeApp } from "firebase-admin/app"; import { getFirestore, Field
 import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
+// A aba Negócios só aparece para quem tem negócio (12/11/2026): a Ana ganha um perfil para o teste.
+await db.doc(`negocios/${U.ana}_servicos`).set({ donoId: U.ana, tipo: "servicos", nome: "Ana Serviços", criadoEm: FieldValue.serverTimestamp(), atualizadoEm: FieldValue.serverTimestamp() });
 const CONV = [U.ana, U.bruno].sort().join("_");
 await db.doc(`conversas/${CONV}`).set({ ultimaMensagem: "📍 Localização", ultimaMensagemRemetenteId: U.ana, atualizadoEm: FieldValue.serverTimestamp(), fixadaPara: { [U.ana]: FieldValue.delete() } }, { merge: true });
 // um áudio da outra pessoa (data: curto) para ver o player

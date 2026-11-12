@@ -3888,3 +3888,7 @@ body.modo-lugar .fab-criar { display: none; }
 .pa-flash-lista li::before { content: ""; position: absolute; left: 3px; top: .45em; width: 8px; height: 4px; border: solid var(--accent); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
 .cfg2-limites { margin: 8px 2px 0; }
 .pa-resumo.pa-resumo-flash { position: static; }
+/* Atalhos dos negócios no perfil: o dono mostra ou esconde (12/11/2026) */
+.neg-visib { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.neg-visib .i { width: 14px; height: 14px; }
+.neg-visib.oculto { color: #f5a400; border-color: color-mix(in srgb, #f5a400 45%, transparent); }
