@@ -1162,8 +1162,9 @@ service cloud.firestore {
                             && valorTextoAte(request.resource.data.mensagemFixada.get('texto', ''), 200)))
                     && textoAte('ultimaMensagem', 200);
 
-      allow delete: if logado()
-                    && request.auth.uid in resource.data.participantes;
+      // Ninguém apaga a conversa inteira pelo site (o "apagar" de cada um é ocultaPara). Antes, um dos dois apagava a
+      // conversa do outro também e, criando de novo, passava por cima de uma solicitação recusada.
+      allow delete: if podeModerar();
 
 
       // ===================================================
