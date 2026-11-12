@@ -29,7 +29,7 @@ import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis 
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
-import { corrigirTexto } from "./corretor.js?v=1";
+import { corrigirTexto } from "./corretor.js?v=2";
 import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
 import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
@@ -4194,7 +4194,7 @@ $("chipCorretor")?.addEventListener("pointerdown", (e) => e.preventDefault()); /
 $("chipCorretor")?.addEventListener("click", async (e) => {
   const campo = $("texto");
   if (e.target.closest("#chipCorretorX")) { corretorDispensado = campo.value; $("chipCorretor").hidden = true; return; }
-  const { revisarTexto } = await import("./corretor-tela.js?v=1");
+  const { revisarTexto } = await import("./corretor-tela.js?v=2");
   const novo = await revisarTexto(campo.value, { modo: "chat", titulo: "Revisar mensagem" });
   if (novo !== null && novo !== campo.value) { campo.value = novo; ajustarAltura(); }
   corretorDispensado = campo.value; $("chipCorretor").hidden = true;

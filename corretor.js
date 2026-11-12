@@ -250,7 +250,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), abreviac
       });
     }
     // 4) pontuação: espaço antes da vírgula, espaço depois, vírgula antes de "mas"/"porém", "!!!!!!"
-    s = s.replace(/[ \t]+([,;:!?]|\.(?!\.))(?=\s|$)/g, (m, p) => anotar(m, p, "pontuacao", "sem espaço antes da pontuação") ? p : m);
+    s = s.replace(/[ \t]+([,;:]|[!?]+|\.(?!\.))(?=\s|$)/g, (m, p) => anotar(m, p, "pontuacao", "sem espaço antes da pontuação") ? p : m);
     s = s.replace(/([,;])(\p{L}+)/gu, (m, p, w) => anotar(m, p + " " + w, "pontuacao", "espaço depois da vírgula") ? p + " " + w : m);
     s = s.replace(/(\p{Ll}{2,})([.!?])(\p{L}+)/gu, (m, a, p, b) => anotar(m, a + p + " " + b, "pontuacao", "espaço depois do ponto") ? a + p + " " + b : m);
     s = s.replace(/([!?]){4,}/g, (m, p) => anotar(m, p.repeat(3), "pontuacao", "pontuação repetida demais") ? p.repeat(3) : m);
