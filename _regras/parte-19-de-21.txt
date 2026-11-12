@@ -1,3 +1,29 @@
+      // Quem leva aceita: entregador ativo, veículo certo, serviço que ele faz, sem bloqueio. Os dados do veículo
+      // vêm do cadastro dele (não dá para mostrar outra placa).
+      function aceitarOk(k) {
+        let e = cad();
+        return (c().paraId == '' || c().paraId == request.auth.uid)
+            && c().clienteId != request.auth.uid
+            && e.get('status', '') == 'ativo'
+            && e.veiculo == c().veiculo && c().servico in e.servicos
+            && !bloqueioEntre(request.auth.uid, c().clienteId)
+            && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'atualizadoEm'])
+            && n().entregadorId == request.auth.uid
+            && n().entregador is map && n().entregador.keys().hasOnly(['nome', 'veiculo', 'modelo', 'cor', 'placa'])
+            && n().entregador.veiculo == e.veiculo && n().entregador.get('placa', '') == e.get('placa', '')
+            && n().entregador.get('modelo', '') == e.get('modelo', '') && n().entregador.get('cor', '') == e.get('cor', '')
+            && valorTextoAte(n().entregador.get('nome', ''), 80)
+            && n().aceitaEm == request.time && n().atualizadoEm == request.time;
+      }
+      // Quem leva desiste antes de sair: o pedido volta a procurar outra pessoa.
+      function desistirOk(k, st) {
+        return souEu('entregadorId') && st in ['aceita', 'chegou']
+            && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'chegouEm', 'pos', 'desistencias', 'atualizadoEm'])
+            && n().entregadorId == '' && n().get('entregador', null) == null
+            && n().get('chegouEm', null) == null && n().get('pos', null) == null && n().get('aceitaEm', null) == null
+            && n().desistencias == c().get('desistencias', 0) + 1
+            && n().atualizadoEm == request.time;
+      }
       // Quem leva avança as etapas, com o PIN onde precisa.
       function etapaOk(k, st, ns) {
         return souEu('entregadorId')

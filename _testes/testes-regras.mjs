@@ -1289,6 +1289,9 @@ await t("conversa: assunto Saúde e Comunidade", () => assertSucceeds(setDoc(doc
   await t("solicitação: status estranho é recusado", () => assertFails(updateDoc(doc(ctx("sneg"), "conversas", convSN), { "pedido.status": "talvez" })));
   await t("preferências: quem pode mandar mensagem (pessoal e negócios) e atalhos no perfil", () => assertSucceeds(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { msgPessoal: "fechado", msgNegocios: "pedidos", negociosNoPerfil: false, atualizadoEm: serverTimestamp() })));
   await t("preferências: valor estranho de mensagem é recusado", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { msgPessoal: "amigos" })));
+  await t("preferências: o que aparece no perfil (cidade, avaliação, destaques)", () => assertSucceeds(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { perfil: { cidade: false, nota: true, destaques: false }, atualizadoEm: serverTimestamp() }, { merge: true })));
+  await t("preferências: perfil só com as chaves conhecidas", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { perfil: { telefone: true } }, { merge: true })));
+  await t("preferências: perfil só verdadeiro/falso", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { perfil: { cidade: "sim" } }, { merge: true })));
   await t("preferências: atalhos no perfil só verdadeiro/falso", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { negociosNoPerfil: "sim" })));
 }
 

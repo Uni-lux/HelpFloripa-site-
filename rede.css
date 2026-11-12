@@ -3919,3 +3919,55 @@ body.com-barra .fab-hf { bottom: calc(100px + env(safe-area-inset-bottom)); }
 body.aba-explorar .fab-hf, body.modo-lugar .fab-hf { display: none; }
 /* No Explorar o símbolo some (como as outras redes: a marca fica só no começo). */
 body.aba-explorar .marca-ponte { visibility: hidden; pointer-events: none; }
+
+/* ======================================================================================================
+   Perfil enxuto (12/11/2026, pedido dele: moderno, compacto, só o necessário; o resto só se a pessoa ativar).
+   Ordem: capa mais baixa → foto, nome, @ · cidade, bio → números numa linha (sem cartão) + ícone das estatísticas →
+   Editar perfil · Compartilhar · ⋯ → negócios em pílulas → destaques (só se houver).
+   ====================================================================================================== */
+.pf2 .pf-capa { height: clamp(176px, 40vw, 270px); }
+.pf2 .pf-anel { width: 96px; height: 96px; padding: 3px; }
+.pf2 .pf-anel .avatar { border-width: 3px; font-size: 28px; }
+.pf2 .pf-topo { gap: 14px; padding: 0 16px 14px; }
+.pf2 .pf-nome { font-size: clamp(20px, 5.4vw, 25px); }
+.pf2 .pf-handle { font-size: 13px; display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.pf2 .pf-handle .pf-cidade[hidden] { display: none; }
+.pf2 .pf-bio { font-size: 13.5px; margin-top: 6px; -webkit-line-clamp: 2; }
+.pf2 .pf-editar-capa.so-icone { width: 38px; height: 38px; padding: 0; justify-content: center; top: 12px; right: 12px; }
+.pf2 .pf-editar-capa.so-icone .i { width: 18px; height: 18px; }
+.pf2 .pf-corpo { padding: 12px 16px 16px; }
+/* números: uma linha limpa, sem cartão */
+.pf2 .pf-stats { margin: 0 0 12px; border: 0; border-radius: 0; background: none; display: flex; align-items: stretch; gap: 0; overflow: visible; }
+.pf2 .pf-stats .pf-stat { flex: 1 1 0; min-width: 0; padding: 6px 2px; border-radius: 12px; }
+.pf2 .pf-stats .pf-stat[hidden] { display: none; }
+.pf2 .pf-stat + .pf-stat::before { display: none; }
+.pf2 .pf-stat .num { font-size: 17px; font-weight: 800; line-height: 1.15; }
+.pf2 .pf-stat .rot { font-size: 11.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf2 .pf-stats .pf-stat-mais { flex: 0 0 40px; width: 40px; align-self: center; height: 40px; padding: 0; border-radius: 12px; display: grid; place-items: center;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.pf2 .pf-stats .pf-stat-mais .i { width: 19px; height: 19px; }
+/* ações: Editar perfil · Compartilhar · ⋯ (mais baixas, como nos apps) */
+.pf2 .pf-acoes { grid-template-columns: 1fr 1fr 44px; gap: 8px; }
+.pf2 .pf-acoes:has(> :nth-child(4)) { grid-template-columns: 1fr 1fr 44px 44px; }
+.pf2 .pf-acoes > .btn { min-height: 40px; border-radius: 12px; font-size: 14px; font-weight: 750; box-shadow: none !important; }
+.pf2 .pf-acoes > .btn.icone { width: 44px; }
+.pf2 .pf-acoes > .btn .i.xs { width: 16px; height: 16px; }
+/* negócios: pílulas pequenas numa fileira (foto + tipo) */
+.pf2 [data-el="negocios"] { margin-top: 12px; }
+.pf2 [data-el="negocios"] .vinculos { gap: 8px; padding: 2px 0 2px; }
+.pf2 [data-el="negocios"] .vinculo { width: auto; flex: none; display: inline-flex; flex-direction: row; align-items: center; gap: 8px; padding: 4px 12px 4px 4px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+.pf2 [data-el="negocios"] .vinculo .avatar { width: 30px; height: 30px; margin: 0; font-size: 11px; box-shadow: 0 0 0 2px var(--cor, var(--accent)); }
+.pf2 [data-el="negocios"] .vinculo .papel { margin: 0; max-width: none; font-size: 13px; font-weight: 750; color: var(--text); }
+.pf2 [data-el="negocios"] .vinculo .papel::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--cor, var(--accent)); vertical-align: 1px; }
+/* destaques: menores e só quando existem (ou se a pessoa esconder) */
+.pf2 .pf-corpo.sem-destaques .pf-destaques { display: none; }
+.pf2 .pf-destaques { padding-top: 12px; gap: 12px; }
+.pf2 .pf-dq { width: 62px; }
+.pf2 .pf-dq-capa { width: 56px; height: 56px; }
+.pf2 [data-el="negocios"] .vinculos { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; grid-template-columns: none; }
+.pf2 [data-el="negocios"] .vinculo { min-width: max-content; }
+.pf2 [data-el="negocios"] .vinculo .avatar { width: 30px; height: 30px; outline: 0; }
+.pf2 [data-el="negocios"] .vinculo .papel { margin: 0; font-size: 13px; overflow: visible; }
+.pf2 .pf-stat .rot { font-size: 11px; letter-spacing: -.1px; text-overflow: clip; }
+@media (max-width: 380px) { .pf2 .pf-stat .num { font-size: 16px; } .pf2 .pf-stats .pf-stat-mais { flex-basis: 36px; width: 36px; height: 36px; } }

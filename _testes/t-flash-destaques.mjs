@@ -23,11 +23,13 @@ await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U
 const A = await navegador({ mobile: true });
 const p = await entrar(A.ctx, "ana", "usuarios.html");
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
-await p.waitForSelector("#meuPerfil .pf-destaques", { timeout: 20000 }); await p.waitForTimeout(800);
+await p.waitForSelector("#meuPerfilMais", { timeout: 20000 }); await p.waitForTimeout(800);
+// Perfil enxuto (12/11/2026): sem destaques a fileira some; Novo destaque e Arquivo ficam no ⋯ do perfil.
+const doMenu = async (txt) => { await p.locator("#meuPerfilMais").tap(); await p.waitForTimeout(300); await p.locator("#opcoesCorpo button", { hasText: txt }).tap(); };
 
 // ---------- 1) arquivo ----------
-ok(await p.locator("#meuPerfil .pf-dq.novo").count() === 1 && await p.locator("#meuPerfil .pf-dq.arquivo").count() === 1, "perfil: fileira de destaques com Novo e Arquivo");
-await p.locator("#meuPerfil .pf-dq.arquivo").tap();
+ok(await p.locator("#meuPerfil .pf-destaques").isHidden(), "perfil sem destaques: a fileira não aparece");
+await doMenu("Arquivo do Flash");
 await p.waitForSelector(".dq-grade .dq-tile", { timeout: 8000 }); await p.waitForTimeout(500);
 ok(await p.locator(".dq-tile").count() === 3, `arquivo: os 3 flashes (2 de mais de 24 h) → ${await p.locator(".dq-tile").count()}`);
 ok(await p.locator(".dq-tile .dq-ar").count() === 1, "arquivo: o que está no ar tem o selo 'No ar'");
@@ -39,7 +41,7 @@ ok(await p.locator("#folhaLista.aberta .dq-grade").count() === 1, "fechar o flas
 await p.locator("#folhaLista.aberta [data-fechar]").first().click().catch(() => {}); await p.waitForTimeout(400);
 
 // ---------- 2) novo destaque ----------
-await p.locator("#meuPerfil .pf-dq.novo").tap();
+await doMenu("Novo destaque");
 await p.waitForSelector(".dq-tile", { timeout: 8000 }); await p.waitForTimeout(400);
 await p.locator(".dq-tile").nth(1).tap(); await p.locator(".dq-tile").nth(2).tap();
 ok((await p.locator(".dq-ok").textContent()).includes("(2)"), "novo destaque: escolheu 2 flashes no arquivo");
@@ -117,7 +119,7 @@ await pn.locator(".fig-op", { hasText: "Emoji" }).tap(); await pn.locator(".fig-
 ok(await pn.locator(".flash-camada .flash-txt", { hasText: "😍" }).count() === 1, "figurinha de emoji no cartão");
 await pn.locator(".flash-ferr-btn[aria-label^='Figurinhas']").tap(); await pn.waitForTimeout(300);
 await pn.locator(".fig-op", { hasText: "Hashtag" }).tap(); await pn.locator(".flash-figs .fe-local").fill("#floripa"); await pn.locator(".fe-linha-local .fe-pronto").tap(); await pn.waitForTimeout(200);
-ok(await pn.locator(".flash-camada .fig-hashtag", { hasText: "#floripa" }).count() === 1, "figurinha de hashtag no cartão");
+ok(await pn.locator(".flash-camada .fig-hashtag", { hasText: "floripa" }).count() === 1, "figurinha de hashtag no cartão");
 // fundo do texto: cor cheia → escuro transparente
 await pn.locator(".flash-ferr-btn[aria-label='Escrever na foto']").tap();
 await pn.locator(".fe-campo").fill("Bom dia");

@@ -151,6 +151,7 @@
 > grava; título ≤120, texto ≤20.000); `sos` aceita `equipe` e `escalarMin` (0–15) na criação e quem pediu pode abrir para quem
 > está perto depois (`publico: true`, `escaladoEm`, `suporteId`); `suporte` aceita a categoria `sos` (urgente);
 > `presentes` aceita o tipo `vale` (valor para usar num negócio, com o dono conferido). Continuam **21 partes**, 1037 testes.
+> **12/11/2026 (perfil enxuto):** `pref_publicas` aceita `perfil` {cidade, nota, destaques} (verdadeiro/falso: o que aparece no perfil para quem visita). Continuam **21 partes**, 1040 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **21 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
@@ -160,7 +161,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 21 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 21 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1037 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1040 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

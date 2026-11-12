@@ -2857,11 +2857,16 @@ service cloud.firestore {
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil'])
                     // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
                     && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
                     && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
                     && request.resource.data.get('negociosNoPerfil', true) is bool
+                    // o que aparece no perfil para quem visita (12/11/2026): cidade, avaliação e destaques do Flash
+                    && (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
+                        && request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
+                        && request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
+                        && request.resource.data.perfil.get('destaques', true) is bool))
                     && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
                     && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
                     && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
