@@ -2334,7 +2334,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   no aparelho com piso 0,9/0,7 (`probCtx`). Grupos só se as formas sem acento são palavras do lexico.txt. contexto.json ~230 KB
   comprimido (`?v=2`). **Padrões com classe** em `corrigirPeloContexto`: artigo + substantivo + "e" + adjetivo/advérbio no fim
   da frase → "é" (`fecha`), "já e tarde" → "já é", "esta" + adjetivo depois de pronome ou artigo+substantivo → "está".
-  **Falsos alarmes medidos** (`scratchpad/fpcorpus.mjs` idea: 6 mil frases certas de cada fonte, mudanças automáticas):
+  **Falsos alarmes medidos** (`_testes/corretor-falsos.mjs PASTA`: 6 mil frases certas de cada fonte, mudanças automáticas):
   128 → 23 (vários são erros de verdade nos tweets). Correções nas regras antigas: plural só com substantivo/adjetivo
   (`classeSegura`), "fazem" só com tempo, haver/desde/ora/presente não conjugam, "eu é que"/"X é que" não mexe, pronome depois
   de preposição não é sujeito (lookbehind nas regras de eles/nós/eu), "nos" sem acento só com vai/está/foi/precisa/ficou,
