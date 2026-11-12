@@ -14,9 +14,12 @@ const sp = nspell({ aff: fs.readFileSync(pastaDic + "/index.aff"), dic: fs.readF
 const COLOQUIAIS = ["pra", "pro", "pros", "pras", "tá", "tô", "né", "cê", "tava", "tavam", "tão", "num", "numa", "dum", "duma",
   "vamo", "bora", "oi", "olá", "tchau", "valeu", "beleza", "show", "ok", "blz", "kkk", "rs", "aí", "pô", "uai", "ué", "tipo",
   "whatsapp", "instagram", "pix", "online", "delivery", "app", "site", "link", "post", "story", "stories", "flash", "help", "floripa"];
-const linhas = fs.readFileSync(freq, "utf8").split("\n");
+const LIMITE = Number(process.env.LIMITE || 350000); // as mais usadas (o fim da lista das legendas é quase só erro de digitação)
+const linhas = fs.readFileSync(freq, "utf8").split("\n").slice(0, LIMITE);
 const vistas = new Set(), lista = [];
+let feitas = 0;
 for (const l of linhas) {
+  if (++feitas % 25000 === 0) console.error(feitas, "conferidas,", lista.length, "certas");
   const [w, n] = l.trim().split(/\s+/);
   if (!w || Number(n) < 3) continue;
   if (!/^[a-záàâãéêíóôõúüç]+(-[a-záàâãéêíóôõúüç]+)*$/.test(w) || w.length > 24) continue;
