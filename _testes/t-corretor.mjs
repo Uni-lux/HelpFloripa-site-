@@ -71,6 +71,22 @@ const CASOS = [
   ["terminei.agora vou dormir", "Terminei. Agora vou dormir", "chat"],
   ["afim de ajudar", "A fim de ajudar", "chat"],
   ["concerteza vou derrepente", (r) => /Com certeza/.test(r) && /de repente/.test(r), "chat"],
+  // concordância de verdade (2ª etapa, texto do dono)
+  ["nos vai no mercado ontem e compra varias coisa", "Nós fomos ao mercado ontem e compramos várias coisas", "chat"],
+  ["as pessoas tava tudo olhando", "As pessoas estavam tudo olhando", "chat"],
+  ["como se nois fosse uns estranho", "Como se nós fôssemos uns estranhos", "chat"],
+  ["eu falei que agente precisava ir embora", "Eu falei que a gente precisava ir embora", "chat"],
+  ["estava procurando as coisa que tinha perdido", "Estava procurando as coisas que tinha perdido", "chat"],
+  ["depois nois foi embora sem compra nada", "Depois nós fomos embora sem comprar nada", "chat"],
+  ["os ônibus não passava mais", "Os ônibus não passavam mais", "chat"],
+  ["foi umas situação muito complicado", "Foi uma situação muito complicada", "chat"],
+  ["ninguém não sabia oque fazer", "Ninguém sabia o que fazer", "chat"],
+  ["eu precisava, mais quando cheguei já era tarde", "Eu precisava, mas quando cheguei já era tarde", "chat"],
+  ["a casa é muito bonito", "A casa é muito bonita", "chat"],
+  ["eu fui no médico e compra o remédio", "Eu fui ao médico e comprei o remédio", "chat"],
+  ["eles chegou cedo e pega o carro", "Eles chegaram cedo e pegaram o carro", "chat"],
+  ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegou/.test(r), "chat"], // sugestão: não muda sozinho
+  ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegamos/.test(r), "chat", true],
   // NÃO mexer: frases certas, nomes, links, @, #, números
   ["Amanhã vou ao mercado com a Juliana.", "Amanhã vou ao mercado com a Juliana.", "pub"],
   ["Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "pub"],
@@ -81,6 +97,11 @@ const CASOS = [
   ["Esta casa é linda e está à venda.", "Esta casa é linda e está à venda.", "pub"],
   ["Nós vamos à praia de manhã.", "Nós vamos à praia de manhã.", "pub"],
   ["kkkkk que engraçado", "Kkkkk que engraçado", "chat"],
+  ...["Nós fomos ao mercado e compramos pão.", "Eu vi as pessoas saindo do prédio.", "As coisas que ele comprou estão aqui.",
+    "Nós vamos amanhã e voltamos domingo.", "Os meninos jogam bola e a menina corre.", "Os dele são melhores.", "Eu as vejo todo dia.",
+    "Mas quando ela chegou, já era tarde.", "Depois que nós saímos, ele chegou.", "Ele comprou as camisas e saiu.",
+    "Sem você nada faz sentido.", "A foto ficou linda.", "O sistema é muito rápido.", "Cada caso é analisado pela equipe.",
+    "Usar a Comunidade é gratuito.", "O pedido chega pelo chat.", "Cada publicação ganha uma nota."].map((f) => [f, f, "pub"]),
 ];
 for (const [ent, esp, modo, tudo] of CASOS) {
   const r = corrigir(ent, modo, tudo);

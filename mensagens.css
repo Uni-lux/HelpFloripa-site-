@@ -1627,3 +1627,15 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 .chip-corretor .i { width: 17px; height: 17px; color: var(--accent, #00adee); }
 .chip-corretor b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--accent, #00adee); color: #fff; font-size: 12px; display: inline-grid; place-items: center; }
 .chip-corretor .cc-x { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--muted, #8fa1ad); font-size: 18px; font-weight: 400; }
+
+/* ===== Notas: conversa fixa só sua (12/11/2026) ===== */
+.notas-pane iframe { flex: 1; width: 100%; min-height: 0; border: 0; background: var(--bg); }
+.notas-pane .quem { cursor: default; }
+.notas-av { display: grid; place-items: center; background: linear-gradient(145deg, #12303f, #0b1d27); color: #4fd2ff; box-shadow: inset 0 0 0 1px rgba(79, 210, 255, .28); }
+:root[data-theme="light"] .notas-av { background: linear-gradient(145deg, #e3f5fd, #cdeaf8); color: #0a78ad; box-shadow: inset 0 0 0 1px rgba(10, 120, 173, .2); }
+.notas-av .i { width: 46%; height: 46%; }
+.conv-notas .notas-so { margin-left: 7px; padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); vertical-align: 1px; }
+.conv-notas .notas-tarefas { flex-shrink: 0; height: 21px; padding: 0 7px 0 5px; border-radius: 7px; display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, transparent); }
+.conv-notas .notas-tarefas svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.conv-notas .notas-atraso { color: #ff6b6b; font-weight: 650; }
+.conv-notas .pv-nova { font-style: italic; }

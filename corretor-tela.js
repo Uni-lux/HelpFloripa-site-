@@ -5,7 +5,7 @@
 //   revisarTexto(texto, { modo, titulo, depois }) → Promise<string | null>   (null = manteve como estava)
 //   depois(texto) é aplicado ao resultado final (ex.: formatarTexto do Diário).
 // =====================================================
-import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=3";
+import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=4";
 
 const ICONES = {
   varinha: '<path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/>',

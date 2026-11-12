@@ -9,7 +9,7 @@
 // Guardadas NO APARELHO na hora (localStorage hf-notas-<uid>, funciona sem internet) e copiadas para a conta em
 // notas/{uid}/itens/{id} (regra própria: só o dono). Sem a regra publicada, ficam só no aparelho e a página avisa.
 // =====================================================
-import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=145";
+import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=146";
 import { confirmarHF } from "./confirmar.js?v=6";
 
 const PASTAS_PADRAO = ["Pessoal", "Ideias", "Estratégias", "Trabalho"];
@@ -485,7 +485,7 @@ function abrirEditor(nota, { modelo = "" } = {}) {
       tx.focus(); mudou();
     } else if (t === "corrigir") {
       if (!tx.value.trim()) { toast("Escreva alguma coisa primeiro."); return; }
-      const { revisarTexto } = await import("./corretor-tela.js?v=3");
+      const { revisarTexto } = await import("./corretor-tela.js?v=4");
       const novo = await revisarTexto(tx.value, { modo: "pub", titulo: "Corrigir a nota" });
       if (novo !== null && novo !== tx.value) { tx.value = novo; mudou(); if (verModo) pintarVer(); toast("Texto corrigido."); }
     } else if (t === "modelo") {
@@ -570,7 +570,7 @@ function avisoDesfazer(texto, desfazer) {
 (async () => {
   try { await iniciarRede(); }
   catch (e) { $("ntGrade").innerHTML = `<p class="nt-vazio">${esc(e.message || "Entre na sua conta.")}</p>`; return; }
-  try { montarBarraRede(""); } catch {}
+  if (!document.documentElement.classList.contains("embutido")) try { montarBarraRede(""); } catch {}
   lerLocal(); limparLixeira(); pintar();
   $("ntNova").addEventListener("click", async () => {
     const k = await folha("Nova nota", [["branco", "Nota em branco", "nota", "Começar do zero"], ["lista", "Lista de tarefas", "tarefa", "Com caixinhas para marcar"], ...MODELOS.map(([k, nome, desc]) => [k, nome, "modelo", desc])]);
