@@ -2341,6 +2341,13 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   artigo+palavra depois de "e/ou" vira sugestão, expressões de tempo ("alguns minutos") e "outros/alguns" no meio da frase
   não são sujeito, gênero não depois de preposição nem com "mais/menos" + palavra que não é adjetivo, "como esta" só no fim.
   `t-corretor` 129/129.
+- **Topo da rede só com a ponte (12/11/2026, PR depois do #198, sem regra nova):** pedido dele ("como o X, mas uma ponte").
+  Diário (feed.html): `.marca` trocada pelo botão `#marcaTopo.marca-ponte` (o logo dele sem o nome: `logo-ponte.webp` = ponte branca + ondas azuis no escuro, `logo-ponte-claro.webp` = ponte #0b1b2a no
+  claro; 168×108, recortados da imagem que ele mandou, `.mp-escuro`/`.mp-claro`; ele recusou o desenho em SVG);
+  tocar sobe para o começo do Diário.
+  No Explorar some (`body.aba-explorar`, posto pelo `trocarAba`). Comunidade (mural.html) e Perfil (usuarios.html): marca
+  saiu (`.topo-meio`, espaço vazio). As outras páginas (Início, vitrines, institucionais) continuam com a marca escrita.
+  Teste `t-marca-ponte.mjs` (9); `t-comunidade-rede` e `t-auditoria-diario` atualizados.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

@@ -123,6 +123,7 @@ function trocarAba(nova, { passo = false } = {}) {
   if (passo && nova !== aba) { const st = { ...(history.state || {}), hfAbaFeed: nova }; delete st.hfBase; delete st.hfGuarda; delete st.hfCamadas; history.pushState(st, "", urlAba(nova)); }
   scrollDaAba[aba] = scrollY;
   aba = nova;
+  document.body.classList.toggle("aba-explorar", aba === "explorar");
   $("painelFeed").hidden = aba === "explorar";
   $("painelExplorar").hidden = aba !== "explorar";
   scrollTo({ top: scrollDaAba[aba] || 0, behavior: "instant" });
@@ -131,6 +132,9 @@ function trocarAba(nova, { passo = false } = {}) {
   if (aba === "explorar") { pilula?.esconder(); abrirExplorar(); }
   else carregarFeed({ forcar: false });
 }
+// Símbolo da ponte no topo: tocar sobe para o começo do Diário (como o logo do X).
+document.body.classList.toggle("aba-explorar", abaDaUrl() === "explorar");
+$("marcaTopo")?.addEventListener("click", () => { if (aba === "diario") scrollTo({ top: 0, behavior: "smooth" }); });
 // Cada aba (Diário / Explorar) volta para onde estava rolada.
 const scrollDaAba = { diario: 0, explorar: 0 };
 // Deslizar entre Diário e Explorar (deslizar-flash.js): a outra aba aparece DE VERDADE ao lado, na rolagem em que

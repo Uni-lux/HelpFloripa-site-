@@ -20,9 +20,9 @@ for (let i = 0; i < 60 && (await p.evaluate(() => [...document.querySelectorAll(
 await p.waitForTimeout(1500);
 const quadro = (re) => p.frames().find((f) => f.parentFrame() && re.test(f.url()));
 const feed = quadro(/feed\.html/);
-const topo = await feed.evaluate(() => ({ mais: !!document.querySelector(".topo #btnComporFeed.topo-criar"), fab: !!document.querySelector(".fab-criar"), fonte: getComputedStyle(document.querySelector(".marca strong")).fontFamily, ital: getComputedStyle(document.querySelector(".marca strong")).fontStyle }));
+const topo = await feed.evaluate(() => ({ mais: !!document.querySelector(".topo #btnComporFeed.topo-criar"), fab: !!document.querySelector(".fab-criar"), ponte: !!document.querySelector(".topo .marca-ponte img"), escrita: !!document.querySelector(".topo .marca") }));
 ok(topo.mais && !topo.fab, "Diário: + de volta no topo, sem o botão flutuante");
-ok(/HF Marca/.test(topo.fonte) && topo.ital === "normal", "marca em Sora, sem itálico");
+ok(topo.ponte && !topo.escrita, "Diário: só o símbolo da ponte no topo (sem o nome e o slogan)");
 ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#10181d", "tema escuro: barra do celular escura");
 await p.screenshot({ path: "saida/cr-diario-escuro.png" });
 // tema claro: a casca acompanha
