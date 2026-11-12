@@ -2308,6 +2308,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `resumoNotas` lê `hf-notas-<uid>`: última nota, tarefas abertas, atrasadas; evento storage atualiza), abre `#notasPane`
   (iframe `notas.html`, `html.embutido` sem topo/barra) no lugar da conversa, `mensagens.html?notas=1`, voltar/seta fecham
   (`abrirMinhasNotas`/`fecharMinhasNotas`; `abrirNotas` antigo = notas do CLIENTE). Teste `t-notas-chat.mjs` (16).
+- **Corretor que aprende (12/11/2026, PR depois do #196, sem regra nova):** `corretor/contexto.json` (~770 KB, ~250 KB
+  comprimido; carrega junto com o léxico em `carregarLexico`, service worker guarda `.json?v=`) gerado por
+  `scripts/corretor/gerar-contexto.py` do Machado de Assis (domínio público, corpus "machado" do NLTK baixado do
+  raw.githubusercontent.com — a rede daqui só alcança GitHub e registros de pacotes; Mac-Morpho/Floresta NÃO usados: licença
+  "distributed with permission"). 26 grupos que se confundem (e/é, a/à/há, as/às, mas/mais, mal/mau, esta/está, nos/nós,
+  pais/país, da/dá, ai/aí, traz/trás, por/pôr, ate/até...); traços = palavra antes/depois e os pares (sem acento); Bayes
+  ingênuo com mistura na frequência geral do traço; `lim[grupo] = [alta, media]` = margem medida em 10% das frases fora do
+  treino (≥99% acerto liga sozinho, ≥93% vira sugestão; 99 = nunca), no aparelho com piso 4/3 (`corrigirPeloContexto`, passo
+  1b, só em palavra escrita SEM acento, não em nome próprio). **Aprende com a pessoa** (`aprenderEscolhas` chamado pelo
+  "Aplicar" da corretor-tela, `hf-corretor-gosto` no aparelho): desligou 2+ vezes → vem desligada; 4+ e nunca aceitou → some;
+  sugestão ligada 2+ vezes → vem ligada (`confAprendida` dentro do `anotar`). Regras novas: "Dá pra", "me da atenção" → dá,
+  "o carro e azul" → é, "ontem ... pode vir" → pôde, "mau educado" → mal-educado. REGRA com lookahead precisa de sub função
+  (a troca por texto re-aplica a regex só no trecho casado). Falsos alarmes nas 9 páginas: só 3 sugestões desligadas.
+  `t-corretor` 110/110; `t-corretor-tela` confere o contexto.json e o aprendizado.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

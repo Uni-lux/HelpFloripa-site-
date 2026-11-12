@@ -9,7 +9,7 @@
 // Guardadas NO APARELHO na hora (localStorage hf-notas-<uid>, funciona sem internet) e copiadas para a conta em
 // notas/{uid}/itens/{id} (regra própria: só o dono). Sem a regra publicada, ficam só no aparelho e a página avisa.
 // =====================================================
-import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=146";
+import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=147";
 import { confirmarHF } from "./confirmar.js?v=6";
 
 const PASTAS_PADRAO = ["Pessoal", "Ideias", "Estratégias", "Trabalho"];
@@ -485,7 +485,7 @@ function abrirEditor(nota, { modelo = "" } = {}) {
       tx.focus(); mudou();
     } else if (t === "corrigir") {
       if (!tx.value.trim()) { toast("Escreva alguma coisa primeiro."); return; }
-      const { revisarTexto } = await import("./corretor-tela.js?v=4");
+      const { revisarTexto } = await import("./corretor-tela.js?v=5");
       const novo = await revisarTexto(tx.value, { modo: "pub", titulo: "Corrigir a nota" });
       if (novo !== null && novo !== tx.value) { tx.value = novo; mudou(); if (verModo) pintarVer(); toast("Texto corrigido."); }
     } else if (t === "modelo") {

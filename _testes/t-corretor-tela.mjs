@@ -7,7 +7,8 @@ const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html");
 await p.emulateMedia({ colorScheme: "dark" });
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
-await p.evaluate(() => { localStorage.removeItem("hf-dicionario"); Object.keys(localStorage).filter((k) => k.startsWith("hf-pub-auto-")).forEach((k) => localStorage.removeItem(k)); });
+let ctxOk = false; p.on("response", (r) => { if (/corretor\/contexto\.json/.test(r.url()) && r.ok()) ctxOk = true; });
+await p.evaluate(() => { localStorage.removeItem("hf-dicionario"); localStorage.removeItem("hf-corretor-gosto"); Object.keys(localStorage).filter((k) => k.startsWith("hf-pub-auto-")).forEach((k) => localStorage.removeItem(k)); });
 await p.waitForSelector("#btnComporFeed", { timeout: 30000 }); await p.waitForTimeout(1200);
 await p.locator("#btnComporFeed").click(); await p.waitForSelector("#folhaPublicar.aberta"); await p.waitForTimeout(300);
 const texto = "oi gente tudo bem? ontem eu fui no restaurnte do Zeca e a esperiencia foi otima. a gente vamos voltar as 20h com os amigo. me avisa por favor se der. obrigado pela atencao vlw";
@@ -29,6 +30,8 @@ await p.waitForTimeout(200); ok((await p.locator(".cr-prev ins").allTextContents
 await p.locator(".cr-fundo [data-ok]").click(); await p.waitForTimeout(300);
 const v = await p.locator("#pubTexto").inputValue();
 ok(/Oi, gente, tudo bem\? Ontem eu fui ao restaurante do Zeca e a experiência foi ótima\. A gente vai voltar às 20h com os amigos\. Me avisa, por favor, se der\. Obrigado pela atenção,? valeu\.?/.test(v), "texto final: " + v);
+ok(ctxOk, "corretor que aprende: contexto.json carregado junto com o dicionário");
+ok(await p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("hf-corretor-gosto") || "{}")).length > 3), "aprende com a escolha: guardado no aparelho");
 // palavra inventada → não encontrada → adicionar ao dicionário
 await p.locator("#pubTexto").fill("o brigadeiro da Tia Lú é bombastiquissimo demais");
 await p.locator("#pubFormatar").click(); await p.locator(".cr-fundo [data-ok]").waitFor({ timeout: 15000 });

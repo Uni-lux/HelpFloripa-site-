@@ -5,7 +5,7 @@
 //   revisarTexto(texto, { modo, titulo, depois }) → Promise<string | null>   (null = manteve como estava)
 //   depois(texto) é aplicado ao resultado final (ex.: formatarTexto do Diário).
 // =====================================================
-import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=4";
+import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario, aprenderEscolhas } from "./corretor.js?v=5";
 
 const ICONES = {
   varinha: '<path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/>',
@@ -138,7 +138,11 @@ export function revisarTexto(texto, { modo = "pub", titulo = "Revisar texto", de
           <div class="cr-pe"><button type="button" class="cr-sec" data-fechar>Manter como estava</button><button type="button" class="cr-pri" data-ok>${svg("ok")}${n ? `Aplicar ${n}` : "Usar assim"}</button></div>`;
       }
       folha.querySelectorAll("[data-fechar]").forEach((b) => b.addEventListener("click", () => fim(null)));
-      folha.querySelector("[data-ok]").addEventListener("click", () => fim(final));
+      folha.querySelector("[data-ok]").addEventListener("click", () => {
+        // o corretor aprende com a escolha (o que a pessoa ligou e desligou), menos as abreviações quando ela escolheu mantê-las
+        try { aprenderEscolhas(base.mudancas.filter((m) => abreviacoes || m.tipo !== "abreviacao").map((m) => [m.chave, ligada(m)])); } catch {}
+        fim(final);
+      });
       const repintar = () => { const rol = folha.querySelector(".cr-corpo")?.scrollTop || 0; pintar(); const c = folha.querySelector(".cr-corpo"); if (c) c.scrollTop = rol; };
       folha.querySelectorAll(".cr-item").forEach((it) => {
         const trocar = () => {

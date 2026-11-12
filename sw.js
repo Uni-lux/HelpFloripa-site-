@@ -23,7 +23,7 @@ self.addEventListener("activate", (e) => {
 });
 
 const versionado = (u) =>
-  (u.origin === self.location.origin && /\.(m?js|css|txt)$/.test(u.pathname) && /(^\?|&)v=\d+/.test(u.search))
+  (u.origin === self.location.origin && /\.(m?js|css|txt|json)$/.test(u.pathname) && /(^\?|&)v=\d+/.test(u.search))
   || (u.hostname === "www.gstatic.com" && /^\/firebasejs\/\d+\.\d+\.\d+\//.test(u.pathname));
 const imagemDoSite = (u) => u.origin === self.location.origin && /\.(png|webp|jpe?g|svg|ico|woff2?|json)$/.test(u.pathname) && !/manifest/.test(u.pathname);
 const bom = (res) => res && res.ok && (res.type === "basic" || res.type === "cors");
