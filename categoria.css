@@ -15,7 +15,7 @@
   --topo: 60px;
 }
 :root[data-theme="dark"] {
-  --bg: #070b0e;
+  --bg: #000;
   --panel: #0f161b;
   --panel-2: #151f25;
   --hover: #19252c;
@@ -328,3 +328,8 @@ html { -webkit-tap-highlight-color: transparent; }
 .mob-faixa { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 4px; }
 .mob-chip { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--mc) 40%, var(--line, #213038)); background: color-mix(in srgb, var(--mc) 10%, var(--panel, #0f161b)); color: var(--text); text-decoration: none; font-weight: 700; font-size: 14px; white-space: nowrap; }
 .mob-chip .i { color: var(--mc); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Preto do celular (12/11/2026, pedido dele): no tema escuro o fundo e o topo ficam #000, iguais às faixas do sistema
+   (hora/bateria em cima e botões embaixo), no site e no app instalado. */
+:root[data-theme="dark"] .topo { background: #000; border-bottom-color: rgba(255, 255, 255, .12); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-theme="dark"], :root[data-theme="dark"] body { background-color: #000; }

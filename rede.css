@@ -4047,7 +4047,7 @@ body.aba-explorar .topo .topo-exp-busca input { font-size: 15.5px; }
 
 /* Barras translúcidas como no X (12/11/2026): o conteúdo passa por baixo do topo e da barra de baixo e aparece
    através delas; a barra vai até o fim da tela (por baixo da faixa de gestos do Android, viewport-fit=cover). */
-.barra-rede, :root[data-theme="dark"] .barra-rede { background: rgba(255, 255, 255, .78); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
-:root[data-theme="dark"] .barra-rede { background: rgba(0, 0, 0, .62); }
-:root:has(#barraRede) .topo, :root[data-theme="dark"]:has(#barraRede) .topo { background: rgba(255, 255, 255, .78); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
-:root[data-theme="dark"]:has(#barraRede) .topo { background: rgba(0, 0, 0, .62); }
+.barra-rede, :root[data-theme="dark"] .barra-rede { background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
+:root[data-theme="dark"] .barra-rede { background: #000; }
+:root:has(#barraRede) .topo, :root[data-theme="dark"]:has(#barraRede) .topo { background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
+:root[data-theme="dark"]:has(#barraRede) .topo { background: #000; }

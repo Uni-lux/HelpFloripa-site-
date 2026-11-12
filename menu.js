@@ -173,7 +173,7 @@ function aplicarTema(tema) {
   try { const c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); c.tema = tema; localStorage.setItem("hf-chat-config", JSON.stringify(c)); } catch {}
   const escuro = tema === "escuro" || (tema === "sistema" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = escuro ? "dark" : "light";
-  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = escuro ? (document.getElementById("barraRede") ? "#000000" : "#0f161b") : "#ffffff";
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = escuro ? "#000000" : "#ffffff";
   gaveta?.querySelectorAll("[data-tema]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.tema === tema ? "true" : "false"));
 }
 // Tema trocado em outra aba/página: esta acompanha (sem gravar de novo).

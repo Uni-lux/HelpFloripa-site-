@@ -8,7 +8,7 @@
   <script>if (window.top !== window.self) { var hfRede = false; try { hfRede = window.top.location.origin === window.location.origin && window.parent === window.top && !!window.top.__hfShell; } catch (e) {} if (!hfRede) { document.documentElement.style.display = "none"; try { window.top.location.replace(window.self.location.href); } catch (e) {} } }</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="description" content="Oficinas mecânicas, auto elétrica, funilaria, pneus, lava-jato, guincho e peças na sua cidade. Veja serviços e preços e peça orçamento pelo chat." />
-  <meta name="theme-color" content="#0b1014" />
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Help Floripa" />
@@ -30,14 +30,14 @@
       var tema = c.tema || "sistema";
       var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
-      document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
+      document.querySelector('meta[name="theme-color"]').content = escuro ? "#000000" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=18" />
+  <link rel="stylesheet" href="categoria.css?v=19" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="categoria.js?v=88"></script>
+  <script type="module" src="categoria.js?v=89"></script>
   <script type="module" src="vitrine.js?tipo=automotivo&v=70"></script>
 </head>
 <body data-classe="automotivo" class="pg-compacta">
