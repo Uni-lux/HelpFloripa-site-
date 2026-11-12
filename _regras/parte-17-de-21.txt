@@ -1,3 +1,7 @@
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
       // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
       function localPubOk(d) {
         return !('local' in d) || d.local == null
@@ -165,8 +169,5 @@
             && !(x in resource.data[campo])
             && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
             && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
-      }
-      function acaoValida(x) {
-        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
       }
 // ===== FIM DA PARTE 17 DE 21 =====

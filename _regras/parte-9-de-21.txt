@@ -152,7 +152,7 @@
       function prioridadeOk(d) {
         let p = d.get('prioridade', 'normal');
         return p == 'normal'
-            || (p == 'urgente' && d.categoria == 'golpe')
+            || (p == 'urgente' && d.categoria in ['golpe', 'sos'])
             || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
                 || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
                     && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
@@ -161,7 +161,7 @@
       // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
       function filaEquipeOk(d) {
         return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
-            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
             && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
             && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }

@@ -1,7 +1,7 @@
 /* Presentes (presentes.html) — usa os componentes de entregas.css (ent-*) */
 .pr-pagina { max-width: 640px; margin: 0 auto; padding-bottom: 110px; }
 .pr-hero { display: grid; grid-template-columns: 56px 1fr; gap: 12px 14px; align-items: center; padding: 18px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, #e5487f 16%, var(--panel)), color-mix(in srgb, var(--accent) 12%, var(--panel))); border: 1px solid var(--line); margin: 6px 0 12px; }
-.pr-hero-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 30px; background: var(--panel); }
+.pr-hero-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; color: #e5487f; background: color-mix(in srgb, #e5487f 14%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, #e5487f 30%, transparent); }
 .pr-hero h1 { margin: 0 0 4px; font-size: 22px; }
 .pr-hero p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .pr-hero .ent-btn { grid-column: 1 / -1; margin-top: 4px; }
@@ -24,7 +24,7 @@
 .pr-pessoa small { font-size: 12px; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-mimos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .pr-mimo { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
-.pr-mimo span { font-size: 28px; }
+.pr-mimo .hf-ic { margin-bottom: 4px; }
 .pr-mimo small { font-size: 11.5px; color: var(--muted); }
 .pr-mimo[aria-pressed="true"] { border-color: #e5487f; background: color-mix(in srgb, #e5487f 12%, var(--panel)); }
 .pr-valor { width: 120px; font: inherit; font-size: 15px; padding: 8px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--input); color: var(--text); }
@@ -42,3 +42,7 @@
 .pr-cartao small { color: var(--muted); }
 .pr-cartao h2 { margin: 4px 0 8px; font-size: 21px; }
 .pr-cartao-msg { font-style: italic; margin: 0 0 10px; }
+
+/* 12/11/2026: ícones no lugar dos emojis; cartão do presente centralizado */
+.pr-cartao > .hf-ic { margin: 0 auto 8px; }
+.ent-op > .hf-ic { flex: none; }

@@ -30,6 +30,8 @@ import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFig
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
 import { corrigirTexto } from "./corretor.js?v=1";
+import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
+import { MIMOS } from "./presentes-base.js?v=1";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
@@ -3804,7 +3806,8 @@ function cartaoSos(c, minha) {
   const cab = elm("div", "sos-c-cab");
   cab.append(elm("span", "sos-c-ic", "SOS"), elm("div"));
   const quem = c.acao === "ajudando" ? (minha ? "Você avisou que está indo ajudar" : `${String(c.nome || "Alguém").split(" ")[0]}: estou indo ajudar`) : minha ? "Você pediu ajuda" : `${String(c.nome || "Alguém").split(" ")[0]} pediu ajuda`;
-  cab.lastChild.append(elm("small", null, quem), elm("b", null, `${t[1]} ${t[0]}`));
+  cab.lastChild.append(elm("small", null, quem), elm("b", null, t[0]));
+  { const [icn, cor] = iconeSos(c.sosTipo); cab.lastChild.querySelector("b").prepend(iconeEl(icn, { cor, tam: 16 }), " "); }
   const st = elm("span", "sos-c-st", "");
   const abrir = elm("button", "sos-c-ver"); abrir.type = "button"; abrir.textContent = minha ? "Ver" : "Ver e ajudar";
   abrir.addEventListener("click", (e) => { e.stopPropagation(); irParaTopo(`alertas.html?sos=${encodeURIComponent(id)}`); });
@@ -3826,7 +3829,7 @@ function cartaoPet(c, minha) {
   const txt = c.acao === "achado" ? (minha ? `Você avisou: encontrou um animal parecido com ${c.nome || "o pet"}` : `Encontraram um animal parecido com ${c.nome || "o seu pet"}`)
     : c.acao === "dono" ? (minha ? "Você avisou que pode ser o seu pet" : `Pode ser o pet ${c.nome ? "“" + c.nome + "” " : ""}de quem escreveu`)
     : (minha ? `Você avisou que viu ${c.nome || "o pet"}` : `Viram o seu pet ${c.nome || ""}`);
-  cab.append(elm("span", "sos-c-ic pet", "🐾"), elm("div"));
+  cab.append(iconeEl("pata", { cor: "#2fbf71", tam: 22, fundo: true }), elm("div"));
   cab.lastChild.append(elm("small", null, "RG do pet · Help Floripa"), elm("b", null, txt));
   box.appendChild(cab);
   if (n) box.appendChild(elm("span", "sos-c-st", `${textoSemelhanca(n)} (${n}%)`));
@@ -3841,9 +3844,12 @@ function cartaoPresente(c, minha) {
   const box = elm("div", "pr-c");
   const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
   box.style.setProperty("--pc", TIPOS_PRESENTE[c.ptipo]?.cor || "#e5487f");
-  const em = elm("div", "pr-c-emoji", String(c.emoji || "🎁").slice(0, 4));
+  // Ícone de traço (12/11/2026): o mimo vem do emoji guardado no cartão (versões antigas não guardam a chave).
+  const mimo = Object.keys(MIMOS).find((k) => MIMOS[k][0] === c.emoji);
+  const [icn, cor] = c.ptipo === "mimo" ? iconeMimo(mimo) : iconePresente({ tipo: c.ptipo });
+  const em = iconeEl(icn, { cor, tam: 26, fundo: true, redondo: true }); em.classList.add("pr-c-emoji");
   const t = elm("div", "pr-c-tx");
-  const lab = elm("small", null, minha ? "Você enviou um presente" : "Você recebeu um presente");
+  const lab = elm("small", null, c.acao === "usar" ? (minha ? "Você apresentou um vale-presente" : `Vale-presente de ${String(c.deNome || "alguém").split(" ")[0]} para usar aqui`) : minha ? "Você enviou um presente" : "Você recebeu um presente");
   const tit = elm("b", null, String(c.resumo || "Presente").slice(0, 80));
   const st = elm("span", "pr-c-st", "");
   t.append(lab, tit, st);
@@ -3851,7 +3857,7 @@ function cartaoPresente(c, minha) {
   const abrir = elm("button", "pr-c-ver"); abrir.type = "button"; abrir.textContent = "Abrir";
   abrir.addEventListener("click", (e) => { e.stopPropagation(); irParaTopo(`presentes.html?id=${encodeURIComponent(id)}`); });
   box.append(em, t, acoes);
-  acoes.appendChild(abrir);
+  if (!(c.acao === "usar" && !minha)) acoes.appendChild(abrir);
   if (id) fb.getDoc(fb.doc(fb.db, "presentes", id)).then((d) => {
     if (!d.exists()) return;
     const p = { id, ...d.data() };

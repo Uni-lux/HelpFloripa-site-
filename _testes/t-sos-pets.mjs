@@ -31,6 +31,7 @@ await pa.waitForSelector('.al-tipo[data-tipo="saude"]');
 await pa.waitForFunction(() => /1 pessoa recebe/.test(document.querySelector(".ent-folha")?.textContent || ""), null, { timeout: 10000 });
 ok(true, "o Social da Ana (Bruno) será avisado");
 await pa.click('.al-tipo[data-tipo="saude"]'); await pa.fill("#alSosTexto", "Tontura na praça");
+await pa.click('[data-perto="agora"]'); // este teste: quem está perto avisado na hora (o SOS em etapas está em t-sos-etapas.mjs)
 await pa.click("#alSosEnviar"); await pa.waitForTimeout(3000);
 const sos = (await db.collection("sos").get()).docs[0];
 ok(sos && sos.data().status === "aberto" && sos.data().avisados.includes(U.bruno) && sos.data().publico === true, "SOS criado (aberto, Social e área)");

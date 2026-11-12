@@ -2438,10 +2438,11 @@ export function irParaPagina(url) {
   addEventListener("popstate", seguir); setTimeout(seguir, 500);
 }
 // Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
-export async function mandarMensagem(uid, msg, resumo, { servico = null } = {}) {
+export async function mandarMensagem(uid, msg, resumo, { servico = null, contexto = null } = {}) {
   if (await precisaEmail()) throw new Error("e-mail");
   // Nova conversa vira solicitação quando a pessoa escolheu assim (conversa-acesso.js); "só quem eu sigo" recusa.
-  const { id, ref, dados: dc } = await garantirConversa(fb, eu.uid, uid, { servico });
+  // contexto {tipo, titulo}: conversa com um negócio (vale a escolha "mensagens dos negócios" de quem recebe).
+  const { id, ref, dados: dc } = await garantirConversa(fb, eu.uid, uid, { servico, contexto });
   // Responder a uma solicitação que você recebeu = aceitar (as regras só deixam escrever depois de aceitar).
   if (dc?.pedido?.status === "pendente" && dc.pedido.de !== eu.uid) await decidirSolicitacao(fb, eu.uid, id, true).catch(() => {});
   await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", ...msg, criadoEm: fb.serverTimestamp() }));

@@ -158,7 +158,7 @@ function pintar() {
   frag.appendChild(rota);
   if (S.presente) {
     const n = h("div", "ent-nota"); n.dataset.presente = "";
-    n.append(ic("estrela"), h("span", null, `🎁 Presente de ${S.presente.deNome || "alguém"}: até ${reais(S.presente.valor)}. ${(S.presente.deNome || "Quem deu").split(" ")[0]} paga direto para quem levar e acompanha no mapa.`));
+    n.append(ic("estrela"), h("span", null, `Presente de ${S.presente.deNome || "alguém"}: até ${reais(S.presente.valor)}. ${(S.presente.deNome || "Quem deu").split(" ")[0]} paga direto para quem levar e acompanha no mapa.`));
     frag.appendChild(n);
   }
   if (S.dest) {
@@ -654,9 +654,9 @@ async function criarPedido() {
   // Avisos pelo Mensagens: quem recebe acompanha; o entregador escolhido vê o chamado mesmo se estiver fora do painel.
   const cartao = { tipo: "entrega", id: ref.id, servico: S.servico, titulo: S.servico === "corrida" ? "Corrida" : `Entrega: ${S.oque.trim().slice(0, 60)}`, de: S.origem.nome.slice(0, 80), para: S.destino.nome.slice(0, 80) };
   const sv = { servico: { tipo: "corrida", id: ref.id } }; // conversa do serviço: vai direto (as regras conferem a corrida)
-  if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "📦 Entrega a caminho de você", sv).catch(() => {});
-  if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `🎁 Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`, sv).catch(() => {});
-  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "🚗 Chamado de corrida para você" : "📦 Chamado de entrega para você", sv).catch(() => {});
+  if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "Entrega a caminho de você", sv).catch(() => {});
+  if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`, sv).catch(() => {});
+  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "Chamado de corrida para você" : "Chamado de entrega para você", sv).catch(() => {});
   acompanhar(ref.id);
 }
 

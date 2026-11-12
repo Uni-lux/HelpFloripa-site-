@@ -128,7 +128,7 @@ async function pedirSos() {
   const la = h("label", "ent-campo"); la.append(h("span", null, "Detalhes"), area); c.appendChild(la);
   // Quem é avisado, em etapas: Social na hora → quem está perto + equipe de segurança se ninguém do Social aceitar.
   c.appendChild(h("h3", null, "Quem é avisado"));
-  let avisados = [], perto = "depois", equipe = true;
+  let avisados = [], perto = "depois", equipe = true, escolheu = false, carregouSocial = false;
   const etapas = h("ol", "al-etapas");
   const et1 = h("li", "al-et"), et2 = h("li", "al-et"), et3 = h("li", "al-et");
   et1.append(iconeEl("pessoas", { cor: "#2fbf71", tam: 18, fundo: true }), h("div"));
@@ -137,7 +137,7 @@ async function pedirSos() {
   et2.lastChild.append(h("b", null, "2. Pessoas perto de você"), h("small", null, ""));
   const seg = h("div", "al-seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Quando avisar quem está perto");
   const opPerto = [["depois", `Se ninguém do Social aceitar em ${ESCALAR_MIN} min`], ["agora", "Na hora"], ["nao", "Não avisar"]];
-  opPerto.forEach(([k, nome]) => { const b = h("button", null, nome); b.type = "button"; b.dataset.perto = k; b.addEventListener("click", () => { perto = k; pintarEtapas(); }); seg.appendChild(b); });
+  opPerto.forEach(([k, nome]) => { const b = h("button", null, nome); b.type = "button"; b.dataset.perto = k; b.addEventListener("click", () => { perto = k; escolheu = true; pintarEtapas(); }); seg.appendChild(b); });
   et2.lastChild.appendChild(seg);
   et3.append(iconeEl("equipe", { cor: "#00adee", tam: 18, fundo: true }), h("div"));
   const le = h("label", "ent-check al-check-eq"); const ce = h("input"); ce.type = "checkbox"; ce.checked = true; ce.id = "alSosEquipe";
@@ -147,10 +147,11 @@ async function pedirSos() {
   etapas.append(et1, et2, et3); c.appendChild(etapas);
   const pintarEtapas = () => {
     const temSocial = avisados.length > 0;
-    if (!temSocial && perto === "depois") perto = "agora";
-    seg.querySelector('[data-perto="depois"]').hidden = !temSocial;
+    if (!escolheu) perto = temSocial || !carregouSocial ? "depois" : "agora";
+    if (!temSocial && carregouSocial && perto === "depois") perto = "agora";
+    seg.querySelector('[data-perto="depois"]').hidden = carregouSocial && !temSocial;
     seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.perto === perto)));
-    et1.querySelector("small").textContent = temSocial ? `${avisados.length} ${avisados.length === 1 ? "pessoa recebe" : "pessoas recebem"} o pedido no Mensagens agora.` : "Você ainda não tem ninguém no Social (família, amigos, duo). Por isso avisamos quem está perto e a equipe na hora.";
+    et1.querySelector("small").textContent = !carregouSocial ? "Procurando o seu Social..." : temSocial ? `${avisados.length} ${avisados.length === 1 ? "pessoa recebe" : "pessoas recebem"} o pedido no Mensagens agora.` : "Você ainda não tem ninguém no Social (família, amigos, duo). Por isso avisamos quem está perto e a equipe na hora.";
     et1.classList.toggle("off", !temSocial);
     et2.querySelector("small").textContent = perto === "nao" ? "Ninguém da área recebe o pedido." : perto === "agora" ? `Quem está até ${cfg.raio} km vê o tipo de ajuda e onde você está.` : `Se ninguém do Social aceitar em ${ESCALAR_MIN} minutos, quem está até ${cfg.raio} km é avisado sozinho.`;
     et2.classList.toggle("off", perto === "nao");
@@ -163,7 +164,7 @@ async function pedirSos() {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.where("status", "==", "aceito"), fb.limit(30)));
       avisados = [...new Set(s.docs.map((d) => (d.data().participantes || []).find((u) => u !== eu.uid)).filter(Boolean))].slice(0, 30);
     } catch { avisados = []; }
-    pintarEtapas();
+    carregouSocial = true; pintarEtapas();
   })();
   const enviar = botao("Escolha o que está acontecendo", "ent-btn al-btn-sos", async () => {
     enviar.disabled = true; enviar.textContent = "Pegando sua localização...";

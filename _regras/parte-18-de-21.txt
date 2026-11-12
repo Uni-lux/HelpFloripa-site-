@@ -1,3 +1,6 @@
+      function acaoValida(x) {
+        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
+      }
       function itemValido(x) {
         return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
       }
@@ -174,16 +177,5 @@
             && n().get('chegouEm', null) == null && n().get('pos', null) == null && n().get('aceitaEm', null) == null
             && n().desistencias == c().get('desistencias', 0) + 1
             && n().atualizadoEm == request.time;
-      }
-      // Quem leva avança as etapas, com o PIN onde precisa.
-      function etapaOk(k, st, ns) {
-        return souEu('entregadorId')
-            && k.hasOnly(['status', 'chegouEm', 'coletadoEm', 'concluidaEm', 'pinInformado', 'atualizadoEm', 'pos'])
-            && n().atualizadoEm == request.time
-            && ((st == 'aceita' && ns == 'chegou' && n().chegouEm == request.time)
-                || (st == 'chegou' && ns == 'em_rota' && n().coletadoEm == request.time
-                    && (c().pinEm != 'embarque' || pinCerto()))
-                || (st == 'em_rota' && ns == 'concluida' && n().concluidaEm == request.time
-                    && (c().pinEm != 'entrega' || pinCerto())));
       }
 // ===== FIM DA PARTE 18 DE 21 =====

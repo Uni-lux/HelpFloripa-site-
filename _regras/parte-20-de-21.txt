@@ -1,3 +1,56 @@
+    match /presentes/{id} {
+      function d() { return request.resource.data; }
+      function r() { return resource.data; }
+      allow get, list: if logado() && (r().de == request.auth.uid || r().para == request.auth.uid);
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().de == request.auth.uid && d().para is string && d().para != request.auth.uid
+                    && !bloqueioEntre(request.auth.uid, d().para)
+                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega', 'vale']
+                    && d().status == 'pendente'
+                    && valorTextoAte(d().get('mensagem', ''), 300) && valorTextoAte(d().get('deNome', ''), 80) && valorTextoAte(d().get('paraNome', ''), 80)
+                    && (d().tipo != 'mimo' || d().get('mimo', '').matches('^[a-z]{2,20}$'))
+                    && (d().tipo == 'mimo' || (d().valor is number && d().valor >= 0 && d().valor <= 2000))
+                    && (d().tipo in ['mimo', 'produto'] || d().valor >= 1)
+                    && (d().tipo != 'produto'
+                        ? !('itens' in d())
+                        : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
+                           && valorTextoAte(d().get('negocioNome', ''), 80)
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                    // Vale-presente (12/11/2026): um valor para usar num negócio do Help Floripa (qualquer tipo).
+                    && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                    && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
+                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
+      function presenteMuda(k, st, ns) {
+        return d().atualizadoEm == request.time && (
+             // quem recebe aceita ou recusa
+             (request.auth.uid == r().para && st == 'pendente' && ns in ['aceito', 'recusado']
+              && k.hasOnly(['status', 'respondidoEm', 'atualizadoEm']) && d().respondidoEm == request.time)
+             // quem mandou desiste antes da resposta
+          || (request.auth.uid == r().de && st == 'pendente' && ns == 'cancelado' && k.hasOnly(['status', 'atualizadoEm']))
+             // quem recebe usa: corrida/entrega (o pedido é criado na mesma gravação) ou o pedido na loja
+          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['corrida', 'entrega']
+              && k.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time
+              && getAfter(/databases/$(database)/documents/corridas/$(d().corridaId)).data.presenteId == id)
+          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['produto', 'vale']
+              && k.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time)
+             // pago/recebido: qualquer um dos dois fecha
+          || (request.auth.uid in [r().de, r().para] && st in ['aceito', 'usado'] && ns == 'concluido'
+              && k.hasOnly(['status', 'concluidoEm', 'atualizadoEm']) && d().concluidoEm == request.time));
+      }
+      allow delete: if false;
+    }
+
+    // Localização em tempo real no chat (como no WhatsApp): só os dois da conversa leem; quem compartilha atualiza a
+    // posição enquanto o site está aberto, até a hora escolhida (no máximo 8 h), e pode parar antes.
+    match /locais_vivos/{id} {
+      function d() { return request.resource.data; }
+      function coordOk() {
+        return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
+            && d().precisao is number && d().precisao >= 0 && d().rumo is number;
+      }
       allow get, list: if logado() && request.auth.uid in resource.data.participantes;
       allow create: if logado() && emailOk()
                     && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
@@ -33,7 +86,8 @@
       allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
                     || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
       allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm'])
+                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
+                    && d().get('equipe', false) is bool && d().get('escalarMin', 0) is int && d().get('escalarMin', 0) >= 0 && d().get('escalarMin', 0) <= 15
                     && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
                     && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
                     && valorTextoAte(d().get('texto', ''), 300)
@@ -46,6 +100,9 @@
         let dono = r().uid == request.auth.uid;
         let ajudante = r().ajudanteId == request.auth.uid;
         return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
+            // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
+            || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
+                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
             || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
                 && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
             || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
@@ -63,84 +120,5 @@
     function autorOcorrencia(oc) {
       let a = /databases/$(database)/documents/ocorrencias_autoria/$(oc);
       return exists(a) && get(a).data.uid == request.auth.uid;
-    }
-    match /ocorrencias/{id} {
-      function d() { return request.resource.data; }
-      allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm'])
-                    && d().anonimo is bool
-                    && (d().anonimo
-                        ? (d().autorId == '' && !('autorNome' in d())
-                           && getAfter(/databases/$(database)/documents/ocorrencias_autoria/$(id)).data.uid == request.auth.uid)
-                        : (d().autorId == request.auth.uid && valorTextoAte(d().get('autorNome', ''), 80)))
-                    && d().tipo in ['roubo', 'furto', 'golpe', 'suspeita']
-                    && d().objeto in ['celular', 'bike', 'carro', 'moto', 'notebook', 'documento', 'pet', 'outro']
-                    && d().identificador is string && d().identificador.matches('^[A-Z0-9]{0,40}$')
-                    && d().descricao is string && d().descricao.size() >= 10 && d().descricao.size() <= 500
-                    && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
-                    && d().quando is timestamp && d().quando <= request.time
-                    && pontoAlertaOk(d())
-                    && valorTextoAte(d().get('bairro', ''), 60) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
-                    && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
-                    && ((d().status in ['recuperado', 'removido'] && (resource.data.autorId == request.auth.uid || autorOcorrencia(id)))
-                        || (podeModerar() && d().status in ['ativo', 'removido']));
-      allow delete: if false;
-      // Pistas ("eu vi"): só quem fez a ocorrência e a moderação leem. Anônima = sem uid/nome (a autoria fica em
-      // pistas_autoria, só para a moderação).
-      match /pistas/{p} {
-        allow read: if logado() && (get(/databases/$(database)/documents/ocorrencias/$(id)).data.autorId == request.auth.uid || autorOcorrencia(id) || podeModerar());
-        allow create: if logado() && emailOk()
-                      && get(/databases/$(database)/documents/ocorrencias/$(id)).data.status == 'ativo'
-                      && request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'criadoEm'])
-                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
-                      && request.resource.data.anonimo is bool
-                      && (request.resource.data.anonimo
-                          ? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
-                             && getAfter(/databases/$(database)/documents/pistas_autoria/$(id + '_' + p)).data.uid == request.auth.uid)
-                          : (request.resource.data.uid == request.auth.uid && valorTextoAte(request.resource.data.get('nome', ''), 80)))
-                      && request.resource.data.criadoEm == request.time;
-        allow update, delete: if false;
-      }
-    }
-    match /ocorrencias_autoria/{id} {
-      allow get: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
-      allow list: if podeModerar();
-      allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-                    && !exists(/databases/$(database)/documents/ocorrencias/$(id))
-                    && getAfter(/databases/$(database)/documents/ocorrencias/$(id)).data.anonimo == true;
-      allow update, delete: if false;
-    }
-    match /pistas_autoria/{id} {
-      allow read: if podeModerar();
-      allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-                    && getAfter(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
-      allow update, delete: if false;
-    }
-
-    // RG do pet: o dono cadastra; "visivel" deixa o pet entrar nas buscas de animais encontrados.
-    function petOk(d) {
-      return d.especie in ['cao', 'gato', 'ave', 'outro']
-          && d.cores is list && d.cores.size() <= 4
-          && d.get('porte', '') in ['', 'P', 'M', 'G'] && d.get('sexo', '') in ['', 'm', 'f', '?']
-          && valorTextoAte(d.get('raca', ''), 40) && valorTextoAte(d.get('sinais', ''), 300)
-          && d.get('microchip', '') is string && d.get('microchip', '').matches('^[A-Z0-9]{0,20}$')
-          && (!('foto' in d) || (fotoOk(d.foto) && d.foto.size() <= 300000));
-    }
-    match /pets/{id} {
-      function d() { return request.resource.data; }
-      allow get, list: if logado() && (resource.data.visivel == true || resource.data.donoId == request.auth.uid || podeModerar());
-      allow create, update: if logado() && emailOk() && d().donoId == request.auth.uid
-                    && (resource == null || resource.data.donoId == request.auth.uid)
-                    && d().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
-                    && d().nome is string && d().nome.size() >= 1 && d().nome.size() <= 40
-                    && valorTextoAte(d().get('donoNome', ''), 80) && valorTextoAte(d().get('idade', ''), 20)
-                    && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
-                    && petOk(d())
-                    && d().status in ['casa', 'perdido'] && d().visivel is bool
-                    && d().get('geo4', '').matches('^([0-9a-z]{4})?$')
-                    && d().atualizadoEm == request.time;
-      allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 // ===== FIM DA PARTE 20 DE 21 =====

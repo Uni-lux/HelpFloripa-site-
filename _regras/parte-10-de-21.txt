@@ -5,7 +5,7 @@
                     && request.resource.data.keys().hasOnly(camposChamado())
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
                     && request.resource.data.status == 'aberto'
@@ -22,7 +22,7 @@
                     && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
                     && request.resource.data.abertoPor == request.auth.uid
                     && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
                     && request.resource.data.status == 'respondido'

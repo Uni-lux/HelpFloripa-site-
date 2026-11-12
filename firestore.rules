@@ -3595,7 +3595,7 @@ service cloud.firestore {
                     && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
                     && d().de == request.auth.uid && d().para is string && d().para != request.auth.uid
                     && !bloqueioEntre(request.auth.uid, d().para)
-                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega']
+                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega', 'vale']
                     && d().status == 'pendente'
                     && valorTextoAte(d().get('mensagem', ''), 300) && valorTextoAte(d().get('deNome', ''), 80) && valorTextoAte(d().get('paraNome', ''), 80)
                     && (d().tipo != 'mimo' || d().get('mimo', '').matches('^[a-z]{2,20}$'))
@@ -3605,6 +3605,9 @@ service cloud.firestore {
                         ? !('itens' in d())
                         : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
                            && valorTextoAte(d().get('negocioNome', ''), 80)
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                    // Vale-presente (12/11/2026): um valor para usar num negócio do Help Floripa (qualquer tipo).
+                    && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
                            && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
                     && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
@@ -3620,7 +3623,7 @@ service cloud.firestore {
           || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['corrida', 'entrega']
               && k.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time
               && getAfter(/databases/$(database)/documents/corridas/$(d().corridaId)).data.presenteId == id)
-          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo == 'produto'
+          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['produto', 'vale']
               && k.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time)
              // pago/recebido: qualquer um dos dois fecha
           || (request.auth.uid in [r().de, r().para] && st in ['aceito', 'usado'] && ns == 'concluido'
