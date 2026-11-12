@@ -2375,6 +2375,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `pref_publicas.negociosNoPerfil` + `pref_publicas.perfil {cidade, nota, destaques}` (regra nova; `prefPublicas`/`salvarPref`/
   `aplicarPref` em usuarios-app.js; vale para quem visita e no seu perfil também). Sem as regras: avisa que vale depois da
   publicação. Teste `t-perfil-enxuto.mjs` (13).
+- **Topo que some, perfil com o nome fora da capa e preto do X (12/11/2026, mesmo PR #200, sem regra nova):** prints dele.
+  `ligarTopoQueSome` (barra-rede.js, chamado pelo `montarBarra`): depois de 90 px, 28 px descendo = `body.topo-some` (o
+  `header.topo` sobe com `translateY(-100%)`), 28 px subindo volta; trocar Diário/Explorar mostra de novo; `.abas`/`.mu-barra`
+  sobem junto. Perfil: sem o sino (casinha | meio | engrenagem); ⋯ sem "Configurações"; foto metade sobre a capa e nome, @ ·
+  cidade e bio EMBAIXO da capa na cor do tema (`.pf2 .pf-topo` relativo com margem negativa; capa 140–220 px). **Preto do X**
+  (pedido dele, de novo; no #185 tinha voltado o azulado): no tema escuro das páginas com a barra de baixo (rede.css, fim) e
+  no mensagens.css: --bg/--panel #000, --panel-2 #0e0f10, --line rgba(255,255,255,.16); barra de baixo preta com borda branca
+  fina e item ativo branco com contorno branco (`box-shadow inset 0 0 0 1px rgba(255,255,255,.78)`); topo preto com linha
+  branca; "+" (`.fab-hf` e `.fab-nova`) escuros com borda branca; rede.html/rede-app.js theme-color #000. Testes
+  `t-x-preto.mjs` (11); `t-tema-rede`, `t-comunidade-rede`, `t-mural-enxuto` esperam #000.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

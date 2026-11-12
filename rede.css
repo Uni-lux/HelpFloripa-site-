@@ -3971,3 +3971,44 @@ body.aba-explorar .marca-ponte { visibility: hidden; pointer-events: none; }
 .pf2 [data-el="negocios"] .vinculo .papel { margin: 0; font-size: 13px; overflow: visible; }
 .pf2 .pf-stat .rot { font-size: 11px; letter-spacing: -.1px; text-overflow: clip; }
 @media (max-width: 380px) { .pf2 .pf-stat .num { font-size: 16px; } .pf2 .pf-stats .pf-stat-mais { flex-basis: 36px; width: 36px; height: 36px; } }
+
+/* Topo que some ao descer e volta ao subir (12/11/2026, barra-rede.js ligarTopoQueSome). As faixas presas logo abaixo do
+   topo (abas, filtros da Comunidade) sobem junto. */
+.topo { transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+body.topo-some .topo { transform: translateY(-100%); }
+.abas, .mu-barra { transition: top .28s cubic-bezier(.2, .8, .2, 1); }
+body.topo-some .abas, body.topo-some .mu-barra { top: env(safe-area-inset-top); }
+
+/* Perfil — nome, @ · cidade e bio FORA da capa (12/11/2026, pedido dele: "organize melhor, mais elegante"): a foto fica
+   metade sobre a capa, como no X/Threads, e o texto vem embaixo, na cor do tema (antes ficava sobre a foto da capa). */
+.pf2 .pf-capa { height: clamp(140px, 36vw, 220px); }
+:root[data-theme="dark"] .pf2 .pf-capa::after { background: linear-gradient(180deg, rgba(0,0,0,.18) 0%, transparent 35%, transparent 62%, color-mix(in srgb, var(--pf-fundo) 70%, transparent) 100%); }
+.pf2 .pf-capa::after { background: linear-gradient(180deg, rgba(0,0,0,.14) 0%, transparent 40%); }
+.pf2 .pf-topo { position: relative; left: auto; right: auto; bottom: auto; display: block; margin-top: -48px; padding: 0 16px; pointer-events: auto; }
+.pf2 .pf-avatar-wrap { display: inline-block; margin: 0; }
+.pf2 .pf-anel { width: 94px; height: 94px; padding: 3px; box-shadow: none; }
+.pf2 .pf-anel .avatar { border-width: 4px; }
+.pf2 .pf-ident { padding: 10px 0 0; color: var(--text); text-shadow: none; }
+.pf2 .pf-nome-linha { gap: 6px; }
+.pf2 .pf-nome { color: var(--text); font-size: clamp(20px, 5.6vw, 24px); font-weight: 800; letter-spacing: -.02em; white-space: normal; }
+.pf2 .selo { color: var(--accent); filter: none; }
+.pf2 .pf-handle { color: var(--muted); font-size: 14px; margin-top: 2px; gap: 2px 12px; }
+.pf2 .pf-handle span:first-child { font-weight: 500; }
+.pf2 .pf-handle .i { opacity: .8; }
+.pf2 .pf-bio { color: var(--text); font-size: 14.5px; line-height: 1.45; margin-top: 8px; -webkit-line-clamp: 3; }
+.pf2 .pf-corpo { padding-top: 14px; }
+.pf2 .pf-stats { padding-top: 2px; }
+
+/* =====================================================================================================
+   Preto do X nas abas da rede (12/11/2026, pedido dele: "tudo escuro, aquele preto do X, com linhas brancas elegantes nas
+   bordas e no ativo da barra de baixo"). Só no tema escuro e só nas páginas com a barra de baixo.
+   ===================================================================================================== */
+:root[data-theme="dark"]:has(#barraRede) { --bg: #000000; --panel: #000000; --panel-2: #0e0f10; --hover: #141618; --line: rgba(255, 255, 255, .16); --text: #f2f4f5; --muted: #8b9399; --input: #0e0f10; --tile: #0e0f10; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):has(#barraRede) { --bg: #000000; --panel: #000000; --panel-2: #0e0f10; --hover: #141618; --line: rgba(255, 255, 255, .16); --text: #f2f4f5; --muted: #8b9399; --input: #0e0f10; --tile: #0e0f10; } }
+:root[data-theme="dark"]:has(#barraRede) body { background: #000; }
+:root[data-theme="dark"] .barra-rede { background: rgba(0, 0, 0, .9); border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+:root[data-theme="dark"] .barra-rede [aria-current="page"], :root[data-theme="dark"] .barra-rede [aria-current="page"]:hover {
+  color: #fff; background: rgba(255, 255, 255, .04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .78); }
+:root[data-theme="dark"] .barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px #fff; }
+:root[data-theme="dark"]:has(#barraRede) .topo { background: rgba(0, 0, 0, .86); border-bottom: 1px solid rgba(255, 255, 255, .14); }
+:root[data-theme="dark"] .fab-hf .tc-ic { background: rgba(0, 0, 0, .85); border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 8px 22px rgba(0, 0, 0, .7); }
