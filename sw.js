@@ -1,7 +1,7 @@
 // Service worker do Help Floripa (app instalado / PWA e site).
 // - páginas (.html): sempre da rede (com "navigation preload", sem esperar o service worker acordar);
 //   sem internet, mostra a página offline.html (estilizada);
-// - arquivos com versão no endereço (".js?v=12", ".css?v=5", "vitrine.js?tipo=x&v=54") e o SDK do Firebase
+// - arquivos com versão no endereço (".js?v=12", ".css?v=5", "corretor/lexico.txt?v=1", "vitrine.js?tipo=x&v=54") e o SDK do Firebase
 //   (www.gstatic.com/firebasejs/10.12.2/...): NUNCA mudam (mudou o arquivo, muda o ?v=), então vêm do aparelho na
 //   hora, sem ir à rede. Isso deixa as páginas e o "voltar" bem mais rápidos. Guardar versão nova de um arquivo apaga
 //   as versões antigas dele;
@@ -23,7 +23,7 @@ self.addEventListener("activate", (e) => {
 });
 
 const versionado = (u) =>
-  (u.origin === self.location.origin && /\.(m?js|css)$/.test(u.pathname) && /(^\?|&)v=\d+/.test(u.search))
+  (u.origin === self.location.origin && /\.(m?js|css|txt)$/.test(u.pathname) && /(^\?|&)v=\d+/.test(u.search))
   || (u.hostname === "www.gstatic.com" && /^\/firebasejs\/\d+\.\d+\.\d+\//.test(u.pathname));
 const imagemDoSite = (u) => u.origin === self.location.origin && /\.(png|webp|jpe?g|svg|ico|woff2?|json)$/.test(u.pathname) && !/manifest/.test(u.pathname);
 const bom = (res) => res && res.ok && (res.type === "basic" || res.type === "cors");

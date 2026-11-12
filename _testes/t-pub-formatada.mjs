@@ -39,7 +39,7 @@ ok(await p.locator("#pubTagsPrev b").count() === 3, "mostra as hashtags que vão
 await p.screenshot({ path: "saida/pf-01-antes-formatar.png" });
 await p.locator("#pubFormatar").click(); await p.locator(".cr-fundo [data-ok]").waitFor(); await p.screenshot({ path: "saida/pf-01b-corretor.png" }); await p.locator(".cr-fundo [data-ok]").click(); await p.waitForTimeout(300);
 const formatado = await p.locator("#pubTexto").inputValue();
-ok(formatado.startsWith("Bom dia galera! Hoje terminei a reforma da cozinha, ficou linda.") && formatado.endsWith("#reforma #Floripa #obra") && formatado.includes("• Armários novos") && !/\n{3}/.test(formatado), "Formatar texto arruma o texto e leva as #hashtags para o fim");
+ok(formatado.startsWith("Bom dia, galera! Hoje terminei a reforma da cozinha, ficou linda.") && formatado.endsWith("#reforma #Floripa #obra") && formatado.includes("• Armários novos") && !/\n{3}/.test(formatado), "Formatar texto arruma o texto e leva as #hashtags para o fim");
 ok(await p.locator("#pubTitulo").inputValue() === "Reforma da cozinha: antes e depois", "título com letra maiúscula");
 ok(await p.locator("#pubDesfazerFmt").isVisible(), "aparece o Desfazer");
 await p.locator("#pubDesfazerFmt").click();
