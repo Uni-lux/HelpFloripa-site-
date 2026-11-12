@@ -1639,3 +1639,14 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 .conv-notas .notas-tarefas svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .conv-notas .notas-atraso { color: #ff6b6b; font-weight: 650; }
 .conv-notas .pv-nova { font-style: italic; }
+
+/* 12/11/2026 (pedido dele): sem as pílulas Todas/Não lidas — a fileira só aparece com Solicitações, Restritas, Arquivadas
+   ou os assuntos dos Negócios. Notas com a foto no mesmo jeito das conversas e alfinete que tira o atalho da lista. */
+.pills.vazia { display: none; }
+.notas-av { background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; box-shadow: none; }
+:root[data-theme="light"] .notas-av { background: linear-gradient(135deg, #0a4a63, #00adee); color: #fff; box-shadow: none; }
+.notas-av .i { width: 44%; height: 44%; }
+.conv-notas .notas-pin { display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -6px 0 -6px 2px; border-radius: 50%; color: var(--muted); vertical-align: middle; cursor: pointer; }
+.conv-notas .notas-pin .i { width: 15px; height: 15px; }
+.conv-notas .notas-pin:active { background: var(--hover); transform: scale(.92); }
+@media (hover: hover) { .conv-notas .notas-pin:hover { background: var(--hover); color: var(--text); } }

@@ -308,8 +308,7 @@ export async function abrirExplorar() {
   lerResumosEstrelas(lista.map((p) => p.id)).then((r) => { resumosPosts = r; postsDestaque = lista; pintarAlta(lista); pintarDestaques(); pintarHall(lista); }).catch(() => {});
   pintarNegocios().catch((e) => console.warn("Explorar (negócios):", e));
   pintarComunidade().catch((e) => console.warn("Explorar (comunidade):", e));
-  pintarPostsPerto(lista).catch((e) => console.warn("Explorar (perto):", e));
-  pintarSugestoes().catch((e) => console.warn("Explorar (sugestões):", e));
+  // 12/11/2026 (pedido dele): "Sugestões para você" e "Perto de você" saíram do Explorar (as sugestões continuam no meio do Diário).
 }
 
 // ---------- Em alta: Top 20 de assuntos do Help Floripa (10/11/2026, revisto no mesmo dia) ----------
@@ -782,7 +781,7 @@ async function pintarNegocios() {
   if (pos) await comDistancia(todos, pos);
   const cid = minhaCidade();
   const daCidade = cid ? todos.filter((n) => chaveCidade(n.cidade) === cid) : [];
-  const perto = pos ? todos.filter((n) => n._km <= 60) : [];
+  const perto = []; // sem "Perto de você" no Explorar (12/11/2026): cidade da pessoa ou destaques
   const base = (perto.length >= 3 ? perto : daCidade.length >= 3 ? daCidade : todos).slice(0, 60);
   const nota = await notasDe(base);
   const agora = Date.now();
@@ -806,7 +805,6 @@ async function pintarNegocios() {
   const onde = porPerto ? await rotuloPosicao(pos) : "";
   $("titNegocios").textContent = porPerto ? "Perto de você" : cidade ? `Negócios em ${cidade}` : "Negócios em destaque";
   $("subNegocios").textContent = porPerto ? `Negócios ${pos.origem === "gps" ? "perto de onde você está" : "da sua cidade e arredores"}${onde ? ` · ${onde}` : ""}` : cidade ? "Bem avaliados e novidades perto de você" : "Bem avaliados e novidades no Help Floripa";
-  botaoLocal($("titNegocios").parentElement, () => { pintarNegocios(); if (postsDestaque.length) pintarPostsPerto(postsDestaque); });
   $("exploraNegocios").replaceChildren(...top.map((n) => {
     const a = el("a", "exp-neg"); a.href = linkNegocio(n);
     if (n.donoId) corDoPlano(fb, a, n.donoId);

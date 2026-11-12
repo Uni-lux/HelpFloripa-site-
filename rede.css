@@ -3897,17 +3897,25 @@ body.modo-lugar .fab-criar { display: none; }
    abas da rede). Tocar sobe para o começo. Cores fixas no SVG/CSS simples para a cópia do topo da casca (rede-app.js). */
 .topo-meio { flex: 1; }
 .marca-ponte { flex: 1; display: flex; align-items: center; justify-content: center; align-self: stretch; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.marca-ponte img { display: block; height: 36px; width: auto; transition: transform .18s ease; -webkit-user-drag: none; user-select: none; }
-.marca-ponte:active img { transform: scale(.9); }
+/* 2ª versão (12/11/2026, pedido dele: maior e "homogênea com a página"): o logo vira 2 máscaras pintadas pelo tema —
+   a ponte na cor dos ícones do topo (--text) e as ondas no azul da marca. Funciona igual no escuro e no claro. */
+.marca-ponte .mp { position: relative; display: block; width: 72px; height: 46px; transition: transform .18s ease; }
+.marca-ponte .mp i { position: absolute; inset: 0; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.marca-ponte .mp-est { --m: url("logo-ponte-estrutura.webp"); background: var(--text); }
+.marca-ponte .mp-ondas { --m: url("logo-ponte-ondas.webp"); background: linear-gradient(90deg, #4fd2ff, var(--accent, #00adee) 55%, #0087c2); }
+.marca-ponte:active .mp { transform: scale(.92); }
 .marca-ponte:focus-visible { outline: none; }
-.marca-ponte:focus-visible img { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
-/* Logo que ele mandou (12/11/2026), sem o nome: ponte branca + ondas azuis no escuro; ponte azul-marinho no claro. */
-.marca-ponte .mp-claro { display: none; }
-:root[data-theme="light"] .marca-ponte .mp-escuro { display: none; }
-:root[data-theme="light"] .marca-ponte .mp-claro { display: block; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .marca-ponte .mp-escuro { display: none; }
-  :root:not([data-theme="dark"]) .marca-ponte .mp-claro { display: block; }
-}
+.marca-ponte:focus-visible .mp { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
+/* "+" do lado (como no X), no estilo do quadradinho do topo: só no Diário e na Comunidade */
+.fab-hf { position: fixed; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 1150; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+body.com-barra .fab-hf { bottom: calc(100px + env(safe-area-inset-bottom)); }
+.fab-hf .tc-ic { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-2) 92%, transparent);
+  border: 1.5px solid var(--line); box-shadow: 0 8px 22px rgba(0, 0, 0, .35); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: transform .12s, background .15s, opacity .2s; }
+.fab-hf .tc-ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.fab-hf:active .tc-ic { transform: scale(.9) rotate(-6deg); }
+@media (hover: hover) { .fab-hf:hover .tc-ic { background: var(--hover); } }
+:root[data-theme="light"] .fab-hf .tc-ic { box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+.fab-hf.rolando .tc-ic { opacity: .55; }
+body.aba-explorar .fab-hf, body.modo-lugar .fab-hf { display: none; }
 /* No Explorar o símbolo some (como as outras redes: a marca fica só no começo). */
 body.aba-explorar .marca-ponte { visibility: hidden; pointer-events: none; }

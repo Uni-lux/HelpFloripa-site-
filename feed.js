@@ -21,7 +21,7 @@ import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=
 import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=120";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=137";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=138";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=3";
@@ -643,9 +643,7 @@ function blocoSugestoes() {
   const b = el("section", "feed-sug"); b.setAttribute("aria-label", "Sugestões para você");
   const topo = el("div", "feed-sug-topo");
   const tit = el("div"); tit.append(el("strong", null, "Sugestões para você"), el("small", null, "Pessoas que você pode conhecer"));
-  const ver = el("button", null, "Ver tudo"); ver.type = "button";
-  ver.addEventListener("click", () => { trocarAba("explorar"); setTimeout(() => $("secSugestoes")?.scrollIntoView({ block: "start", behavior: "smooth" }), 400); });
-  topo.append(tit, ver);
+  topo.append(tit);
   const corpo = el("div");
   b.append(topo, corpo);
   b.hidden = true;

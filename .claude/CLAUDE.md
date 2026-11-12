@@ -2348,6 +2348,21 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   No Explorar some (`body.aba-explorar`, posto pelo `trocarAba`). Comunidade (mural.html) e Perfil (usuarios.html): marca
   saiu (`.topo-meio`, espaço vazio). As outras páginas (Início, vitrines, institucionais) continuam com a marca escrita.
   Teste `t-marca-ponte.mjs` (9); `t-comunidade-rede` e `t-auditoria-diario` atualizados.
+- **Topo da rede, Explorar, Mensagens e Notas (12/11/2026, PR depois do #199, sem regra nova):** prints dele. Ponte do
+  Diário maior (72×46) e nas cores do tema: 2 máscaras `logo-ponte-estrutura.webp` (pintada com `--text`) e
+  `logo-ponte-ondas.webp` (degradê azul) em `.marca-ponte .mp i` (os webp de antes saíram). "+" saiu do topo e virou
+  `.fab-hf` (quadradinho escuro do lado, como no X; `#btnComporFeed` no feed.html e `#btnPublicarMural` no mural.html; some
+  no Explorar e no modo lugar). Engrenagem SÓ no Perfil; Diário/Comunidade: casinha | meio | sino. Explorar sem "Sugestões
+  para você" e sem "Perto de você"/"Publicações perto" (`pintarSugestoes`/`pintarPostsPerto` não são chamadas; negócios =
+  da cidade ou destaques; sugestões continuam no meio do Diário, sem "Ver tudo"). Mensagens: sem as pílulas Todas/Não lidas
+  (`.pills.vazia` some; "Voltar a todas" só aparece com outro filtro ativo); Notas com a foto no jeito das conversas,
+  alfinete `.notas-pin` tira o atalho (`config.atalhoNotas`) e Configurações → "Atalho para as Notas" põe de volta;
+  etiqueta do dia abaixo da faixa do atendimento. Notas: caixa de digitação `#ntComp` (como o campo do chat: "+" = lista/
+  modelos (`#ntNova`), campo que cresce, botão de lista de tarefas, enviar = nota nova na pasta aberta; Enter salva no
+  computador), sem o botão "Nova nota" no topo, aviso de uma linha, números das tarefas numa fileira. Testes
+  `t-marca-ponte` (16), `t-notas-rapida.mjs` (13); `t-comunidade-rede`, `t-x-transicoes`, `t-auditoria-diario`,
+  `t-solicitacoes`, `t-deslizar-responder` atualizados. Desatualizados (testam o que saiu): sugestões/perto em `t-explorar`,
+  `t-sugestoes-online`, `t-perto`, `t-principais`; `t-deslizar-responder` já parava antes (aba Negócios escondida para a Ana).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

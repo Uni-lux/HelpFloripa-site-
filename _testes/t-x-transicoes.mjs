@@ -19,11 +19,10 @@ const W = await p.evaluate(() => innerWidth);
 const f = feed();
 const info = await f.evaluate(() => {
   const fab = document.getElementById("btnComporFeed");
-  return { fab: fab.classList.contains("fab-criar"), lapis: !!document.querySelector(".topo #btnComporFeed.topo-criar"),
-    fonte: getComputedStyle(document.querySelector(".marca strong")).fontFamily, carregou: document.fonts.check('700 20px "HF Marca"') };
+  return { fab: fab.classList.contains("fab-hf"), lapis: !!document.querySelector(".topo #btnComporFeed"), ponte: !!document.querySelector(".topo .marca-ponte .mp") };
 });
-ok(!info.fab && info.lapis, "o + fica no topo (no lugar do lápis), sem botão flutuante");
-ok(/HF Marca/.test(info.fonte) && info.carregou, "marca com a fonte da marca (Sora)");
+ok(info.fab && !info.lapis, "o + fica do lado (como no X), fora do topo");
+ok(info.ponte, "topo com o símbolo da ponte");
 await p.screenshot({ path: "saida/x-diario.png" });
 await f.locator("#btnComporFeed").tap(); await p.waitForTimeout(600);
 ok(await f.evaluate(() => !!document.querySelector("#folhaPublicar.aberta")), "tocar no + abre a nova publicação");

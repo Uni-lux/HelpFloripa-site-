@@ -173,7 +173,7 @@ function marcarSemNuvem() {
   semNuvem = true;
   const a = $("ntAviso"); if (!a) return;
   a.hidden = false;
-  a.innerHTML = `${ic("cadeado")}<span><b>Notas guardadas neste aparelho.</b> A cópia na sua conta (para abrir em outro celular ou computador) liga sozinha quando a atualização do Help Floripa for publicada.</span>`;
+  a.innerHTML = `${ic("cadeado")}<span><b>Guardadas neste aparelho.</b> A cópia na conta liga sozinha com a próxima atualização.</span>`;
 }
 async function sincronizar() {
   try {
@@ -558,6 +558,42 @@ function abrirEditor(nota, { modelo = "" } = {}) {
   else if (md) setTimeout(() => { tx.focus(); const p = tx.value.indexOf("[ ] ") >= 0 ? tx.value.indexOf("[ ] ") + 4 : tx.value.length; tx.setSelectionRange(p, p); }, 80);
 }
 
+// ---------- Caixa de digitação (como numa conversa): escreve e envia = nota nova ----------
+// A 1ª linha vira o título na lista (tituloDe); dentro de uma pasta, a nota nova entra nela.
+function ligarCaixaRapida() {
+  const f = $("ntComp"), t = $("ntRapida"), env = $("ntRapidaEnviar");
+  const crescer = () => { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 160) + "px"; env.disabled = !t.value.trim(); };
+  t.addEventListener("input", crescer);
+  // Computador: Enter salva e Shift+Enter pula linha. Celular: Enter pula linha e salva pelo botão.
+  const toque = matchMedia("(pointer: coarse)").matches;
+  t.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.shiftKey || toque || e.isComposing) return;
+    // numa lista de tarefas, Enter continua a lista
+    const linha = t.value.slice(0, t.selectionStart).split("\n").pop();
+    if (RE_TAREFA.test(linha)) { e.preventDefault(); const pos = t.selectionStart; t.setRangeText("\n[ ] ", pos, pos, "end"); crescer(); return; }
+    e.preventDefault(); f.requestSubmit();
+  });
+  $("ntRapidaLista").addEventListener("click", () => {
+    const pos = t.selectionStart, antes = t.value.slice(0, pos);
+    t.setRangeText((antes && !antes.endsWith("\n") ? "\n" : "") + "[ ] ", pos, t.selectionEnd, "end");
+    t.focus(); crescer();
+  });
+  f.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const texto = t.value.replace(/\s+$/, "").replace(/^\s*\n/, "");
+    if (!texto.trim()) return;
+    const n = { id: novoId(), titulo: "", texto: texto.slice(0, MAX_TEXTO), cor: "", pasta: filtro.startsWith("p:") ? filtro.slice(2) : "", fixada: false, arquivada: false, lixeira: 0, prazo: "", criadoEm: agora() };
+    if (!["todas", "fixadas", "tarefas", "prazo"].includes(filtro) && !filtro.startsWith("p:")) filtro = "todas";
+    if ((filtro === "tarefas" && !tarefas(n.texto).abertas) || filtro === "fixadas" || (filtro === "prazo")) filtro = "todas";
+    busca = ""; $("ntBusca").value = "";
+    salvar(n);
+    t.value = ""; crescer();
+    scrollTo({ top: 0, behavior: "smooth" });
+    document.querySelector(`.nt-card[data-id="${n.id}"]`)?.classList.add("nt-nova-chegou");
+  });
+  crescer();
+}
+
 function avisoDesfazer(texto, desfazer) {
   document.querySelectorAll(".nt-snack").forEach((x) => x.remove());
   const s = document.createElement("div"); s.className = "nt-snack"; s.setAttribute("role", "status");
@@ -578,6 +614,7 @@ function avisoDesfazer(texto, desfazer) {
     if (k === "lista") abrirEditor(null, {}), setTimeout(() => { const t = document.getElementById("edTexto"); if (t && !t.value) { t.value = "[ ] "; t.dispatchEvent(new Event("input")); } }, 90);
     else abrirEditor(null, { modelo: k === "branco" ? "" : k });
   });
+  ligarCaixaRapida();
   let tBusca = 0;
   $("ntBusca").addEventListener("input", (e) => { clearTimeout(tBusca); tBusca = setTimeout(() => { busca = e.target.value; pintar(); }, 120); });
   $("ntOrdem").addEventListener("click", async () => {
