@@ -5,7 +5,7 @@
 //   revisarTexto(texto, { modo, titulo, depois }) → Promise<string | null>   (null = manteve como estava)
 //   depois(texto) é aplicado ao resultado final (ex.: formatarTexto do Diário).
 // =====================================================
-import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO } from "./corretor.js?v=2";
+import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=2";
 
 const ICONES = {
   varinha: '<path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/>',
@@ -67,6 +67,15 @@ function estilo() {
 .cr-pe button { flex: 1; min-height: 46px; border-radius: 14px; font: inherit; font-weight: 700; cursor: pointer; }
 .cr-pe .cr-sec { background: transparent; color: var(--text, #fff); border: 1px solid var(--line, rgba(255,255,255,.14)); }
 .cr-pe .cr-pri { background: var(--accent, #00adee); color: #fff; border: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cr-ajuda { margin: -2px 0 8px; font-size: 12px; color: var(--muted, #8fa1ad); }
+.cr-etq { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, #f5b301 18%, transparent); color: #f5b301; }
+.cr-item.sug.off .cr-de { color: var(--text, #fff); }
+.cr-desc { display: flex; flex-wrap: wrap; gap: 8px; }
+.cr-add { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px dashed color-mix(in srgb, #ff7b7b 60%, transparent); background: transparent; color: var(--text, #fff); font: inherit; font-size: 13px; cursor: pointer; }
+.cr-add b { text-decoration: underline wavy #ff7b7b; text-underline-offset: 3px; font-weight: 600; }
+.cr-add span { color: var(--muted, #8fa1ad); font-size: 12px; }
+.cr-roda { display: inline-block; width: 30px; height: 30px; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent, #00adee) 25%, transparent); border-top-color: var(--accent, #00adee); animation: cr-gira .8s linear infinite; }
+@keyframes cr-gira { to { transform: rotate(360deg); } }
 .cr-vazio { text-align: center; padding: 26px 10px 8px; color: var(--muted, #8fa1ad); }
 .cr-vazio .cr-i { width: 40px; height: 40px; color: #43d48a; }
 :root[data-theme="light"] .cr-prev del, :root[data-theme="light"] .cr-item .cr-de { color: #d33; }
@@ -81,69 +90,84 @@ const ORDEM = ["ortografia", "acento", "concordancia", "abreviacao", "pontuacao"
 export function revisarTexto(texto, { modo = "pub", titulo = "Revisar texto", depois = (t) => t } = {}) {
   estilo();
   return new Promise((resolver) => {
-    const pular = new Set();
-    let abreviacoes = true;
+    const pular = new Set(), aceitar = new Set();
+    let abreviacoes = true, base = null;
     const fundo = document.createElement("div"); fundo.className = "cr-fundo"; fundo.setAttribute("data-sem-deslizar", ""); fundo.setAttribute("data-sem-puxar", "");
     const folha = document.createElement("div"); folha.className = "cr-folha"; folha.setAttribute("role", "dialog"); folha.setAttribute("aria-modal", "true"); folha.setAttribute("aria-label", titulo);
     fundo.appendChild(folha);
-    const base = corrigirTexto(texto, { modo });
-    let atual = base;
     const fim = (valor) => { fundo.remove(); removeEventListener("keydown", tecla, true); resolver(valor); };
     const tecla = (e) => { if (e.key === "Escape") { e.stopPropagation(); fim(null); } };
     addEventListener("keydown", tecla, true);
     fundo.addEventListener("click", (e) => { if (e.target === fundo) fim(null); });
+    const cab = (sub) => `<div class="cr-cab"><span class="cr-ic">${svg("varinha")}</span><div><h2>${esc(titulo)}</h2><p>${sub}</p></div><button type="button" class="cr-x" data-fechar aria-label="Fechar">${svg("fechar")}</button></div>`;
+    // a correção está valendo? (sugestão = desligada até a pessoa ligar)
+    const ligada = (m) => (m.conf === "media" ? aceitar.has(m.chave) : !pular.has(m.chave)) && (abreviacoes || m.tipo !== "abreviacao");
 
     const pintar = () => {
-      atual = corrigirTexto(texto, { modo, pular, abreviacoes });
+      base = corrigirTexto(texto, { modo });
+      const atual = corrigirTexto(texto, { modo, pular, aceitar, abreviacoes });
       const final = depois(atual.texto);
-      const ativos = base.mudancas.filter((m) => !pular.has(m.chave) && (abreviacoes || m.tipo !== "abreviacao"));
-      const n = ativos.reduce((a, m) => a + m.n, 0);
-      if (!base.mudancas.length) {
-        folha.innerHTML = `<div class="cr-cab"><span class="cr-ic">${svg("varinha")}</span><div><h2>${esc(titulo)}</h2><p>Corretor do Help Floripa</p></div><button type="button" class="cr-x" data-fechar aria-label="Fechar">${svg("fechar")}</button></div>
+      const n = base.mudancas.filter(ligada).reduce((a, m) => a + m.n, 0);
+      const sug = base.mudancas.filter((m) => m.conf === "media").length;
+      const desc = base.desconhecidas || [];
+      if (!base.mudancas.length && !desc.length) {
+        folha.innerHTML = `${cab("Corretor do Help Floripa")}
           <div class="cr-corpo"><div class="cr-vazio">${svg("ok")}<p><b>Nenhum erro encontrado.</b><br>${final !== texto ? "Só organizamos espaços e pontuação." : "O texto já está certinho."}</p></div></div>
           <div class="cr-pe"><button type="button" class="cr-pri" data-ok>${svg("ok")}${final !== texto ? "Organizar" : "Fechar"}</button></div>`;
       } else {
         const partes = diferenca(texto, final).map((p) => p.tipo === "igual" ? esc(p.t) : p.tipo === "saiu" ? (p.t.trim() ? `<del>${esc(p.t)}</del>` : "") : `<ins>${esc(p.t)}</ins>`).join("");
         const temAbrev = base.mudancas.some((m) => m.tipo === "abreviacao");
+        const item = (m) => {
+          const off = !ligada(m);
+          return `<div class="cr-item${off ? " off" : ""}${m.conf === "media" ? " sug" : ""}" role="switch" tabindex="0" aria-checked="${!off}" data-chave="${esc(m.chave)}"><div class="cr-txt"><div class="cr-par"><span class="cr-de">${esc(m.de.trim() || "␣")}</span><span class="cr-seta">→</span><span class="cr-para">${esc(m.para.trim())}</span>${m.n > 1 ? `<span class="cr-n">${m.n}×</span>` : ""}${m.conf === "media" ? `<span class="cr-etq">Sugestão</span>` : ""}</div><small>${esc(m.motivo)}</small></div><span class="cr-chave" aria-hidden="true"></span></div>`;
+        };
+        const certas = base.mudancas.filter((m) => m.conf !== "media"), sugeridas = base.mudancas.filter((m) => m.conf === "media");
         const grupos = ORDEM.map((tipo) => {
-          const itens = base.mudancas.filter((m) => m.tipo === tipo);
-          if (!itens.length) return "";
-          return `<div class="cr-grupo"><h3>${svg(tipo)}${TIPOS_CORRECAO[tipo]}</h3>${itens.map((m) => {
-            const off = pular.has(m.chave) || (!abreviacoes && tipo === "abreviacao");
-            return `<div class="cr-item${off ? " off" : ""}" role="switch" tabindex="0" aria-checked="${!off}" data-chave="${esc(m.chave)}"><div class="cr-txt"><div class="cr-par"><span class="cr-de">${esc(m.de.trim() || "␣")}</span><span class="cr-seta">→</span><span class="cr-para">${esc(m.para.trim())}</span>${m.n > 1 ? `<span class="cr-n">${m.n}×</span>` : ""}</div><small>${esc(m.motivo)}</small></div><span class="cr-chave" aria-hidden="true"></span></div>`;
-          }).join("")}</div>`;
-        }).join("");
-        folha.innerHTML = `<div class="cr-cab"><span class="cr-ic">${svg("varinha")}</span><div><h2>${esc(titulo)}</h2><p>${n ? `${n} ${n > 1 ? "correções" : "correção"} · ${esc(resumoCorrecoes(atual.porTipo))}` : "Nenhuma correção escolhida"}</p></div><button type="button" class="cr-x" data-fechar aria-label="Fechar">${svg("fechar")}</button></div>
+          const itens = certas.filter((m) => m.tipo === tipo);
+          return itens.length ? `<div class="cr-grupo"><h3>${svg(tipo)}${TIPOS_CORRECAO[tipo]}</h3>${itens.map(item).join("")}</div>` : "";
+        }).join("")
+          + (sugeridas.length ? `<div class="cr-grupo"><h3>${svg("varinha")}Sugestões para conferir</h3><p class="cr-ajuda">Podem estar certas do jeito que você escreveu. Toque para aplicar.</p>${sugeridas.map(item).join("")}</div>` : "")
+          + (desc.length ? `<div class="cr-grupo"><h3>${svg("ortografia")}Não encontradas no dicionário</h3><p class="cr-ajuda">Confira a escrita. Se estiver certa (um nome, uma gíria, uma marca), adicione ao seu dicionário.</p><div class="cr-desc">${desc.map((w) => `<button type="button" class="cr-add" data-add="${esc(w)}"><b>${esc(w)}</b><span>+ dicionário</span></button>`).join("")}</div></div>` : "");
+        const sub = [n ? `${n} ${n > 1 ? "correções" : "correção"}` : "Nenhuma correção escolhida", sug ? `${sug} ${sug > 1 ? "sugestões" : "sugestão"}` : "", desc.length ? `${desc.length} não ${desc.length > 1 ? "encontradas" : "encontrada"}` : ""].filter(Boolean).join(" · ");
+        folha.innerHTML = `${cab(esc(sub))}
           <div class="cr-corpo"><div class="cr-prev" aria-label="Como vai ficar">${partes}</div>
           ${temAbrev && modo === "chat" ? `<div class="cr-modo" role="group" aria-label="Estilo"><button type="button" data-abrev="1" class="${abreviacoes ? "on" : ""}">Escrever por inteiro</button><button type="button" data-abrev="0" class="${abreviacoes ? "" : "on"}">Manter abreviações</button></div>` : ""}
           ${grupos}
-          <p class="cr-nota">${svg("cadeado")}<span>Toque numa correção para manter como você escreveu. O corretor funciona no seu aparelho (o texto não é enviado) e pega os erros mais comuns: confira antes de ${modo === "chat" ? "enviar" : "publicar"}.</span></p></div>
+          <p class="cr-nota">${svg("cadeado")}<span>${base.dicionario ? "Corretor com dicionário de português (mais de 100 mil palavras), acentos, digitação, concordância, crase e pontuação." : "Corretor sem o dicionário completo (sem internet agora)."} Funciona no seu aparelho: o texto não é enviado. Toque numa correção para manter como você escreveu e confira antes de ${modo === "chat" ? "enviar" : "publicar"}.</span></p></div>
           <div class="cr-pe"><button type="button" class="cr-sec" data-fechar>Manter como estava</button><button type="button" class="cr-pri" data-ok>${svg("ok")}${n ? `Aplicar ${n}` : "Usar assim"}</button></div>`;
       }
       folha.querySelectorAll("[data-fechar]").forEach((b) => b.addEventListener("click", () => fim(null)));
       folha.querySelector("[data-ok]").addEventListener("click", () => fim(final));
+      const repintar = () => { const rol = folha.querySelector(".cr-corpo")?.scrollTop || 0; pintar(); const c = folha.querySelector(".cr-corpo"); if (c) c.scrollTop = rol; };
       folha.querySelectorAll(".cr-item").forEach((it) => {
         const trocar = () => {
           const k = it.dataset.chave;
           const m = base.mudancas.find((x) => x.chave === k);
           if (m?.tipo === "abreviacao" && !abreviacoes) { abreviacoes = true; base.mudancas.filter((x) => x.tipo === "abreviacao").forEach((x) => pular.add(x.chave)); pular.delete(k); }
+          else if (m?.conf === "media") { if (aceitar.has(k)) aceitar.delete(k); else aceitar.add(k); }
           else if (pular.has(k)) pular.delete(k); else pular.add(k);
-          const rol = folha.querySelector(".cr-corpo")?.scrollTop || 0;
-          pintar(); const c = folha.querySelector(".cr-corpo"); if (c) c.scrollTop = rol;
+          repintar();
         };
         it.addEventListener("click", trocar);
         it.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); trocar(); } });
       });
+      folha.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", () => { adicionarAoDicionario(b.dataset.add); repintar(); }));
       folha.querySelectorAll("[data-abrev]").forEach((b) => b.addEventListener("click", () => { abreviacoes = b.dataset.abrev === "1"; pintar(); }));
     };
-    pintar();
+    // Mostra a folha na hora e carrega o dicionário (fica guardado no aparelho depois da 1ª vez)
+    folha.innerHTML = `${cab("Conferindo o texto...")}<div class="cr-corpo"><div class="cr-vazio"><span class="cr-roda" aria-hidden="true"></span><p>Carregando o dicionário de português...</p></div></div>`;
     document.body.appendChild(fundo);
-    folha.querySelector("[data-ok]")?.focus({ preventScroll: true });
+    Promise.race([carregarLexico(), new Promise((r) => setTimeout(r, 8000))]).finally(() => {
+      if (!fundo.isConnected) return;
+      pintar();
+      folha.querySelector("[data-ok]")?.focus({ preventScroll: true });
+    });
   });
 }
 
 // Correções do texto sem abrir a tela (para mostrar "3 correções" no campo do chat).
 export function contarCorrecoes(texto, modo = "chat") {
   if (!String(texto || "").trim()) return 0;
-  return corrigirTexto(texto, { modo }).total;
+  const r = corrigirTexto(texto, { modo });
+  return r.total + r.sugestoes + r.desconhecidas.length;
 }

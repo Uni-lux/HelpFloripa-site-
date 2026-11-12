@@ -29,7 +29,7 @@ import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis 
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
-import { corrigirTexto } from "./corretor.js?v=2";
+import { corrigirTexto, carregarLexico } from "./corretor.js?v=2";
 import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
 import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
@@ -4186,10 +4186,13 @@ function pintarCorretor() {
   const palavras = v.trim().split(/\s+/).filter(Boolean).length;
   if (!config.corretor || palavras < 2 || v.length > 2000 || (corretorDispensado && v.startsWith(corretorDispensado) && v.length - corretorDispensado.length < 12)) { chip.hidden = true; return; }
   if (corretorDispensado && !v.startsWith(corretorDispensado.slice(0, 8))) corretorDispensado = "";
-  const n = corrigirTexto(v, { modo: "chat" }).total;
+  const r = corrigirTexto(v, { modo: "chat" });
+  const n = r.total + r.sugestoes + r.desconhecidas.length;
   chip.hidden = !n;
   if (n) { $("chipCorretorN").textContent = String(n); chip.setAttribute("aria-label", `${n} ${n > 1 ? "correções" : "correção"} no texto: revisar`); }
 }
+// O dicionário (≈1 MB, guardado pelo service worker) só baixa quando a pessoa começa a escrever.
+$("texto").addEventListener("focus", () => { if (config.corretor) carregarLexico().then((ok) => { if (ok) agendarCorretor(); }); }, { once: true });
 $("chipCorretor")?.addEventListener("pointerdown", (e) => e.preventDefault()); // não tira o foco do campo (o teclado fica)
 $("chipCorretor")?.addEventListener("click", async (e) => {
   const campo = $("texto");
