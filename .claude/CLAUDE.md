@@ -2468,6 +2468,9 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+**Lista organizada do que fazer (12/11/2026, pedida por ele): `_regras/LISTA-DO-QUE-FAZER.md`.** Seguir a regra dela:
+uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x] quando ele confirmar.
+
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
