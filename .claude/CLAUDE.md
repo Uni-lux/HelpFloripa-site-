@@ -2342,7 +2342,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   não são sujeito, gênero não depois de preposição nem com "mais/menos" + palavra que não é adjetivo, "como esta" só no fim.
   `t-corretor` 129/129.
 - **Topo da rede só com a ponte (12/11/2026, PR depois do #198, sem regra nova):** pedido dele ("como o X, mas uma ponte").
-  Diário (feed.html): `.marca` trocada pelo botão `#marcaTopo.marca-ponte` (SVG no modelo da imagem que ele mandou — ponte pênsil numa cor só, na cor do texto, atributos no próprio SVG —;
+  Diário (feed.html): `.marca` trocada pelo botão `#marcaTopo.marca-ponte` (o logo dele sem o nome: `logo-ponte.webp` = ponte branca + ondas azuis no escuro, `logo-ponte-claro.webp` = ponte #0b1b2a no
+  claro; 168×108, recortados da imagem que ele mandou, `.mp-escuro`/`.mp-claro`; ele recusou o desenho em SVG);
   tocar sobe para o começo do Diário.
   No Explorar some (`body.aba-explorar`, posto pelo `trocarAba`). Comunidade (mural.html) e Perfil (usuarios.html): marca
   saiu (`.topo-meio`, espaço vazio). As outras páginas (Início, vitrines, institucionais) continuam com a marca escrita.
