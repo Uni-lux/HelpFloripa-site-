@@ -44,14 +44,14 @@
 .mu-pub-tx b { font-size: 15px; }
 .mu-pub-tx small { color: var(--muted); font-size: 12.5px; }
 .mu-pub-seta { color: var(--muted); }
-.mu-pub-nota { margin: 0; padding: 6px 18px calc(16px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 12.5px; }
+.mu-pub-nota { margin: 0; padding: 6px 18px calc(16px + var(--sab, env(safe-area-inset-bottom, 0px))); color: var(--muted); font-size: 12.5px; }
 @media (max-width: 699px) {
   .mu-folha { place-items: end stretch; padding: 0; }
   .mu-folha .folha-caixa { width: 100%; border-radius: 22px 22px 0 0; border-bottom: 0; }
 }
 
 /* ---------- filtros e ordem ---------- */
-.mu-barra { position: sticky; top: calc(var(--topo, 60px) + env(safe-area-inset-top)); z-index: 5; margin: 0 -16px 8px; padding: 6px 16px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); display: grid; gap: 8px; }
+.mu-barra { position: sticky; top: calc(var(--topo, 60px) + var(--sat, env(safe-area-inset-top, 0px))); z-index: 5; margin: 0 -16px 8px; padding: 6px 16px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); display: grid; gap: 8px; }
 .mu-filtros { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
 .mu-filtros::-webkit-scrollbar { display: none; }
 .mu-chip { --cc: var(--mu); flex: none; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; transition: background .15s, border-color .15s; }

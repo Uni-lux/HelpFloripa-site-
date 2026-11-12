@@ -19,6 +19,7 @@ export function ligarQuadro() {
   if (ligado) return;
   ligado = true;
   const S = casca();
+  if (S) S.insets?.(window); // faixa do sistema (Android/iPhone): dentro do quadro o env(safe-area-inset-*) é 0
   if (!S) {
     // Página aberta sozinha: a barra leva para a rede (lá a troca de aba é instantânea).
     if (semRede() || window.top !== window) return;

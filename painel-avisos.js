@@ -18,7 +18,7 @@ import { docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { lerReacoesFlash, textoFlash } from "./flash-avisos.js?v=3";
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { criarLista, svg, toastNt, categoriaLigada, categoriaDe } from "./avisos-lista.js?v=19";
-import { ligarPuxar } from "./puxar-atualizar.js?v=5";
+import { ligarPuxar } from "./puxar-atualizar.js?v=6";
 import { haNovidade } from "./novidades.js?v=1";
 
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === "number" ? ts : 0);

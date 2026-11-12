@@ -3,8 +3,8 @@
 // módulo e a página da Comunidade também (sem carregar o rede.js). Estilo próprio, injetado só quando a página não
 // tem o rede.css (que já traz o mesmo estilo).
 // =====================================================
-import { ligarQuadro, casca } from "./quadro-rede.js?v=2";
-import { ligarDeslizarFlash } from "./deslizar-flash.js?v=11";
+import { ligarQuadro, casca } from "./quadro-rede.js?v=3";
+import { ligarDeslizarFlash } from "./deslizar-flash.js?v=12";
 export const ITENS_BARRA = [
   ["diario", "feed.html", "feed", "Diário"],
   ["explorar", "feed.html?aba=explorar", "bussola", "Explorar"],
@@ -19,10 +19,10 @@ const ICONES = {
   chat: '<path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/>'
 };
 const CSS = `
-body.com-barra { padding-bottom: calc(92px + env(safe-area-inset-bottom)); } 
-/* Esmaecido atrás da barra de baixo: o que rola some aos poucos antes de chegar nela (antes um cartão com borda, como o    "Estatísticas do perfil", ficava colado na barra e parecia uma segunda barra). */ body.com-barra::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1099; pointer-events: none;   height: calc(128px + env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg, #070b0e) 85%, transparent) 38%, var(--bg, #070b0e) 58%); } 
+body.com-barra { padding-bottom: calc(92px + var(--sab, env(safe-area-inset-bottom, 0px))); } 
+/* Esmaecido atrás da barra de baixo: o que rola some aos poucos antes de chegar nela (antes um cartão com borda, como o    "Estatísticas do perfil", ficava colado na barra e parecia uma segunda barra). */ body.com-barra::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1099; pointer-events: none;   height: calc(128px + var(--sab, env(safe-area-inset-bottom, 0px))); background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg, #070b0e) 85%, transparent) 38%, var(--bg, #070b0e) 58%); } 
 
-.barra-rede { position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 1100;
+.barra-rede { position: fixed; left: 50%; bottom: calc(10px + var(--sab, env(safe-area-inset-bottom, 0px))); transform: translateX(-50%); z-index: 1100;
   width: min(460px, calc(100% - 20px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 6px;
   border-radius: 22px; background: color-mix(in srgb, var(--panel, #0f161b) 97%, transparent); border: 1px solid var(--line, rgba(255,255,255,.1));
   box-shadow: 0 12px 30px rgba(0,0,0,.25); -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px); }
@@ -37,9 +37,9 @@ body.com-barra { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 .barra-rede .ponto-badge { position: absolute; top: 0; right: calc(50% - 22px); }
 /* Barra de baixo no jeito do X (12/11/2026, pedido dele): de ponta a ponta, só ícones (o nome fica para o leitor de tela),
    linha fina em cima e uma linha curta sobre o item ativo. Preta no tema escuro, branca no claro. */
-body.com-barra { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+body.com-barra { padding-bottom: calc(64px + var(--sab, env(safe-area-inset-bottom, 0px))); }
 body.com-barra::after { display: none; }
-.barra-rede { left: 0; right: 0; bottom: 0; transform: none; width: auto; max-width: none; margin: 0; padding: 0 4px env(safe-area-inset-bottom);
+.barra-rede { left: 0; right: 0; bottom: 0; transform: none; width: auto; max-width: none; margin: 0; padding: 0 4px var(--sab, env(safe-area-inset-bottom, 0px));
   border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--panel); box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none; will-change: transform; }
 .barra-rede a, .barra-rede button { height: 54px; padding: 0; border-radius: 0; place-items: center; align-content: center; background: none !important; box-shadow: none !important; color: var(--muted); }
@@ -56,8 +56,12 @@ body.com-barra::after { display: none; }
 :root[data-theme="dark"] .barra-rede [aria-current="page"]::before { background: #fff; }
 :root[data-theme="dark"] .barra-rede [aria-current="page"] .mini-av { box-shadow: 0 0 0 2px #000, 0 0 0 3.5px #fff; }
 @media (hover: hover) { .barra-rede a:hover { color: var(--text); } }
-body.com-barra .fab-hf { bottom: calc(72px + env(safe-area-inset-bottom)); }
-body.com-barra .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
+body.com-barra .fab-hf { bottom: calc(72px + var(--sab, env(safe-area-inset-bottom, 0px))); }
+body.com-barra .toast { bottom: calc(72px + var(--sab, env(safe-area-inset-bottom, 0px))); }
+/* Barras translúcidas como no X (12/11/2026): o conteúdo passa por baixo do topo e da barra de baixo e aparece
+   através delas; a barra vai até o fim da tela (por baixo da faixa de gestos do Android, viewport-fit=cover). */
+.barra-rede, :root[data-theme="dark"] .barra-rede { background: rgba(255, 255, 255, .78); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
+:root[data-theme="dark"] .barra-rede { background: rgba(0, 0, 0, .62); }
 `;
 function estilo() {
   if (document.getElementById("hf-barra-css") || document.querySelector('link[href*="rede.c' + 'ss"]')) return;
@@ -133,6 +137,9 @@ export function montarBarra(ativo) {
   });
   document.body.appendChild(nav);
   document.body.classList.add("com-barra");
+  // Página com a barra = preto do X no tema escuro: a faixa do sistema acompanha (antes ficava #0f161b).
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m && document.documentElement.dataset.theme === "dark") m.content = "#000000";
   return nav;
 }
 // Marca o item da página atual (o Diário troca entre Diário e Explorar sem recarregar).
