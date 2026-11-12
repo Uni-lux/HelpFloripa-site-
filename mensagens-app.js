@@ -7,8 +7,8 @@ import "./sem-menu-imagem.js?v=5";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=10";
-import { ligarPuxar } from "./puxar-atualizar.js?v=4";
+import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=11";
+import { ligarPuxar } from "./puxar-atualizar.js?v=5";
 import { ligarQuadro, casca } from "./quadro-rede.js?v=2";
 import { textoDoFlash, guardarParaAbrir } from "./flash-direto.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
@@ -16,7 +16,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=7";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=8";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=19";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -29,6 +29,7 @@ import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis 
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
+import { corrigirTexto } from "./corretor.js?v=1";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
@@ -37,7 +38,7 @@ import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPra
 // ======================================================
 const CHAVE_CONFIG = "hf-chat-config";
 // Papel de parede padrão: Pontilhado (09/11/2026, pedido do dono: a Ponte saiu do padrão e virou só uma opção).
-const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", veu: 0.55, enterEnvia: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
+const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", veu: 0.55, enterEnvia: true, corretor: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
 const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
 let config = { ...CONFIG_PADRAO };
 try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
@@ -2963,7 +2964,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=96"));
+  return (vitrineMod ||= import("./vitrine.js?v=97"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4008,6 +4009,7 @@ function limparEco() {
 ["input", "compositionend", "keyup"].forEach((ev) => $("texto").addEventListener(ev, () => setTimeout(limparEco, 0)));
 
 async function enviar() {
+  if ($("chipCorretor")) { $("chipCorretor").hidden = true; corretorDispensado = ""; clearTimeout(tCorretor); }
   if (emailPendente(eu)) { mostrarAvisoEmail(eu); toast(MSG_EMAIL); return; }
   if (gravador) { pararGravacao(true); return; }
   const campo = $("texto");
@@ -4164,7 +4166,34 @@ function avisarDigitando() {
   fb.setDoc(refConversa(ativa.id), { digitando: { [eu.uid]: fb.serverTimestamp() } }, { merge: true }).catch(() => {});
 }
 
-$("texto").addEventListener("input", () => { ajustarAltura(); if ($("texto").value.trim()) avisarDigitando(); });
+$("texto").addEventListener("input", () => { ajustarAltura(); if ($("texto").value.trim()) avisarDigitando(); agendarCorretor(); });
+// Corretor (12/11/2026): enquanto escreve, se o corretor acha algo, aparece "Corrigir · N" acima do campo. Tocar abre a
+// revisão (corretor-tela.js), com cada correção para aceitar ou não. "×" esconde até o texto mudar bastante.
+let tCorretor = 0, corretorDispensado = "";
+function agendarCorretor() {
+  clearTimeout(tCorretor);
+  tCorretor = setTimeout(pintarCorretor, 450);
+}
+function pintarCorretor() {
+  const chip = $("chipCorretor"); if (!chip) return;
+  const v = $("texto").value;
+  const palavras = v.trim().split(/\s+/).filter(Boolean).length;
+  if (!config.corretor || palavras < 2 || v.length > 2000 || (corretorDispensado && v.startsWith(corretorDispensado) && v.length - corretorDispensado.length < 12)) { chip.hidden = true; return; }
+  if (corretorDispensado && !v.startsWith(corretorDispensado.slice(0, 8))) corretorDispensado = "";
+  const n = corrigirTexto(v, { modo: "chat" }).total;
+  chip.hidden = !n;
+  if (n) { $("chipCorretorN").textContent = String(n); chip.setAttribute("aria-label", `${n} ${n > 1 ? "correções" : "correção"} no texto: revisar`); }
+}
+$("chipCorretor")?.addEventListener("pointerdown", (e) => e.preventDefault()); // não tira o foco do campo (o teclado fica)
+$("chipCorretor")?.addEventListener("click", async (e) => {
+  const campo = $("texto");
+  if (e.target.closest("#chipCorretorX")) { corretorDispensado = campo.value; $("chipCorretor").hidden = true; return; }
+  const { revisarTexto } = await import("./corretor-tela.js?v=1");
+  const novo = await revisarTexto(campo.value, { modo: "chat", titulo: "Revisar mensagem" });
+  if (novo !== null && novo !== campo.value) { campo.value = novo; ajustarAltura(); }
+  corretorDispensado = campo.value; $("chipCorretor").hidden = true;
+  campo.focus({ preventScroll: true });
+});
 $("texto").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey && config.enterEnvia && !e.isComposing) {
     e.preventDefault();
@@ -4319,7 +4348,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=7");
+  const { ligar } = await import("./chamadas.js?v=8");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

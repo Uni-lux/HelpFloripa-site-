@@ -8,12 +8,12 @@
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { fotoSegura } from "./seguranca.js?v=1";
 import { contarNovas } from "./mensagens-novas.js?v=2";
-import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=24";
+import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=25";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=18";
 import { avisoPlano } from "./planos-base.js?v=16";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=7";
-import "./painel-avisos.js?v=50"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=51"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=4";
 import "./sem-menu-imagem.js?v=5"; // segurar a foto não abre o menu de baixar/compartilhar
 import "./fotos-suaves.js?v=1"; // fotos entram suaves

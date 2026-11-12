@@ -622,6 +622,15 @@ await t("flash: a autora não curte o próprio flash", () => assertFails(setDoc(
 await t("flash: a autora lê as reações; outra pessoa não", async () => { await assertSucceeds(getDocs(collection(ctx("ana"), "stories", "s1", "reacoes"))); await assertFails(getDocs(collection(ctx("edu"), "stories", "s1", "reacoes"))); await assertSucceeds(getDoc(reac("bia"))); });
 await t("flash: quem reagiu apaga a própria reação", () => assertSucceeds(deleteDoc(reac("bia"))));
 await t("stories: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("bia"), "stories", "s1"))));
+await t("notas: só a própria pessoa lê e grava", async () => {
+  const n = { titulo: "Estratégia", texto: "[ ] ligar\n[x] orçamento", cor: "azul", pasta: "Trabalho", fixada: true, arquivada: false, lixeira: 0, prazo: "2026-11-20", criadoEm: 1, em: 2 };
+  await assertSucceeds(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n1"), n));
+  await assertFails(getDoc(doc(ctx("bia"), "notas", "ana", "itens", "n1")));
+  await assertFails(setDoc(doc(ctx("bia"), "notas", "ana", "itens", "n2"), n));
+  await assertFails(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n3"), { ...n, texto: "x".repeat(20001) }));
+  await assertFails(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n4"), { ...n, publica: true }));
+  await assertSucceeds(deleteDoc(doc(ctx("ana"), "notas", "ana", "itens", "n1")));
+});
 await t("rascunhos: só a própria pessoa", async () => { await assertSucceeds(setDoc(doc(ctx("ana"), "rascunhos", "ana", "itens", "r1"), { texto: "ideia", fotos: [], atualizadoEm: serverTimestamp() })); await assertFails(getDoc(doc(ctx("bia"), "rascunhos", "ana", "itens", "r1"))); });
 await t("reação com o autor do comentário certo (para o aviso)", () => assertSucceeds(setDoc(doc(ctx("edu"), "curtidas_comentarios", "c3_edu"), { comentarioId: "c3", uid: "edu", reacao: "👏", comentarioAutorId: "bia", criadoEm: serverTimestamp() })));
 await t("reação com autor do comentário errado é recusada", () => assertFails(setDoc(doc(ctx("dono"), "curtidas_comentarios", "c3_dono"), { comentarioId: "c3", uid: "dono", reacao: "👏", comentarioAutorId: "ana", criadoEm: serverTimestamp() })));
@@ -1558,6 +1567,14 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("sos: quem ajuda desiste (volta a aberto)", () => assertSucceeds(updateDoc(doc(ctx("sc"), "sos", "s1"), { status: "aberto", ajudanteId: "", ajudanteNome: "", aceitoEm: null, atualizadoEm: serverTimestamp() })));
   await t("sos: o Social aceita", () => assertSucceeds(aceitar("sb", "s1")));
   await t("sos: quem ajuda marca resolvido", () => assertSucceeds(updateDoc(doc(ctx("sb"), "sos", "s1"), { status: "resolvido", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  // SOS em etapas (12/11/2026): Social primeiro; depois quem está perto + chamado urgente da equipe
+  await t("sos em etapas: só o Social, escala em 3 min, com equipe", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s5"), sos({ publico: false, equipe: true, escalarMin: 3 }))));
+  await t("sos em etapas: escalar mais de 15 min é recusado", () => assertFails(setDoc(doc(ctx("sa"), "sos", "s6"), sos({ publico: false, equipe: true, escalarMin: 60 }))));
+  await t("sos: chamado urgente na fila de Segurança", async () => { const db = ctx("sa"), b = writeBatch(db); b.set(doc(db, "suporte", "sup-sos"), { prioridade: "urgente", uid: "sa", nome: "Sa", email: "", assunto: "SOS: Mal-estar", categoria: "sos", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario" }); b.set(doc(db, "suporte", "sup-sos", "mensagens", "inicio"), { autorId: "sa", equipe: false, texto: "PEDIDO DE AJUDA (SOS)", em: serverTimestamp() }); await assertSucceeds(b.commit()); });
+  await t("sos em etapas: quem pediu escala (perto + número do chamado)", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s5"), { publico: true, escaladoEm: serverTimestamp(), suporteId: "sup-sos", atualizadoEm: serverTimestamp() })));
+  await t("sos em etapas: não volta a ser só do Social", () => assertFails(updateDoc(doc(ctx("sa"), "sos", "s5"), { publico: false, atualizadoEm: serverTimestamp() })));
+  await t("sos em etapas: outra pessoa não escala", () => assertFails(updateDoc(doc(ctx("sb"), "sos", "s4"), { publico: true, escaladoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("sos: só o número do chamado, sem abrir para a área", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { suporteId: "sup-sos", atualizadoEm: serverTimestamp() })));
   await t("sos: quem pediu cancela", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { status: "cancelado", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
   await t("sos: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("sa"), "sos", "s1"))));
   // Ocorrências

@@ -23,7 +23,7 @@
 .al-urgente small { color: var(--muted); line-height: 1.4; }
 .al-tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 .al-tipo { display: grid; justify-items: center; gap: 4px; padding: 10px 6px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); font: inherit; cursor: pointer; text-align: center; }
-.al-tipo span { font-size: 26px; }
+.al-tipo .hf-ic { margin-bottom: 2px; }
 .al-tipo small { font-size: 12px; line-height: 1.25; }
 .al-tipo[aria-pressed="true"] { border-color: #e5484d; background: color-mix(in srgb, #e5484d 12%, var(--panel)); }
 .al-btn-sos { background: #e5484d; color: #fff; }
@@ -57,3 +57,25 @@
 .al-achado > div { display: grid; gap: 2px; }
 .al-achado small { color: var(--muted); }
 .al-aviso-bo { margin-top: 0; }
+
+/* 12/11/2026: ícones no lugar dos emojis e SOS em etapas (Social → perto + equipe) */
+.al-foto.sem-foto { background: color-mix(in srgb, var(--c, #00adee) 14%, var(--panel)); }
+.al-foto-prev .al-foto.sem-foto .hf-ic, .al-rg-meio .al-foto.sem-foto .hf-ic, .al-achado .al-foto.sem-foto .hf-ic { --t: 40px !important; }
+.al-item .lin > .hf-ic { margin-right: 2px; }
+.al-etapas { list-style: none; margin: 6px 0 4px; padding: 0; display: grid; gap: 0; position: relative; }
+.al-et { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 10px 0 14px; }
+.al-et:not(:last-child)::after { content: ""; position: absolute; left: 20px; top: 52px; bottom: -2px; width: 2px; background: var(--line); }
+.al-et > div { display: grid; gap: 3px; min-width: 0; }
+.al-et b { font-size: 14.5px; }
+.al-et small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.al-et.off { opacity: .55; }
+.al-et.feito > .hf-ic:last-child { margin-top: 10px; }
+.al-et.espera > .hf-ic:first-child { animation: al-pulso 1.6s ease-in-out infinite; }
+@keyframes al-pulso { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--c) 18%, transparent); } }
+.al-falta { color: #ff7a1a; font-weight: 700; font-variant-numeric: tabular-nums; }
+.al-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.al-seg button { min-height: 34px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.al-seg button[hidden] { display: none; }
+.al-seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.al-check-eq { margin-top: 6px; }
+.al-btn-escalar { margin-top: 8px; justify-self: start; min-height: 38px; font-size: 13px; }

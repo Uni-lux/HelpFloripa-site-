@@ -149,8 +149,11 @@ const CSS = `
 @keyframes hflSeta { 0%, 100% { transform: translateX(0); opacity: .4; } 50% { transform: translateX(4px); opacity: 1; } }
 @keyframes hflSetaE { 0%, 100% { transform: translateX(0); opacity: .4; } 50% { transform: translateX(-4px); opacity: 1; } }
 .hfl-ds-bola { position: absolute; left: 50%; top: 7px; width: 62px; height: 62px; margin-left: -31px; border-radius: 50%; display: grid; place-items: center; cursor: grab;
-  background: #fff; color: #0a8fd0; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); transform: translateX(var(--x, 0px)); touch-action: none; }
-.hfl-ds-bola.volta { transition: transform .28s cubic-bezier(.3, 1.5, .5, 1); }
+  background: #fff; color: #0a8fd0; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); touch-action: none; will-change: transform; pointer-events: none; }
+.hfl-desliza { cursor: grab; }
+.hfl-desliza.segurando { cursor: grabbing; }
+.hfl-desliza.segurando .hfl-ds-bola { box-shadow: 0 0 0 8px rgba(255, 255, 255, .14), 0 10px 26px rgba(0, 0, 0, .45); }
+.hfl-ds-dica svg { animation: none !important; }
 .hfl-ds-bola svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 .hfl.tocando .hfl-ds-bola:not(.mexendo) svg { animation: hflTreme 1.6s ease-in-out infinite; }
 @keyframes hflTreme { 0%, 60%, 100% { transform: rotate(0); } 65% { transform: rotate(-14deg); } 70% { transform: rotate(14deg); } 75% { transform: rotate(-10deg); } 80% { transform: rotate(10deg); } 85% { transform: rotate(0); } }
@@ -247,24 +250,82 @@ function montarEntrada(tela, { video, aoAtender, aoRecusar, aoMensagem, aoSilenc
   const ajuda = el("div", "hfl-ds-ajuda"); ajuda.append(el("span", "fim", "Recusar"), el("span", null, "Arraste para o lado"), el("span", "ok", "Atender"));
   caixa.append(rapidos, trilho, ajuda);
   tela.rodape.insertBefore(caixa, tela.bts); tela.bts.hidden = true;
-  // Arrastar a bola
-  let arr = null, feito = false;
-  const max = () => trilho.clientWidth / 2 - 38;
-  const pos = (x) => { bola.style.setProperty("--x", x + "px"); const p = Math.max(-1, Math.min(1, x / max())); trilho.style.setProperty("--p", p.toFixed(3));
-    bola.classList.toggle("p-ok", p > .25); bola.classList.toggle("p-fim", p < -.25); dE.style.opacity = dD.style.opacity = String(1 - Math.min(1, Math.abs(p) * 2)); };
-  bola.addEventListener("pointerdown", (e) => { if (feito) return; arr = { x0: e.clientX, id: e.pointerId }; bola.classList.remove("volta"); bola.classList.add("mexendo"); try { bola.setPointerCapture(e.pointerId); } catch {} });
-  bola.addEventListener("pointermove", (e) => { if (!arr || e.pointerId !== arr.id) return; pos(Math.max(-max(), Math.min(max(), e.clientX - arr.x0))); });
-  const soltar = (e) => {
-    if (!arr || e.pointerId !== arr.id) return;
-    const x = Math.max(-max(), Math.min(max(), e.clientX - arr.x0)); arr = null; bola.classList.remove("mexendo");
-    const p = x / max();
-    if (Math.abs(p) >= .62) { feito = true; pos(p > 0 ? max() : -max()); try { navigator.vibrate?.(20); } catch {} (p > 0 ? aoAtender : aoRecusar)(); return; }
-    bola.classList.add("volta"); pos(0);
+  // Arrastar a bola (12/11/2026, refeito): o dedo pode começar em QUALQUER ponto do trilho (antes só na bola de 62 px), o
+  // movimento é ouvido na janela inteira (não se perde se o dedo sair do trilho nem se o navegador recusar a captura) e
+  // tem reserva com toque (navegadores antigos). Volta, conclusão e as setas são animadas quadro a quadro
+  // (requestAnimationFrame): funcionam mesmo com "remover animações" ligado no celular, que zera transições do CSS.
+  let arr = null, feito = false, xAtual = 0, animando = 0, limpar = () => {};
+  trilho.dataset.semDeslizar = ""; tela.t.dataset.semDeslizar = ""; tela.t.dataset.semPuxar = ""; // nem a troca de abas nem o "puxar" pegam esse gesto
+  const max = () => Math.max(40, trilho.clientWidth / 2 - 38);
+  const pos = (x) => {
+    xAtual = x; bola.style.transform = `translateX(${x}px)`;
+    const p = Math.max(-1, Math.min(1, x / max())); trilho.style.setProperty("--p", p.toFixed(3));
+    bola.classList.toggle("p-ok", p > .25); bola.classList.toggle("p-fim", p < -.25);
+    dE.style.opacity = dD.style.opacity = String(1 - Math.min(1, Math.abs(p) * 2));
   };
-  bola.addEventListener("pointerup", soltar); bola.addEventListener("pointercancel", soltar);
+  const animar = (de, para, ms, mola, fim) => {
+    const id = ++animando, t0 = performance.now();
+    const passo = (t) => {
+      if (id !== animando) return;
+      const k = Math.min(1, (t - t0) / ms);
+      // mola: passa um pouco do ponto e volta (como os celulares); senão, suave no fim
+      const e = mola ? 1 - Math.cos(k * Math.PI * 2.2) * Math.exp(-5 * k) : 1 - Math.pow(1 - k, 3);
+      pos(de + (para - de) * e);
+      if (k < 1) requestAnimationFrame(passo); else { pos(para); fim?.(); }
+    };
+    requestAnimationFrame(passo);
+  };
+  const comecar = (x, id) => {
+    if (feito) return;
+    animando++; arr = { x0: x - xAtual, id };
+    bola.classList.add("mexendo"); trilho.classList.add("segurando");
+    try { navigator.vibrate?.(8); } catch {}
+  };
+  const mover = (x) => { if (arr) pos(Math.max(-max(), Math.min(max(), x - arr.x0))); };
+  const soltar = (x) => {
+    if (!arr) return;
+    const xs = Math.max(-max(), Math.min(max(), x - arr.x0)); arr = null;
+    bola.classList.remove("mexendo"); trilho.classList.remove("segurando");
+    const p = xs / max();
+    if (Math.abs(p) >= .55) {
+      feito = true; try { navigator.vibrate?.(25); } catch {}
+      animar(xs, p > 0 ? max() : -max(), 140, false, () => (p > 0 ? aoAtender : aoRecusar)());
+      return;
+    }
+    animar(xs, 0, 420, true);
+  };
+  if (window.PointerEvent) {
+    trilho.addEventListener("pointerdown", (e) => {
+      if (e.button > 0 || e.target.closest(".hfl-bt")) return; // os botões das pontas continuam sendo toques
+      e.preventDefault(); comecar(e.clientX, e.pointerId);
+      try { trilho.setPointerCapture(e.pointerId); } catch {}
+    });
+    const moveP = (e) => { if (arr && e.pointerId === arr.id) { e.preventDefault(); mover(e.clientX); } };
+    const fimP = (e) => { if (arr && e.pointerId === arr.id) soltar(e.clientX); };
+    addEventListener("pointermove", moveP, { capture: true, passive: false });
+    addEventListener("pointerup", fimP, true); addEventListener("pointercancel", fimP, true);
+    limpar = () => { removeEventListener("pointermove", moveP, { capture: true }); removeEventListener("pointerup", fimP, true); removeEventListener("pointercancel", fimP, true); };
+  } else {
+    trilho.addEventListener("touchstart", (e) => { if (e.target.closest(".hfl-bt")) return; comecar(e.touches[0].clientX, "t"); }, { passive: true });
+    trilho.addEventListener("touchmove", (e) => { if (arr) { e.preventDefault(); mover(e.touches[0].clientX); } }, { passive: false });
+    trilho.addEventListener("touchend", (e) => soltar(e.changedTouches[0].clientX));
+    trilho.addEventListener("touchcancel", (e) => soltar(e.changedTouches[0].clientX));
+  }
+  // Setas que "andam" mostrando para onde arrastar (por quadro: não dependem das animações do sistema).
+  let fase = 0;
+  const setas = () => {
+    if (!caixa.isConnected) return;
+    if (!arr && !feito) {
+      fase = (fase + 1) % 90;
+      [...dD.children].forEach((s, i) => { const k = (Math.sin((fase / 90) * Math.PI * 2 - i * .9) + 1) / 2; s.style.opacity = String(.3 + k * .7); s.style.transform = `translateX(${k * 4}px)`; });
+      [...dE.children].forEach((s, i) => { const k = (Math.sin((fase / 90) * Math.PI * 2 - (2 - i) * .9) + 1) / 2; s.style.opacity = String(.3 + k * .7); s.style.transform = `translateX(${-k * 4}px)`; });
+    }
+    requestAnimationFrame(setas);
+  };
+  requestAnimationFrame(setas);
   return {
     // Atendeu: some a entrada e aparecem os controles da ligação (no mesmo cartão de quem ligou).
-    fechar() { caixa.remove(); tela.bts.hidden = false; },
+    fechar() { limpar(); caixa.remove(); tela.bts.hidden = false; },
     travar() { feito = true; trilho.style.pointerEvents = "none"; bMsg.disabled = true; }
   };
 }

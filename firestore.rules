@@ -1842,7 +1842,7 @@ service cloud.firestore {
       function prioridadeOk(d) {
         let p = d.get('prioridade', 'normal');
         return p == 'normal'
-            || (p == 'urgente' && d.categoria == 'golpe')
+            || (p == 'urgente' && d.categoria in ['golpe', 'sos'])
             || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
                 || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
                     && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
@@ -1851,7 +1851,7 @@ service cloud.firestore {
       // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
       function filaEquipeOk(d) {
         return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
-            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
             && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
             && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }
@@ -1862,7 +1862,7 @@ service cloud.firestore {
                     && request.resource.data.keys().hasOnly(camposChamado())
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
                     && request.resource.data.status == 'aberto'
@@ -1879,7 +1879,7 @@ service cloud.firestore {
                     && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
                     && request.resource.data.abertoPor == request.auth.uid
                     && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
                     && request.resource.data.status == 'respondido'
@@ -2868,6 +2868,20 @@ service cloud.firestore {
       allow delete: if logado() && uid == request.auth.uid;
     }
 
+    // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
+    match /notas/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
+                    && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
+                    && request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
+                    && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
+                    && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
+                    && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+    }
+
     match /rascunhos/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;
       allow create, update: if logado() && uid == request.auth.uid
@@ -3658,7 +3672,8 @@ service cloud.firestore {
       allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
                     || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
       allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm'])
+                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
+                    && d().get('equipe', false) is bool && d().get('escalarMin', 0) is int && d().get('escalarMin', 0) >= 0 && d().get('escalarMin', 0) <= 15
                     && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
                     && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
                     && valorTextoAte(d().get('texto', ''), 300)
@@ -3671,6 +3686,9 @@ service cloud.firestore {
         let dono = r().uid == request.auth.uid;
         let ajudante = r().ajudanteId == request.auth.uid;
         return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
+            // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
+            || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
+                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
             || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
                 && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
             || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)

@@ -4,7 +4,7 @@
 // sem dois atendentes no mesmo chamado. Usado pela página de suporte e pelo painel. Sem dependências.
 // =====================================================
 export const FILAS = {
-  seguranca: { nome: "Segurança", cats: ["golpe", "denuncia"] },
+  seguranca: { nome: "Segurança", cats: ["sos", "golpe", "denuncia"] },
   moderacao: { nome: "Moderação", cats: ["contestacao"] },
   pagamentos: { nome: "Pagamentos e planos", cats: ["pagamento"] },
   negocios: { nome: "Negócios", cats: ["negocio"] },
@@ -16,7 +16,7 @@ export const filaDe = (categoria) => Object.keys(FILAS).find((k) => FILAS[k].cat
 // Prioridade: golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
 export const PRIORIDADES = { urgente: { nome: "Urgente", horas: 2, peso: 3 }, alta: { nome: "Alta", horas: 8, peso: 2 }, normal: { nome: "Normal", horas: 24, peso: 1 } };
 export function prioridadeDe(categoria, nivelPlano = 0) {
-  if (categoria === "golpe") return "urgente";
+  if (categoria === "golpe" || categoria === "sos") return "urgente";
   if (categoria === "pagamento" || categoria === "contestacao" || nivelPlano >= 2) return "alta";
   return "normal";
 }
@@ -24,7 +24,8 @@ const ms = (t) => t?.toMillis?.() ?? (t?.seconds ? t.seconds * 1000 : typeof t =
 // Chamados antigos sem prioridade: calcula pela categoria.
 export const prioridadeChamado = (s, nivelPlano = 0) => (PRIORIDADES[s?.prioridade] ? s.prioridade : prioridadeDe(s?.categoria, nivelPlano));
 // Prazo da primeira resposta: aberto em + horas da prioridade.
-export const prazoDe = (s, nivelPlano = 0) => (ms(s?.criadoEm) || Date.now()) + PRIORIDADES[prioridadeChamado(s, nivelPlano)].horas * 3600e3;
+// SOS (pedido de ajuda de alguém em perigo) tem prazo de 10 minutos, na frente de todo o resto.
+export const prazoDe = (s, nivelPlano = 0) => (ms(s?.criadoEm) || Date.now()) + (s?.categoria === "sos" ? 1 / 6 : PRIORIDADES[prioridadeChamado(s, nivelPlano)].horas) * 3600e3;
 
 const horasTxt = (h) => (h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} dias`);
 // Situação do prazo para a equipe: { atrasado, texto } ("vence em 3 h" / "atrasado há 2 h"). Já respondido = sem prazo.

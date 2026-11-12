@@ -5,7 +5,7 @@
 // Parâmetros: ?para=UID (enviar para alguém), ?id=PRESENTE (abrir), ?gorjeta=CORRIDA (gorjeta para quem levou),
 // ?negocio=ID (enviar um produto desse negócio), ?aba=enviados.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=142";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=143";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
 import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=1";

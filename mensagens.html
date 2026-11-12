@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=28" />
+  <link rel="stylesheet" href="mensagens.css?v=29" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -73,6 +73,7 @@
     <symbol id="i-sino" viewBox="0 0 24 24"><path d="M10 20a2.1 2.1 0 004 0M6 10.5a6 6 0 0112 0v3.6l1.6 2.4H4.4L6 14.1z"/></symbol>
     <symbol id="i-pin-off" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 4 3v2H6v-2l4-3-1-6zM12 15v6M3.5 3.5l17 17"/></symbol>
     <symbol id="i-adicionar" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-varinha" viewBox="0 0 24 24"><path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/></symbol>
     <symbol id="i-emoji" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4.2 4.2 0 007 0"/><circle cx="9.2" cy="10" r=".9" fill="currentColor"/><circle cx="14.8" cy="10" r=".9" fill="currentColor"/></symbol>
     <symbol id="i-figurinha" viewBox="0 0 24 24"><path d="M20 12.5V7a3.5 3.5 0 00-3.5-3.5h-9A3.5 3.5 0 004 7v10a3.5 3.5 0 003.5 3.5H12"/><path d="M20 12.5L12 20.5V16a3.5 3.5 0 013.5-3.5z"/></symbol>
     <symbol id="i-apagar-tecla" viewBox="0 0 24 24"><path d="M8.5 5.5H20a1 1 0 011 1v11a1 1 0 01-1 1H8.5L3 12z"/><path d="M11.5 9.5l5 5M16.5 9.5l-5 5"/></symbol>
@@ -284,6 +285,7 @@
             <div class="txt"><strong id="anexoTipo">Foto</strong><span id="anexoNome"></span></div>
             <button type="button" class="icon-btn" id="cancelarAnexo" aria-label="Remover anexo"><svg class="i"><use href="#i-fechar"/></svg></button>
           </div>
+          <button type="button" class="chip-corretor" id="chipCorretor" hidden aria-label="Revisar o texto antes de enviar"><svg class="i"><use href="#i-varinha"/></svg><span id="chipCorretorTx">Corrigir</span><b id="chipCorretorN"></b><span class="cc-x" id="chipCorretorX" role="button" aria-label="Agora não">×</span></button>
           <div class="composer">
             <div class="caixa-texto" id="caixaTexto">
               <button type="button" class="icon-btn" id="btnEmoji" aria-label="Emojis e figurinhas" title="Emojis e figurinhas" aria-expanded="false"><svg class="i"><use href="#i-emoji"/></svg></button>
@@ -378,6 +380,10 @@
         <label class="cfg-linha">
           <div class="txt">Enter envia a mensagem<small>Com isso desligado, Enter pula linha e você envia pelo botão.</small></div>
           <span class="switch"><input type="checkbox" data-cfg-bool="enterEnvia" /><span></span></span>
+        </label>
+        <label class="cfg-linha">
+          <div class="txt">Sugerir correções ao escrever<small>Aparece “Corrigir” acima do campo quando o corretor acha acentos, abreviações ou erros comuns. Funciona no seu aparelho.</small></div>
+          <span class="switch"><input type="checkbox" data-cfg-bool="corretor" /><span></span></span>
         </label>
         <div class="cfg-linha">
           <div class="txt">Respostas rápidas<small id="rrResumo">Textos prontos para responder com um toque (no menu ⋮ da conversa).</small></div>
@@ -555,6 +561,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=45"></script>
+  <script type="module" src="mensagens-app.js?v=46"></script>
 </body>
 </html>
