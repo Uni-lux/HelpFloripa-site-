@@ -16,7 +16,7 @@ import { casca } from "./quadro-rede.js?v=2";
 const CAMADAS = [
   ".folha.aberta", ".story-visor", ".flash-criar", ".visor-exp", ".reels", "div.hfc", ".hf-confirma-fundo",
   ".pa-pagina", ".foto-grande", ".hfe-fundo", ".esc-lista", ".pv-fundo", ".pl-fundo", ".vt-local-fundo",
-  ".vt-modal", ".hf-den", ".hf-aval", ".gaveta.aberta", ".chat-gaveta.aberta", ".painel.aberto", "dialog[open]",
+  ".vt-modal", ".hf-den", ".hf-aval", ".hfl", ".cr-fundo", ".nt-ed", ".nt-folha-fundo", ".gaveta.aberta", ".chat-gaveta.aberta", ".painel.aberto", "dialog[open]",
 ].join(",");
 // Janela aberta de verdade? As folhas do perfil (usuarios.html) ficam no HTML com aria-modal="true" mesmo FECHADAS:
 // antes qualquer [aria-modal] contava como janela aberta e, por isso, o Perfil não deslizava (04/11/2026).

@@ -160,6 +160,20 @@
       allow delete: if logado() && uid == request.auth.uid;
     }
 
+    // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
+    match /notas/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
+                    && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
+                    && request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
+                    && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
+                    && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
+                    && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+    }
+
     match /rascunhos/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;
       allow create, update: if logado() && uid == request.auth.uid
@@ -177,14 +191,5 @@
       allow read: if logado();
       allow write: if false;
     }
-
-    // ===================================================
-    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
-    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
-    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
-    // a nota de antes sai e a nova entra. A moderação pode recalcular.
-    // ===================================================
-    match /diario_notas/{postId} {
-      allow read: if logado();
 
 // ===== FIM DA PARTE 15 DE 21 =====

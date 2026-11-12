@@ -68,6 +68,9 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     for (const f of flashes.docs) { await apagar("stories_vistos", f.ref.collection("vistos")); await apagar("stories_reacoes", f.ref.collection("reacoes")); }
     await apagar("stories", col("stories").where("autorId", "==", uid));
     await apagar("destaques", col("destaques").where("uid", "==", uid));
+    // Notas pessoais (notas.html) e rascunhos do Diário.
+    await apagar("notas", db.collection(`notas/${uid}/itens`));
+    await apagar("rascunhos", db.collection(`rascunhos/${uid}/itens`));
     // Lembretes de contagem regressiva (os que a pessoa pediu e os pedidos nos flashes dela).
     await apagar("contagem_lembretes", col("contagem_lembretes").where("uid", "==", uid));
     await apagar("contagem_lembretes", col("contagem_lembretes").where("autorId", "==", uid));

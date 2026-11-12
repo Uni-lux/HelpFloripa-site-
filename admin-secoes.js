@@ -6,11 +6,11 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=41";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=43";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=26";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
-import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
+import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, valorPeriodo, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=35";
 import {
@@ -775,7 +775,7 @@ export function suporte(el) {
   const linhas = D.admins.map((a) => [a.id, D.suporte.filter((s) => s.atendidoPor === a.id && ms(s.atualizadoEm) >= hoje0).length, D.suporte.filter((s) => s.responsavel === a.id && s.status !== "fechado").length]).sort((x, y) => y[1] - x[1]);
   ritmo.append(h("summary", null, "Atendimento da equipe hoje"), ...linhas.map(([u, r, c]) => { const l = h("div", "ad-sup-ritmo-l"); l.append(avatar({ ...pessoa(u), nome: nomeEquipe(u) }), h("span", null, nomeEquipe(u)), h("b", null, `${r} respondidos`), h("small", null, `${c} com ${nomeEquipe(u).split(" ")[0]}`)); return l; }));
   const lista = h("div", "ad-lista"); el.append(filas, fil, ritmo, lista);
-  const CAT = { conta: "Conta", pagamento: "Pagamento", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", negocio: "Negócio", sugestao: "Sugestão", outro: "Outro" };
+  const CAT = { sos: "SOS urgente", conta: "Conta", pagamento: "Pagamento", golpe: "Golpe", denuncia: "Denúncia", contestacao: "Contestação", negocio: "Negócio", sugestao: "Sugestão", outro: "Outro" };
   const COR_PRIO = { urgente: "critico", alta: "atencao", normal: "neutro" };
   function pintar() {
     const abertoOu = (s) => s.status !== "fechado";
@@ -786,7 +786,7 @@ export function suporte(el) {
     lista.replaceChildren(...(l.length ? l.slice(0, 300).map((s) => {
       const c = h("article", "ad-item clicavel"); c.dataset.item = `suporte:${s.id}`; c.tabIndex = 0;
       const top = h("div", "cab"); const pr = prioridadeChamado(s, nivelDe(s)), pz = situacaoPrazo(s, nivelDe(s));
-      top.append(selo(PRIO_SUP[pr].nome, COR_PRIO[pr]), selo(FILAS[filaDe(s.categoria)].nome, "neutro"), selo(CAT[s.categoria] || s.categoria, s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "neutro"));
+      top.append(selo(PRIO_SUP[pr].nome, COR_PRIO[pr]), selo(FILAS[filaDe(s.categoria)].nome, "neutro"), selo(CAT[s.categoria] || s.categoria, s.categoria === "sos" ? "critico" : s.categoria === "contestacao" || s.categoria === "golpe" ? "serio" : "neutro"), selo(s.status === "aberto" ? "Esperando a equipe" : s.status === "respondido" ? "Respondido" : "Fechado", s.status === "aberto" ? "atencao" : s.status === "respondido" ? "info" : "neutro"));
       if (pz) top.append(selo(pz.texto, pz.atrasado ? "critico" : pz.perto ? "atencao" : "neutro"));
       if (s.escalonadoPara) top.append(selo(`Escalado: ${s.escalonadoPara === "donos" ? "donos" : "moderação"}`, "serio"));
       if (proSup(s)) top.append(selo("PRO · prioridade", "info"));

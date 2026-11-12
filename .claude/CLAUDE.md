@@ -2232,6 +2232,43 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Quem pode me mandar mensagem?". Teste `t-solicitacoes.mjs` (27). **Conta privada (pedido dele no mesmo print) NÃO feita:**
   perguntado o que deve ficar só para seguidores aprovados (é uma etapa à parte: pedidos para seguir + filtro em Diário,
   Flash, perfil, listas e regras).
+- **Ligação, corretor, Notas, SOS em etapas e vale-presente (12/11/2026, PR depois do #193, MUDA REGRAS — não publicadas;
+  21 partes, 1037 testes):** prints dele. (1) **Arrastar para atender** (chamadas.js `montarEntrada`): o dedo começa em
+  qualquer ponto do trilho (antes só na bola), movimento ouvido na janela (captura), reserva com toque, soltar depois de 55%
+  vale; volta com mola, conclusão e setas animadas por requestAnimationFrame (funcionam com "remover animações", que zera as
+  transições do CSS); `.hfl` com `data-sem-deslizar`/`data-sem-puxar` e nas CAMADAS do deslizar-flash.js. Teste
+  `t-ligacao-arrastar.mjs` (toque real pelo CDP + reduced motion; o código antigo falhava começando fora da bola).
+  (2) **Corretor** `corretor.js` (sem deps, por regras, no aparelho): acentos (dicionário + terminações -ção/-ções/-ência/
+  -ância/-ável/-ível/-óvel/-zão), abreviações (vc, tbm, pq, hj, vlw...), erros comuns (concerteza, derrepente, seje, menas,
+  mecher...), concordância frequente (a gente vamos, nós vai, fazem 3 anos, houveram, para mim fazer, entre eu e), "e/é",
+  "esta/está", "ai/aí", "nos/nós", "tem/têm" com contexto, pontuação (espaços, "!!!!!!", vírgula antes de "mas", "?" nas
+  perguntas, ponto final só em publicação), maiúsculas e nomes (Brasil, Florianópolis), letras/palavras repetidas; links,
+  @, #, e-mails, domínios e números protegidos. `corrigirTexto(texto, {modo, pular, abreviacoes})` → mudanças com chave
+  "de→para"; `corretor-tela.js` `revisarTexto` = folha "Revisar texto" (prévia com riscado/destacado, correções por tipo com
+  chave liga/desliga, no chat "Escrever por inteiro | Manter abreviações"). Diário: "Formatar texto" virou **Corrigir e
+  formatar** (corretor → formatarTexto) também na edição. Mensagens: chip `#chipCorretor` "Corrigir · N" acima do campo
+  (450 ms depois de digitar, × dispensa; Configurações do chat "Sugerir correções ao escrever" = `config.corretor`).
+  (3) **Notas** `notas.html/js/css` (menu → Minha conta): pastas (Pessoal, Ideias, Estratégias, Trabalho + novas), fixar,
+  7 cores, arquivo, lixeira 30 dias com Desfazer, texto com "[ ] tarefa" (marca no cartão e no modo Ver), "• lista",
+  "# título", "**negrito**", "---", #etiquetas, Enter continua a lista, prazo (Hoje/Amanhã/Sexta/escolher) com sugestão pelo
+  texto (`prazoNoTexto`: amanhã, sexta, 14/11, dia 20), resumo (tarefas abertas, atrasadas, hoje, semana), 6 modelos
+  (Estratégia, Plano da semana, Reunião, Metas, Ideia de negócio, Compras), busca sem acento, ordenar, duplicar, copiar,
+  compartilhar, baixar .txt, corretor. Guarda no aparelho (`hf-notas-<uid>`) e na conta `notas/{uid}/itens/{id}` (regra
+  nova, só o dono; sem ela avisa "guardadas neste aparelho"). Limpeza de conta apaga notas e rascunhos. Teste `t-notas.mjs`.
+  (4) **SOS em etapas** (alertas.js): 1) Social na hora; 2) quem está perto "Se ninguém do Social aceitar em 3 min"
+  (padrão com Social) | Na hora (padrão sem Social) | Não avisar; 3) equipe de segurança (`sos.equipe`, padrão ligado) =
+  chamado `suporte` categoria `sos` prioridade urgente (fila Segurança, prazo 10 min em `prazoDe`) com mapa e link. A
+  escalada é feita pelo aparelho de quem pediu (tela do SOS ou a lista "Seus pedidos", `precisaEscalar`/`escalarSos`;
+  botão "Avisar quem está perto agora"); etapas ao vivo `etapasSos` com contagem. Regras: `sos` create com `equipe`/
+  `escalarMin` (0–15), dono grava `publico: true`/`escaladoEm`/`suporteId`; `suporte` aceita `sos`. Sem servidor: se quem
+  pediu fechar o app antes dos 3 min, a escalada só acontece quando ele abrir de novo (Cloud Function resolveria; Blaze).
+  (5) **Ícones no lugar dos emojis** (`icones-hf.js`, sem deps: `iconeHtml/iconeEl`, `iconeSos`, `iconeMimo`,
+  `iconePresente`, `iconeEspecie`) em SOS, pets, presentes (tipos, 12 mimos, cartão, lista, "quem pode mandar") e nos
+  cartões do Mensagens; resumos das mensagens sem emoji. (6) **Vale-presente** (`presentes.tipo: "vale"`): valor para usar em
+  qualquer negócio (serviço, saúde, oficina, imóveis...), dono conferido na regra; "Dar de presente" aparece em todos os perfis
+  de negócio da vitrine (delivery/loja com itens = produto; os outros = `presentes.html?negocio=ID&tipo=vale`); quem recebe
+  toca "Usar o vale" → cartão `acao: "usar"` para o negócio no Mensagens (contexto do negócio: `mandarMensagem` aceita
+  `contexto`) e marca usado. Teste `t-sos-etapas.mjs` (21).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2294,7 +2331,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (21 partes em `_regras/`, 1024 testes; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (21 partes em `_regras/`, 1037 testes; inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

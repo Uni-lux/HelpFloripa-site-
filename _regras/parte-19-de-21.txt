@@ -1,3 +1,14 @@
+      // Quem leva avança as etapas, com o PIN onde precisa.
+      function etapaOk(k, st, ns) {
+        return souEu('entregadorId')
+            && k.hasOnly(['status', 'chegouEm', 'coletadoEm', 'concluidaEm', 'pinInformado', 'atualizadoEm', 'pos'])
+            && n().atualizadoEm == request.time
+            && ((st == 'aceita' && ns == 'chegou' && n().chegouEm == request.time)
+                || (st == 'chegou' && ns == 'em_rota' && n().coletadoEm == request.time
+                    && (c().pinEm != 'embarque' || pinCerto()))
+                || (st == 'em_rota' && ns == 'concluida' && n().concluidaEm == request.time
+                    && (c().pinEm != 'entrega' || pinCerto())));
+      }
       // Avaliação de quem pediu (uma vez, depois de concluído), com o resumo de notas de quem levou na mesma gravação.
       function avaliacaoOk(st) {
         return souEu('clienteId') && st == 'concluida' && c().get('avaliacao', null) == null
@@ -115,54 +126,4 @@
       let c = get(/databases/$(database)/documents/corridas/$(d.corridaId)).data;
       return d.tipo == 'pix' && c.clienteId == request.auth.uid && c.entregadorId == d.para && c.status == 'concluida';
     }
-    match /presentes/{id} {
-      function d() { return request.resource.data; }
-      function r() { return resource.data; }
-      allow get, list: if logado() && (r().de == request.auth.uid || r().para == request.auth.uid);
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
-                    && d().de == request.auth.uid && d().para is string && d().para != request.auth.uid
-                    && !bloqueioEntre(request.auth.uid, d().para)
-                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega']
-                    && d().status == 'pendente'
-                    && valorTextoAte(d().get('mensagem', ''), 300) && valorTextoAte(d().get('deNome', ''), 80) && valorTextoAte(d().get('paraNome', ''), 80)
-                    && (d().tipo != 'mimo' || d().get('mimo', '').matches('^[a-z]{2,20}$'))
-                    && (d().tipo == 'mimo' || (d().valor is number && d().valor >= 0 && d().valor <= 2000))
-                    && (d().tipo in ['mimo', 'produto'] || d().valor >= 1)
-                    && (d().tipo != 'produto'
-                        ? !('itens' in d())
-                        : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
-                           && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
-                    && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
-                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
-      function presenteMuda(k, st, ns) {
-        return d().atualizadoEm == request.time && (
-             // quem recebe aceita ou recusa
-             (request.auth.uid == r().para && st == 'pendente' && ns in ['aceito', 'recusado']
-              && k.hasOnly(['status', 'respondidoEm', 'atualizadoEm']) && d().respondidoEm == request.time)
-             // quem mandou desiste antes da resposta
-          || (request.auth.uid == r().de && st == 'pendente' && ns == 'cancelado' && k.hasOnly(['status', 'atualizadoEm']))
-             // quem recebe usa: corrida/entrega (o pedido é criado na mesma gravação) ou o pedido na loja
-          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['corrida', 'entrega']
-              && k.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time
-              && getAfter(/databases/$(database)/documents/corridas/$(d().corridaId)).data.presenteId == id)
-          || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo == 'produto'
-              && k.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time)
-             // pago/recebido: qualquer um dos dois fecha
-          || (request.auth.uid in [r().de, r().para] && st in ['aceito', 'usado'] && ns == 'concluido'
-              && k.hasOnly(['status', 'concluidoEm', 'atualizadoEm']) && d().concluidoEm == request.time));
-      }
-      allow delete: if false;
-    }
-
-    // Localização em tempo real no chat (como no WhatsApp): só os dois da conversa leem; quem compartilha atualiza a
-    // posição enquanto o site está aberto, até a hora escolhida (no máximo 8 h), e pode parar antes.
-    match /locais_vivos/{id} {
-      function d() { return request.resource.data; }
-      function coordOk() {
-        return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
-            && d().precisao is number && d().precisao >= 0 && d().rumo is number;
-      }
 // ===== FIM DA PARTE 19 DE 21 =====

@@ -17,13 +17,13 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=142";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=143";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
-import { ligarVoltar } from "./voltar.js?v=14";
+import { ligarVoltar } from "./voltar.js?v=15";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
-import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=1";
+import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=2";
 import { palavrasDe } from "./busca.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
@@ -40,6 +40,8 @@ const CATS = [
   ["outro", "Outro assunto", "Qualquer outra coisa", "ajuda", "#7f8c96", ""]
 ];
 const CAT = Object.fromEntries(CATS.map((c) => [c[0], c]));
+// Aberto pelo SOS (alertas.js), não aparece na lista para escolher.
+CAT.sos = ["sos", "SOS · pedido de ajuda", "Urgente", "alerta", "#e5484d", ""];
 const nomeCat = (k) => CAT[k]?.[1] || "Outro";
 const ST = { aberto: "Esperando a equipe", atendimento: "Em atendimento", respondido: "A equipe respondeu", fechado: "Encerrado" };
 const MOTIVOS = [["demora", "Demorou demais para responder"], ["grosseria", "Fui tratado com grosseria"], ["nao_resolveu", "Não resolveu o meu problema"], ["errado", "Passou informação errada"], ["dados", "Pediu senha, código ou dados pessoais"], ["outro", "Outro motivo"]];

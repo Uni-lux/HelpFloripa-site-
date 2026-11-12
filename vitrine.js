@@ -17,8 +17,8 @@ import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, med
 import { abrirQueixa } from "./queixas.js?v=19";
 import { docComValidade, docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=22";
-import { ligarPuxar } from "./puxar-atualizar.js?v=4";
-import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=10";
+import { ligarPuxar } from "./puxar-atualizar.js?v=5";
+import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=11";
 import { fundoSuave } from "./fotos-suaves.js?v=1"; // fotos dos cartões entram suaves (o brilho fica até a foto chegar)
 import { camposEndereco, textoCidade, cidadesDe, NOME_UF, semAcento, cidadePorCodigo } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
@@ -1239,8 +1239,10 @@ export function abrirDetalhe(n, opcoes = {}) {
     linkExt("rota", "Como chegar", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end)}`, "rota");
   }
   // Presente: um lanche ou produto desta loja para alguém (presentes.html).
-  if ((tipo === "delivery" || tipo === "lojinha") && (n.itens || []).some((i) => Number(i.preco) > 0) && neg.donoId !== window.firebaseAuth?.currentUser?.uid) {
-    const a = el("a", "vd-link vd-presente"); a.href = `presentes.html?negocio=${encodeURIComponent(neg.id)}`;
+  // Vale-presente (12/11/2026): nos outros perfis (serviço, saúde, oficina, imóveis), um valor para usar ali.
+  if (neg.donoId !== window.firebaseAuth?.currentUser?.uid && neg.id) {
+    const comItens = (tipo === "delivery" || tipo === "lojinha") && (n.itens || []).some((i) => Number(i.preco) > 0);
+    const a = el("a", "vd-link vd-presente"); a.href = `presentes.html?negocio=${encodeURIComponent(neg.id)}${comItens ? "" : "&tipo=vale"}`;
     const sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"); sv.setAttribute("class", "i s"); sv.setAttribute("viewBox", "0 0 24 24"); sv.setAttribute("aria-hidden", "true");
     sv.innerHTML = '<rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 00-1-1h-17a1 1 0 00-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/>';
     a.append(sv, el("span", null, "Dar de presente"));

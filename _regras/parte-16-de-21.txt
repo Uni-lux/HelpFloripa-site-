@@ -1,3 +1,12 @@
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
       function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
       function contaCerta() {
         let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
@@ -195,9 +204,5 @@
       function tagsOk(d) {
         return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
             && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
-      }
-      function marcadosOk(d) {
-        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
-            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
       }
 // ===== FIM DA PARTE 16 DE 21 =====

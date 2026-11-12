@@ -5,11 +5,13 @@
 // Parâmetros: ?para=UID (enviar para alguém), ?id=PRESENTE (abrir), ?gorjeta=CORRIDA (gorjeta para quem levou),
 // ?negocio=ID (enviar um produto desse negócio), ?aba=enviados.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=142";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=143";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
-import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=1";
+import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=2";
 import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=4";
+import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=1";
+const NOMES_TIPO_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 
 const params = new URLSearchParams(location.search);
 let aba = params.get("aba") === "enviados" ? "enviados" : "recebidos";
@@ -27,7 +29,7 @@ const corpo = () => $("prCorpo");
   ouvir();
   pintarQuemPode();
   if (params.get("gorjeta")) abrirGorjeta(params.get("gorjeta"));
-  else if (params.get("para") || params.get("negocio")) abrirEnviar({ para: params.get("para") || "", negocio: params.get("negocio") || "" });
+  else if (params.get("para") || params.get("negocio")) abrirEnviar({ para: params.get("para") || "", negocio: params.get("negocio") || "", tipo: params.get("tipo") === "vale" ? "vale" : "" });
   if (params.get("id")) abrirPresente(params.get("id"));
 })();
 
@@ -50,7 +52,7 @@ function pintar() {
   c.replaceChildren();
   if (!l.length) {
     const v = h("div", "ent-vazio");
-    v.append(h("div", "pr-vazio-ic", "🎁"), h("p", null, aba === "recebidos" ? "Você ainda não recebeu presentes." : "Você ainda não enviou presentes."));
+    v.append(iconeEl("presente", { cor: "#e5487f", tam: 34, fundo: true }), h("p", null, aba === "recebidos" ? "Você ainda não recebeu presentes." : "Você ainda não enviou presentes."));
     if (aba === "enviados") v.appendChild(botao("Enviar o primeiro", "ent-btn", () => abrirEnviar({})));
     c.appendChild(v);
     return;
@@ -63,7 +65,7 @@ function linhaPresente(p) {
   const recebi = p.para === eu.uid;
   const b = h("button", "ent-item pr-item"); b.type = "button"; b.dataset.presente = p.id;
   const lin = h("div", "lin");
-  const e = h("span", "pr-emoji", emojiPresente(p));
+  const [icn, cor] = iconePresente(p); const e = iconeEl(icn, { cor, tam: 22, fundo: true });
   const t = h("span", "pr-tx");
   t.append(h("b", null, resumoPresente(p)), h("small", null, `${recebi ? "De " + (p.deNome || "alguém") : "Para " + (p.paraNome || "alguém")} · ${dataCurta(p.criadoEm)}`));
   const st = STATUS_PRESENTE[p.status] || ["", ""];
@@ -89,7 +91,7 @@ async function abrirQuemPode() {
   const ops = h("div", "ent-ops");
   for (const [k, [nome, desc]] of Object.entries(QUEM_PODE)) {
     const b = h("button", "ent-op"); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === atual)); b.dataset.quem = k;
-    const i = h("span", "ic", k === "todos" ? "🌎" : k === "seguindo" ? "👥" : k === "vinculos" ? "💞" : "🚫");
+    const i = iconeEl({ todos: "alvo", seguindo: "pessoas", vinculos: "coracao", ninguem: "escudo" }[k], { cor: { todos: "#00adee", seguindo: "#2fbf71", vinculos: "#e5487f", ninguem: "#8a97a1" }[k], tam: 20, fundo: true });
     const tx = h("span"); tx.append(h("b", null, nome), h("small", null, desc));
     b.append(i, tx, h("span"));
     b.addEventListener("click", async () => {
@@ -133,6 +135,8 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     let falta = !S.para ? "Escolha para quem" : !S.tipo ? "Escolha o presente" : "";
     if (!falta && ["pix", "corrida", "entrega"].includes(S.tipo) && !(S.valor >= 1)) falta = "Escolha o valor";
     if (!falta && S.tipo === "produto" && !Object.values(S.qtd).some((q) => q > 0)) falta = "Escolha os itens";
+    if (!falta && S.tipo === "vale" && !S.negocio) falta = "Escolha o negócio";
+    if (!falta && S.tipo === "vale" && !(S.valor >= 1)) falta = "Escolha o valor";
     enviar.disabled = !!falta;
     enviar.textContent = falta || (corridaId ? `Enviar gorjeta de ${reaisP(S.valor)}` : `Enviar para ${S.para.nome?.split(" ")[0] || "a pessoa"}`);
   };
@@ -196,10 +200,10 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     const ops = h("div", "ent-ops");
     for (const [k, t] of Object.entries(TIPOS_PRESENTE)) {
       const b = h("button", "ent-op"); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(S.tipo === k)); b.dataset.tipo = k;
-      const i = h("span", "ic", emojiPresente({ tipo: k, mimo: "coracao" })); i.style.fontSize = "24px";
+      const [icn, cor] = k === "mimo" ? ["presente", "#e5487f"] : iconePresente({ tipo: k }); const i = iconeEl(icn, { cor, tam: 22, fundo: true });
       const tx = h("span"); tx.append(h("b", null, t.nome), h("small", null, t.desc));
       b.append(i, tx, h("span"));
-      b.addEventListener("click", () => { S.tipo = k; if (k !== "produto") S.negocio = null; pintarTipo(); pintarDetalhe(); atualizar(); });
+      b.addEventListener("click", () => { if (S.tipo !== k) { S.negocio = null; S.qtd = {}; if (k !== "pix") S.valor = 0; } S.tipo = k; pintarTipo(); pintarDetalhe(); atualizar(); });
       ops.appendChild(b);
     }
     passoTipo.appendChild(ops);
@@ -221,9 +225,10 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     if (S.tipo === "mimo") {
       passoDetalhe.appendChild(h("h3", null, "Escolha o mimo"));
       const g = h("div", "pr-mimos");
-      for (const [k, [e, nome]] of Object.entries(MIMOS)) {
+      for (const [k, [, nome]] of Object.entries(MIMOS)) {
         const b = h("button", "pr-mimo"); b.type = "button"; b.dataset.mimo = k; b.setAttribute("aria-pressed", String(S.mimo === k)); b.setAttribute("aria-label", nome);
-        b.append(h("span", null, e), h("small", null, nome.replace(/^Uma? /, "")));
+        const [icn, cor] = iconeMimo(k);
+        b.append(iconeEl(icn, { cor, tam: 26, fundo: true, redondo: true }), h("small", null, nome.replace(/^Uma? /, "")));
         b.addEventListener("click", () => { S.mimo = k; g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
         g.appendChild(b);
       }
@@ -234,28 +239,31 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     } else if (S.tipo === "corrida" || S.tipo === "entrega") {
       passoDetalhe.append(h("h3", null, "Valor máximo"), chipsValor([20, 30, 50, 100]),
         nota(`A pessoa pede a ${S.tipo} quando quiser (até esse valor) e você paga direto para quem levar. Você acompanha no mapa.`));
-    } else if (S.tipo === "produto") {
-      passoDetalhe.appendChild(h("h3", null, "De qual loja ou delivery"));
-      if (S.negocio) return pintarItens();
-      const campo = h("input"); campo.type = "search"; campo.placeholder = "Nome da lanchonete ou loja"; campo.id = "prLoja";
-      const l = h("label", "ent-campo"); l.append(h("span", null, "Lanches, roupas, flores, presentes..."), campo);
+    } else if (S.tipo === "produto" || S.tipo === "vale") {
+      const vale = S.tipo === "vale";
+      passoDetalhe.appendChild(h("h3", null, vale ? "Em qual negócio" : "De qual loja ou delivery"));
+      if (S.negocio) return vale ? pintarVale() : pintarItens();
+      const campo = h("input"); campo.type = "search"; campo.placeholder = vale ? "Nome, área ou cidade do negócio" : "Nome da lanchonete ou loja"; campo.id = "prLoja";
+      const l = h("label", "ent-campo"); l.append(h("span", null, vale ? "Salão, oficina, consulta, aula, restaurante, loja..." : "Lanches, roupas, flores, presentes..."), campo);
       const res = h("div", "ent-lista");
       passoDetalhe.append(l, res);
       let todos = [];
       try {
-        const s = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "in", ["delivery", "lojinha"]), fb.limit(120)));
-        todos = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => Array.isArray(n.itens) && n.itens.some((i) => Number(i.preco) > 0) && !(n.ocultoAte && ms(n.ocultoAte) > Date.now()));
+        const q = vale ? fb.query(fb.collection(fb.db, "negocios"), fb.limit(200)) : fb.query(fb.collection(fb.db, "negocios"), fb.where("tipo", "in", ["delivery", "lojinha"]), fb.limit(120));
+        const s = await fb.getDocs(q);
+        todos = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((n) => (vale || (Array.isArray(n.itens) && n.itens.some((i) => Number(i.preco) > 0))) && !(n.ocultoAte && ms(n.ocultoAte) > Date.now()) && n.donoId !== eu.uid);
+        if (negocio && !todos.some((x) => x.id === negocio)) { try { const d = await fb.getDoc(fb.doc(fb.db, "negocios", negocio)); if (d.exists()) todos.unshift({ id: d.id, ...d.data() }); } catch {} }
       } catch {}
       const sem = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
       const mostrar = () => {
         const q = sem(campo.value.trim());
         res.replaceChildren();
         const l2 = todos.filter((n) => !q || sem(`${n.nome} ${n.categoria} ${n.cidade} ${n.bairro}`).includes(q)).slice(0, 12);
-        if (!l2.length) { res.appendChild(h("p", "ent-vazio", todos.length ? "Nenhuma loja com esse nome." : "Nenhuma loja com produtos à venda ainda.")); return; }
+        if (!l2.length) { res.appendChild(h("p", "ent-vazio", todos.length ? "Nenhum negócio com esse nome." : vale ? "Nenhum negócio encontrado." : "Nenhuma loja com produtos à venda ainda.")); return; }
         l2.forEach((n) => {
           const b = h("button", "ent-res"); b.type = "button"; b.dataset.loja = n.id;
           const i = h("span", "ic"); avatar(i, n.foto, n.nome);
-          const tx = h("span"); tx.append(h("b", null, n.nome || "Loja"), h("small", null, [n.tipo === "delivery" ? "Delivery" : "Shopping", n.bairro, n.cidade].filter(Boolean).join(" · ")));
+          const tx = h("span"); tx.append(h("b", null, n.nome || "Loja"), h("small", null, [NOMES_TIPO_NEG[n.tipo] || "Negócio", n.categoriaPersonalizada || "", n.bairro, n.cidade].filter(Boolean).join(" · ")));
           b.append(i, tx);
           b.addEventListener("click", () => { S.negocio = n; S.qtd = {}; pintarDetalhe(); });
           res.appendChild(b);
@@ -265,6 +273,18 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
       if (negocio) { const n = todos.find((x) => x.id === negocio); if (n) { S.negocio = n; return pintarDetalhe(); } }
       mostrar();
     }
+    atualizar();
+  };
+  // Vale-presente: o negócio escolhido + o valor.
+  const pintarVale = () => {
+    const n = S.negocio;
+    const cab = h("div", "ent-quem");
+    const av = h("span", "avatar"); avatar(av, n.foto, n.nome);
+    const tx = h("span"); tx.append(h("b", null, n.nome || "Negócio"), h("small", null, [NOMES_TIPO_NEG[n.tipo] || "Negócio", n.cidade].filter(Boolean).join(" · ")));
+    const x = h("button", "x"); x.type = "button"; x.setAttribute("aria-label", "Trocar de negócio"); x.appendChild(ic("fechar")); x.addEventListener("click", () => { S.negocio = null; pintarDetalhe(); atualizar(); });
+    cab.append(av, tx, x);
+    passoDetalhe.append(cab, h("h3", null, "Valor do vale"), chipsValor([30, 50, 100, 200]),
+      nota(`Se a pessoa aceitar, ela usa o vale falando com ${n.nome || "o negócio"} no Mensagens. Você paga o negócio direto, até esse valor, quando ela usar. O Help Floripa não cobra nem guarda o dinheiro.`));
     atualizar();
   };
   const pintarItens = () => {
@@ -312,6 +332,7 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     };
     if (S.tipo === "mimo") doc.mimo = S.mimo;
     else doc.valor = Math.min(VALOR_MAX_PRESENTE, S.valor);
+    if (S.tipo === "vale") { doc.negocioId = S.negocio.id; doc.negocioNome = String(S.negocio.nome || "").slice(0, 80); doc.donoId = S.negocio.donoId; }
     if (S.tipo === "produto") {
       const n = S.negocio;
       doc.itens = n.itens.map((it, k) => ({ nome: String(it.nome || "Item").slice(0, 60), preco: Number(it.preco) || 0, qtd: S.qtd[k] || 0 })).filter((i) => i.qtd > 0).slice(0, 10);
@@ -320,7 +341,7 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     if (S.corridaId) doc.corridaId = S.corridaId;
     try {
       const ref = await fb.addDoc(fb.collection(fb.db, "presentes"), doc);
-      await mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { tipo: "presente", id: ref.id, ptipo: S.tipo, resumo: resumoPresente(doc).slice(0, 80), emoji: emojiPresente(doc) } }, `🎁 ${corridaId ? "Gorjeta" : "Presente"}: ${resumoPresente(doc)}`).catch(() => {});
+      await mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { tipo: "presente", id: ref.id, ptipo: S.tipo, resumo: resumoPresente(doc).slice(0, 80), emoji: emojiPresente(doc) } }, `${corridaId ? "Gorjeta" : "Presente"}: ${resumoPresente(doc)}`).catch(() => {});
       toast(corridaId ? "Gorjeta enviada!" : "Presente enviado! Agora é só esperar a resposta.");
       fechar(); aba = "enviados"; pintar();
     } catch (e) {
@@ -350,7 +371,8 @@ async function abrirPresente(id) {
     const recebi = p.para === eu.uid;
     const cart = h("div", "pr-cartao");
     cart.style.setProperty("--pc", TIPOS_PRESENTE[p.tipo]?.cor || "#00adee");
-    cart.append(h("div", "pr-cartao-emoji", emojiPresente(p)), h("small", null, recebi ? `${p.deNome || "Alguém"} enviou para você` : `Você enviou para ${p.paraNome || "a pessoa"}`), h("h2", null, resumoPresente(p)));
+    const [icn, cor] = iconePresente(p);
+    cart.append(iconeEl(icn, { cor, tam: 40, fundo: true, redondo: true }), h("small", null, recebi ? `${p.deNome || "Alguém"} enviou para você` : `Você enviou para ${p.paraNome || "a pessoa"}`), h("h2", null, resumoPresente(p)));
     if (p.mensagem) cart.appendChild(h("p", "pr-cartao-msg", `“${p.mensagem}”`));
     const st = STATUS_PRESENTE[p.status] || ["", ""];
     cart.appendChild(h("span", "ent-etq " + st[1], st[0]));
@@ -375,18 +397,31 @@ async function abrirPresente(id) {
     if (p.status === "aceito") {
       if (recebi && p.tipo === "pix") acoes.appendChild(botao("Mandar minha chave Pix", "ent-btn", () => mandarChavePix(p)));
       if (recebi && p.tipo === "produto") acoes.appendChild(botao("Escolher onde receber", "ent-btn", () => pedirNaLoja(p, fechar)));
+      if (recebi && p.tipo === "vale") acoes.appendChild(botao("Usar o vale", "ent-btn", () => usarVale(p, mudar)));
       if (recebi && (p.tipo === "corrida" || p.tipo === "entrega")) acoes.appendChild(botao(p.tipo === "corrida" ? "Pedir a corrida agora" : "Pedir a entrega agora", "ent-btn", () => irPara(`entregas.html?presente=${encodeURIComponent(p.id)}`)));
       if (p.tipo === "pix") acoes.appendChild(botao(recebi ? "Já recebi" : "Já paguei", "ent-btn sec", () => mudar({ status: "concluido", concluidoEm: fb.serverTimestamp() }, "Pronto!")));
     }
     if (p.status === "usado") {
       if ((p.tipo === "corrida" || p.tipo === "entrega") && p.corridaId) acoes.appendChild(botao("Acompanhar no mapa", "ent-btn", () => irPara(`entregas.html?id=${encodeURIComponent(p.corridaId)}`)));
-      if (p.tipo === "produto" && !recebi) acoes.appendChild(botao("Falar com a loja", "ent-btn", () => abrirConversaCom(p.donoId)));
+      if ((p.tipo === "produto" || p.tipo === "vale") && !recebi) acoes.appendChild(botao(p.tipo === "vale" ? "Falar com o negócio" : "Falar com a loja", "ent-btn", () => abrirConversaCom(p.donoId)));
+      if (p.tipo === "vale" && recebi) acoes.appendChild(botao(`Conversar com ${p.negocioNome || "o negócio"}`, "ent-btn", () => abrirConversaCom(p.donoId)));
       acoes.appendChild(botao("Marcar como concluído", "ent-btn sec", () => mudar({ status: "concluido", concluidoEm: fb.serverTimestamp() }, "Pronto!")));
     }
     acoes.appendChild(botao(recebi ? `Conversar com ${(p.deNome || "a pessoa").split(" ")[0]}` : `Conversar com ${(p.paraNome || "a pessoa").split(" ")[0]}`, "ent-btn sec", () => abrirConversaCom(recebi ? p.de : p.para)));
   };
   parar = fb.onSnapshot(fb.doc(fb.db, "presentes", id), (s) => pintarUm(s.exists() ? { id: s.id, ...s.data() } : null), () => pintarUm(null));
   c.closest(".ent-folha")?.addEventListener("fechada", () => parar?.());
+}
+// Usar o vale: manda o cartão do presente para o negócio no Mensagens (ele vê quem deu e o valor) e marca como usado.
+async function usarVale(p, mudar) {
+  if (!(await confirmarHF({ titulo: "Usar o vale agora?", texto: `${p.negocioNome || "O negócio"} recebe o vale de ${reaisP(p.valor)} no Mensagens para combinar com você.`, ok: "Usar o vale", icone: "check", cor: "normal" }))) return;
+  try {
+    let tipoNeg = ""; try { tipoNeg = (await fb.getDoc(fb.doc(fb.db, "negocios", p.negocioId))).data()?.tipo || ""; } catch {}
+    await mandarMensagem(p.donoId, { tipoArquivo: "cartao", cartao: { tipo: "presente", id: p.id, ptipo: "vale", resumo: resumoPresente(p).slice(0, 80), emoji: "🎟️", acao: "usar", deNome: String(p.deNome || "").slice(0, 80) } },
+      `Vale-presente de ${reaisP(p.valor)} (de ${(p.deNome || "alguém").split(" ")[0]})`, tipoNeg ? { contexto: { tipo: tipoNeg, titulo: `Vale-presente · ${p.negocioNome || "Negócio"}`.slice(0, 80) } } : undefined).catch(() => {});
+    await mudar({ status: "usado", usadoEm: fb.serverTimestamp() }, "Vale enviado ao negócio. Combine por lá!");
+    abrirConversaCom(p.donoId);
+  } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
 }
 async function abrirConversaCom(uid) {
   try { const id = await garantirConversa(fb, eu.uid, uid); const m = await import("./chat-gaveta.js?v=4"); m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`); }
@@ -434,7 +469,7 @@ async function pedirNaLoja(p) {
       link: `${tipoNeg === "lojinha" ? "shopping" : "delivery"}.html?negocio=${encodeURIComponent(p.negocioId)}&de=mensagens`,
       presente: { id: p.id, deNome: String(p.deNome || "").slice(0, 80), deId: p.de },
       pedido: { itens, subtotal: total, taxa: 0, total, modo: "entrega", endereco, pagamento: "", troco: null, cupom: null, prazo: "",
-        obs: `🎁 Presente de ${p.deNome || "alguém"}. O pagamento é combinado com quem enviou o presente.` }
+        obs: `Presente de ${p.deNome || "alguém"}. O pagamento é combinado com quem enviou o presente.` }
     };
     try {
       await mandarMensagem(p.donoId, { tipoArquivo: "cartao", cartao }, `Pedido: ${itens.length} ${itens.length === 1 ? "item" : "itens"} (presente)`);

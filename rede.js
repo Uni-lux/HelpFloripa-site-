@@ -8,7 +8,7 @@
 // - Nova publicação (foto ou texto).
 // - Barra inferior, avisos (notificações) e presença online.
 // =====================================================
-import { montarBarra, marcarBarra } from "./barra-rede.js?v=12";
+import { montarBarra, marcarBarra } from "./barra-rede.js?v=13";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
@@ -17,7 +17,7 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=18";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=50";
+import "./painel-avisos.js?v=51";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=4";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
@@ -1605,7 +1605,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=114").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=115").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2369,7 +2369,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=114").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=115").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2438,10 +2438,11 @@ export function irParaPagina(url) {
   addEventListener("popstate", seguir); setTimeout(seguir, 500);
 }
 // Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
-export async function mandarMensagem(uid, msg, resumo, { servico = null } = {}) {
+export async function mandarMensagem(uid, msg, resumo, { servico = null, contexto = null } = {}) {
   if (await precisaEmail()) throw new Error("e-mail");
   // Nova conversa vira solicitação quando a pessoa escolheu assim (conversa-acesso.js); "só quem eu sigo" recusa.
-  const { id, ref, dados: dc } = await garantirConversa(fb, eu.uid, uid, { servico });
+  // contexto {tipo, titulo}: conversa com um negócio (vale a escolha "mensagens dos negócios" de quem recebe).
+  const { id, ref, dados: dc } = await garantirConversa(fb, eu.uid, uid, { servico, contexto });
   // Responder a uma solicitação que você recebeu = aceitar (as regras só deixam escrever depois de aceitar).
   if (dc?.pedido?.status === "pendente" && dc.pedido.de !== eu.uid) await decidirSolicitacao(fb, eu.uid, id, true).catch(() => {});
   await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", ...msg, criadoEm: fb.serverTimestamp() }));
@@ -2489,7 +2490,7 @@ export function abrirCompositor({ aoPublicar, inicio = "", texto = "", local = n
         <span class="cont" id="pubCont">0/1000</span>
       </div>
       <div class="pub-txt-barra">
-        <button type="button" class="pub-fmt" id="pubFormatar" title="Arruma espaços, letras maiúsculas, pontuação e leva as #hashtags para o fim"><svg class="i"><use href="#i-varinha"/></svg><span>Formatar texto</span></button>
+        <button type="button" class="pub-fmt" id="pubFormatar" title="Corrige acentos, abreviações, erros comuns, concordância e pontuação e leva as #hashtags para o fim"><svg class="i"><use href="#i-varinha"/></svg><span>Corrigir e formatar</span></button>
         <button type="button" class="pub-fmt desfazer" id="pubDesfazerFmt" hidden><svg class="i"><use href="#i-desfazer"/></svg><span>Desfazer</span></button>
         <span class="pub-tags-prev" id="pubTagsPrev" hidden></span>
       </div>
@@ -2621,9 +2622,9 @@ async function abrirDenunciaComentario(c) {
 export function editarPublicacao(post, aoSalvar) {
   const f = criarFolha("folhaEditarPost", { titulo: "Editar publicação", corpoClasse: "folha-corpo pad", rodape: true });
   if (!$("edPostTexto")) {
-    $("c_folhaEditarPost").innerHTML = `<label class="pub-titulo-campo"><input type="text" id="edPostTitulo" maxlength="90" placeholder="Título (opcional)" aria-label="Título da publicação" autocomplete="off" /><span class="cont" id="edPostTitCont">0/90</span></label><textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-txt-barra"><button type="button" class="pub-fmt" id="edPostFormatar"><svg class="i"><use href="#i-varinha"/></svg><span>Formatar texto</span></button><span class="cont" id="edPostCont">0/1000</span></div>`;
+    $("c_folhaEditarPost").innerHTML = `<label class="pub-titulo-campo"><input type="text" id="edPostTitulo" maxlength="90" placeholder="Título (opcional)" aria-label="Título da publicação" autocomplete="off" /><span class="cont" id="edPostTitCont">0/90</span></label><textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-txt-barra"><button type="button" class="pub-fmt" id="edPostFormatar"><svg class="i"><use href="#i-varinha"/></svg><span>Corrigir e formatar</span></button><span class="cont" id="edPostCont">0/1000</span></div>`;
     $("edPostTitulo").addEventListener("input", () => { $("edPostTitCont").textContent = `${$("edPostTitulo").value.length}/90`; });
-    $("edPostFormatar").addEventListener("click", () => { const t = $("edPostTexto"); const n = formatarTexto(t.value).slice(0, t.maxLength); if (n === t.value) { toast("O texto já está organizado."); return; } t.value = n; t.dispatchEvent(new Event("input")); toast("Texto formatado."); });
+    $("edPostFormatar").addEventListener("click", async () => { const t = $("edPostTexto"); if (!t.value.trim()) return; const { revisarTexto } = await import("./corretor-tela.js?v=1"); const n = await revisarTexto(t.value, { modo: "pub", titulo: "Corrigir e formatar", depois: (x) => formatarTexto(x).slice(0, t.maxLength) }); if (n === null) return; if (n === t.value) { toast("O texto já está certinho."); return; } t.value = n; t.dispatchEvent(new Event("input")); toast("Texto corrigido."); });
     $("r_folhaEditarPost").innerHTML = `<button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="edPostSalvar">Salvar</button>`;
     $("edPostTexto").addEventListener("input", () => { $("edPostCont").textContent = `${$("edPostTexto").value.length}/1000`; });
   }
@@ -3354,16 +3355,22 @@ function ligarCompositor() {
   $("pubTitulo").addEventListener("input", () => { $("pubTituloCont").textContent = `${$("pubTitulo").value.length}/${MAX_TITULO}`; guardarAutomatico(); });
   $("pubTitulo").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("pubTexto").focus(); } });
   // Formatar texto: arruma e deixa as #hashtags no fim; "Desfazer" volta como estava.
-  $("pubFormatar").addEventListener("click", () => {
-    const t = $("pubTexto"), antes = t.value;
-    const novo = formatarTexto(antes).slice(0, t.maxLength || 1000);
-    const tit = $("pubTitulo"), titNovo = limparTitulo(tit.value).replace(/^\p{Ll}/u, (l) => l.toUpperCase());
-    if (novo === antes && titNovo === tit.value) { toast(antes.trim() ? "O texto já está organizado." : "Escreva o texto primeiro."); return; }
+  // Corrigir e formatar (12/11/2026): o corretor (corretor.js) mostra as correções para aceitar uma a uma e depois o
+  // formatarTexto arruma espaços e leva as #hashtags para o fim. "Desfazer" volta como estava.
+  $("pubFormatar").addEventListener("click", async () => {
+    const t = $("pubTexto"), antes = t.value, tit = $("pubTitulo");
+    if (!antes.trim() && !tit.value.trim()) { toast("Escreva o texto primeiro."); return; }
+    const { revisarTexto } = await import("./corretor-tela.js?v=1");
+    const { corrigirTexto } = await import("./corretor.js?v=1");
+    const novo = antes.trim() ? await revisarTexto(antes, { modo: "pub", titulo: "Corrigir e formatar", depois: (x) => formatarTexto(x).slice(0, t.maxLength || 1000) }) : antes;
+    if (novo === null) return;
+    const titNovo = limparTitulo(corrigirTexto(tit.value, { modo: "chat" }).texto).replace(/^\p{Ll}/u, (l) => l.toUpperCase());
+    if (novo === antes && titNovo === tit.value) { toast("O texto já está certinho."); return; }
     textoAntesFmt = { texto: antes, titulo: tit.value };
     tFmt = 1; t.value = novo; tit.value = titNovo; t.dispatchEvent(new Event("input")); tit.dispatchEvent(new Event("input")); tFmt = 0;
     $("pubDesfazerFmt").hidden = false;
     t.classList.add("formatado"); setTimeout(() => t.classList.remove("formatado"), 700);
-    toast("Texto formatado: espaços, maiúsculas, pontuação e #hashtags no fim.");
+    toast("Texto corrigido e organizado.");
   });
   $("pubDesfazerFmt").addEventListener("click", () => {
     if (!textoAntesFmt) return;

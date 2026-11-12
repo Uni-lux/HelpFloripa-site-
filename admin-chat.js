@@ -12,7 +12,7 @@
 // =====================================================
 import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=29";
 import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=1";
-import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=1";
+import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=2";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 
@@ -461,7 +461,7 @@ export function montarChat(el) {
     if (!ehDm(conv)) return;
     const para = conv.split("_").find((u) => u !== C.eu.uid); if (!para) return;
     const daConv = conv;
-    const { ligar, textoChamada } = await import("./chamadas.js?v=7");
+    const { ligar, textoChamada } = await import("./chamadas.js?v=8");
     const r = await ligar({ para, nome: nomeEquipe(para), foto: D.admins.find((a) => a.id === para)?.foto || "", conv: daConv, tipo: modo });
     if (r.status === "erro") { toast(r.erro); return; }
     postarNaConversa(daConv, `${modo === "video" ? "🎥" : "📞"} ${textoChamada({ modo, resultado: r.status, duracao: r.duracaoSeg })}`);
