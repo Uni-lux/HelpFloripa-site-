@@ -10,8 +10,8 @@
 import {
   $, el, icone, fb, eu, dados, numero, toast, erroAmigavel, criarFolha, abrirFolha, fotosDoPost, ms, paraData,
   tempoRelativo, obterPerfil, nomeCidade, ganchos
-} from "./rede.js?v=144";
-import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=111";
+} from "./rede.js?v=145";
+import { secaoGrafico, secaoHoras } from "./estatisticas-post.js?v=112";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 

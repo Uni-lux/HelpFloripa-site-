@@ -5,7 +5,7 @@
 //   revisarTexto(texto, { modo, titulo, depois }) → Promise<string | null>   (null = manteve como estava)
 //   depois(texto) é aplicado ao resultado final (ex.: formatarTexto do Diário).
 // =====================================================
-import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=2";
+import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario } from "./corretor.js?v=3";
 
 const ICONES = {
   varinha: '<path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/>',
@@ -16,6 +16,7 @@ const ICONES = {
   concordancia: '<path d="M7 7h10M7 12h10M7 17h6"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="17" r="1"/>',
   pontuacao: '<path d="M8 6v8M8 18v.5M15 15a2 2 0 1 1 0 .1M15 17l-1 3"/>',
   maiuscula: '<path d="M3 19l5-14 5 14M4.8 14h6.4"/><path d="M15 19v-6.5a2.5 2.5 0 0 1 5 0V19M15 15.5h5"/>',
+  crase: '<path d="M7 20l5-12 5 12M9 15h6M10 3l3 3"/>',
   repeticao: '<rect x="4" y="4" width="11" height="11" rx="2"/><rect x="9" y="9" width="11" height="11" rx="2"/>',
   cadeado: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   ok: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
@@ -85,7 +86,7 @@ function estilo() {
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const ORDEM = ["ortografia", "acento", "concordancia", "abreviacao", "pontuacao", "maiuscula", "repeticao"];
+const ORDEM = ["ortografia", "acento", "concordancia", "crase", "abreviacao", "pontuacao", "maiuscula", "repeticao"];
 
 export function revisarTexto(texto, { modo = "pub", titulo = "Revisar texto", depois = (t) => t } = {}) {
   estilo();
@@ -133,7 +134,7 @@ export function revisarTexto(texto, { modo = "pub", titulo = "Revisar texto", de
           <div class="cr-corpo"><div class="cr-prev" aria-label="Como vai ficar">${partes}</div>
           ${temAbrev && modo === "chat" ? `<div class="cr-modo" role="group" aria-label="Estilo"><button type="button" data-abrev="1" class="${abreviacoes ? "on" : ""}">Escrever por inteiro</button><button type="button" data-abrev="0" class="${abreviacoes ? "" : "on"}">Manter abreviações</button></div>` : ""}
           ${grupos}
-          <p class="cr-nota">${svg("cadeado")}<span>${base.dicionario ? "Corretor com dicionário de português (mais de 100 mil palavras), acentos, digitação, concordância, crase e pontuação." : "Corretor sem o dicionário completo (sem internet agora)."} Funciona no seu aparelho: o texto não é enviado. Toque numa correção para manter como você escreveu e confira antes de ${modo === "chat" ? "enviar" : "publicar"}.</span></p></div>
+          <p class="cr-nota">${svg("cadeado")}<span>${base.dicionario ? "Corretor com dicionário de português (mais de 200 mil palavras), acentos, digitação, concordância, crase e pontuação." : "Corretor sem o dicionário completo (sem internet agora)."} Funciona no seu aparelho: o texto não é enviado. Toque numa correção para manter como você escreveu e confira antes de ${modo === "chat" ? "enviar" : "publicar"}.</span></p></div>
           <div class="cr-pe"><button type="button" class="cr-sec" data-fechar>Manter como estava</button><button type="button" class="cr-pri" data-ok>${svg("ok")}${n ? `Aplicar ${n}` : "Usar assim"}</button></div>`;
       }
       folha.querySelectorAll("[data-fechar]").forEach((b) => b.addEventListener("click", () => fim(null)));

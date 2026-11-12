@@ -2269,6 +2269,30 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   de negócio da vitrine (delivery/loja com itens = produto; os outros = `presentes.html?negocio=ID&tipo=vale`); quem recebe
   toca "Usar o vale" → cartão `acao: "usar"` para o negócio no Mensagens (contexto do negócio: `mandarMensagem` aceita
   `contexto`) e marca usado. Teste `t-sos-etapas.mjs` (21).
+- **Corretor profissional (12/11/2026, PR depois do #194, sem regra nova):** pedido dele ("não identificou todos os erros").
+  **Vocabulário** `corretor/lexico.txt` (205 mil palavras do português do Brasil, da mais usada para a menos; 2,1 MB, ~900 KB
+  comprimido, baixa só quando o corretor é usado e o service worker guarda pelo `?v=1` — sw.js agora trata `.txt?v=`), gerado por
+  `scripts/corretor/gerar-lexico.py` (hunspell + hunspell-pt-br = VERO 24.2 confere cada palavra da lista FrequencyWords pt_br_full;
+  licenças em `corretor/LEIA-ME.txt`: VERO LGPL/MPL, lista CC-BY-SA 4.0, então o lexico.txt é CC-BY-SA). O pacote npm
+  dictionary-pt-br vem SEM `FLAG UTF-8` (recusa palavras certas) e o nspell é lentíssimo com pt: usar o hunspell do sistema.
+  `corretor.js`: `carregarLexico()`/`definirLexico(texto)`/`lexicoPronto`, `sugerirPalavra(w)` = acento (`ACC`: sem acento →
+  com acento) > som (`chaveSom`: ç/ss/sc/xc, ch/x, s entre vogais = z, g/j, lh = i, l no fim da sílaba = u, ei/ai antes de x, ou = o,
+  n/m antes de consoante, e/o finais; `FON` = melhor palavra por chave; som ganha bônus) > digitação (`umaLetra`: trocada/faltando/
+  sobrando/invertida, tecla vizinha `VIZ` e letra dobrada custam menos), escolhida por frequência; `conf` alta (aplica) ou media
+  (sugestão desligada, a pessoa liga); `acentoProvavel` (palavra sem acento que existe mas é rara: "ate" → "até"; `AMBIGUAS` fora);
+  `gemeaComum` (rara que soa igual a uma muito usada: "pexe" → "peixe", sugestão); palavras sem sugestão → `desconhecidas`
+  ("Não encontradas no dicionário" + "+ dicionário" = `adicionarAoDicionario`, `hf-dicionario` no aparelho); `ESTRANGEIRAS`
+  (pet, cookies, e-mail, Google, delivery...) não são erro; nome próprio no meio da frase, siglas e palavras com número ficam de fora.
+  Regras novas: crase (às vezes, à vontade, ir à praia, à direita, ontem à noite, "as 10h" → "às 10h"), mal/mau, traz/trás, pôr,
+  vêm/têm, aí/dá/tô com contexto, concordância "eu vai/vocês vai/eles foi", plural "as coisa" (sugestão), futuro "se eu ver/quando
+  puder" (sugestão), "há 5 anos atrás" (sugestão), "a fim de", "o porquê", "com eu" → "comigo", oque/denovo/encima/atoa..., vírgula
+  do cumprimento ("Oi, tudo bem?", "Bom dia, Ana,"), "por favor" entre vírgulas (sugestão), "?" só em pergunta de verdade (não com
+  "me avise/por favor"; frase longa = sugestão), horas e valores ("10hrs" → "10h", "R$50" → "R$ 50"), sem ponto final em linha de
+  tarefa/título das Notas. Tela (`corretor-tela.js`): carrega o dicionário com rodinha, grupos por tipo (inclui Crase), "Sugestões
+  para conferir" (etiqueta Sugestão, desligadas), "Não encontradas no dicionário". Mensagens: o dicionário baixa ao focar o campo e o
+  "Corrigir · N" conta correções + sugestões + não encontradas. Medido: 63/63 frases (`t-corretor.mjs`, sem emulador), 108 de 112
+  erros comuns e ZERO mudança nos textos certos das páginas Termos/Ajuda/Sobre/Privacidade/Diretrizes/Segurança; ~8 ms num texto de
+  1.600 letras. Teste de tela `t-corretor-tela.mjs` (14).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

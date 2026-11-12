@@ -1605,7 +1605,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=116").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=117").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2369,7 +2369,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=116").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=117").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2624,7 +2624,7 @@ export function editarPublicacao(post, aoSalvar) {
   if (!$("edPostTexto")) {
     $("c_folhaEditarPost").innerHTML = `<label class="pub-titulo-campo"><input type="text" id="edPostTitulo" maxlength="90" placeholder="Título (opcional)" aria-label="Título da publicação" autocomplete="off" /><span class="cont" id="edPostTitCont">0/90</span></label><textarea class="pub-texto" id="edPostTexto" maxlength="1000" aria-label="Texto da publicação"></textarea><div class="pub-txt-barra"><button type="button" class="pub-fmt" id="edPostFormatar"><svg class="i"><use href="#i-varinha"/></svg><span>Corrigir e formatar</span></button><span class="cont" id="edPostCont">0/1000</span></div>`;
     $("edPostTitulo").addEventListener("input", () => { $("edPostTitCont").textContent = `${$("edPostTitulo").value.length}/90`; });
-    $("edPostFormatar").addEventListener("click", async () => { const t = $("edPostTexto"); if (!t.value.trim()) return; const { revisarTexto } = await import("./corretor-tela.js?v=2"); const n = await revisarTexto(t.value, { modo: "pub", titulo: "Corrigir e formatar", depois: (x) => formatarTexto(x).slice(0, t.maxLength) }); if (n === null) return; if (n === t.value) { toast("O texto já está certinho."); return; } t.value = n; t.dispatchEvent(new Event("input")); toast("Texto corrigido."); });
+    $("edPostFormatar").addEventListener("click", async () => { const t = $("edPostTexto"); if (!t.value.trim()) return; const { revisarTexto } = await import("./corretor-tela.js?v=3"); const n = await revisarTexto(t.value, { modo: "pub", titulo: "Corrigir e formatar", depois: (x) => formatarTexto(x).slice(0, t.maxLength) }); if (n === null) return; if (n === t.value) { toast("O texto já está certinho."); return; } t.value = n; t.dispatchEvent(new Event("input")); toast("Texto corrigido."); });
     $("r_folhaEditarPost").innerHTML = `<button type="button" class="btn sec" data-fechar>Cancelar</button><button type="button" class="btn pri" id="edPostSalvar">Salvar</button>`;
     $("edPostTexto").addEventListener("input", () => { $("edPostCont").textContent = `${$("edPostTexto").value.length}/1000`; });
   }
@@ -3360,8 +3360,8 @@ function ligarCompositor() {
   $("pubFormatar").addEventListener("click", async () => {
     const t = $("pubTexto"), antes = t.value, tit = $("pubTitulo");
     if (!antes.trim() && !tit.value.trim()) { toast("Escreva o texto primeiro."); return; }
-    const { revisarTexto } = await import("./corretor-tela.js?v=2");
-    const { corrigirTexto } = await import("./corretor.js?v=2");
+    const { revisarTexto } = await import("./corretor-tela.js?v=3");
+    const { corrigirTexto } = await import("./corretor.js?v=3");
     const novo = antes.trim() ? await revisarTexto(antes, { modo: "pub", titulo: "Corrigir e formatar", depois: (x) => formatarTexto(x).slice(0, t.maxLength || 1000) }) : antes;
     if (novo === null) return;
     const titNovo = limparTitulo(corrigirTexto(tit.value, { modo: "chat" }).texto).replace(/^\p{Ll}/u, (l) => l.toUpperCase());

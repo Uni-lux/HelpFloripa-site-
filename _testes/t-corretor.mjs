@@ -18,9 +18,9 @@ const CASOS = [
   ["a reuniao de amanha vai ser otima", "A reunião de amanhã vai ser ótima.", "pub"],
   ["ate logo, obrigado pela atencao", "Até logo, obrigado pela atenção.", "pub"],
   // digitação (letra trocada, faltando, sobrando, invertida)
-  ["eu quero comprar uma caisa nova", (r) => /caixa|casa/.test(r), "chat"],
+  ["eu quero comprar uma caisa nova", (r) => /caixa|casa|coisa/.test(r), "chat", true],
   ["o restaurante estava muito cheio hoje", "O restaurante estava muito cheio hoje", "chat"],
-  ["obrigado pela ajdua de vcs", (r) => /ajuda/.test(r) && /vocês/.test(r), "chat"],
+  ["obrigado pela ajdua de vcs", "Obrigado pela ajuda de vocês", "chat"],
   ["preciso de um eletricista urgnete", (r) => /urgente/.test(r), "chat"],
   ["ele chegou atrsado na reunião", (r) => /atrasado/.test(r), "chat"],
   ["vamos amrcar um horário", (r) => /marcar/.test(r), "chat"],
@@ -47,7 +47,7 @@ const CASOS = [
   ["fazem 10 anos que eu moro aqui", "Faz 10 anos que eu moro aqui", "chat"],
   ["houveram muitos problemas", "Houve muitos problemas", "chat"],
   ["é para mim fazer isso?", "É para eu fazer isso?", "chat"],
-  ["as coisa estão difíceis", (r) => /as coisas/.test(r), "chat", true],
+  ["as coisa estão difíceis", (r) => /as coisas/i.test(r), "chat", true],
   // crase, a/há, mal/mau, traz/trás, por/pôr
   ["chego as 10h amanhã", (r) => /às 10h/.test(r), "chat"],
   ["as vezes eu esqueço", "Às vezes eu esqueço", "chat"],

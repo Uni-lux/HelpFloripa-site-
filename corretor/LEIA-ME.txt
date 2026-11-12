@@ -1,0 +1,18 @@
+Vocabulário do corretor do Help Floripa (lexico.txt)
+
+Palavras do português do Brasil, uma por linha, da mais usada para a menos usada.
+Gerado por scripts/corretor/gerar-lexico.py a partir de:
+
+1) Dicionário VERO pt-BR (LibreOffice), versão 24.2 — por Raimundo Moura e equipe.
+   Licença: GNU LGPL 3.0 ou Mozilla Public License 2.0.
+   https://pt-br.libreoffice.org/projetos/vero/
+   (usado para conferir se cada palavra existe)
+
+2) FrequencyWords — Hermit Dave (https://github.com/hermitdave/FrequencyWords),
+   lista pt_br_full a partir das legendas do OpenSubtitles.
+   Licença do conteúdo: Creative Commons BY-SA 4.0.
+   (usada para a ordem de uso das palavras)
+
+Por ser derivado dessa lista, o arquivo lexico.txt é distribuído sob a licença
+Creative Commons Atribuição-CompartilhaIgual 4.0 (CC BY-SA 4.0):
+https://creativecommons.org/licenses/by-sa/4.0/deed.pt_BR

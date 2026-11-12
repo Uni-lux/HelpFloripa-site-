@@ -15,6 +15,7 @@ export const TIPOS_CORRECAO = {
   ortografia: "Escrita",
   abreviacao: "Abreviações",
   concordancia: "Concordância",
+  crase: "Crase",
   pontuacao: "Pontuação",
   maiuscula: "Maiúsculas",
   repeticao: "Repetições"
@@ -88,6 +89,8 @@ const ABREVIACOES = {
 
 // Erros comuns de escrita.
 const ORTOGRAFIA = {
+  nois: "nós", noiz: "nós", muié: "mulher", trabaio: "trabalho", oque: "o que", doque: "do que", noque: "no que", praque: "pra que", porisso: "por isso", encima: "em cima", atoa: "à toa",
+  denovo: "de novo", porfavor: "por favor", nadaver: "nada a ver", derrepente: "de repente", apartir: "a partir",
   concerteza: "com certeza", derrepente: "de repente", porisso: "por isso", apartir: "a partir", atravez: "através",
   seje: "seja", esteje: "esteja", menas: "menos", excessao: "exceção", excesao: "exceção", exeção: "exceção", excessão: "exceção",
   exessao: "exceção", previlegio: "privilégio", previlégio: "privilégio", beneficiente: "beneficente",
@@ -150,6 +153,15 @@ const REGRAS = [
   [P(`a\\s+onde\\s+(fica|est[aá]|[eé]|mora)`), "onde $1", "ortografia", "com “ficar/estar/morar” é “onde” (“aonde” é para onde se vai)"],
   [P(`mal\\s+educad([oa]s?)`), "mal-educad$1", "ortografia", "“mal-educado” leva hífen"],
   [P(`bem\\s+vind([oa]s?)`), "bem-vind$1", "ortografia", "“bem-vindo” leva hífen"],
+  [P(`(at[eé]|por|da[ií]|de|para|pra|l[aá]|c[aá]|fica|ficou|chegando|t[oô]|estou|t[aá]|esteja)\\s+ai(?=[\\s?!.,]|$)`), "$1 aí", "acento", "“aí” (lugar) leva acento"],
+  [P(`(n[aã]o|j[aá]|isso|que|s[oó]|tudo|nem|como)\\s+da\\s+(pra|para|certo|errado|tempo|n[aã]o|mais|nada|medo|vontade|um\\s+jeito|jeito)(?![${L}])`), "$1 dá $2", "acento", "“dá” (verbo dar) leva acento"],
+  [P(`(^|eu\\s+)to\\s+(\\p{L}+ndo|aqui|a[ií]|bem|mal|com|sem|em|no|na|cansad[oa]|feliz|triste|pront[oa]|livre|ocupad[oa]|online|chegando|saindo|indo|morrendo)(?![${L}])`), (m, a, w) => `${a}tô ${w}`, "acento", "“tô” (estou) leva acento"],
+  [P(`(ontem|hoje|amanh[aã]|sexta|s[aá]bado|domingo|segunda|ter[cç]a|quarta|quinta|toda\\s+noite\\s+e)\\s+a\\s+(noite|tarde)(?![${L}])`), "$1 à $2", "crase", "“à noite / à tarde” leva crase"],
+  [P(`h[aá]\\s+(um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|alguns|algumas|muitos|muitas|poucos|poucas|v[aá]rios|v[aá]rias)\\s+(anos?|meses|dias?|semanas?|horas?|minutos?)\\s+atr[aá]s`), "há $1 $2", "ortografia", "“há … atrás” repete a ideia: basta “há”", "media"],
+  // futuro do subjuntivo: "se eu ver" → "se eu vir", "quando você poder" → "quando você puder"
+  [P(`(quem|quando|se|assim\\s+que|logo\\s+que|caso|enquanto|sempre\\s+que)\\s+(eu\\s+|voc[eê]\\s+|ele\\s+|ela\\s+|a\\s+gente\\s+)?(ver|fazer|poder|ter|saber|querer|vir|dizer|trazer|estar|pôr|por)(?=\\s+(ele|ela|isso|isto|o|a|os|as|um|uma|algo|alguma|algu[eé]m|tempo|aqui|a[ií]|l[aá]|que|me|te|de|por|pra|para|com|em|no|na|mais|melhor|certo|lugar|ajuda)(?![${L}])|[.,!?]|$)`), (m, c, q, v) => {
+    const t = { ver: "vir", fazer: "fizer", poder: "puder", ter: "tiver", saber: "souber", querer: "quiser", vir: "vier", dizer: "disser", trazer: "trouxer", estar: "estiver", "pôr": "puser", por: null }[v.toLowerCase()];
+    return t ? `${c} ${q || ""}${t}` : null; }, "concordancia", "futuro do verbo: “se eu vir”, “quando puder”, “se tiver”", "media"],
   // ----- 12/11/2026: mais regras com contexto -----
   // crase
   [P(`as\\s+vezes`), "às vezes", "crase", "“às vezes” leva crase"],
@@ -169,7 +181,7 @@ const REGRAS = [
   [P(`eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
   [P(`(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
   // concordância do plural (sugestão: confira)
-  [P(`(os|as|dos|das|nos|nas|meus|minhas|teus|tuas|seus|suas|nossos|nossas|esses|essas|estes|estas|aqueles|aquelas|muitos|muitas|v[aá]rios|v[aá]rias|alguns|algumas|poucos|poucas|uns|umas|todos\\s+os|todas\\s+as)\\s+(\\p{Ll}{3,}[aeoáéó])(?![${L}-])`), (m, d, w) => {
+  [P(`(os|as|dos|das|nas|meus|minhas|teus|tuas|seus|suas|nossos|nossas|esses|essas|estes|estas|aqueles|aquelas|muitos|muitas|v[aá]rios|v[aá]rias|alguns|algumas|poucos|poucas|uns|umas|todos\\s+os|todas\\s+as)\\s+(\\p{Ll}{3,}[aeoáéó])(?![${L}-])`), (m, d, w) => {
     if (!LEX || /^(os|as|nos|nas)$/i.test(d) && /^(ama|amo|vejo|vi|levo|chama|conhece|conheço|acho|deixa|deixo|pega|pego|manda|mando|ajuda|ajudo|espera|espero)$/i.test(w)) return null;
     const pl = w + "s"; return LEX.has(w) && LEX.has(pl) && !/(mente)$/.test(w) ? `${d} ${pl}` : null; }, "concordancia", "o plural combina com a palavra de antes", "media"],
   // outras
@@ -212,6 +224,16 @@ const PALAVRA = /[\p{L}]+(?:-[\p{L}]+)*/gu;
 // =====================================================
 let LEX = null, ACC = null, FON = null, carregando = null;
 const PESSOAL = new Set();
+// Palavras estrangeiras e da internet que se usam assim no Brasil (o dicionário formal não traz): não são erro.
+const ESTRANGEIRAS = new Set(("pet pets petshop cookie cookies e-mail e-mails email emails google instagram whatsapp facebook tiktok youtube " +
+  "twitter iphone android wi-fi wifi internet online offline delivery app apps site sites link links post posts story stories feed reels " +
+  "chat chats emoji emojis print prints selfie selfies login logout show shows top fitness design designer marketing freelancer freela " +
+  "freelas home office back front history art location smartphone notebook mouse play playlist spotify netflix uber ifood shopping outlet " +
+  "milkshake brownie brownies cupcake cupcakes sushi temaki yakisoba hot dog tattoo piercing nail lash brow makeup skincare crossfit pilates " +
+  "yoga coach coaching startup startups mei cnpj cpf rg cnh pix qr code ok okay hashtag hashtags stalker crush match like likes follow " +
+  "web download upload backup bug bugs layout feedback deadline briefing job jobs freelancers drive pen pendrive bluetooth smart tv " +
+  "check-in checkin check-out checkout self service drink drinks happy hour fast food food truck trucks gamer games game streaming live lives " +
+  "reel reels flash nº nºs vs etc").split(" "));
 const CHAVE_PESSOAL = "hf-dicionario";
 try { (JSON.parse(localStorage.getItem(CHAVE_PESSOAL) || "[]") || []).forEach((w) => PESSOAL.add(w)); } catch {}
 export const lexicoPronto = () => !!LEX;
@@ -232,20 +254,20 @@ export function adicionarAoDicionario(w) {
 }
 export const noDicionarioPessoal = (w) => PESSOAL.has(String(w).toLowerCase());
 const rank = (w) => (LEX ? (LEX.has(w) ? LEX.get(w) : Infinity) : Infinity);
-export const palavraExiste = (w) => !!LEX && (LEX.has(String(w).toLowerCase()) || PESSOAL.has(String(w).toLowerCase()));
+export const palavraExiste = (w) => !!LEX && [LEX, PESSOAL, ESTRANGEIRAS].some((c) => c.has(String(w).toLowerCase()));
 
 // Chave pelo som (português do Brasil): palavras que soam igual ficam com a mesma chave.
 export function chaveSom(w) {
   let s = String(w).toLowerCase().replace(/ç/g, "s");
   s = s.normalize("NFD").replace(/[̀-ͯ]/g, "");
   s = s.replace(/^h/, "").replace(/([^cslnp])h/g, "$1")
-    .replace(/ch|sh/g, "x").replace(/lh/g, "L").replace(/nh/g, "N")
+    .replace(/ch|sh/g, "x").replace(/lh/g, "i").replace(/nh/g, "N").replace(/x(?=[ptcq])/g, "s").replace(/([ae])i(?=x)/g, "$1")
     .replace(/qu(?=[ei])/g, "k").replace(/gu(?=[ei])/g, "g").replace(/qu/g, "kw").replace(/q/g, "k")
     .replace(/sc(?=[ei])|xc(?=[ei])|ss/g, "s").replace(/c(?=[ei])/g, "s").replace(/c/g, "k")
     .replace(/g(?=[ei])/g, "j").replace(/([aeiou])s(?=[aeiou])/g, "$1z").replace(/z(?=[^aeiou]|$)/g, "s")
     .replace(/w/g, "v").replace(/y/g, "i").replace(/rr/g, "R")
-    .replace(/l(?=[^aeiouLN]|$)/g, "u").replace(/ei(?=[rxj])/g, "e").replace(/ou/g, "o")
-    .replace(/[mn](?=[^aeiouLN]|$)/g, "M").replace(/e$/, "i").replace(/o$/, "u").replace(/es$/, "is").replace(/os$/, "us")
+    .replace(/l(?=[^aeiouN]|$)/g, "u").replace(/ei(?=[rxj])/g, "e").replace(/ou/g, "o").replace(/ii+/g, "i")
+    .replace(/[mn](?=[^aeiouN]|$)/g, "M").replace(/e$/, "i").replace(/o$/, "u").replace(/es$/, "is").replace(/os$/, "us")
     .replace(/(.)\1+/g, "$1");
   return s;
 }
@@ -255,7 +277,7 @@ function mapas() {
   for (const [w, r] of LEX) {
     const a = semAcento(w);
     if (!ACC.has(a) || r < LEX.get(ACC.get(a))) ACC.set(a, w);
-    if (r < 120000) { const k = chaveSom(w); if (!FON.has(k) || r < LEX.get(FON.get(k))) FON.set(k, w); }
+    const k = chaveSom(w); if (!FON.has(k) || r < LEX.get(FON.get(k))) FON.set(k, w);
   }
 }
 const ALFA = "abcdefghijklmnopqrstuvwxyzáàâãéêíóôõúç";
@@ -286,18 +308,20 @@ export function sugerirPalavra(w) {
   const cands = [];
   for (const [c, custo] of umaLetra(k)) if (LEX.has(c)) cands.push({ c, custo, r: LEX.get(c) });
   const som = FON.get(chaveSom(k));
-  if (som && som !== k) cands.push({ c: som, custo: 0.5, r: LEX.get(som), som: true });
+  if (som && som !== k) cands.push({ c: som, custo: 0.15, r: LEX.get(som), som: true });
   if (!cands.length) {
     // duas letras de distância, só para palavras maiores (tenta pelas que existem a 1 letra de cada candidato)
     if (k.length >= 6) for (const [c1] of umaLetra(k)) { if (c1.length < 4) continue; const s2 = FON.get(chaveSom(c1)); if (s2 && s2 !== k) cands.push({ c: s2, custo: 1.6, r: LEX.get(s2) }); }
     if (!cands.length) return null;
   }
   // nota: palavra mais usada e mais parecida ganha
-  cands.forEach((x) => (x.nota = Math.log(2 + x.r) + x.custo * 2.2));
+  // mesmo som pesa muito: quem erra pelo som quase nunca quis outra palavra que soa diferente
+  cands.forEach((x) => (x.nota = Math.log(2 + x.r) + x.custo * 2.2 - (x.som ? 2.6 : 0)));
   cands.sort((x, y) => x.nota - y.nota);
   const melhor = cands[0], segundo = cands.find((x) => x.c !== melhor.c);
   const folga = segundo ? segundo.nota - melhor.nota : 9;
-  const conf = (melhor.custo <= 0.7 && melhor.r < 40000 && folga > 0.8) || (melhor.som && melhor.r < 30000) ? "alta" : "media";
+  const conf = (melhor.custo <= 0.7 && melhor.r < 40000 && folga > 0.8) || (melhor.custo <= 1 && melhor.r < 60000 && folga > 1.2)
+    || (melhor.som && melhor.r < 60000) ? "alta" : "media";
   return { para: melhor.c, como: melhor.som ? "som" : melhor.custo > 1 ? "parecida" : "digitacao", conf, outras: cands.filter((x) => x.c !== melhor.c).slice(0, 2).map((x) => x.c) };
 }
 // Palavra que existe sem acento mas quase sempre se escreve com acento ("ate" → "até", "voce" já cai no outro caso).
@@ -310,6 +334,15 @@ function acentoProvavel(k) {
   const ra = LEX.get(a), rk = LEX.get(k);
   return ra < 3000 && rk > 30 * ra && rk > 2000 ? a : null;
 }
+// Palavra rara que existe, mas soa igual a outra MUITO mais usada ("pexe" → "peixe"): vira sugestão para conferir.
+function gemeaComum(k) {
+  if (!LEX || k.length < 4 || AMBIGUAS.has(k)) return null;
+  mapas();
+  const g = FON.get(chaveSom(k));
+  if (!g || g === k || semAcento(g) === semAcento(k)) return null;
+  const rg = LEX.get(g), rk = LEX.get(k);
+  return rg < 8000 && rk > 20000 && rk > 25 * rg ? g : null;
+}
 
 // ---------- Corretor ----------
 const MOTIVO_SUG = { acento: "palavra com acento", som: "escrita certa (soa igual)", digitacao: "erro de digitação", parecida: "palavra parecida (confira)" };
@@ -321,11 +354,12 @@ function inicioFrase(str, off, primeira) {
 // Antes de separar os links e números: horas e valores ("10hrs" → "10h", "R$10" → "R$ 10", "10 reais" fica).
 function unidades(t, anotar) {
   return t
-    .replace(/(?<![\w/.])(\d{1,2})\s?(?:hrs?|hs|horas?)\b(?!\s*(?:de|e)\s)/gi, (m, h) => (/horas?/i.test(m) ? m : anotar(m, h + "h", "pontuacao", "hora: “10h”") ? h + "h" : m))
+    .replace(/(?<![\w/.])(\d{1,2})\s?(?:hrs?|hs|horas?)\b/gi, (m, h) => (/horas?/i.test(m) ? m : anotar(m, h + "h", "pontuacao", "hora: “10h”") ? h + "h" : m))
     .replace(/(?<![\w/.])(\d{1,2})\s?h\s?(\d{2})\b/gi, (m, h, mi) => (anotar(m, h + "h" + mi, "pontuacao", "hora: “10h30”") ? h + "h" + mi : m))
     .replace(/(?<![\p{L}])(as)\s+(\d{1,2})(?=h\b|:\d{2}|\s*horas?\b)/giu, (m, a, h) => { const n = (a[0] === "A" ? "Às " : "às ") + h; return anotar(m, n, "crase", "hora: “às 10h” leva crase") ? n : m; })
     .replace(/(?<![\p{L}])fazem\s+(\d+)\s+(anos?|meses|dias?|semanas?|horas?|minutos?)(?![\p{L}])/giu, (m, n, u) => { const x = (m[0] === "F" ? "Faz " : "faz ") + n + " " + u; return anotar(m, x, "concordancia", "“faz” indicando tempo fica no singular") ? x : m; })
     .replace(/(?<![\p{L}])a\s+(\d+)\s+(anos?|meses|dias?|semanas?|horas?|minutos?)\s+(atr[aá]s|que)(?![\p{L}])/giu, (m, n, u, f) => { const x = `há ${n} ${u} ${f}`; return anotar(m, x, "ortografia", "tempo passado: “há”") ? x : m; })
+    .replace(/(?<![\p{L}])h[aá]\s+(\d+)\s+(anos?|meses|dias?|semanas?|horas?|minutos?)\s+atr[aá]s(?![\p{L}])/giu, (m, n, u) => { const x = `há ${n} ${u}`; return anotar(m, x, "ortografia", "“há … atrás” repete a ideia: basta “há”", "media") ? x : m; })
     .replace(/R\$\s*(?=\d)/g, (m) => (m === "R$ " ? m : anotar(m + "…", "R$ …", "pontuacao", "espaço depois de “R$”") ? "R$ " : m));
 }
 
@@ -391,7 +425,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       // Dicionário: a palavra existe? (nomes próprios no meio da frase, siglas e palavras com número ficam de fora)
       if (LEX && k.length >= 2 && !/\d/.test(w) && !PESSOAL.has(k) && !/\p{Lu}/u.test(w.slice(1))
           && !(/^\p{Lu}/u.test(w) && !inicioFrase(str, off, ip === 0))) {
-        const existe = (x) => LEX.has(x) || PESSOAL.has(x);
+        const existe = (x) => LEX.has(x) || PESSOAL.has(x) || ESTRANGEIRAS.has(x);
         const partesHifen = k.split("-");
         if (!existe(k) && !(partesHifen.length > 1 && partesHifen.every(existe))) {
           const sg = sugerirPalavra(k);
@@ -403,6 +437,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
         } else if (k === ks) {
           const a = acentoProvavel(k);
           if (a) { const n = comoOriginal(w, a); if (anotar(w, n, "acento", "palavra com acento")) return n; }
+          else { const g = gemeaComum(k); if (g) { const n = comoOriginal(w, g); return anotar(w, n, "ortografia", "soa igual a uma palavra muito mais usada: confira", "media") ? n : w; } }
         }
       }
       return w;
@@ -426,6 +461,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
     s = s.replace(/[ \t]+([,;:]|[!?]+|\.(?!\.))(?=\s|$)/g, (m, p) => anotar(m, p, "pontuacao", "sem espaço antes da pontuação") ? p : m);
     s = s.replace(/([,;])(\p{L}+)/gu, (m, p, w) => anotar(m, p + " " + w, "pontuacao", "espaço depois da vírgula") ? p + " " + w : m);
     s = s.replace(/(\p{Ll}{2,})([.!?])(\p{L}+)/gu, (m, a, p, b) => anotar(m, a + p + " " + b, "pontuacao", "espaço depois do ponto") ? a + p + " " + b : m);
+    s = s.replace(/(?<=\p{L})\s+por\s+favor\s+(?=\p{L})/gu, (m) => anotar(m.trim(), ", por favor,", "pontuacao", "“por favor” no meio da frase vai entre vírgulas", "media") ? ", por favor, " : m);
     s = s.replace(/([!?]){4,}/g, (m, p) => anotar(m, p.repeat(3), "pontuacao", "pontuação repetida demais") ? p.repeat(3) : m);
     s = s.replace(/(?<=\p{L}{2,})\s+(mas|por[eé]m|contudo|entretanto)\s+(?=\p{L})/giu, (m, c) => {
       const n = ", " + c + " ";
@@ -438,6 +474,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
   let fim = partes.map((p) => p.fixo ? (guardados.push(p.t), `\uE000${guardados.length - 1}\uE001`) : p.t).join("");
 
   // 5) frases: maiúscula no começo, "?" nas perguntas, ponto final (só publicações)
+  const ORDEM_PEDIDO = /(me\s+(avise|avisa|chama|chame|ligue|liga|mande|manda|procure|procura)|por\s+favor|entre\s+em\s+contato|me\s+ajud)/iu;
   const PERG = /^(como|quando|onde|qual|quais|quem|quanto|quantos|quantas|por que|pra que|para que|o que|cad[eê]|ser[aá] que|voc[eê] (pode|poderia|sabe|tem|vai|quer|conhece|j[aá])|algu[eé]m (sabe|tem|conhece|indica|pode)|tem como|d[aá] pra|d[aá] para|posso|pode me)\b/iu;
   fim = fim.split("\n").map((linha) => {
     // frases separadas pelo ponto/!/? seguido de espaço; cada uma: maiúscula no começo e "?" se é pergunta
@@ -446,9 +483,13 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       if (!frase || /^\s+$/.test(frase)) return frase;
       let f = frase;
       // vocativo depois do cumprimento: "Oi gente tudo bem" → "Oi, gente, tudo bem"
-      f = f.replace(/^(["“'(¿¡]*)(oi|ol[aá]|bom\s+dia|boa\s+tarde|boa\s+noite|obrigad[oa]|valeu|parab[eé]ns|tchau|e\s+a[ií]|opa|fala)\s+(gente|pessoal|galera|amig[oa]s?|amor|meu\s+amor|querid[oa]s?|mano|mana|todos|tod[oa]s|\p{Lu}\p{Ll}+)(?=([\s,!?.]|$))(\s+(?![,!?.])(?=\p{L}))?/iu, (m, q, cumpr, voc, _, depois) => {
+      f = f.replace(/^(["“'(¿¡]*)([Oo]i|[Oo]l[aá]|[Bb]om\s+dia|[Bb]oa\s+tarde|[Bb]oa\s+noite|[Oo]brigad[oa]|[Vv]aleu|[Pp]arab[eé]ns|[Tt]chau|[Ee]\s+a[ií]|[Oo]pa|[Ff]ala)\s+(gente|pessoal|galera|amig[oa]s?|amor|meu\s+amor|querid[oa]s?|mano|mana|todos|tod[oa]s|\p{Lu}\p{Ll}+)(?=([\s,!?.]|$))(\s+(?![,!?.])(?=\p{L}))?/u, (m, q, cumpr, voc, _, depois) => {
         const n = `${q}${cumpr}, ${voc}${depois ? ", " : ""}`;
         return anotar(m.trim(), n.trim(), "pontuacao", "vírgula no vocativo (quem você chama)") ? n : m;
+      });
+      f = f.replace(/^(["“'(¿¡]*)([Oo]i|[Oo]l[aá]|[Oo]pa|[Ee]\s+a[ií]|[Bb]om\s+dia|[Bb]oa\s+tarde|[Bb]oa\s+noite)\s+(?=(tudo|td|como|beleza|blz|tranquilo|tranquila|quanto|quantos|voc[eê]s?|vcs?|algu[eé]m|posso|pode|queria|gostaria)(?![\p{L}]))/u, (m, q, i) => {
+        const n = `${q}${i}, `;
+        return anotar(m.trim(), n.trim(), "pontuacao", "vírgula depois do cumprimento") ? n : m;
       });
       const c = f.match(/^(["“'(¿¡]*)(\p{Ll}\p{L}*)/u);
       if (c) {
@@ -456,9 +497,10 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
         if (anotar(c[2], para, "maiuscula", "frase começa com letra maiúscula")) f = c[1] + para + f.slice(c[0].length);
       }
       const limpa = f.trim().replace(/[\s,;:]+$/, "");
-      if (!/[.!?…]["”')]*$/.test(limpa) && PERG.test(limpa) && limpa.split(/\s+/).length >= 2 && !/\uE001$/.test(limpa)) {
+      const nPal = limpa.split(/\s+/).length;
+      if (!/[.!?…]["”')]*$/.test(limpa) && PERG.test(limpa) && nPal >= 2 && !/\uE001$/.test(limpa) && !ORDEM_PEDIDO.test(limpa)) {
         const ult = limpa.split(/\s+/).pop();
-        if (anotar(ult, ult + "?", "pontuacao", "pergunta termina com “?”")) f = f.replace(/[\s,;:]*$/, (e) => "?" + e.replace(/[,;:]/g, ""));
+        if (anotar(ult, ult + "?", "pontuacao", "pergunta termina com “?”", nPal <= 9 ? "alta" : "media")) f = f.replace(/[\s,;:]*$/, (e) => "?" + e.replace(/[,;:]/g, ""));
       }
       return f;
     }).join("");
@@ -467,7 +509,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
   if (modo === "pub") {
     fim = fim.split("\n").map((l) => {
       const t = l.trimEnd();
-      if (t.split(/\s+/).length < 5 || /[.!?…:;,)"”\]]$/.test(t) || /\uE001$/.test(t) || /^[•\-*]/.test(t) || /\p{Extended_Pictographic}$/u.test(t)) return l;
+      if (t.split(/\s+/).length < 5 || /[.!?…:;,)"”\]]$/.test(t) || /\uE001$/.test(t) || /^\s*([•\-*]|\[[ xX]\]|#)/.test(t) || /\p{Extended_Pictographic}$/u.test(t)) return l;
       const ult = t.split(/\s+/).pop();
       return anotar(ult, ult + ".", "pontuacao", "ponto final no fim do parágrafo") ? t + "." : l;
     }).join("\n");
@@ -482,7 +524,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
 // Resumo curto: "3 acentos, 2 abreviações"
 export function resumoCorrecoes(porTipo) {
   const nomes = { acento: ["acento", "acentos"], ortografia: ["palavra", "palavras"], abreviacao: ["abreviação", "abreviações"],
-    concordancia: ["concordância", "concordâncias"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
+    concordancia: ["concordância", "concordâncias"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
     repeticao: ["repetição", "repetições"] };
   return Object.entries(porTipo).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${nomes[k][n > 1 ? 1 : 0]}`).join(", ");
 }

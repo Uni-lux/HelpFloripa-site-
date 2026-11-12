@@ -30,7 +30,7 @@ ok((await p.locator("#edTexto").inputValue()).includes("[x] fazer cardapio"), "m
 await p.screenshot({ path: "saida/notas-editor.png" });
 // corretor dentro da nota
 await p.locator("[data-m=editar]").click();
-await p.locator("[data-t=corrigir]").click(); await p.locator(".cr-fundo").waitFor();
+await p.locator("[data-t=corrigir]").click(); await p.locator(".cr-fundo [data-ok]").waitFor({ timeout: 15000 });
 ok(await p.locator(".cr-item", { hasText: "cardápio" }).count() >= 1, "Corrigir acha “cardapio → cardápio”");
 await p.screenshot({ path: "saida/notas-corretor.png" });
 await p.locator(".cr-fundo [data-ok]").click(); await p.waitForTimeout(300);
