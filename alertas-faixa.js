@@ -16,7 +16,7 @@ const ms = (t) => (t?.toMillis ? t.toMillis() : 0);
     const db = window.firebaseDb, perto = vizinhos(pos.lat, pos.lng, 4);
     const contar = (sel, n) => { const b = faixa.querySelector(sel + " b"); if (b) { b.textContent = n > 9 ? "9+" : String(n); b.classList.toggle("tem", n > 0); } };
     const [sos, pets, oc] = await Promise.all([
-      fs.getDocs(fs.query(fs.collection(db, "sos"), fs.where("publico", "==", true), fs.where("geo4", "in", perto), fs.limit(30))).catch(() => null),
+      fs.getDocs(fs.query(fs.collection(db, "sos"), fs.where("publico", "==", true), fs.where("status", "in", ["aberto", "atendido"]), fs.where("geo4", "in", perto), fs.limit(30))).catch(() => null),
       fs.getDocs(fs.query(fs.collection(db, "pets"), fs.where("visivel", "==", true), fs.where("status", "==", "perdido"), fs.where("geo4", "in", perto), fs.limit(30))).catch(() => null),
       fs.getDocs(fs.query(fs.collection(db, "ocorrencias"), fs.where("status", "==", "ativo"), fs.where("geo4", "in", perto), fs.limit(30))).catch(() => null)
     ]);

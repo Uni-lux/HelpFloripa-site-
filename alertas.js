@@ -88,7 +88,7 @@ function abaSos() {
   const col = fb.collection(fb.db, "sos");
   listar(meus, fb.query(col, fb.where("uid", "==", eu.uid), fb.limit(10)), (s) => sosVivo(s), "Nenhum pedido de ajuda aberto.");
   listar(doSocial, fb.query(col, fb.where("avisados", "array-contains", eu.uid), fb.limit(20)), (s) => sosVivo(s), "Ninguém do seu Social pediu ajuda.");
-  if (cfg.sosArea && perto()) listar(area, fb.query(col, fb.where("publico", "==", true), fb.where("geo4", "in", perto()), fb.limit(50)),
+  if (cfg.sosArea && perto()) listar(area, fb.query(col, fb.where("publico", "==", true), fb.where("status", "in", ["aberto", "atendido"]), fb.where("geo4", "in", perto()), fb.limit(50)),
     (s) => sosVivo(s) && s.uid !== eu.uid && (distKm(pos, s) ?? 0) <= cfg.raio, "Nenhum pedido de ajuda perto agora.");
   else if (!perto()) area.appendChild(vazio("Ative a localização para ver os pedidos de ajuda perto de você."));
 }

@@ -83,7 +83,8 @@
     match /sos/{id} {
       function d() { return request.resource.data; }
       function r() { return resource.data; }
-      allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
+      // Quem está perto só lê enquanto o pedido está aberto (depois de resolvido, o lugar e o nome não ficam expostos).
+      allow get, list: if logado() && ((resource.data.publico == true && resource.data.status in ['aberto', 'atendido']) || resource.data.uid == request.auth.uid
                     || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
       allow create: if logado() && emailOk()
                     && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])

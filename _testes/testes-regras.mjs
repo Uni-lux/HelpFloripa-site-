@@ -1414,6 +1414,7 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("entregador: voltar a ativo", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
   const online = (uid, extra) => ({ uid, lat: -27.595, lng: -48.548, geo4: "6gkz", geo5: "6gkzm", veiculo: "moto", servicos: ["entrega"], ocupado: false, em: serverTimestamp(), ...extra });
   await t("online: entregador ativo fica online", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1"))));
+  await t("online: posição exata (sem arredondar) é recusada", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { lat: -27.5954321 }))));
   await t("online: quem não é entregador não fica online", () => assertFails(setDoc(doc(ctx("cli"), "entregadores_online", "cli"), online("cli"))));
   await t("online: veículo tem que ser o do cadastro", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { veiculo: "carro" }))));
   await t("online: geo5 tem que começar com o geo4", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { geo5: "6gkym" }))));
@@ -1564,7 +1565,8 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("sos: só do Social (privado)", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s4"), sos({ publico: false }))));
   await t("sos privado: o Social lê", () => assertSucceeds(getDoc(doc(ctx("sb"), "sos", "s4"))));
   await t("sos privado: quem não é do Social não lê", () => assertFails(getDoc(doc(ctx("sc"), "sos", "s4"))));
-  await t("sos público: quem está perto lista", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "sos"), where("publico", "==", true), where("geo4", "in", ["6gj7"])))));
+  await t("sos público: quem está perto lista (só os abertos)", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "sos"), where("publico", "==", true), where("status", "in", ["aberto", "atendido"]), where("geo4", "in", ["6gj7"])))));
+  await t("sos público: lista sem filtrar os abertos é recusada", () => assertFails(getDocs(query(collection(ctx("sc"), "sos"), where("publico", "==", true), where("geo4", "in", ["6gj7"])))));
   await t("sos: o Social lista os avisados", () => assertSucceeds(getDocs(query(collection(ctx("sb"), "sos"), where("avisados", "array-contains", "sb")))));
   const aceitar = (u, id) => updateDoc(doc(ctx(u), "sos", id), { status: "atendido", ajudanteId: u, ajudanteNome: u, aceitoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
   await t("sos: quem pediu não aceita o próprio", () => assertFails(aceitar("sa", "s1")));
@@ -1585,6 +1587,12 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("sos em etapas: outra pessoa não escala", () => assertFails(updateDoc(doc(ctx("sb"), "sos", "s4"), { publico: true, escaladoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
   await t("sos: só o número do chamado, sem abrir para a área", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { suporteId: "sup-sos", atualizadoEm: serverTimestamp() })));
   await t("sos: quem pediu cancela", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { status: "cancelado", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("sos resolvido: quem estava perto (sem ser do Social nem ajudante) não lê mais", async () => {
+    await setDoc(doc(ctx("sa"), "sos", "s7"), sos({ avisados: [] }));
+    await updateDoc(doc(ctx("sa"), "sos", "s7"), { status: "cancelado", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+    await assertFails(getDoc(doc(ctx("sc"), "sos", "s7")));
+    await assertSucceeds(getDoc(doc(ctx("sa"), "sos", "s7")));
+  });
   await t("sos: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("sa"), "sos", "s1"))));
   // Ocorrências
   const oc = (extra) => ({ anonimo: false, autorId: "sa", autorNome: "Sa", tipo: "furto", objeto: "celular", identificador: "356789012345678", descricao: "Levaram meu celular no ônibus", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
