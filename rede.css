@@ -3892,3 +3892,22 @@ body.modo-lugar .fab-criar { display: none; }
 .neg-visib { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .neg-visib .i { width: 14px; height: 14px; }
 .neg-visib.oculto { color: #f5a400; border-color: color-mix(in srgb, #f5a400 45%, transparent); }
+
+/* Símbolo da ponte no topo do Diário (12/11/2026, pedido dele: como o X, só o símbolo; a marca escrita saiu das
+   abas da rede). Tocar sobe para o começo. Cores fixas no SVG/CSS simples para a cópia do topo da casca (rede-app.js). */
+.topo-meio { flex: 1; }
+.marca-ponte { flex: 1; display: flex; align-items: center; justify-content: center; align-self: stretch; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.marca-ponte svg { width: 56px; height: 35px; overflow: visible; filter: drop-shadow(0 0 7px rgba(0, 173, 238, .38)); transition: transform .18s ease; }
+.marca-ponte:active svg { transform: scale(.9); }
+.marca-ponte:focus-visible { outline: none; }
+.marca-ponte:focus-visible svg { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.marca-ponte .mp-cabo { fill: none; stroke: #00adee; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+.marca-ponte .mp-pend { fill: none; stroke: currentColor; stroke-width: 1; opacity: .5; }
+.marca-ponte .mp-deck { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.marca-ponte .mp-torre { fill: currentColor; }
+.marca-ponte .mp-luz { fill: #4fd2ff; }
+.marca-ponte .mp-agua { fill: none; stroke: #00adee; stroke-width: 1.2; stroke-linecap: round; opacity: .35; }
+:root[data-theme="light"] .marca-ponte svg { filter: none; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .marca-ponte svg { filter: none; } }
+/* No Explorar o símbolo some (como as outras redes: a marca fica só no começo). */
+body.aba-explorar .marca-ponte { visibility: hidden; pointer-events: none; }
