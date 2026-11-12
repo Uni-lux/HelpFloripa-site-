@@ -890,6 +890,11 @@ await t("verificação: documento que não é foto JPEG é recusado", () => asse
 await t("verificação: tipo de perfil estranho é recusado", () => assertFails(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", categoria: "rei" }))));
 await t("verificação: outra pessoa não lê o pedido", () => assertFails(getDoc(doc(ctx("ana"), "verificacoes", "bia"))));
 await t("verificação: o suporte não lê (só a moderação)", () => assertFails(getDoc(doc(ctx("mod2"), "verificacoes", "bia"))));
+await t("sanção: moderação não suspende quem é dono da equipe", () => assertFails(setDoc(doc(ctx("mod"), "sancoes", "adm"), { tipo: "suspensao", motivo: "x", ate: Timestamp.fromMillis(Date.now() + 864e5), por: "mod", em: serverTimestamp() })));
+await t("verificação: moderação não aprova o próprio pedido", async () => {
+  await semRegras((db) => setDoc(doc(db, "verificacoes", "mod"), { uid: "mod", status: "pendente" }));
+  await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "mod"), { status: "em_analise", analisadaPor: "mod", analisadaEm: serverTimestamp() }));
+});
 await t("verificação: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("mod"), "verificacoes", "bia"))));
 await t("verificação: aprovar sem apagar a foto do documento é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
 await t("verificação: a pessoa não muda o pedido em análise (só cancela)", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { nomeLegal: "Outro Nome" })));

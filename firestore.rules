@@ -379,7 +379,7 @@ service cloud.firestore {
       // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
       allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar()
+      allow update: if podeModerar() && (userId != request.auth.uid || papel() == 'dono')
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
                     && seloLiberado(userId);
 
@@ -1796,7 +1796,9 @@ service cloud.firestore {
     match /sancoes/{uid} {
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
-      allow create, update: if podeModerar()
+      // Quem é da equipe só recebe (ou perde) sanção pelas mãos de um dono: um moderador não suspende o dono nem
+      // apaga a própria sanção.
+      allow create, update: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)))
                     && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
                     && request.resource.data.tipo in ['suspensao', 'banimento']
                     && valorTextoAte(request.resource.data.get('motivo', ''), 500)
@@ -1804,7 +1806,7 @@ service cloud.firestore {
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
                     && listaAte('historico', 50);
-      allow delete: if podeModerar();
+      allow delete: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)));
     }
 
     match /avisos/{id} {
@@ -1999,7 +2001,8 @@ service cloud.firestore {
                     && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
                     && request.resource.data.atualizadoEm == request.time;
       // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
-      allow update: if podeModerar()
+      // Ninguém da moderação decide o próprio pedido (só um dono).
+      allow update: if podeModerar() && (uid != request.auth.uid || papel() == 'dono')
                     && resource.data.status in ['pendente', 'em_analise']
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']

@@ -188,7 +188,7 @@
       // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
       allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar()
+      allow update: if podeModerar() && (userId != request.auth.uid || papel() == 'dono')
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
                     && seloLiberado(userId);
 
