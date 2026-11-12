@@ -732,7 +732,7 @@ service cloud.firestore {
       // Só confere o que mudou: a gravação completa ficava perto do limite de 1.000 expressões.
       function extrasNegocioOk() {
         let d = request.resource.data;
-        let m = resource == null ? d.keys() : mudou();
+        let m = resource == null ? d.keys().toSet() : mudou();
         return (!m.hasAny(['instagram', 'site', 'cnpj'])
                 || [d.get('instagram', ''), d.get('site', ''), d.get('cnpj', '')].join('\n')
                      .matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
