@@ -124,7 +124,7 @@ const REGRAS = [
   [P(`(^|[.!?]\\s+)e\\s+(verdade|isso|assim|s[oó]|muito|bom|boa|claro|poss[ií]vel)`), "$1é $2", "acento", "“é” do verbo ser leva acento"],
   // "esta" → "está" (verbo) antes de palavras que pedem o verbo
   [P(`esta\\s+(bem|aqui|a[ií]|l[aá]|certo|certa|tudo|ok|com|sendo|indo|fazendo|vindo|chegando|chovendo|aberto|aberta|fechado|fechada|pronto|pronta|dispon[ií]vel|funcionando|precisando|esperando|tranquilo|tranquila|na|no|em|muito|bom|boa|ruim|caro|cara|barato|barata|legal|livre|ocupado|ocupada|online|atrasado|atrasada)`), "está $1", "acento", "“está” do verbo estar leva acento"],
-  [P(`(voc[eê]|ele|ela|isso|tudo|onde|como|quem|n[aã]o)\\s+esta(?=[\\s?!.,]|$)`), "$1 está", "acento", "“está” do verbo estar leva acento"],
+  [P(`(voc[eê]|ele|ela|isso|tudo|onde|como|quem|n[aã]o)\\s+esta(?=\\s*[?!.,]|\\s*$)`), (m, a) => `${a} está`, "acento", "“está” do verbo estar leva acento"],
   // "ai" → "aí" (lugar/então); "ai" sozinho como gemido continua
   [P(`(t[aá]|est[aá]|fica|ficou|vou|vai|vem|deixa|chego|chegou|e|a[ií]\\s+)\\s+ai(?=[\\s?!.,]|$)`), "$1 aí", "acento", "“aí” (lugar ou então) leva acento"],
   [P(`ai\\s+(sim|n[aã]o|ent[aã]o|vou|vai|eu|ele|ela|a gente|depois|que)`), "aí $1", "acento", "“aí” (lugar ou então) leva acento"],
@@ -136,9 +136,9 @@ const REGRAS = [
   [P(`(o|nosso|esse|este|todo\\s+o|do|no|pelo)\\s+pais(?=[\\s?!.,]|$)`), "$1 país", "acento", "“país” (nação) leva acento"],
   // concordância comum
   [P(`a\\s+gente\\s+(vamos|somos|estamos|temos|podemos|fomos|fizemos|queremos|precisamos|ficamos)`), (m, v) => "a gente " + ({ vamos: "vai", somos: "é", estamos: "está", temos: "tem", podemos: "pode", fomos: "foi", fizemos: "fez", queremos: "quer", precisamos: "precisa", ficamos: "ficou" })[v.toLowerCase()], "concordancia", "“a gente” combina com o verbo no singular"],
-  [P(`n[oó]s\\s+(vai|é|est[aá]|tem|pode|foi|fez|quer|precisa|ficou|sabe)`), (m, v) => "nós " + ({ vai: "vamos", "é": "somos", "está": "estamos", esta: "estamos", tem: "temos", pode: "podemos", foi: "fomos", fez: "fizemos", quer: "queremos", precisa: "precisamos", ficou: "ficamos", sabe: "sabemos" })[v.toLowerCase()], "concordancia", "“nós” combina com o verbo no plural"],
+  [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)(?:n[oó]s\\s+(vai|est[aá]|foi|precisa|ficou)|nós\\s+(é|tem|pode|fez|quer|sabe))(?![${L}])`), (m, v1, v2) => { const v = v1 || v2; return "nós " + ({ vai: "vamos", "é": "somos", "está": "estamos", esta: "estamos", tem: "temos", pode: "podemos", foi: "fomos", fez: "fizemos", quer: "queremos", precisa: "precisamos", ficou: "ficamos", sabe: "sabemos" })[v.toLowerCase()]; }, "concordancia", "“nós” combina com o verbo no plural"],
   [P(`agente\\s+(vai|vamos|foi|pode|tem|t[aá]|est[aá]|precisa|se\\s+v[eê]|quer|fica|faz|sempre)`), "a gente $1", "ortografia", "“a gente” (nós) se escreve separado; “agente” é profissão"],
-  [P(`fazem\\s+(\\d+|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|muitos|v[aá]rios|anos|meses|dias|semanas|horas)`), "faz $1", "concordancia", "“faz” indicando tempo fica no singular"],
+  [P(`fazem\\s+((?:\\d+|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|muitos|muitas|v[aá]rios|v[aá]rias|alguns|algumas)\\s+(?:anos|meses|dias|semanas|horas|minutos|d[eé]cadas)|anos|meses|dias|semanas|horas)(?![${L}])`), "faz $1", "concordancia", "“faz” indicando tempo fica no singular"],
   [P(`houveram`), "houve", "concordancia", "“haver” no sentido de existir fica no singular"],
   [P(`haviam\\s+(muitos|muitas|v[aá]rios|v[aá]rias|poucos|poucas|dois|duas|tr[eê]s|alguns|algumas)`), "havia $1", "concordancia", "“haver” no sentido de existir fica no singular"],
   [P(`para\\s+mim\\s+(fazer|ir|ver|saber|comprar|pagar|ligar|falar|levar|buscar|mandar|entender|usar|pegar|ficar|sair|chegar|trabalhar)`), "para eu $1", "concordancia", "antes de verbo é “para eu” (eu faço), não “para mim”"],
@@ -183,15 +183,16 @@ const REGRAS = [
   [P(`(vou|vai|pode|posso|quero|quer|preciso|precisa|tem\\s+que|temos\\s+que|vamos)\\s+por\\s+(o|a|os|as|no|na|nos|nas|mais)(?![${L}])`), "$1 pôr $2", "acento", "“pôr” (colocar) leva acento"],
   [P(`(eles|elas|voc[eê]s)\\s+vem(?![${L}])`), "$1 vêm", "acento", "“vêm” no plural leva acento"],
   // concordância do verbo com a pessoa
-  [P(`eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
-  [P(`(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
+  [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])(?!\\s+que(?![${L}]))`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
+  [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
   // "Foi umas situação" → "Foi uma situação" (com o verbo no singular, o artigo é que está errado)
   [P(`(foi|[eé]|era|ser[aá]|seria|virou|parece|parecia)\\s+(uns|umas)\\s+(\\p{Ll}{3,})(?![${L}-])`), (m, v, d, w) => {
     if (!LEX || /s$/.test(w) || !LEX.has(w)) return null;
     return `${v} ${d.toLowerCase() === "uns" ? "um" : "uma"} ${w}`; }, "concordancia", "o artigo combina com a palavra no singular"],
   // concordância do plural: "várias coisa" → "várias coisas", "uns estranho" → "uns estranhos"
   [P(`(os|as|dos|das|nas|meus|minhas|teus|tuas|seus|suas|nossos|nossas|esses|essas|estes|estas|aqueles|aquelas|desses|dessas|nesses|nessas|muitos|muitas|v[aá]rios|v[aá]rias|alguns|algumas|poucos|poucas|uns|umas|outros|outras|todos\\s+os|todas\\s+as|todos\\s+esses|todas\\s+essas)\\s+(\\p{Ll}{2,})(?![${L}-])`), (m, d, w) => {
-    if (!LEX || /s$/.test(w) || NAO_PLURAL.has(w)) return null;
+    if (!LEX || /s$/.test(w) || NAO_PLURAL.has(w) || !/^[NA?]$/.test(classeSegura(w))) return null;
+    if (CTX && !/^[NA]$/.test(classeSegura(w))) return null; // "eu os procurava", "aos poucos remova": não é substantivo
     if (/^(os|as|nos|nas)$/i.test(d) && /^(ama|amo|vejo|vi|levo|chama|conhece|conheço|acho|deixa|deixo|pega|pego|manda|mando|ajuda|ajudo|espera|espero)$/i.test(w)) return null;
     const pl = pluralizar(w); if (!pl) return null;
     // "as vende" (verbo) não é plural: com os/as/nos/nas e cara de verbo vira só sugestão
@@ -214,8 +215,8 @@ const REGRAS = [
   [P(`(vamos|vou|vai|v[aã]o)(?=\\s+(?:ao|aos|à|às|a|no|na|pra|para|em)\\s+(?:(?!que|porque|mas|quando)[^.!?,;\\n]){0,40}?(?<![${L}])(?:ontem|anteontem)(?![${L}]))`), (m, v) => ({ vamos: "fomos", vou: "fui", vai: "foi", "vão": "foram", vao: "foram" })[v.toLowerCase()], "concordancia", "com “ontem” o verbo vai para o passado"],
   [P(`(ontem|anteontem)\\s+((?:n[oó]s|eu|a\\s+gente|ele|ela|eles|elas)\\s+)?(vamos|vou|vai|v[aã]o)(?![${L}])`), (m, o, q, v) => `${o} ${q || ""}${({ vamos: "fomos", vou: "fui", vai: "foi", "vão": "foram", vao: "foram" })[v.toLowerCase()]}`, "concordancia", "com “ontem” o verbo vai para o passado"],
   // gênero: "uma situação muito complicado" → "complicada"
-  [P(`(?<!\\p{L}(?:ar|er|ir|or|ôr)\\s)(a|uma|essa|esta|minha|sua|nossa|aquela|toda|outra|nenhuma|alguma|primeira|[uú]ltima)\\s+(\\p{Ll}{3,})\\s+((?:(?:é|est[aá]|estava|ficou|fica|foi|era|parece|parecia|t[aá]|tava|continua|est[aá]\\s+ficando)\\s+)?(?:(?:muito|bem|t[aã]o|super|bastante|meio|mais|menos|pouco)\\s+)?)(\\p{Ll}{3,}o)(?![${L}-])`), (m, d, n, i, a) => generoAdj(m, d, n, i, a, "f"), "concordancia", "o adjetivo combina com a palavra (feminino/masculino)"],
-  [P(`(?<!\\p{L}(?:ar|er|ir|or|ôr)\\s)(o|um|esse|este|meu|seu|nosso|aquele|todo|outro|nenhum|algum|primeiro|[uú]ltimo)\\s+(\\p{Ll}{3,})\\s+((?:(?:é|est[aá]|estava|ficou|fica|foi|era|parece|parecia|t[aá]|tava|continua|est[aá]\\s+ficando)\\s+)?(?:(?:muito|bem|t[aã]o|super|bastante|meio|mais|menos|pouco)\\s+)?)(\\p{Ll}{3,}a)(?![${L}-])`), (m, d, n, i, a) => generoAdj(m, d, n, i, a, "m"), "concordancia", "o adjetivo combina com a palavra (feminino/masculino)"],
+  [P(`(?<!\\p{L}(?:ar|er|ir|or|ôr)\\s)(?<!(?:de|do|da|dos|das|em|no|na|com|para|pra|por|pelo|pela|entre|sobre|a|ao)\\s)(a|uma|essa|esta|minha|sua|nossa|aquela|toda|outra|nenhuma|alguma|primeira|[uú]ltima)\\s+(\\p{Ll}{3,})\\s+((?:(?:é|est[aá]|estava|ficou|fica|foi|era|parece|parecia|t[aá]|tava|continua|est[aá]\\s+ficando)\\s+)?(?:(?:muito|bem|t[aã]o|super|bastante|meio|mais|menos|pouco)\\s+)?)(\\p{Ll}{3,}o)(?![${L}-])`), (m, d, n, i, a) => generoAdj(m, d, n, i, a, "f"), "concordancia", "o adjetivo combina com a palavra (feminino/masculino)"],
+  [P(`(?<!\\p{L}(?:ar|er|ir|or|ôr)\\s)(?<!(?:de|do|da|dos|das|em|no|na|com|para|pra|por|pelo|pela|entre|sobre|a|ao)\\s)(o|um|esse|este|meu|seu|nosso|aquele|todo|outro|nenhum|algum|primeiro|[uú]ltimo)\\s+(\\p{Ll}{3,})\\s+((?:(?:é|est[aá]|estava|ficou|fica|foi|era|parece|parecia|t[aá]|tava|continua|est[aá]\\s+ficando)\\s+)?(?:(?:muito|bem|t[aã]o|super|bastante|meio|mais|menos|pouco)\\s+)?)(\\p{Ll}{3,}a)(?![${L}-])`), (m, d, n, i, a) => generoAdj(m, d, n, i, a, "m"), "concordancia", "o adjetivo combina com a palavra (feminino/masculino)"],
   // outras
   [P(`afim\\s+de`), "a fim de", "ortografia", "“a fim de” (com o objetivo de) é separado"],
   [P(`o\\s+porque(?![${L}])`), "o porquê", "ortografia", "substantivo: “o porquê”"],
@@ -228,6 +229,8 @@ const REGRAS = [
 
 
 // ---------- Concordância (12/11/2026, 2ª etapa) ----------
+// classe da palavra quando o modelo do contexto já carregou ("?" sem ele)
+const classeSegura = (w) => (CTX && CTX.pos ? classeCtx(semAcento(String(w).toLowerCase())) : "?");
 // Palavras que não vão para o plural depois de "os/as" ("os dele" está certo).
 const NAO_PLURAL = new Set("dele dela deste desta desse dessa daquele daquela disso disto daquilo do da que quais qual quem mesmo cujo cuja tal mais menos tanto quanto ao à pra para de em no na com por pelo pela se me te lhe nos vos um uma dois tres três quatro cinco seis sete oito nove dez".split(" "));
 // Plural de uma palavra (só se o plural existe no dicionário).
@@ -259,6 +262,9 @@ function generoAdj(m, d, n, i, a, gen) {
   if (["ar", "er", "ir"].some((t) => rank(a.slice(0, -1) + t) < 30000) && !/(ad[oa]|id[oa])$/.test(a)) return null;
   const outra = a.slice(0, -1) + (gen === "f" ? "a" : "o");
   if (!LEX.has(outra) || !LEX.has(a)) return null;
+  // com o modelo carregado: só adjetivo/particípio ("o cereal mais cebolinha" é substantivo) e nunca gerúndio
+  if (!/^[AV?]$/.test(classeSegura(a)) || /ndo$/.test(a)) return null;
+  if (i && /^(mais|menos)\s/.test(i) && CTX && classeSegura(a) !== "A") return null; // "o cereal mais cebolinha"
   // palavra do meio com o gênero contrário à cara dela fica como sugestão
   const caraF = /(a|ção|são|dade|gem|tude|ã)$/.test(n), caraM = /(o|or|ão)$/.test(n) && !/(ção|são)$/.test(n);
   const conf = i && (gen === "f" ? !caraM : !caraF) ? "alta" : "media";
@@ -276,7 +282,7 @@ const VERBOS_IRR = {
   ia: ["ia", "íamos", "iam"], "põe": ["ponho", "pomos", "põem"], "pôs": ["pus", "pusemos", "puseram"],
   traz: ["trago", "trazemos", "trazem"], trouxe: ["trouxe", "trouxemos", "trouxeram"], saiu: ["saí", "saímos", "saíram"],
   caiu: ["caí", "caímos", "caíram"], sai: ["saio", "saímos", "saem"], "lê": ["leio", "lemos", "leem"], houve: null, "há": null,
-  "pôde": ["pude", "pudemos", "puderam"], soube: ["soube", "soubemos", "souberam"], ficou: ["fiquei", "ficamos", "ficaram"],
+  "pôde": ["pude", "pudemos", "puderam"], havia: null, houve: null, haverá: null, haveria: null, desde: null, ora: null, presente: null, soube: ["soube", "soubemos", "souberam"], ficou: ["fiquei", "ficamos", "ficaram"],
 };
 const PESSOA_I = { "1s": 0, "1p": 1, "3p": 2 };
 // terminação da 3ª do singular → [eu, nós, eles] (a forma nova precisa existir no dicionário)
@@ -337,11 +343,13 @@ function concordarSujeito(s, anotar) {
     else if (DET_PL.has(w) && a + 1 < toks.length && !corta(a, a + 1) && !/^(os|as)$/.test(lc(toks[a + 1]))) {
       // "as pessoas estava" / "os ônibus não passava": artigo no plural + palavra = quem faz a ação
       const n = lc(toks[a + 1]);
-      if (NAO_PLURAL.has(n) || PULA_ADV.has(n) || /^(vezes|que|quais)$/.test(n)) continue;
+      if (NAO_PLURAL.has(n) || PULA_ADV.has(n) || /^(vezes|que|quais|segundos|minutos|horas|dias|semanas|meses|anos|vez|lugares|momentos|instantes)$/.test(n)) continue;
+      if (/^(outros|outras|alguns|algumas|poucos|poucas|muitos|muitas|v[aá]rios|v[aá]rias|todos|todas)$/.test(w) && ant && !/^(e|mas|que|quando|se|porque)$/.test(ant)) continue;
       if (/^(os|as)$/.test(w) && !/s$/.test(n) && !pluralizar(n)) continue; // "as" pronome: "eu as vejo"
       if (/^(todos|todas)$/.test(w) && /^(os|as)$/.test(n)) continue;
       pessoa = "3p"; fimSuj = a + 1; motivo = "o verbo vai para o plural (quem faz a ação está no plural)";
       if (ant && VERBO_ANTES.test(ant) && !PARA_FRASE.has(ant)) conf = "media";
+      if (ant === "e" || ant === "ou") conf = "media"; // "a distância entre a superfície e os reservatórios pode"
     }
     if (!pessoa) continue;
     // primeiro verbo depois de quem faz a ação (pulando "não", "já", "me"...)
@@ -350,6 +358,11 @@ function concordarSujeito(s, anotar) {
     if (j >= toks.length || corta(j - 1, j) || /,/.test(entre(j - 1, j))) continue;
     const v = lc(toks[j]);
     if (PARA_FRASE.has(v) || PREPOS.has(v)) continue;
+    // "eu é que", "os outros é que": construção com "é que" não muda
+    if (/^(é|foi|era|seria|será)$/.test(v) && j + 1 < toks.length && lc(toks[j + 1]) === "que") continue;
+    // com artigo + palavra, o verbo só muda se ele for verbo mesmo (classe) e "é/era" só como sugestão
+    if (pessoa === "3p" && fimSuj > a && !/^[VX?]$/.test(classeSegura(v)) && !VERBOS_IRR[v]) continue;
+    if (pessoa === "3p" && fimSuj > a && /^(é|foi|era)$/.test(v)) conf = "media";
     const mudou = mudar(j, pessoa, conf, null, motivo);
     const ref = toks[j].w.toLowerCase();
     // é verbo? (mudou agora ou já estava certo na pessoa)
@@ -379,6 +392,7 @@ function concordarSujeito(s, anotar) {
       // no presente, o verbo coordenado precisa vir com o que se compra/faz (artigo, número, pronome...)
       const depois = q + 1 < toks.length && !corta(q, q + 1) ? lc(toks[q + 1]) : "";
       const vq = lc(toks[q]);
+      if (PARA_FRASE.has(vq) || PREPOS.has(vq) || vq.length < 3) break;
       const pres = /[ae]$/.test(vq) && !/(ava|ia|asse|esse|isse)$/.test(vq);
       if (pres && !(DET_PL.has(depois) || /^(o|a|um|uma|uns|umas|mais|muito|muita|muitos|tudo|nada|isso|aquilo|ele|ela|eles|elas|embora|logo|lá|aqui|comida|pão)$/.test(depois))) break;
       mudar(q, pessoa, "alta", tempo, "o verbo ligado por “e” combina com quem faz a ação");
@@ -460,37 +474,42 @@ let CTX = null, carregandoCtx = null;
 export const contextoPronto = () => !!CTX;
 export function definirContexto(dados) {
   const d = typeof dados === "string" ? JSON.parse(dados) : dados;
-  const membro = new Map(), ger = new Map(), soma = new Map();
-  d.grupos.forEach((g, gi) => {
-    const c = new Map(); let n = 0;
-    for (const w of g) { membro.set(w, gi); n += d.tot[w] || 0; for (const [f, k] of Object.entries(d.f[w] || {})) c.set(f, (c.get(f) || 0) + k); }
-    ger.set(gi, c); soma.set(gi, n);
-  });
-  CTX = { ...d, membro, ger, soma };
+  const membro = new Map(), pos = new Map();
+  (d.grupos || []).forEach((g, gi) => g.forEach((w) => membro.set(w, gi)));
+  String(d.pos || "").split(",").forEach((x) => { const i = x.indexOf("="); if (i > 0) pos.set(x.slice(0, i), x.slice(i + 1)); });
+  CTX = { ...d, membro, pos };
 }
-export function carregarContexto(url = new URL("./corretor/contexto.json?v=1", import.meta.url).href) {
+export function carregarContexto(url = new URL("./corretor/contexto.json?v=2", import.meta.url).href) {
   if (CTX) return Promise.resolve(true);
   if (!carregandoCtx) carregandoCtx = fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))).then((j) => { definirContexto(j); return true; })
     .catch(() => { carregandoCtx = null; return false; });
   return carregandoCtx;
 }
 const TOK_CTX = /[\p{L}]+(?:-[\p{L}]+)*|[.,;:!?]/gu;
-function pontuarCtx(gi, toks, i) {
-  const g = CTX.grupos[gi], ger = CTX.ger.get(gi), n0 = CTX.soma.get(gi);
+// classe da palavra (N substantivo, A adjetivo, V verbo, X auxiliar, R advérbio, D determinante, P pronome, E preposição,
+// C/S conjunção, M número, U pontuação, ? não sei) — igual ao gerar-contexto.py
+function classeCtx(w) {
+  const c = CTX.pos.get(w); if (c) return c;
+  if (/^[.,;:!?]$/.test(w)) return "U";
+  if (/mente$/.test(w)) return "R";
+  if (/(cao|coes|dade|dades|gem|ismo|ista|ncia|ncias|mento|mentos)$/.test(w)) return "N";
+  if (/(ar|er|ir|ando|endo|indo)$/.test(w)) return "V";
+  if (/(ado|ada|ados|adas|ido|ida|idos|idas|oso|osa|ivel|avel|ivo|iva|ico|ica)$/.test(w)) return "A";
+  return "?";
+}
+// probabilidade de cada forma do grupo (regressão logística treinada no gerar-contexto.py)
+function probCtx(gi, toks, i) {
+  const g = CTX.grupos[gi], m = CTX.m[g[0]];
   const at = (j) => (j >= 0 && j < toks.length ? semAcento(toks[j].w.toLowerCase()) : "<>");
-  const fs = ["l:" + at(i - 1), "r:" + at(i + 1), "ll:" + at(i - 2) + "_" + at(i - 1), "rr:" + at(i + 1) + "_" + at(i + 2)];
-  const pont = {};
-  for (const c of g) {
-    const n = CTX.tot[c] || 0, fc = CTX.f[c] || {};
-    let s = Math.log(n + 1);
-    for (const f of fs) {
-      if (!ger.has(f)) continue;
-      const pf = (ger.get(f) + 0.5) / (n0 + 50);
-      s += Math.log(((fc[f] || 0) + 4 * pf) / (n + 4));
-    }
-    pont[c] = s;
-  }
-  return pont;
+  const cl = (j) => (j >= 0 && j < toks.length ? classeCtx(at(j)) : "<");
+  const fs = ["l:" + at(i - 1), "r:" + at(i + 1), "ll:" + at(i - 2) + "_" + at(i - 1), "rr:" + at(i + 1) + "_" + at(i + 2),
+    "lp:" + cl(i - 1), "rp:" + cl(i + 1), "pp:" + cl(i - 1) + "_" + cl(i + 1), "rq:" + cl(i + 1) + "_" + cl(i + 2),
+    "lq:" + cl(i - 2) + "_" + cl(i - 1), "rs:" + at(i + 1).slice(-3), "ls:" + at(i - 1).slice(-3)];
+  const z = m.b.slice();
+  for (const f of fs) { const w = m.w[f]; if (w) for (let c = 0; c < z.length; c++) z[c] += w[c]; }
+  const mx = Math.max(...z), e = z.map((x) => Math.exp(x - mx)), soma = e.reduce((a, x) => a + x, 0);
+  const p = {}; m.c.forEach((c, j) => { p[c] = e[j] / soma; });
+  return p;
 }
 function corrigirPeloContexto(s, anotar) {
   if (!CTX) return s;
@@ -500,18 +519,41 @@ function corrigirPeloContexto(s, anotar) {
     const k = t.w.toLowerCase();
     if (k !== semAcento(k) || !CTX.membro.has(k)) return; // só o que foi escrito sem acento (ou a outra palavra do par)
     if (/\p{Lu}/u.test(t.w) && i > 0 && !/[.!?]/.test(toks[i - 1].w)) return; // nome próprio no meio da frase
-    const gi = CTX.membro.get(k), lim = CTX.lim[CTX.grupos[gi][0]];
-    if (!lim) return;
-    const p = pontuarCtx(gi, toks, i);
-    const [melhor, sm] = Object.entries(p).sort((a, b) => b[1] - a[1])[0];
-    if (melhor === k) return;
-    const margem = sm - p[k];
-    const conf = margem > Math.max(lim[0], 4) ? "alta" : margem > Math.max(lim[1], 3) ? "media" : null;
+    const gi = CTX.membro.get(k), g = CTX.grupos[gi], lim = CTX.lim[g[0]];
+    if (!lim || !CTX.m?.[g[0]]) return;
+    const p = probCtx(gi, toks, i);
+    const melhor = g.filter((c) => c !== k).sort((a, b) => (p[b] || 0) - (p[a] || 0))[0];
+    const pm = p[melhor] || 0;
+    // limites medidos fora do treino (1 = nunca), com piso: só muda sozinho com 90%+ e sugere com 70%+
+    const conf = lim[0] < 1 && pm > Math.max(lim[0], 0.9) ? "alta" : lim[1] < 1 && pm > Math.max(lim[1], 0.7) ? "media" : null;
     if (!conf) return;
     const para = comoOriginal(t.w, melhor);
     const de = (i > 0 && !/[.,;:!?]/.test(toks[i - 1].w) ? toks[i - 1].w + " " : "") + t.w; // um pouco do contexto na lista
     const deAte = de === t.w ? para : de.slice(0, de.length - t.w.length) + para;
     if (anotar(de, deAte, MAIS_ACENTO.has(k) ? "acento" : "ortografia", "escolhida pelas palavras em volta", conf)) troca.push({ i: t.i, f: t.i + t.w.length, para });
+  });
+  // padrões com a classe das palavras (as árvores sintáticas dizem quem é adjetivo, substantivo...)
+  const cls = (j) => (j >= 0 && j < toks.length ? classeCtx(semAcento(toks[j].w.toLowerCase())) : "<");
+  const lw = (j) => (j >= 0 && j < toks.length ? semAcento(toks[j].w.toLowerCase()) : "");
+  const cru = (j) => (j >= 0 && j < toks.length ? toks[j].w.toLowerCase() : "");
+  // depois do adjetivo a frase acaba (ou vem pontuação/uma palavra que fecha), senão é lista ("maior que a ponta e menor que")
+  const fecha = (j) => j >= toks.length || /^[.,;:!?]$/.test(toks[j].w) || /^(mas|porque|pq|entao|demais|hoje|agora|tambem|sim|mesmo|né|ne|kk+|rs)$/.test(lw(j));
+  const DET = /^(o|a|os|as|um|uma|meu|minha|seu|sua|nosso|nossa|esse|essa|este|aquele|aquela|teu|tua)$/;
+  const ADV_E = /^(hoje|amanha|agora|aqui|ali|longe|perto|cedo|tarde|demais|verdade|assim|facil|dificil|caro|barato|top|otimo|otima|lindo|linda)$/;
+  toks.forEach((t, i) => {
+    if (troca.some((x) => x.i === t.i)) return;
+    const k = t.w.toLowerCase();
+    let para = null, motivo = "";
+    // "o preço e alto", "a vida e bela", "o jogo e hoje" → é (artigo + palavra + e + adjetivo/advérbio no fim da frase)
+    if (k === "e" && DET.test(cru(i - 2)) && cls(i - 1) === "N" && (cls(i + 1) === "A" || ADV_E.test(lw(i + 1))) && fecha(i + 2)) { para = "é"; motivo = "“é” do verbo ser leva acento"; }
+    // "já e tarde" → já é
+    else if (k === "e" && lw(i - 1) === "ja" && /^(tarde|cedo|hora|noite|dia|meio|domingo|sabado|sexta|outro|outra|amanha)$/.test(lw(i + 1))) { para = "é"; motivo = "“é” do verbo ser leva acento"; }
+    // "o dia esta lindo", "a casa esta limpa" → está (esta + adjetivo/advérbio que não vem antes de um substantivo)
+    else if (k === "esta" && i > 0 && !/^(que|qual|quem|como|onde|se)$/.test(lw(i - 1)) && (cls(i - 1) === "P" || cls(i - 1) === "N" && cls(i - 2) === "D") && (/^[AR]$/.test(cls(i + 1)) || /(ndo|ado|ada|ido|ida)$/.test(lw(i + 1))) && !/^[NA]$/.test(cls(i + 2))) { para = "está"; motivo = "“está” do verbo estar leva acento"; }
+    if (!para) return;
+    const novo = comoOriginal(t.w, para);
+    const de = (i > 0 ? toks[i - 1].w + " " : "") + t.w, deAte = (i > 0 ? toks[i - 1].w + " " : "") + novo;
+    if (anotar(de, deAte, "acento", motivo)) troca.push({ i: t.i, f: t.i + t.w.length, para: novo });
   });
   for (const t of troca.sort((a, b) => b.i - a.i)) s = s.slice(0, t.i) + t.para + s.slice(t.f);
   return s;

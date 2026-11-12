@@ -99,6 +99,18 @@ const CASOS = [
   ["o pais esta em crise", "O país está em crise", "chat"],
   ["Pedro e Maria foram juntos.", "Pedro e Maria foram juntos.", "pub"],
   ["A casa nova e bonita.", "A casa nova e bonita.", "pub"],
+  // modelo com textos atuais + classes das palavras
+  ["a vida e bela", "A vida é bela", "chat"],
+  ["o preco e alto mas vale a pena", "O preço é alto, mas vale a pena", "chat"],
+  ["o jogo e hoje", "O jogo é hoje", "chat"],
+  ["ja e tarde", "Já é tarde", "chat"],
+  ["o dia esta lindo", "O dia está lindo", "chat"],
+  ["quero mas cafe", "Quero mais café", "chat"],
+  // frases certas que já foram corrigidas por engano (achadas em 12 mil frases de livros e notícias)
+  ...["Fora isso, dividir cena com eles é incrível.", "Eu é que estou velho.", "O espaço entre elas está preenchido com um fluido.",
+    "A perfuração de um poço é feita sem parar.", "Passados alguns minutos parou.", "Como esta espécie corresponde ao modelo.",
+    "Ele nos tem dado lições.", "No próximo item esta técnica será descrita.", "É maior que a ponta e menor que a península.",
+    "Para que esta aos poucos remova o óleo.", "Pode chover à tarde e máxima de 37 graus.", "Pão e leite.", "Casa nova e bonita."].map((f) => [f, f, "pub"]),
   // NÃO mexer: frases certas, nomes, links, @, #, números
   ["Amanhã vou ao mercado com a Juliana.", "Amanhã vou ao mercado com a Juliana.", "pub"],
   ["Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "pub"],

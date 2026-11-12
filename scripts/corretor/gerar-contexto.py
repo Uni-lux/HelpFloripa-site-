@@ -3,9 +3,13 @@
 # Para cada grupo de palavras que se confundem (e/é, a/à/há, mas/mais, mal/mau, esta/está...), conta em textos de verdade
 # quais palavras aparecem antes e depois de cada uma. No aparelho, o corretor compara essas contagens com a frase da pessoa
 # (Bayes ingênuo) e escolhe a forma mais provável. Nada sai do aparelho.
-# Fonte: obra completa de Machado de Assis (domínio público; corpus "machado" do NLTK, http://machado.mec.gov.br/).
-# Uso: python3 gerar-contexto.py machado.txt ../../corretor/contexto.json [--avaliar]
-import json, re, sys, unicodedata, random
+# Fontes (ver corretor/LEIA-ME.txt):
+#   - obra completa de Machado de Assis (domínio público; corpus "machado" do NLTK, http://machado.mec.gov.br/);
+#   - textos atuais do Brasil das árvores sintáticas Universal Dependencies (frases "# text =" dos .conllu):
+#     UD_Portuguese-GSD, -Bosque (só a parte da Folha, ids "CF"), -PUD e -PetroGold (CC BY-SA 4.0/3.0),
+#     -Porttinari e -DANTEStocks (CC BY 4.0), em github.com/UniversalDependencies.
+# Uso: python3 gerar-contexto.py ../../corretor/contexto.json machado.txt:1 modernos.txt:3
+import json, re, sys, unicodedata, random, os
 from collections import Counter, defaultdict
 
 GRUPOS = [["e", "é"], ["a", "à", "há"], ["as", "às"], ["mas", "mais"], ["mal", "mau"], ["esta", "está"], ["estas", "estás"],
@@ -24,94 +28,137 @@ GRUPOS = [["e", "é"], ["a", "à", "há"], ["as", "às"], ["mas", "mais"], ["mal
 GRUPOS = [g for g in GRUPOS if len(set(g)) > 1]
 sem = lambda s: "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
 TOK = re.compile(r"[a-záàâãéêíóôõúüç]+(?:-[a-záàâãéêíóôõúüç]+)*|[.,;:!?]")
+LIXO = re.compile(r"^rt\s+|https?://\S+|www\.\S+|[@#]\w+", re.I)
 def frases(texto):
   for linha in texto.split("\n"):
-    t = TOK.findall(linha.lower())
+    t = TOK.findall(LIXO.sub(" ", linha).lower())
     if len(t) >= 3: yield t
+# Classe de cada palavra (substantivo, verbo...), tirada das árvores sintáticas (UPOS mais comum da palavra sem acento).
+POS = {}
+CLASSE = {"NOUN": "N", "PROPN": "N", "ADJ": "A", "VERB": "V", "AUX": "X", "ADV": "R", "DET": "D", "PRON": "P", "ADP": "E",
+  "CCONJ": "C", "SCONJ": "S", "NUM": "M", "INTJ": "I", "PUNCT": "U"}
+def carregar_pos(arquivos, maximo=12000):
+  c = defaultdict(Counter)
+  for f in arquivos:
+    for l in open(f, encoding="utf-8"):
+      if not l or l[0] in "#\n": continue
+      x = l.split("\t")
+      if len(x) < 4 or "-" in x[0] or "." in x[0]: continue
+      k = CLASSE.get(x[3])
+      if k: c[sem(x[1].lower())][k] += 1
+  freq = sorted(c, key=lambda w: -sum(c[w].values()))[:maximo]
+  for w in freq: POS[w] = c[w].most_common(1)[0][0]
+# reserva pela terminação (igual ao corretor.js)
+def classe(w):
+  if w in POS: return POS[w]
+  if w in ".,;:!?": return "U"
+  if w.endswith("mente"): return "R"
+  if re.search(r"(cao|coes|dade|dades|gem|ismo|ista|ncia|ncias|mento|mentos)$", w): return "N"
+  if re.search(r"(ar|er|ir|ando|endo|indo)$", w): return "V"
+  if re.search(r"(ado|ada|ados|adas|ido|ida|idos|idas|oso|osa|ivel|avel|ivo|iva|ico|ica)$", w): return "A"
+  return "?"
 def feats(t, i):
   g = lambda j: sem(t[j]) if 0 <= j < len(t) else "<>"
-  return ["l:" + g(i - 1), "r:" + g(i + 1), "ll:" + g(i - 2) + "_" + g(i - 1), "rr:" + g(i + 1) + "_" + g(i + 2)]
+  c = lambda j: classe(g(j)) if 0 <= j < len(t) else "<"
+  return ["l:" + g(i - 1), "r:" + g(i + 1), "ll:" + g(i - 2) + "_" + g(i - 1), "rr:" + g(i + 1) + "_" + g(i + 2),
+          "lp:" + c(i - 1), "rp:" + c(i + 1), "pp:" + c(i - 1) + "_" + c(i + 1), "rq:" + c(i + 1) + "_" + c(i + 2),
+          "lq:" + c(i - 2) + "_" + c(i - 1), "rs:" + g(i + 1)[-3:], "ls:" + g(i - 1)[-3:]]
 membro = {w: gi for gi, g in enumerate(GRUPOS) for w in g}
 
-def treinar(lista):
-  cont = defaultdict(Counter); tot = Counter()
-  for t in lista:
+MIN_TRACO = 3  # um traço só entra no modelo se apareceu pelo menos 3 vezes no grupo
+
+def exemplos(lista):
+  # por grupo: [(traços, forma certa, peso)]
+  ex = defaultdict(list)
+  for t, p in lista:
     for i, w in enumerate(t):
-      if w in membro:
-        tot[w] += 1
-        for f in feats(t, i): cont[w][f] += 1
-  # o mesmo corte do arquivo que vai para o site (assim a margem medida é a mesma do aparelho)
-  for w in list(cont): cont[w] = Counter({f: c for f, c in cont[w].items() if c >= (2 if f[1] == ":" else 3)})
-  return cont, tot
+      if w in membro: ex[membro[w]].append((feats(t, i), w, p))
+  return ex
 
-import math
-def escolher(modelo, t, i, beta=4.0):
-  # P(traço | forma) com mistura na frequência geral do traço (traço que ninguém viu pesa igual para todas)
-  cont, tot = modelo
-  g = GRUPOS[membro[t[i]]]; fs = feats(t, i)
-  ger = modelo_geral(modelo, g)
-  pont = {}
-  for c in g:
-    n = tot[c]
-    s = math.log(n + 1)
-    for f in fs:
-      pf = (ger.get(f, 0) + 0.5) / (sum(tot[x] for x in g) + 50)
-      if f not in ger: continue
-      s += math.log((cont[c][f] + beta * pf) / (n + beta))
-    pont[c] = s
-  return sorted(pont.items(), key=lambda x: -x[1])
-_ger = {}
-def modelo_geral(modelo, g):
-  k = g[0]
-  if k not in _ger:
-    c = Counter()
-    for x in g: c.update(modelo[0][x])
-    _ger[k] = c
-  return _ger[k]
+def treinar_grupo(xs):
+  # regressão logística (aprende o peso de cada traço; a probabilidade sai calibrada)
+  from sklearn.feature_extraction import DictVectorizer
+  from sklearn.linear_model import LogisticRegression
+  cont = Counter(f for fs, _, _ in xs for f in fs)
+  dv = DictVectorizer()
+  X = dv.fit_transform([{f: 1 for f in fs if cont[f] >= MIN_TRACO} for fs, _, _ in xs])
+  y = [w for _, w, _ in xs]; pesos = [p for _, _, p in xs]
+  if len(set(y)) < 2: return None
+  m = LogisticRegression(C=float(os.environ.get("HF_C", "1.0")), max_iter=400)
+  m.fit(X, y, sample_weight=pesos)
+  return dv, m
 
-def calibrar(modelo, teste):
-  # por grupo: margem mínima para acertar >= 99% (alta) e >= 93% (sugestão) nas frases que o modelo NÃO viu
+def probabilidades(mod, fs):
+  dv, m = mod
+  p = m.predict_proba(dv.transform([{f: 1 for f in fs}]))[0]
+  return dict(zip(m.classes_, p))
+
+def calibrar(mods, teste):
+  # por grupo: probabilidade mínima da outra forma para acertar >= 99,7% (corrige sozinho, com 30+ casos)
+  # e >= 95% (sugestão), medida em frases que o modelo NÃO viu, como se a pessoa tivesse escrito sem acento
   res = defaultdict(list)
-  for t in teste:
-    for i, w in enumerate(t):
-      if w not in membro: continue
-      g = GRUPOS[membro[w]]
-      for plano in g:  # a pessoa pode ter escrito qualquer forma do grupo (sem acento, ou a outra palavra)
-        if plano == w and sem(w) != w: continue
-        if plano != w and plano != sem(plano): continue  # só se escreve "errado" sem acento
-        t2 = t[:i] + [plano] + t[i + 1:]
-        r = escolher(modelo, t, i) if plano == w else escolher(modelo, t2, i)
-        best, s1 = r[0]; sp = dict(r)[plano]
-        if best != plano: res[g[0]].append((s1 - sp, best == w))
+  for gi, xs in exemplos([(t, 1) for t in teste]).items():
+    if gi not in mods: continue
+    g = GRUPOS[gi]
+    for fs, w, _ in xs:
+      pr = probabilidades(mods[gi], fs)
+      for plano in g:
+        if plano != sem(plano): continue
+        melhor = max((c for c in g if c != plano), key=lambda c: pr.get(c, 0))
+        res[gi].append((pr.get(melhor, 0), melhor == w and plano != w))
   lim = {}
-  for k, xs in res.items():
-    def T(prec):
-      for m in [1, 1.5, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15]:
-        sel = [ok for mg, ok in xs if mg > m]
-        if len(sel) >= 8 and sum(sel) / len(sel) >= prec: return m
-      return None
-    a, b = T(0.99), T(0.93)
-    if a is not None or b is not None: lim[k] = [a if a is not None else 99, b if b is not None else (a if a is not None else 99)]
+  for gi, xs in res.items():
+    def T(prec, n):
+      for corte in [0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.93, 0.95, 0.97, 0.98, 0.99, 0.995]:
+        sel = [ok for pr, ok in xs if pr > corte]
+        if len(sel) >= n and sum(sel) / len(sel) >= prec: return corte
+      return 1
+    a, b = T(0.997, 30), T(0.95, 8)
+    if a < 1 or b < 1: lim[GRUPOS[gi][0]] = [a, min(a, b)]
   return lim
 
 def main():
-  texto = open(sys.argv[1], encoding="utf-8").read()
-  todas = list(frases(texto))
-  random.seed(7); random.shuffle(todas)
-  corte = len(todas) // 10
-  lim = calibrar(treinar(todas[corte:]), todas[:corte])
-  _ger.clear()
+  # gerar-contexto.py saida.json fonte.txt[:peso] [fonte2.txt[:peso] ...]
+  random.seed(7)
+  treino, teste = [], []
+  import glob
+  conllu = sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(sys.argv[2].split(":")[0])), "*.conllu")))
+  carregar_pos(conllu); print("classes de", len(POS), "palavras (", len(conllu), "arquivos .conllu)")
+  for arg in sys.argv[2:]:
+    nome, _, peso = arg.partition(":")
+    fr = list(frases(open(nome, encoding="utf-8").read()))
+    random.shuffle(fr)
+    corte = len(fr) // 10
+    teste += fr[:corte]; treino += [(t, int(peso or 1)) for t in fr[corte:]]
+    print(nome, len(fr), "frases, peso", peso or 1)
+  ex = exemplos(treino)
+  mods = {gi: m for gi, xs in ex.items() if (m := treinar_grupo(xs))}
+  lim = calibrar(mods, teste)
   for k, v in sorted(lim.items()): print(k, v)
-  cont, tot = treinar(todas)
-  # só grupos de verdade: todas as formas existem e aparecem nos textos (os outros o dicionário já resolve)
-  grupos = [g for g in GRUPOS if g[0] in lim and all(tot[w] >= 5 for w in g)]
-  lim = {g[0]: lim[g[0]] for g in grupos}
-  saida = {"v": 1, "grupos": grupos, "lim": lim, "tot": {}, "f": {}}
-  for g in grupos:
-    for w in g:
-      saida["tot"][w] = tot[w]
-      saida["f"][w] = {f: c for f, c in cont[w].items() if c >= (2 if f[1] == ":" else 3)}
-  json.dump(saida, open(sys.argv[2], "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-  print("grupos", len(grupos), "traços", sum(len(x) for x in saida["f"].values()))
+  # modelo final com todas as frases
+  ex = exemplos(treino + [(t, 1) for t in teste])
+  lex = set(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../corretor/lexico.txt"), encoding="utf-8").read().split())
+  saida = {"v": 3, "pos": "".join(f"{w}={k}," for w, k in POS.items()), "grupos": [], "lim": {}, "m": {}}
+  n = 0
+  for gi, xs in sorted(ex.items()):
+    g = GRUPOS[gi]
+    # só grupos de verdade: todas as formas aparecem e as sem acento são palavras do dicionário ("nao", "voce" o dicionário já corrige)
+    tot = Counter(w for _, w, _ in xs)
+    if g[0] not in lim or not all(tot[w] >= 5 and w in lex for w in g): continue
+    mod = treinar_grupo(xs)
+    if not mod: continue
+    dv, m = mod
+    cls = list(m.classes_)
+    coef = m.coef_ if len(cls) > 2 else [-m.coef_[0] / 2, m.coef_[0] / 2]
+    inter = list(m.intercept_) if len(cls) > 2 else [-m.intercept_[0] / 2, m.intercept_[0] / 2]
+    pesos = {}
+    for j, f in enumerate(dv.feature_names_):
+      ws = [round(float(coef[c][j]), 2) for c in range(len(cls))]
+      if max(abs(x) for x in ws) >= 0.05: pesos[f] = ws
+    saida["grupos"].append(g); saida["lim"][g[0]] = lim[g[0]]
+    saida["m"][g[0]] = {"c": cls, "b": [round(float(x), 3) for x in inter], "w": pesos}
+    n += len(pesos)
+  json.dump(saida, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+  print("grupos", len(saida["grupos"]), "pesos", n)
 
 main()
