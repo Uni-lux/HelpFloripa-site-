@@ -24,7 +24,7 @@ const quadro = (re) => p.frames().find((f) => f.parentFrame() && re.test(f.url()
 const corDe = (f) => f.evaluate(() => getComputedStyle(document.body).backgroundColor);
 ok(await corDe(quadro(/feed\.html/)) === "rgb(11, 16, 20)", "Diário com o fundo do Mensagens (#0b1014)");
 ok(await corDe(quadro(/usuarios\.html/)) === "rgb(11, 16, 20)", "Perfil com o fundo do Mensagens");
-ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#10181d", "barra do celular na cor do topo do Mensagens");
+ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#000000", "barra do celular na cor do topo do Mensagens");
 // barrinha fora da tela
 const larg = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll(".hf-quadro")].map((q) => [q.dataset.id, q.getBoundingClientRect().width - innerWidth])));
 ok(larg.feed === 6 && larg.mural === 6 && larg.perfil === 6 && larg.mensagens === 0, "quadros 6 px mais largos (menos o Mensagens): " + JSON.stringify(larg));

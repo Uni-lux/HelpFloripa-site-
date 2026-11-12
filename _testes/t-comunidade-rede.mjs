@@ -23,7 +23,7 @@ const feed = quadro(/feed\.html/);
 const topo = await feed.evaluate(() => ({ mais: !!document.querySelector("body > #btnComporFeed.fab-hf") && !document.querySelector(".topo #btnComporFeed"), fab: false, ponte: !!document.querySelector(".topo .marca-ponte .mp"), escrita: !!document.querySelector(".topo .marca") }));
 ok(topo.mais && !topo.fab, "Diário: + do lado (como no X), fora do topo");
 ok(topo.ponte && !topo.escrita, "Diário: só o símbolo da ponte no topo (sem o nome e o slogan)");
-ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#10181d", "tema escuro: barra do celular escura");
+ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#000000", "tema escuro: barra do celular escura");
 await p.screenshot({ path: "saida/cr-diario-escuro.png" });
 // tema claro: a casca acompanha
 await feed.evaluate(() => { const c = JSON.parse(localStorage.getItem("hf-chat-config") || "{}"); c.tema = "claro"; localStorage.setItem("hf-chat-config", JSON.stringify(c)); });

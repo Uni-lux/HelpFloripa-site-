@@ -42,7 +42,26 @@ function estilo() {
 const svg = (k) => `<svg class="i bi" viewBox="0 0 24 24" aria-hidden="true">${ICONES[k]}</svg>`;
 
 // Monta a barra (uma vez por página). ativo = "diario" | "explorar" | "comunidade" | "mensagens" | "perfil" | "".
+// Topo que some ao descer e volta ao subir (como Instagram, X e TikTok): o conteúdo fica com a tela toda.
+// Só some depois de 90 px de rolagem e com um movimento de pelo menos 28 px no mesmo sentido (sem piscar).
+export function ligarTopoQueSome() {
+  if (window.__hfTopoSome) return;
+  window.__hfTopoSome = true;
+  let ultimo = scrollY, acum = 0;
+  const b = document.body;
+  addEventListener("scroll", () => {
+    const y = scrollY, d = y - ultimo; ultimo = y;
+    if (!document.querySelector("header.topo")) return;
+    if (y < 90) { b.classList.remove("topo-some"); acum = 0; return; }
+    if (b.classList.contains("travado")) return;
+    if ((d > 0) !== (acum > 0)) acum = 0;
+    acum += d;
+    if (acum > 28) b.classList.add("topo-some");
+    else if (acum < -28) b.classList.remove("topo-some");
+  }, { passive: true });
+}
 export function montarBarra(ativo) {
+  ligarTopoQueSome();
   // Deslizar o dedo para o lado troca de aba (no Diário, para a direita abre o Flash).
   ligarQuadro(); // na rede (rede.html), os itens da barra trocam de aba; fora dela, levam para a rede
   if (ITENS_BARRA.some(([k]) => k === ativo)) ligarDeslizarFlash();
