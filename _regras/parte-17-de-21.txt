@@ -1,3 +1,76 @@
+      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
+      function localPubOk(d) {
+        return !('local' in d) || d.local == null
+            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
+                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
+                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
+                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
+      }
+      // Público da publicação (direcionamento no Diário, Explorar e Reels): idade, gênero, lugar e seguidores.
+      function publicoOk(d) {
+        let p = d.get('publico', null);
+        return p == null
+            || (p is map && p.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
+                && (!('idadeMin' in p) || (p.idadeMin is int && p.idadeMin >= 16 && p.idadeMin <= 100))
+                && (!('idadeMax' in p) || (p.idadeMax is int && p.idadeMax >= 16 && p.idadeMax <= 100))
+                && (!('genero' in p) || p.genero in ['f', 'm'])
+                && (!('local' in p) || p.local in ['brasil', 'estados', 'cidades', 'perto'])
+                && (!('ufs' in p) || (p.ufs is list && p.ufs.size() >= 1 && p.ufs.size() <= 27 && p.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
+                && (!('cidades' in p) || (p.cidades is list && p.cidades.size() >= 1 && p.cidades.size() <= 10 && p.cidades.join(' ').matches('^[0-9]{7}( [0-9]{7}){0,9}$')))
+                && (!('perto' in p) || (p.perto is map && p.perto.keys().hasOnly(['lat', 'lng', 'km', 'nome'])
+                    && p.perto.lat is number && p.perto.lat >= -34 && p.perto.lat <= 6
+                    && p.perto.lng is number && p.perto.lng >= -75 && p.perto.lng <= -28
+                    && p.perto.km is int && p.perto.km >= 5 && p.perto.km <= 300
+                    && (!('nome' in p.perto) || (p.perto.nome is string && p.perto.nome.size() <= 60))))
+                && (!('seguidores' in p) || p.seguidores in ['todos', 'seguidores', 'novos']));
+      }
+      function fotoPubOk(u) {
+        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      }
+      // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
+      //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
+      //   foto: 1 a 4 fotos (mediaUrl + midias), legenda opcional; sem enquete/caixa/vídeo
+      //   video: um vídeo (mediaTipo 'video'), legenda opcional
+      //   enquete / caixa: a enquete ou a caixa de perguntas, com no máximo uma imagem (sem midias e sem vídeo)
+      function tipoOk(d) {
+        let t = d.get('tipo', '');
+        let midia = d.get('mediaUrl', '') != '';
+        let video = d.get('mediaTipo', '') == 'video';
+        let extra = ('enquete' in d) || ('caixa' in d);
+        return (t == '' && !('estilo' in d))
+            || (t == 'texto' && d.get('texto', '').size() >= 1 && !extra && !video && !('midias' in d)
+                && (midia ? (d.get('estilo', '') == 'casada' && d.texto.size() <= 500) : !('estilo' in d)))
+            || (t == 'foto' && midia && !video && !extra && !('estilo' in d))
+            || (t == 'video' && midia && video && !extra && !('midias' in d) && !('estilo' in d))
+            || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
+                && !video && !('midias' in d) && !('estilo' in d));
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
+                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
+                    && tipoOk(request.resource.data)
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
+                    && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
+                    && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
+                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
+                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
+                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
+                    && ritmoOk('pub')
+                    && publicacaoOk()
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
+                    && (!('agendadoPara' in request.resource.data)
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara > request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
+
       allow update: if logado()
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
@@ -96,91 +169,4 @@
       function acaoValida(x) {
         return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
       }
-      function itemValido(x) {
-        return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
-      }
-      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
-      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
-      allow create: if logado() && visitaNova();
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
-      allow delete: if false;
-    }
-
-    match /neg_stats/{id} {
-      function statsNovo() {
-        let d = request.resource.data;
-        let vis = caminhoVisita(d.negocioId, d.dia);
-        let va = getAfter(vis).data;
-        return d.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
-            && id == d.negocioId + '_' + d.dia
-            && d.donoId == get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId
-            && !exists(vis) && va.dia == d.dia
-            && d.v == 1
-            && d.o.keys().hasOnly([va.origem]) && d.o[va.origem] == 1
-            && d.h.keys().hasOnly([string(va.hora)]) && d.h[string(va.hora)] == 1
-            && d.a == {} && d.it == {};
-      }
-      function maisUmNoMapa(d, r, mapa, x) {
-        return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
-      }
-      function statsMais() {
-        let d = request.resource.data;
-        let r = resource.data;
-        let k = d.diff(r).affectedKeys();
-        let vis = caminhoVisita(r.negocioId, r.dia);
-        return (k.hasOnly(['v', 'o', 'h'])
-                && !exists(vis) && getAfter(vis).data.dia == r.dia
-                && d.v == r.v + 1
-                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
-                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
-            || (k.hasOnly(['a'])
-                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
-                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
-            || (k.hasOnly(['it'])
-                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
-                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
-      }
-      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
-      allow create: if logado() && statsNovo();
-      allow update: if logado() && statsMais();
-      allow delete: if false;
-    }
-
-      // =====================================================
-    // ENTREGAS E CORRIDAS (entregas.html = quem pede; entregador.html = quem leva)
-    // Pedido em corridas/{id}: procurando → aceita → chegou → em_rota → concluida (ou cancelada).
-    // O PIN (corridas/{id}/privado/pin) só quem pede e quem recebe leem; quem leva digita para embarcar (corrida) ou
-    // finalizar (entrega) e a regra confere. O pagamento é direto entre as pessoas: o site não cobra nem recebe.
-    function entregadorAtivo(uid) {
-      let e = /databases/$(database)/documents/entregadores/$(uid);
-      return exists(e) && get(e).data.get('status', '') == 'ativo';
-    }
-    function pontoOk(p) {
-      return p is map && p.keys().hasOnly(['lat', 'lng', 'nome', 'sub'])
-          && p.lat is number && p.lat >= -34 && p.lat <= 6
-          && p.lng is number && p.lng >= -75 && p.lng <= -28
-          && valorTextoAte(p.get('nome', ''), 120) && valorTextoAte(p.get('sub', ''), 160);
-    }
-    function posOk(p) {
-      return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
-          && p.lat is number && p.lat >= -34 && p.lat <= 6
-          && p.lng is number && p.lng >= -75 && p.lng <= -28
-          && p.get('rumo', 0) is number && p.get('vel', 0) is number
-          && p.em == request.time;
-    }
-
-    match /corridas/{id} {
-      function c() { return resource.data; }
-      function n() { return request.resource.data; }
-      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
-      function cad() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
-      function pinCerto() { return n().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(id)/privado/pin).data.pin; }
-      // Corrida ou entrega de presente: quem deu o presente paga (direto para quem leva) e acompanha.
-      function presenteCorridaOk() {
-        let p = get(/databases/$(database)/documents/presentes/$(n().presenteId)).data;
-        return p.para == request.auth.uid && p.status == 'aceito' && p.tipo == n().servico
-            && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
-            && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
-      }
-// ===== FIM DA PARTE 17 DE 20 =====
+// ===== FIM DA PARTE 17 DE 21 =====

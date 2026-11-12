@@ -13,7 +13,9 @@ function guardar(k, n) { try { const g = guardado(); g[k] = n; const ks = Object
 
 // Momento da sua última leitura da conversa (confirmação de leitura, contador ou conversa apagada para você).
 export const lidoDe = (c, uid) => Math.max(ms(c.lidoEm?.[uid]), ms(c.vistoEm?.[uid]), ms(c.ocultaPara?.[uid]));
-export const temNovas = (c, uid) => !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lidoDe(c, uid);
+// Solicitação de mensagem que a pessoa ainda não aceitou não conta (fica em "Solicitações", sem aviso).
+export const temNovas = (c, uid) => !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== uid && ms(c.atualizadoEm) > lidoDe(c, uid)
+  && !(c.pedido?.status === "pendente" && c.pedido.de !== uid) && c.pedido?.status !== "recusado";
 
 // fs = funções do Firestore (collection, query, where, getCountFromServer, Timestamp), db, conversa {id, ...dados}
 export function contarNovas(fs, db, uid, c) {

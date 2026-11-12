@@ -3,6 +3,7 @@
 // =====================================================
 import { svgIcone } from "./mapa-vivo.js?v=2";
 import { VEICULOS, formatarPlaca } from "./corridas-base.js?v=1";
+import { garantirConversa as criarConversa } from "./conversa-acesso.js?v=1";
 
 export function h(tag, cls, texto) { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; }
 export function ic(nome, cls = "i") {
@@ -73,12 +74,10 @@ export function lerGps(ms = 9000) {
   });
 }
 // Conversa entre duas pessoas (cria se ainda não existe), como o Mensagens faz.
-export async function garantirConversa(fb, meu, outro) {
-  const ids = [meu, outro].sort(), id = `${ids[0]}_${ids[1]}`;
-  const ref = fb.doc(fb.db, "conversas", id);
-  let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
-  if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
-  return id;
+// servico: id da corrida (texto) ou {tipo: sos|pet|achado|corrida, id} — conversa de serviço vai direto (regras conferem).
+export async function garantirConversa(fb, meu, outro, servico = "") {
+  const sv = typeof servico === "string" ? (servico ? { tipo: "corrida", id: servico } : null) : servico;
+  return (await criarConversa(fb, meu, outro, sv ? { servico: sv } : {})).id; // vira solicitação se a pessoa escolheu assim (conversa-acesso.js)
 }
 // Ir a outra página do site saindo da rede (entregas é tela cheia, fora dos quadros).
 export function irPara(url) { try { (window.top || window).location.href = url; } catch { location.href = url; } }

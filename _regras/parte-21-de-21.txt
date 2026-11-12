@@ -1,0 +1,21 @@
+    match /pets_achados/{id} {
+      function d() { return request.resource.data; }
+      allow get, list: if logado();
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().autorId == request.auth.uid && valorTextoAte(d().get('autorNome', ''), 80)
+                    && petOk(d())
+                    && d().local is map && d().local.keys().hasOnly(['lat', 'lng', 'nome'])
+                    && d().local.lat is number && d().local.lng is number && valorTextoAte(d().local.get('nome', ''), 120)
+                    && d().geo4 is string && d().geo4.matches('^[0-9a-z]{4}$')
+                    && d().quando is timestamp && d().quando <= request.time
+                    && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && request.resource.data.atualizadoEm == request.time
+                    && ((resource.data.autorId == request.auth.uid && request.resource.data.status in ['ativo', 'devolvido', 'removido'])
+                        || (podeModerar() && request.resource.data.status == 'removido'));
+      allow delete: if false;
+    }
+
+  }
+}
+// ===== FIM DA PARTE 21 DE 21 =====

@@ -7,13 +7,13 @@
 // =====================================================
 import { fontesDoSino, lerFonte } from "./sino-fontes.js?v=2";
 import { fotoSegura } from "./seguranca.js?v=1";
-import { contarNovas } from "./mensagens-novas.js?v=1";
+import { contarNovas } from "./mensagens-novas.js?v=2";
 import { definirPerfilMenu, definirBadgeMensagens } from "./menu.js?v=24";
 import { buscarReclamacoes } from "./avisos-reclamacoes.js?v=18";
 import { avisoPlano } from "./planos-base.js?v=16";
 import { ouvirItensEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas } from "./enquetes.js?v=7";
-import "./painel-avisos.js?v=49"; // o sino abre o painel de notificações na própria página
+import "./painel-avisos.js?v=50"; // o sino abre o painel de notificações na própria página
 import "./chat-gaveta.js?v=4";
 import "./sem-menu-imagem.js?v=5"; // segurar a foto não abre o menu de baixar/compartilhar
 import "./fotos-suaves.js?v=1"; // fotos entram suaves
@@ -159,6 +159,7 @@ async function iniciarTopo() {
         const c = d.data({ serverTimestamps: "estimate" });
         const lido = Math.max(ms(c.lidoEm?.[u.uid]), ms(c.vistoEm?.[u.uid]), ms(c.ocultaPara?.[u.uid]));
         if (!(c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== u.uid && ms(c.atualizadoEm) > lido)) return null;
+        if (c.pedido?.status === "pendente" && c.pedido.de !== u.uid) return null; // solicitação: fica em "Solicitações"
         return { quando: ms(c.atualizadoEm), n: await contarNovas(fs, db, u.uid, { id: d.id, ...c }) };
       }));
       if (minha !== vez) return;

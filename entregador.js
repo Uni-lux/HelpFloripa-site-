@@ -6,7 +6,7 @@
 // A posição vai para o pedido a cada poucos segundos: é ela que move o carrinho no mapa de quem pediu.
 // Parâmetros: ?convite=NICK (quem convidou), ?pedido=ID (abrir um chamado vindo do Mensagens).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=141";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=142";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=7";
 import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
@@ -15,7 +15,7 @@ import {
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=4";
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;
@@ -65,7 +65,7 @@ async function telaCadastro(editar = false) {
   // Conta verificada (selo) é obrigatória para levar pessoas e encomendas.
   if (!dados.verificado && !cad) {
     const n = h("div", "ent-nota alerta"); n.append(ic("alerta"), h("span", null, "Para fazer entregas e corridas, sua conta precisa ser verificada (documento com foto e selfie). A equipe confere e libera."));
-    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=98"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
+    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=99"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
     frag.appendChild(botao("Pedir uma entrega", "ent-btn sec", () => irPara("entregas.html")));
     p.replaceChildren(frag);
     return;
@@ -487,9 +487,9 @@ function telaTrabalho() {
   link("local", "Google Maps", linkNavegar(alvo, "google"));
   link("bussola", "Waze", linkNavegar(alvo, "waze"));
   const acao = (icone, nome, fn) => { const b = h("button", "ent-acao"); b.type = "button"; b.append(icone === "telefone" ? icExtra(icone) : ic(icone), document.createTextNode(nome)); b.addEventListener("click", fn); nav.appendChild(b); };
-  acao("chat", "Mensagem", () => conversar(c.clienteId));
-  if (c.pagadorId) acao("chat", "Quem paga", () => conversar(c.pagadorId));
-  acao("telefone", "Ligar", () => ligarPara(c.clienteId, c.clienteNome));
+  acao("chat", "Mensagem", () => conversar(c.clienteId, c.id));
+  if (c.pagadorId) acao("chat", "Quem paga", () => conversar(c.pagadorId, c.id));
+  acao("telefone", "Ligar", () => ligarPara(c.clienteId, c.clienteNome, c.id));
   frag.appendChild(nav);
   // Detalhes
   const r = h("div", "ent-resumo");
@@ -592,17 +592,17 @@ function telaFim(c) {
     }
     frag.appendChild(est);
   }
-  if (c.pagadorId) frag.appendChild(botao("Falar com quem paga", "ent-btn sec", () => conversar(c.pagadorId)));
+  if (c.pagadorId) frag.appendChild(botao("Falar com quem paga", "ent-btn sec", () => conversar(c.pagadorId, c.id)));
   frag.appendChild(botao(online ? "Voltar aos pedidos" : "Voltar", "ent-btn", () => telaPainel()));
   p.replaceChildren(frag);
 }
 
-async function conversar(uid) {
-  try { const id = await garantirConversa(fb, eu.uid, uid); const m = await import("./chat-gaveta.js?v=4"); m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`); }
+async function conversar(uid, corridaId = "") {
+  try { const id = await garantirConversa(fb, eu.uid, uid, corridaId); const m = await import("./chat-gaveta.js?v=4"); m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`); }
   catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); }
 }
-async function ligarPara(uid, nome) {
-  try { const conv = await garantirConversa(fb, eu.uid, uid); ligar({ para: uid, nome: nome || "", foto: "", conv, tipo: "audio" }); }
+async function ligarPara(uid, nome, corridaId = "") {
+  try { const conv = await garantirConversa(fb, eu.uid, uid, corridaId); ligar({ para: uid, nome: nome || "", foto: "", conv, tipo: "audio" }); }
   catch (e) { toast("Não foi possível ligar: " + erroAmigavel(e)); }
 }
 async function divulgar() {

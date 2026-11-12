@@ -10,6 +10,7 @@
 import { confirmarHF } from "./confirmar.js?v=6";
 import { respostaDoPerfil } from "./servidor.js?v=3";
 import { relogioDe } from "./fuso.js?v=1";
+import { garantirConversa } from "./conversa-acesso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL } from "./seguranca.js?v=1";
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=19";
@@ -307,16 +308,15 @@ export async function prepararConversa(fbx, euX, uid, cartao) {
   const id = `${ids[0]}_${ids[1]}`;
   const ref = fbx.doc(fbx.db, "conversas", id);
   try {
-    let existe = false;
-    try { existe = (await fbx.getDoc(ref)).exists(); } catch {}
     const contexto = cartao ? { tipo: cartao.tipo, titulo: cartao.titulo } : null;
-    if (!existe) await fbx.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fbx.serverTimestamp(), ...(contexto ? { contexto } : {}) }, { merge: true });
-    else if (contexto) await fbx.setDoc(ref, { contexto }, { merge: true });
+    // Cria a conversa (vira solicitação se a pessoa escolheu assim; negócio aberto fala direto).
+    const g = await garantirConversa(fbx, euX.uid, uid, { contexto });
+    if (!g.criada && contexto) await fbx.setDoc(ref, { contexto }, { merge: true });
     if (cartao) { try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {} }
     const url = `mensagens.html?conversa=${encodeURIComponent(id)}`;
     // Nas páginas do site a conversa abre na gaveta de mensagens (sem sair da página).
     if (window.hfAbrirChat) window.hfAbrirChat(url); else location.href = url;
-  } catch { toast("Não foi possível abrir a conversa."); }
+  } catch (e) { toast(e?.code === "conversa-fechada" ? e.message : "Não foi possível abrir a conversa."); }
 }
 
 // ---------- carrinho (delivery e lojinha) ----------

@@ -99,6 +99,10 @@
                     && (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
                         || exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
                     && !bloqueioEntre(request.auth.uid, request.resource.data.para)
+                    // solicitação de mensagem ainda não aceita: ninguém liga (12/11/2026)
+                    && (!exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+                        || get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.get('pedido', null) == null
+                        || get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.pedido.status == 'aceito')
                     && request.resource.data.tipo in ['audio', 'video']
                     && request.resource.data.status == 'chamando'
                     && sdpOk(request.resource.data.oferta)
@@ -149,28 +153,27 @@
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
-      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
-      allow get: if logado()
-                 && ((resource == null && request.auth.uid in conversaId.split('_'))
-                     || (resource != null && request.auth.uid in resource.data.participantes));
-
-      allow list: if logado()
-                  && request.auth.uid in resource.data.participantes;
-      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
-      allow read: if podeModerar();
-
-      allow create: if logado()
-                    && request.resource.data.participantes is list
-                    && request.resource.data.participantes.size() == 2
-                    && request.auth.uid in request.resource.data.participantes
-                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
-                    && conversaId == request.resource.data.participantes[0]
-                                     + '_' + request.resource.data.participantes[1]
-                    && !bloqueioEntre(request.resource.data.participantes[0],
-                                      request.resource.data.participantes[1])
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm'])
-                    && contextoOk()
-                    && textoAte('ultimaMensagem', 200);
-
-// ===== FIM DA PARTE 5 DE 20 =====
+      // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
+      // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
+      // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
+      // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
+      // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
+      // do serviço mostra que os dois fazem parte dele.
+      function servicoOk(sv, p) {
+        return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
+            && (sv.tipo == 'corrida'
+                  ? [get(/databases/$(database)/documents/corridas/$(sv.id)).data.clienteId,
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('entregadorId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('destinatarioId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('pagadorId', '')].hasAll(p)
+              : sv.tipo == 'sos'
+                  ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
+                    && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
+              : sv.tipo == 'pet'
+                  ? get(/databases/$(database)/documents/pets/$(sv.id)).data.donoId in p
+                    && get(/databases/$(database)/documents/pets/$(sv.id)).data.status == 'perdido'
+              : sv.tipo == 'achado'
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.autorId in p
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.status == 'ativo');
+      }
+// ===== FIM DA PARTE 5 DE 21 =====

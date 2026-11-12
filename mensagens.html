@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=27" />
+  <link rel="stylesheet" href="mensagens.css?v=28" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -173,6 +173,7 @@
         <button type="button" class="pill on" data-filtro="todas" role="tab" aria-selected="true">Todas</button>
         <button type="button" class="pill" data-filtro="naoLidas" role="tab" aria-selected="false">Não lidas</button>
         <span id="pillsAssunto" style="display:contents"></span>
+        <button type="button" class="pill" data-filtro="solicitacoes" role="tab" aria-selected="false" id="pillSolicitacoes" hidden>Solicitações</button>
         <button type="button" class="pill" data-filtro="restritas" role="tab" aria-selected="false" id="pillRestritas" hidden>Restritas</button>
         <button type="button" class="pill" data-filtro="arquivadas" role="tab" aria-selected="false" id="pillArquivadas" hidden>Arquivadas</button>
       </div>
@@ -258,7 +259,17 @@
           <span id="barraBloqueioTxt"></span>
           <button type="button" class="btn-sec" id="barraBloqueioBtn" hidden>Desbloquear</button>
         </div>
+        <!-- Solicitação de mensagem (conversa-acesso.js): quem recebeu decide antes de responder -->
+        <div class="barra-pedido" id="barraPedido" hidden>
+          <div class="bp-tx"><strong id="barraPedidoTit">Solicitação de mensagem</strong><span id="barraPedidoSub">Ela não vai saber que você viu até você aceitar.</span></div>
+          <div class="bp-acoes">
+            <button type="button" class="bp-btn" id="pedidoBloquear">Bloquear</button>
+            <button type="button" class="bp-btn" id="pedidoRecusar">Recusar</button>
+            <button type="button" class="bp-btn pri" id="pedidoAceitar">Aceitar</button>
+          </div>
+        </div>
         <footer class="rodape" id="rodapeConversa">
+          <div class="aviso-pedido" id="avisoPedido" hidden><svg class="i"><use href="#i-relogio"/></svg><span id="avisoPedidoTx"></span></div>
           <div class="extra" id="barraResposta" hidden>
             <div class="txt"><strong id="respostaQuem"></strong><span id="respostaTexto"></span></div>
             <button type="button" class="icon-btn" id="cancelarResposta" aria-label="Cancelar resposta"><svg class="i"><use href="#i-fechar"/></svg></button>
@@ -430,6 +441,21 @@
         </div>
       </div>
 
+      <div class="cfg-secao" id="cfgQuemManda">
+        <h3>Quem pode mandar mensagem</h3>
+        <p class="cfg-nota">Pessoal: as mensagens para você. Quem não puder mandar direto envia uma <b>solicitação</b>, que você aceita ou recusa (a pessoa não sabe que você viu até aceitar). Conversas que já existem continuam como estão.</p>
+        <div class="cfg-msg-grupo" id="cfgMsgPessoal" role="radiogroup" aria-label="Mensagens pessoais"></div>
+        <div id="cfgMsgNegBox" hidden>
+          <h4 class="cfg-sub-tit">Seus negócios</h4>
+          <p class="cfg-nota">Vale para quem fala com você por um perfil de negócio (Freelances, Delivery, Lojinha, Imóveis, Saúde e Automotivo). Negócios são sempre públicos: todos podem ver e encontrar.</p>
+          <div class="cfg-msg-grupo" id="cfgMsgNegocios" role="radiogroup" aria-label="Mensagens dos negócios"></div>
+        </div>
+        <button type="button" class="cfg-linha cfg-link" data-ir-filtro="solicitacoes">
+          <div class="txt">Solicitações de mensagem<small id="cfgSolResumo">Mensagens de quem você não segue.</small></div>
+          <svg class="i s seta"><use href="#i-voltar"/></svg>
+        </button>
+      </div>
+
       <div class="cfg-secao">
         <h3>Privacidade</h3>
         <label class="cfg-linha">
@@ -529,6 +555,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=44"></script>
+  <script type="module" src="mensagens-app.js?v=45"></script>
 </body>
 </html>

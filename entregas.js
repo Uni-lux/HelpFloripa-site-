@@ -7,7 +7,7 @@
 // Parâmetros: ?modo=entrega|corrida, ?id=PEDIDO (acompanhar), ?para=UID (quem recebe, do Mensagens),
 // ?conversa=ID, ?entregador=UID (chamar uma pessoa específica).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=141";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=142";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=7";
 import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
@@ -16,7 +16,7 @@ import {
   modalidadesDe, modalidadesDoVeiculo, textoStatus, passo, pinEm, expirada, faixaValor, valorSugerido, minutosAte, distanciaKm, kmPelaRua,
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=3";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=4";
 
 const params = new URLSearchParams(location.search);
 const S = {
@@ -653,9 +653,10 @@ async function criarPedido() {
   enviando = false;
   // Avisos pelo Mensagens: quem recebe acompanha; o entregador escolhido vê o chamado mesmo se estiver fora do painel.
   const cartao = { tipo: "entrega", id: ref.id, servico: S.servico, titulo: S.servico === "corrida" ? "Corrida" : `Entrega: ${S.oque.trim().slice(0, 60)}`, de: S.origem.nome.slice(0, 80), para: S.destino.nome.slice(0, 80) };
-  if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "📦 Entrega a caminho de você").catch(() => {});
-  if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `🎁 Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`).catch(() => {});
-  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "🚗 Chamado de corrida para você" : "📦 Chamado de entrega para você").catch(() => {});
+  const sv = { servico: { tipo: "corrida", id: ref.id } }; // conversa do serviço: vai direto (as regras conferem a corrida)
+  if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "📦 Entrega a caminho de você", sv).catch(() => {});
+  if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `🎁 Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`, sv).catch(() => {});
+  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "🚗 Chamado de corrida para você" : "📦 Chamado de entrega para você", sv).catch(() => {});
   acompanhar(ref.id);
 }
 
@@ -859,8 +860,8 @@ function telaAndamento() {
   // Ações
   const ac = h("div", "ent-acoes");
   const acao = (icone, nome, fn, cls = "") => { const b = h("button", "ent-acao " + cls); b.type = "button"; b.append(["telefone", "escudo"].includes(icone) ? icExtra(icone) : ic(icone), document.createTextNode(nome)); b.addEventListener("click", fn); ac.appendChild(b); return b; };
-  acao("chat", "Mensagem", () => abrirConversa(c.entregadorId));
-  acao("telefone", "Ligar", () => ligarPara(c.entregadorId, e.nome));
+  acao("chat", "Mensagem", () => abrirConversa(c.entregadorId, c.id));
+  acao("telefone", "Ligar", () => ligarPara(c.entregadorId, e.nome, c.id));
   acao("escudo", "Segurança", () => abrirSeguranca(c));
   frag.appendChild(ac);
   frag.appendChild(resumoPedido(c));
@@ -1029,18 +1030,18 @@ function abrirSeguranca(c) {
   item("alerta", "Ligar para a polícia (190)", "Em caso de emergência", () => { location.href = "tel:190"; });
   item("ajuda", "Central de Segurança", "Dicas, golpes e como denunciar", () => irPara("seguranca.html"));
 }
-async function abrirConversa(uid) {
+async function abrirConversa(uid, corridaId = "") {
   if (!uid) return;
   try {
-    const id = await garantirConversa(fb, eu.uid, uid);
+    const id = await garantirConversa(fb, eu.uid, uid, corridaId);
     const m = await import("./chat-gaveta.js?v=4");
     m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`);
   } catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); }
 }
-async function ligarPara(uid, nome) {
+async function ligarPara(uid, nome, corridaId = "") {
   if (!uid) return;
   try {
-    const conv = await garantirConversa(fb, eu.uid, uid);
+    const conv = await garantirConversa(fb, eu.uid, uid, corridaId);
     ligar({ para: uid, nome: nome || "", foto: fotoEnt || "", conv, tipo: "audio" });
   } catch (e) { toast("Não foi possível ligar: " + erroAmigavel(e)); }
 }

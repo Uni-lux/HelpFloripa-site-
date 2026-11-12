@@ -1232,7 +1232,56 @@ await t("comunidade: escondido pela equipe, o dono não mostra de novo", () => a
 await t("comunidade: moderação apaga", () => assertSucceeds(deleteDoc(doc(ctx("mod"), "comunidade", "c5"))));
 await t("comunidade: denúncia de venda no anúncio", () => assertSucceeds(setDoc(doc(ctx("dono"), "denuncias", "comunidade_c3_dono"), { tipo: "comunidade", alvoId: "ana", itemId: "c3", autorId: "dono", motivo: "venda", detalhe: "", trecho: "Vaga no Pantanal", status: "nova", criadoEm: serverTimestamp() })));
 await t("comunidade: denúncia contra quem não é o dono é recusada", () => assertFails(setDoc(doc(ctx("dono"), "denuncias", "comunidade_c3_dono2"), { tipo: "comunidade", alvoId: "bia", itemId: "c3", autorId: "dono", motivo: "venda", status: "nova", criadoEm: serverTimestamp() })));
+await semRegras((db) => setDoc(doc(db, "relacoes", "zeca_ana"), { tipo: "seguir", seguidorId: "zeca", alvoId: "ana", criadoEm: serverTimestamp() }));
 await t("conversa: assunto Saúde e Comunidade", () => assertSucceeds(setDoc(doc(ctx("ana"), "conversas", "ana_zeca"), { participantes: ["ana", "zeca"], ultimaMensagem: "", atualizadoEm: serverTimestamp(), contexto: { tipo: "comunidade", titulo: "Sofá" } })));
+// ---------- solicitações de mensagem (12/11/2026) ----------
+{
+  const nova = (de, para, extra = {}) => { const ps = [de, para].sort(); return setDoc(doc(ctx(de), "conversas", ps.join("_")), { participantes: ps, ultimaMensagem: "", atualizadoEm: serverTimestamp(), ...extra }); };
+  const pedido = (de) => ({ pedido: { de, status: "pendente", em: serverTimestamp() } });
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "pref_publicas", "sfech"), { msgPessoal: "fechado" });
+    await setDoc(doc(db, "pref_publicas", "stodos"), { msgPessoal: "todos" });
+    await setDoc(doc(db, "pref_publicas", "sneg"), { msgNegocios: "pedidos" });
+    await setDoc(doc(db, "negocios", "sloja_servicos"), { donoId: "sloja", tipo: "servicos", nome: "Loja" });
+    await setDoc(doc(db, "negocios", "sneg_servicos"), { donoId: "sneg", tipo: "servicos", nome: "Neg" });
+    await setDoc(doc(db, "relacoes", "sseg_sa"), { tipo: "seguir", seguidorId: "sseg", alvoId: "sa", criadoEm: serverTimestamp() });
+    await setDoc(doc(db, "vinculos", "sa_svin"), { participantes: ["sa", "svin"], de: "sa", para: "svin", tipoDe: "amigo", tipoPara: "amigo", status: "aceito" });
+    await setDoc(doc(db, "corridas", "corr1"), { clienteId: "sa", entregadorId: "smot", status: "aceita" });
+    await setDoc(doc(db, "sos", "sos1"), { uid: "ssos", status: "aberto", ajudanteId: "" });
+    await setDoc(doc(db, "pets", "pet1"), { donoId: "spet", status: "perdido" });
+    await setDoc(doc(db, "pets", "pet2"), { donoId: "spet2", status: "em_casa" });
+  });
+  await t("solicitação: desconhecido sem pedido é recusado (padrão: quem eu sigo)", () => assertFails(nova("sa", "sb")));
+  await t("solicitação: desconhecido com pedido pendente é aceito", () => assertSucceeds(nova("sa", "sb", pedido("sa"))));
+  await t("solicitação: pedido em nome de outra pessoa é recusado", () => assertFails(nova("sa", "sc", pedido("sc"))));
+  await t("solicitação: pedido já aceito na criação é recusado", () => assertFails(nova("sa", "sd", { pedido: { de: "sa", status: "aceito", em: serverTimestamp() } })));
+  await t("solicitação: quem recebe segue quem escreve → direto", () => assertSucceeds(nova("sa", "sseg")));
+  await t("solicitação: quem recebe aceita todos → direto", () => assertSucceeds(nova("sa", "stodos")));
+  await t("solicitação: vínculo aceito no Social → direto", () => assertSucceeds(nova("sa", "svin")));
+  await t("solicitação: \"só quem eu sigo\" recusa até o pedido", () => assertFails(nova("sa", "sfech", pedido("sa"))));
+  await t("solicitação: negócio aberto (padrão) fala direto", () => assertSucceeds(nova("sa", "sloja", { contexto: { tipo: "servicos", titulo: "Orçamento" } })));
+  await t("solicitação: negócio com \"novos contatos pedem\" exige pedido", () => assertFails(nova("sa", "sneg", { contexto: { tipo: "servicos", titulo: "Orçamento" } })));
+  await t("solicitação: negócio com \"novos contatos pedem\" aceita o pedido", () => assertSucceeds(nova("sa", "sneg", { contexto: { tipo: "servicos", titulo: "Orçamento" }, ...pedido("sa") })));
+  await t("solicitação: contexto de negócio que a pessoa não tem não fura o pessoal", () => assertFails(nova("sa", "se", { contexto: { tipo: "delivery", titulo: "x" } })));
+  await t("serviço: corrida dos dois vai direto", () => assertSucceeds(nova("smot", "sa", { servico: { tipo: "corrida", id: "corr1" } })));
+  await t("serviço: corrida de outra pessoa é recusada", () => assertFails(nova("sx", "sa", { servico: { tipo: "corrida", id: "corr1" } })));
+  await t("serviço: falar com quem pediu SOS vai direto", () => assertSucceeds(nova("sy", "ssos", { servico: { tipo: "sos", id: "sos1" } })));
+  await t("serviço: falar com o tutor do pet perdido vai direto", () => assertSucceeds(nova("sy", "spet", { servico: { tipo: "pet", id: "pet1" } })));
+  await t("serviço: pet que não está perdido não libera", () => assertFails(nova("sy", "spet2", { servico: { tipo: "pet", id: "pet2" } })));
+  const convSB = ["sa", "sb"].sort().join("_");
+  await t("solicitação: quem pediu escreve enquanto espera", () => assertSucceeds(mandarMsg("sa", convSB, "Oi, vi seu anúncio", true)));
+  await t("solicitação: quem recebeu não responde antes de aceitar", () => assertFails(mandarMsg("sb", convSB, "oi", true)));
+  await t("solicitação: quem pediu não aceita o próprio pedido", () => assertFails(updateDoc(doc(ctx("sa"), "conversas", convSB), { "pedido.status": "aceito" })));
+  await t("solicitação: quem recebeu aceita", () => assertSucceeds(updateDoc(doc(ctx("sb"), "conversas", convSB), { "pedido.status": "aceito", "pedido.decididoEm": serverTimestamp() })));
+  await t("solicitação: depois de aceitar, quem recebeu responde", () => assertSucceeds(mandarMsg("sb", convSB, "Oi!", true)));
+  const convSN = ["sa", "sneg"].sort().join("_");
+  await t("solicitação: quem recebeu recusa (e esconde da lista)", () => assertSucceeds(updateDoc(doc(ctx("sneg"), "conversas", convSN), { "pedido.status": "recusado", "pedido.decididoEm": serverTimestamp(), "ocultaPara.sneg": serverTimestamp() })));
+  await t("solicitação: recusada, quem pediu não escreve mais", () => assertFails(mandarMsg("sa", convSN, "insistindo", false)));
+  await t("solicitação: status estranho é recusado", () => assertFails(updateDoc(doc(ctx("sneg"), "conversas", convSN), { "pedido.status": "talvez" })));
+  await t("preferências: quem pode mandar mensagem (pessoal e negócios) e atalhos no perfil", () => assertSucceeds(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { msgPessoal: "fechado", msgNegocios: "pedidos", negociosNoPerfil: false, atualizadoEm: serverTimestamp() })));
+  await t("preferências: valor estranho de mensagem é recusado", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { msgPessoal: "amigos" })));
+  await t("preferências: atalhos no perfil só verdadeiro/falso", () => assertFails(setDoc(doc(ctx("sa"), "pref_publicas", "sa"), { negociosNoPerfil: "sim" })));
+}
 
 // ---------- ligações de voz e vídeo (chamadas) ----------
 await semRegras((db) => Promise.all([setDoc(doc(db, "conversas", "lg1_lg2"), { participantes: ["lg1", "lg2"] }), setDoc(doc(db, "conversas", "lg1_lg3"), { participantes: ["lg1", "lg3"] }), setDoc(doc(db, "bloqueios", "lg3_lg1"), { em: Timestamp.now() })]));
@@ -1241,6 +1290,8 @@ const chamadaNova = (x = {}) => ({ de: "lg1", para: "lg2", conv: "lg1_lg2", tipo
 await t("ligação: quem já conversa liga", () => assertSucceeds(setDoc(doc(ctx("lg1"), "chamadas", "c1"), chamadaNova())));
 await t("ligação: sem conversa antes é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c2"), chamadaNova({ para: "lg9", conv: "lg1_lg9" }))));
 await t("ligação: com bloqueio é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c3"), chamadaNova({ para: "lg3", conv: "lg1_lg3" }))));
+await semRegras((db) => setDoc(doc(db, "conversas", "lg1_lg7"), { participantes: ["lg1", "lg7"], pedido: { de: "lg1", status: "pendente" } }));
+await t("ligação: com solicitação de mensagem ainda não aceita é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c7"), chamadaNova({ para: "lg7", conv: "lg1_lg7" }))));
 await t("ligação: em nome de outra pessoa é recusada", () => assertFails(setDoc(doc(ctx("lg2"), "chamadas", "c4"), chamadaNova())));
 await t("ligação: conversa que não é dos dois é recusada", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c5"), chamadaNova({ conv: "lg1_lg3" }))));
 await t("ligação: tipo estranho é recusado", () => assertFails(setDoc(doc(ctx("lg1"), "chamadas", "c6"), chamadaNova({ tipo: "tela" }))));

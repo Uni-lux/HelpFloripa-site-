@@ -8,16 +8,16 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=141";
+} from "./rede.js?v=142";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=19";
-import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=95";
+import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=96";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=22";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=113";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=98";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=114";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=99";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -177,7 +177,7 @@ function renderizarMeuPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=105").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=106").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -554,7 +554,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=108").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=109").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1131,7 +1131,9 @@ async function abrirPerfilPublico(uid) {
   acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, { ...p, comSocial: (p.socialVisibilidade || "todos") !== "ocultar" }));
   // O duo na capa segue a escolha do dono: clicável, só a foto ou oculto.
   desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], (p.duoCapa || "clicavel") === "clicavel");
-  buscarNegocios(uid).then((lista) => semPausados(fb, lista)).then((lista) => renderizarNegocios(ppCab.el("negocios"), lista, { proprio: false, dono: { ...p, uid } })).catch(() => {});
+  // Atalhos dos negócios: só se a pessoa deixou aparecer no perfil (pref_publicas.negociosNoPerfil; padrão sim).
+  Promise.all([buscarNegocios(uid).then((lista) => semPausados(fb, lista)), atalhosNoPerfil(uid)])
+    .then(([lista, mostra]) => renderizarNegocios(ppCab.el("negocios"), mostra ? lista : [], { proprio: false, dono: { ...p, uid } })).catch(() => {});
   ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
   ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
   ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
@@ -1314,8 +1316,24 @@ async function carregarMeusNegocios() {
   renderizarMeuPerfil();
 }
 
+// Atalhos dos negócios no perfil (12/11/2026): quem tem negócio escolhe se aparecem para os visitantes; quem não tem
+// não vê a fileira (nem o "Novo negócio"). Guardado em pref_publicas/{uid}.negociosNoPerfil (todos leem).
+const cacheAtalhos = new Map();
+function atalhosNoPerfil(uid) {
+  if (!cacheAtalhos.has(uid)) cacheAtalhos.set(uid, fb.getDoc(fb.doc(fb.db, "pref_publicas", uid)).then((d) => !(d.exists() && d.data().negociosNoPerfil === false)).catch(() => true));
+  return cacheAtalhos.get(uid);
+}
+async function mudarAtalhos(mostrar) {
+  try {
+    await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { negociosNoPerfil: mostrar, atualizadoEm: fb.serverTimestamp() }, { merge: true });
+    cacheAtalhos.set(eu.uid, Promise.resolve(mostrar));
+    toast(mostrar ? "Seus negócios aparecem no seu perfil" : "Seus negócios saíram do seu perfil (continuam nas vitrines e na busca)");
+    renderizarMeuPerfil();
+  } catch (e) { toast(e?.code === "permission-denied" ? "Essa escolha passa a valer depois da publicação das regras novas." : "Não foi possível salvar agora."); }
+}
 function renderizarNegocios(box, lista, { proprio, dono }) {
-  if (!proprio && !lista.length) { box.hidden = true; return; }
+  // Sem negócio: nada (o "Novo negócio" fica em Meus negócios e no menu).
+  if (!lista.length) { box.hidden = true; return; }
   box.hidden = false;
   box.replaceChildren();
   const linha = document.createElement("div");
@@ -1368,12 +1386,16 @@ function renderizarNegocios(box, lista, { proprio, dono }) {
     linha.appendChild(novo);
   }
   box.appendChild(linha);
-  if (proprio && !lista.length) {
-    const dica = document.createElement("p");
-    dica.className = "social-vazio";
-    dica.style.margin = "4px 0 0";
-    dica.textContent = "Crie perfis de Freelances, Delivery, Lojinha, Imóveis ou Saúde para aparecerem aqui.";
-    box.appendChild(dica);
+  if (proprio) {
+    // O dono escolhe se os atalhos aparecem para quem visita (os negócios continuam públicos nas vitrines e na busca).
+    const vis = document.createElement("button"); vis.type = "button"; vis.className = "neg-visib";
+    box.appendChild(vis);
+    atalhosNoPerfil(eu.uid).then((mostra) => {
+      vis.classList.toggle("oculto", !mostra);
+      vis.replaceChildren(icone(mostra ? "olho" : "olho-off", "i xs"), document.createTextNode(mostra ? "Visível no seu perfil para todos · Esconder" : "Escondido do seu perfil · Mostrar"));
+      vis.setAttribute("aria-label", mostra ? "Esconder os atalhos dos negócios do seu perfil" : "Mostrar os atalhos dos negócios no seu perfil");
+      vis.onclick = () => mudarAtalhos(!mostra);
+    });
   }
 }
 

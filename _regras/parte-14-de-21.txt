@@ -1,3 +1,103 @@
+    // =====================================================
+    // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
+    // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
+    // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
+    // apaga a conta e os dados e anonimiza avaliações e reclamações.
+    // =====================================================
+    match /exclusoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
+                    && request.resource.data.pedidaEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow update: if false;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
+      function resumoJunto(postId) {
+        let r = /databases/$(database)/documents/diario_notas/$(postId);
+        return existsAfter(r)
+            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    // pode dar estrelas na própria publicação ("se curtir")
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time
+                    && resumoJunto(request.resource.data.postId);
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time
+                    && resumoJunto(resource.data.postId);
+
+      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
+      allow delete: if logado() && resource.data.uid == request.auth.uid
+                    && (resumoJunto(resource.data.postId)
+                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
+    // ===================================================
+    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
+    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
+    // ===================================================
+    match /salvamentos/{id} {
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // Republicar (como o repost do Instagram): republicacoes/{postId}_{uid}. A publicação original aparece para quem
+    // segue quem republicou, com "Fulano republicou". Não dá para republicar a própria nem com bloqueio entre os dois.
+    match /republicacoes/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.postId is string && request.resource.data.postId.size() <= 64
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+      allow update: if false;
+    }
+
     // ===================================================
     // STORIES (24 horas): stories/{id} — foto (no documento ou no Storage) ou vídeo (Storage).
     // Somem para todos depois de 24 h (o site filtra; o autor apaga os vencidos). vistos/{uid}: quem viu.
@@ -77,104 +177,4 @@
       allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
-    // ===================================================
-    // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
-    // ===================================================
-    // ===================================================
-    // VOTOS DAS ENQUETES: enquete_votos/{alvo}_{uid} — alvo = tipo + "_" + itemId (tipo d = publicação, f = flash).
-    // fimEm (opcional) = o mesmo fim da enquete; votar só até o fim.
-    // Um voto por pessoa, sem trocar. A contagem fica dividida em 10 pedaços (enquete_contas/{alvo}_{fatia},
-    // ver abaixo): o voto leva a fatia (0–9) e o pedaço dela sobe +1 na MESMA gravação.
-    // ===================================================
-    // A contagem da opção do voto sobe exatamente 1 no pedaço escolhido (votos públicos e anônimos).
-    function fatiaSobe(d) {
-      let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
-      let k = 'n' + string(d.opcao);
-      return d.fatia is int && d.fatia >= 0 && d.fatia < 10
-          && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
-    }
-    match /enquete_votos/{id} {
-      allow read: if logado();
-      function votoOk() {
-        let d = request.resource.data;
-        let doc = d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId);
-        let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
-            && d.uid == request.auth.uid
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && id == d.alvo + '_' + request.auth.uid
-            && d.opcao is int && d.opcao >= 0
-            && exists(doc) && d.opcao < e.opcoes.size()
-            && e.get('anonima', false) == false
-            // depois do fim não dá mais para votar; o voto leva o fim junto (as notificações do resultado usam)
-            && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
-            && fatiaSobe(d);
-      }
-      // Voto único: depois de votar não dá para trocar nem tirar (a limpeza de contas apaga pelo servidor).
-      allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
-      allow update, delete: if false;
-    }
-
-    // ===================================================
-    // ENQUETE ANÔNIMA: o voto fica em enquete_anon/{alvo}_{uid} (ninguém lista; só a própria pessoa lê o dela)
-    // e a contagem nos mesmos pedaços enquete_contas/{alvo}_{fatia}, que sobem +1 na MESMA gravação do voto.
-    // Assim nem o autor da enquete sabe quem votou em quê.
-    // ===================================================
-    match /enquete_anon/{id} {
-      function votoAnonOk() {
-        let d = request.resource.data;
-        let doc = d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId);
-        let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
-            && d.uid == request.auth.uid && d.criadoEm == request.time
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && id == d.alvo + '_' + request.auth.uid
-            && d.opcao is int && d.opcao >= 0 && d.opcao < e.opcoes.size()
-            && e.get('anonima', false) == true
-            && (!('fimEm' in e) || request.time < e.fimEm)
-            && (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
-            // a contagem da opção sobe exatamente 1 junto com o voto
-            && fatiaSobe(d);
-      }
-      allow get: if logado() && id.matches('.*_' + request.auth.uid);
-      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
-      allow list: if logado() && resource.data.uid == request.auth.uid;
-      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
-      allow update, delete: if false;
-    }
-    // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
-    // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
-    // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
-    // (público em enquete_votos ou anônimo em enquete_anon), na fatia do voto, +1 na opção dele.
-    match /enquete_contas/{cid} {
-      allow read: if logado();
-      function partes() { return cid.split('_'); }
-      function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
-      function votoDeAgora() {
-        return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
-      }
-      function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
-      function pedacoDoVoto() {
-        return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
-            && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
-            && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
-      }
-      allow create: if logado() && pedacoDoVoto()
-                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == 1;
-      allow update: if logado() && pedacoDoVoto()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
-      allow delete: if false;
-    }
-
-// ===== FIM DA PARTE 14 DE 20 =====
+// ===== FIM DA PARTE 14 DE 21 =====

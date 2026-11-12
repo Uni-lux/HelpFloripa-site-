@@ -12,15 +12,16 @@ import { montarBarra, marcarBarra } from "./barra-rede.js?v=12";
 import { gravarComLocal, NOVOS } from "./endereco.js?v=1";
 import { pedirLocalizacao, posicaoDe, rotuloPosicao } from "./perto.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
+import { garantirConversa, idConversa, decidirSolicitacao } from "./conversa-acesso.js?v=1";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura } from "./seguranca.js?v=1";
 import { ouvirReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=18";
 import { ouvirItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
-import "./painel-avisos.js?v=49";
+import "./painel-avisos.js?v=50";
 import { docComValidade, docsComValidade, esquecer } from "./leituras.js?v=4";
 import { docRapido } from "./rapido.js?v=1";
 import { resumoPublico, temPublico } from "./publico-alvo.js?v=1";
-import { contarNovas } from "./mensagens-novas.js?v=1";
+import { contarNovas } from "./mensagens-novas.js?v=2";
 import { escolherPublico } from "./publico-tela.js?v=7";
 import { avisoPlano } from "./planos-base.js?v=16";
 import { lerReacoesFlash } from "./flash-avisos.js?v=3";
@@ -1604,7 +1605,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=113").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=114").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2368,7 +2369,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=113").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=114").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2418,12 +2419,9 @@ export function cartaoRespostaCaixa(caixa, r, alvo) {
 export async function responderNoChat(uid, cartao) {
   if (!uid || uid === eu.uid) return;
   if (await precisaEmail()) return;
-  const ids = [eu.uid, uid].sort(), id = `${ids[0]}_${ids[1]}`;
-  try {
-    const ref = fb.doc(fb.db, "conversas", id);
-    let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
-    if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
-  } catch (e) { toast("Não foi possível abrir a conversa: " + erroAmigavel(e)); return; }
+  const id = idConversa(eu.uid, uid);
+  try { await garantirConversa(fb, eu.uid, uid); }
+  catch (e) { toast(e?.code === "conversa-fechada" ? e.message : "Não foi possível abrir a conversa: " + erroAmigavel(e)); return; }
   try { sessionStorage.setItem("hf-cartao-pendente", JSON.stringify({ conversaId: id, cartao })); } catch {}
   // Abre a página de Mensagens de vez (antes abria a gaveta por cima). As janelas abertas por cima (ex.: Atividade do
   // flash) fecham antes, esperando o passo delas sair do histórico; o flash fica aberto e o "voltar" traz ele de novo.
@@ -2440,12 +2438,12 @@ export function irParaPagina(url) {
   addEventListener("popstate", seguir); setTimeout(seguir, 500);
 }
 // Manda uma mensagem na conversa com a pessoa (cria a conversa se ainda não existe), como o Mensagens faz.
-export async function mandarMensagem(uid, msg, resumo) {
+export async function mandarMensagem(uid, msg, resumo, { servico = null } = {}) {
   if (await precisaEmail()) throw new Error("e-mail");
-  const ids = [eu.uid, uid].sort(), id = `${ids[0]}_${ids[1]}`;
-  const ref = fb.doc(fb.db, "conversas", id);
-  let existe = false; try { existe = (await fb.getDoc(ref)).exists(); } catch {}
-  if (!existe) await fb.setDoc(ref, { participantes: ids, ultimaMensagem: "", atualizadoEm: fb.serverTimestamp() }, { merge: true });
+  // Nova conversa vira solicitação quando a pessoa escolheu assim (conversa-acesso.js); "só quem eu sigo" recusa.
+  const { id, ref, dados: dc } = await garantirConversa(fb, eu.uid, uid, { servico });
+  // Responder a uma solicitação que você recebeu = aceitar (as regras só deixam escrever depois de aceitar).
+  if (dc?.pedido?.status === "pendente" && dc.pedido.de !== eu.uid) await decidirSolicitacao(fb, eu.uid, id, true).catch(() => {});
   await comRitmo(fb, eu.uid, "msg", (lote) => lote.set(fb.doc(fb.collection(fb.db, "conversas", id, "mensagens")), { remetenteId: eu.uid, texto: "", ...msg, criadoEm: fb.serverTimestamp() }));
   // Resumo da conversa (como o Mensagens faz depois de enviar).
   // vistoEm: quem envia já "leu" até aqui (senão a próxima resposta contaria as suas mensagens como não lidas).
@@ -3752,7 +3750,7 @@ function ligarAvisos({ notificarNovos = true } = {}) {
       const c = d.data({ serverTimestamps: "estimate" });
       const outro = (c.participantes || []).find((x) => x !== eu.uid);
       const lido = Math.max(ms(c.lidoEm?.[eu.uid]), ms(c.vistoEm?.[eu.uid]), ms(c.ocultaPara?.[eu.uid]));
-      const naoLida = ok(outro) && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido;
+      const naoLida = ok(outro) && !!c.ultimaMensagemRemetenteId && c.ultimaMensagemRemetenteId !== eu.uid && ms(c.atualizadoEm) > lido && !(c.pedido?.status === "pendente" && c.pedido.de !== eu.uid);
       // Quantas mensagens novas (o número das Mensagens e "enviou 26 mensagens" no sino).
       const n = naoLida ? await contarNovas(fb, fb.db, eu.uid, { id: d.id, ...c }) : 0;
       return { id: d.id, uid: outro, ultimaMensagem: c.ultimaMensagem || "", quando: ms(c.atualizadoEm), naoLida, n, silenciada: !!c.silenciadaPara?.[eu.uid], ...(naoLida ? await perfilDe(outro) : {}) };

@@ -10,7 +10,7 @@
 // =====================================================
 import { buscarReclamacoes, TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=18";
 import { fotoSegura } from "./seguranca.js?v=1";
-import { contarNovas, textoMensagens } from "./mensagens-novas.js?v=1";
+import { contarNovas, textoMensagens } from "./mensagens-novas.js?v=2";
 import { buscarItensEquipe, TEXTO_EQUIPE, linkEquipe } from "./avisos-equipe.js?v=1";
 import { enquetesEncerradas, textoEnqueteFim } from "./enquetes.js?v=7";
 import { avisoPlano, textoPlano } from "./planos-base.js?v=16";

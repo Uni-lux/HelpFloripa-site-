@@ -8,12 +8,12 @@ import {
   $, el, icone, pintarAvatar, urlSegura, tempoRelativo, toast, erroAmigavel,
   fb, eu, dados, refUsuario, ganchos, iniciarRede, carregarMeusSeguindo, botaoSeguir, montarBarraRede, pintarBarraRede,
   ouvirAvisos, aoMudarAvisos, atualizarAvisos, avisosVistosEm, marcarAvisosVistos, rotuloVinculo, abrirComentarios, abrirResultadoEnquete, verRespostasCaixa
-} from "./rede.js?v=141";
+} from "./rede.js?v=142";
 import { TEXTO_RECLAMACAO, linkReclamacao } from "./avisos-reclamacoes.js?v=18";
 import { TEXTO_EQUIPE, linkEquipe, seloOficial, fotoSuporte } from "./avisos-equipe.js?v=1";
 import { textoEnqueteFim, resumoResultado } from "./enquetes.js?v=7";
 import { textoPlano } from "./planos-base.js?v=16";
-import { textoMensagens } from "./mensagens-novas.js?v=1";
+import { textoMensagens } from "./mensagens-novas.js?v=2";
 import { criarLista } from "./avisos-lista.js?v=19";
 import { docsPorIds } from "./leituras.js?v=4";
 import { textoFlash } from "./flash-avisos.js?v=3";
