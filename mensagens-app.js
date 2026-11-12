@@ -68,7 +68,7 @@ function aplicarConfig() {
   if (veu) veu.hidden = config.fundo !== "foto";
   const faixa = document.getElementById("veuFundo");
   if (faixa) faixa.value = String(config.veu);
-  document.querySelector('meta[name="theme-color"]').content = escuro ? "#10181d" : "#ffffff";
+  document.querySelector('meta[name="theme-color"]').content = escuro ? "#000000" : "#ffffff";
   document.querySelectorAll("[data-cfg]").forEach((grupo) => {
     grupo.querySelectorAll("[data-valor]").forEach((b) => {
       const on = b.dataset.valor === config[grupo.dataset.cfg];

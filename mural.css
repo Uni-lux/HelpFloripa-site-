@@ -185,3 +185,38 @@
 .mu-al b.tem { background: #e5484d; color: #fff; }
 .mu-al.sos { border-color: color-mix(in srgb, #e5484d 50%, var(--line)); color: #e5484d; }
 .mu-al span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* =====================================================================================================
+   Comunidade compacta (12/11/2026, pedido dele: "suba a lupa, organize melhor, elegante e pouco poluída"):
+   busca + lugar no topo, alertas em pílulas pequenas (o número só aparece quando tem), regra numa linha curta e o
+   "ainda não tem publicações" enxuto.
+   ===================================================================================================== */
+.topo.topo-com { gap: 8px; padding-left: 12px; padding-right: 12px; }
+.topo.topo-com .mu-linha { flex: 1; min-width: 0; margin: 0; gap: 8px; }
+.topo.topo-com .mu-busca { height: 40px; border-radius: 12px; padding: 0 12px; }
+.topo.topo-com .mu-local { height: 40px; max-width: 38%; padding: 0 11px; border-radius: 12px; font-size: 13.5px; }
+:root[data-theme="dark"] .topo.topo-com .mu-busca { background: #16181c; }
+:root[data-theme="dark"] .topo.topo-com .mu-local { background: #000; border-color: rgba(255, 255, 255, .2); }
+.mu-alertas { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 2px 0 8px; grid-template-columns: none; }
+.mu-alertas::-webkit-scrollbar { display: none; }
+.mu-al { flex: none; min-height: 32px; padding: 0 12px; gap: 6px; border-radius: 999px; font-size: 12.5px; }
+.mu-al span { flex: none; }
+.mu-al b:not(.tem) { display: none; }
+.mu-aviso { margin: 0 2px 10px; font-size: 12px; }
+.mu-aviso svg { width: 13px; height: 13px; }
+.mu-vazio { gap: 6px; padding: 20px 14px 16px; border-radius: 18px; }
+.mu-vazio-em { width: 48px; height: 48px; border-radius: 15px; }
+.mu-vazio-em .ic-com { width: 24px; height: 24px; }
+.mu-vazio strong { font-size: 15.5px; }
+.mu-vazio p { font-size: 13px; margin-bottom: 4px; }
+.mu-vazio-tipos { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.mu-vazio-tipo { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px 7px 9px; border-radius: 999px; }
+.mu-vazio-tipo small { display: none; }
+.mu-vazio-tipo .mu-vt-ic, .mu-vazio-tipo span { width: 22px; height: 22px; font-size: 0; display: grid; place-items: center; border-radius: 50%; }
+.mu-vazio-tipo .ic-com { width: 15px; height: 15px; }
+.mu-vazio-tipo b { font-size: 13px; }
+.mu-vazio-bts { gap: 6px; }
+.mu-vazio-bts .mu-acao { min-height: 36px; padding: 0 14px; font-size: 13px; }
+:root[data-theme="dark"] .mu-vazio, :root[data-theme="dark"] .mu-al { background: #000; border-color: rgba(255, 255, 255, .16); }
+:root[data-theme="dark"] .mu-vazio-tipo, :root[data-theme="dark"] .mu-vazio-em { background: #0e0f10; border-color: rgba(255, 255, 255, .14); }
+.mu-vazio-tipo .mu-vt-ic { box-shadow: none; }

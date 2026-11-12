@@ -19,7 +19,7 @@
   <style>html.hf-auth-checking { visibility: hidden; }</style>
   <script>document.documentElement.classList.add("hf-auth-checking");</script>
   <meta name="description" content="O diário do Help Floripa: trabalhos, novidades e dicas de quem você segue, de todo o Brasil." />
-  <meta name="theme-color" content="#0b1014" />
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Help Floripa" />
@@ -39,16 +39,18 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=103" />
+  <link rel="stylesheet" href="rede.css?v=104" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="feed.js?v=194"></script>
+  <script type="module" src="feed.js?v=195"></script>
 </head>
 <body>
   <header class="topo">
     <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
     <button type="button" class="marca-ponte" id="marcaTopo" aria-label="Help Floripa · voltar ao topo" title="Help Floripa"><span class="mp" aria-hidden="true"><i class="mp-ondas"></i><i class="mp-est"></i></span></button>
     <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+    <!-- Explorar: a busca fica NO TOPO, no lugar da casinha, da ponte e do sino (12/11/2026, como no Instagram) -->
+    <label class="campo-busca busca-explorar topo-exp-busca"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar no Help Floripa</span><input type="search" id="buscaPessoas" placeholder="Pesquisar" autocomplete="off" enterkeyhint="search" /></label>
   </header>
   <!-- "+" do lado, como no X (12/11/2026): só no Diário e na Comunidade, no mesmo estilo do quadradinho de antes. -->
   <button type="button" class="fab-hf" id="btnComporFeed" aria-label="Criar uma publicação" title="Criar uma publicação"><span class="tc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
@@ -66,7 +68,6 @@
           <div style="text-align:center"><button type="button" class="btn sec" id="maisFeed" hidden>Ver mais publicações</button></div>
         </section>
         <section id="painelExplorar" aria-label="Explorar" hidden>
-          <label class="campo-busca busca-explorar"><svg class="i s"><use href="#i-lupa"/></svg><span class="sr">Buscar no Help Floripa</span><input type="search" id="buscaPessoas" placeholder="Buscar pessoas, negócios, #hashtags e lugares" autocomplete="off" enterkeyhint="search" /></label>
           <div class="busca-recentes" id="buscaRecentes" hidden></div>
           <div id="exploraConteudo">
             <div class="atalhos-classes compactos">
