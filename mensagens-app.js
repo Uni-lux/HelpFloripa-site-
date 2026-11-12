@@ -1,7 +1,7 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
 import { TIPOS_SOS, STATUS_SOS, sosVivo, ESPECIES as ESPECIES_PET, textoSemelhanca } from "./alertas-base.js?v=1";
 import { DURACOES as DURACOES_VIVO, compartilharAoVivo, pararCompartilhar, ouvirLocalVivo, encerrado as vivoEncerrado, textoRestante as vivoRestante } from "./local-vivo.js?v=1";
-import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximoPasso } from "./presentes-base.js?v=1";
+import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximoPasso } from "./presentes-base.js?v=2";
 import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
 import "./sem-menu-imagem.js?v=5";
 import "./fotos-suaves.js?v=1";
@@ -31,7 +31,7 @@ import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=19";
 import { corrigirTexto } from "./corretor.js?v=1";
 import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
-import { MIMOS } from "./presentes-base.js?v=1";
+import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";

@@ -12,7 +12,7 @@
 // =====================================================
 import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=29";
 import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=1";
-import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=1";
+import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=2";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
 

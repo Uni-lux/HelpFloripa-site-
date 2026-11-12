@@ -6,11 +6,11 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=42";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=43";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
 import { verConteudoDenuncia } from "./admin-denuncia.js?v=26";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
-import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=1";
+import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
 import { PLANOS, ORDEM_PLANOS, DIAS_BONUS, nivelPlano, nomePlano, diasRestantes, creditoDias, descontoDe, valorPeriodo, nomeDocRenda, TIPOS_NEG as TIPOS_NEG_PL, NOMES_PERFIL, TIPOS_PERFIL, perfisDoPlano, mostraSelo, BAIXA_RENDA, precoBaixaRenda } from "./planos.js?v=35";
 import {

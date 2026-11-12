@@ -23,7 +23,7 @@ import { buscarPessoas } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { ligarVoltar } from "./voltar.js?v=15";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
-import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=1";
+import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=2";
 import { palavrasDe } from "./busca.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.

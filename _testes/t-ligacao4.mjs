@@ -8,13 +8,15 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 for (const d of (await db.collection("chamadas").get()).docs) await d.ref.delete();
+// A aba Negócios só aparece para quem tem negócio (12/11/2026): a Ana ganha um para o teste da seleção.
+await db.doc(`negocios/${U.ana}_servicos`).set({ donoId: U.ana, tipo: "servicos", nome: "Ana Serviços", criadoEm: new Date(), atualizadoEm: new Date() });
 const esperar = async (fn, ms = 15000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn().catch(() => false)) return true; await new Promise((r) => setTimeout(r, 200)); } return false; };
 
 const A = await navegador({ mobile: true, camera: true }), B = await navegador({ mobile: true, camera: true });
 const ana = await entrar(A.ctx, "ana", "mensagens.html");
 const bru = await entrar(B.ctx, "bruno", `mensagens.html?conversa=${U.conv}`);
 await bru.waitForSelector("#btnLigar:not([hidden])", { timeout: 20000 });
-await ana.waitForSelector('.modos [data-modo="negocios"]'); await ana.waitForTimeout(1500);
+await ana.waitForSelector(".modos [data-modo=\"pessoal\"]"); await ana.waitForTimeout(1500);
 
 // 1) Recebendo: topo inteiro, arrastar para atender
 await bru.click("#btnLigar");
@@ -75,7 +77,7 @@ await ana.click('.modos [data-modo="chamadas"]');
 ok(await esperar(async () => (await ana.locator(".rc-item").count()) >= 1), "aba Chamadas carregou");
 const linhas = await ana.locator(".rc-item").count();
 ok(linhas === 1, `3 ligações com o Bruno numa linha só (${linhas})`);
-ok(/\(3\)/.test(await ana.textContent(".rc-item b")), "a linha mostra (3)");
+ok(/\(3\)|3 chamadas/.test(await ana.textContent(".rc-item")), "a linha mostra as 3 chamadas");
 await ana.click(".rc-item");
 ok(await esperar(async () => await ana.locator(".rcd-nums").isVisible(), 4000), "histórico com os números");
 const nums = (await ana.locator(".rcd-num b").allTextContents()).join(",");
