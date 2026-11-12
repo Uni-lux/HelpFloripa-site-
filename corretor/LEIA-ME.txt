@@ -16,3 +16,13 @@ Gerado por scripts/corretor/gerar-lexico.py a partir de:
 Por ser derivado dessa lista, o arquivo lexico.txt é distribuído sob a licença
 Creative Commons Atribuição-CompartilhaIgual 4.0 (CC BY-SA 4.0):
 https://creativecommons.org/licenses/by-sa/4.0/deed.pt_BR
+
+----------------------------------------------------------------------
+Corretor que aprende (contexto.json)
+
+Contagens das palavras que aparecem antes e depois de palavras que se confundem
+(e/é, mas/mais, mal/mau, esta/está, nos/nós, por/pôr, da/dá...), usadas no aparelho
+para escolher a forma certa pela frase. Gerado por scripts/corretor/gerar-contexto.py
+a partir da obra completa de Machado de Assis (domínio público; corpus "machado" do
+NLTK, http://machado.mec.gov.br/). Cada grupo tem a margem de confiança medida em 10%
+das frases que ficaram fora do treino.

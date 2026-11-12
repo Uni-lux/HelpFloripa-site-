@@ -4,6 +4,7 @@
 import fs from "node:fs";
 const C = await import("../corretor.js");
 C.definirLexico(fs.readFileSync(new URL("../corretor/lexico.txt", import.meta.url), "utf8"));
+C.definirContexto(fs.readFileSync(new URL("../corretor/contexto.json", import.meta.url), "utf8"));
 let ok = 0, ruins = 0;
 const conferir = (cond, t) => { console.log(cond ? "  ✔" : "  ✘", t); cond ? ok++ : ruins++; if (!cond) process.exitCode = 1; };
 const corrigir = (t, modo = "pub", tudo = false) => {
@@ -87,6 +88,17 @@ const CASOS = [
   ["eles chegou cedo e pega o carro", "Eles chegaram cedo e pegaram o carro", "chat"],
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegou/.test(r), "chat"], // sugestão: não muda sozinho
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegamos/.test(r), "chat", true],
+  // corretor que aprende: escolhe pelas palavras em volta (contexto.json) + regras de chat
+  ["quero mas cafe", (r) => /mais café/.test(r), "chat", true],
+  ["o carro e azul", "O carro é azul", "chat"],
+  ["ontem ele nao pode vir", "Ontem ele não pôde vir", "chat"],
+  ["da pra fazer hoje", "Dá pra fazer hoje?", "chat"],
+  ["ele nao me da atencao", "Ele não me dá atenção", "chat"],
+  ["ele e mau educado", "Ele é mal-educado", "chat"],
+  ["ele esta aqui e voce esta la", "Ele está aqui e você está lá", "chat"],
+  ["o pais esta em crise", "O país está em crise", "chat"],
+  ["Pedro e Maria foram juntos.", "Pedro e Maria foram juntos.", "pub"],
+  ["A casa nova e bonita.", "A casa nova e bonita.", "pub"],
   // NÃO mexer: frases certas, nomes, links, @, #, números
   ["Amanhã vou ao mercado com a Juliana.", "Amanhã vou ao mercado com a Juliana.", "pub"],
   ["Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "Meu site é helpfloripa.com.br e o @maria.silva_22 tem #promoção hoje!", "pub"],
@@ -113,6 +125,21 @@ const d = C.corrigirTexto("o xyzqwk chegou", { modo: "chat" });
 conferir(d.desconhecidas.includes("xyzqwk"), "palavra que não existe aparece em “não encontradas”");
 C.adicionarAoDicionario("xyzqwk");
 conferir(!C.corrigirTexto("o xyzqwk chegou", { modo: "chat" }).desconhecidas.length, "adicionada ao dicionário pessoal: não aparece mais");
+// aprende com a pessoa: desligou 2 vezes → vem desligada; 4 vezes → some; sugestão ligada 2 vezes → vem ligada
+{
+  const ch = (t, de) => C.corrigirTexto(t, { modo: "chat" }).mudancas.find((m) => m.de.toLowerCase() === de);
+  const a = ch("vou ate la", "ate");
+  conferir(a && a.ligada, "“ate → até” vem ligada");
+  C.aprenderEscolhas([[a.chave, false]]); C.aprenderEscolhas([[a.chave, false]]);
+  conferir(!ch("vou ate la", "ate").ligada, "desligada 2 vezes: passa a vir desligada");
+  C.aprenderEscolhas([[a.chave, false]]); C.aprenderEscolhas([[a.chave, false]]);
+  conferir(!ch("vou ate la", "ate"), "desligada 4 vezes: não aparece mais");
+  const s = C.corrigirTexto("nós fomos lá, mas quando chegou estava fechado", { modo: "chat" }).mudancas.find((m) => m.conf === "media");
+  conferir(s && !s.ligada, "sugestão vem desligada");
+  C.aprenderEscolhas([[s.chave, true]]); C.aprenderEscolhas([[s.chave, true]]);
+  conferir(C.corrigirTexto("nós fomos lá, mas quando chegou estava fechado", { modo: "chat" }).mudancas.find((m) => m.chave === s.chave)?.ligada, "ligada 2 vezes: passa a vir ligada");
+  C.esquecerEscolhas();
+}
 // tempo
 let t0 = Date.now(); C.corrigirTexto("primeira vez constroi os mapas: voce esperiencia caisa", { modo: "chat" });
 const t1 = Date.now() - t0; t0 = Date.now();

@@ -120,7 +120,7 @@ const L = "\\p{L}";
 const P = (s) => new RegExp(`(?<![${L}])${s}(?![${L}])`, "giu");
 const REGRAS = [
   // "e" → "é" (verbo ser) quando claramente é verbo
-  [P(`(isso|isto|aquilo|ele|ela|n[aã]o|qual|quem|onde|como|quando|aqui|a[ií]|tudo|ningu[eé]m|voc[eê]|ela|ele|que)\\s+e\\s+(um|uma|muito|muita|bom|boa|ruim|verdade|certo|certa|assim|isso|melhor|pior|s[oó]|mesmo|poss[ií]vel|importante|dif[ií]cil|f[aá]cil|lindo|linda|top|demais|o\\s+melhor|a\\s+melhor|meu|minha|seu|sua|nosso|nossa)`), "$1 é $2", "acento", "“é” do verbo ser leva acento"],
+  [P(`(isso|isto|aquilo|ele|ela|n[aã]o|qual|quem|onde|como|quando|aqui|a[ií]|tudo|ningu[eé]m|voc[eê]|ela|ele|que)\\s+e\\s+(mal-educad[oa]s?|mau|mal\\s+educad[oa]s?|grande|legal|car[oa]|barat[oa]|chat[oa]|lind[oa]|feio|feia|bonit[oa]|um|uma|muito|muita|bom|boa|ruim|verdade|certo|certa|assim|isso|melhor|pior|s[oó]|mesmo|poss[ií]vel|importante|dif[ií]cil|f[aá]cil|lindo|linda|top|demais|o\\s+melhor|a\\s+melhor|meu|minha|seu|sua|nosso|nossa)`), "$1 é $2", "acento", "“é” do verbo ser leva acento"],
   [P(`(^|[.!?]\\s+)e\\s+(verdade|isso|assim|s[oó]|muito|bom|boa|claro|poss[ií]vel)`), "$1é $2", "acento", "“é” do verbo ser leva acento"],
   // "esta" → "está" (verbo) antes de palavras que pedem o verbo
   [P(`esta\\s+(bem|aqui|a[ií]|l[aá]|certo|certa|tudo|ok|com|sendo|indo|fazendo|vindo|chegando|chovendo|aberto|aberta|fechado|fechada|pronto|pronta|dispon[ií]vel|funcionando|precisando|esperando|tranquilo|tranquila|na|no|em|muito|bom|boa|ruim|caro|cara|barato|barata|legal|livre|ocupado|ocupada|online|atrasado|atrasada)`), "está $1", "acento", "“está” do verbo estar leva acento"],
@@ -154,6 +154,11 @@ const REGRAS = [
   [P(`mal\\s+educad([oa]s?)`), "mal-educad$1", "ortografia", "“mal-educado” leva hífen"],
   [P(`bem\\s+vind([oa]s?)`), "bem-vind$1", "ortografia", "“bem-vindo” leva hífen"],
   [P(`(at[eé]|por|da[ií]|de|para|pra|l[aá]|c[aá]|fica|ficou|chegando|t[oô]|estou|t[aá]|esteja)\\s+ai(?=[\\s?!.,]|$)`), "$1 aí", "acento", "“aí” (lugar) leva acento"],
+  [P(`(^|[.!?]\\s+)da\\s+(pra|para)(?![${L}])`), (m, a, b) => `${a}Dá ${b}`, "acento", "“dá” (verbo dar) leva acento"],
+  [P(`(me|te|lhe|nos|ele|ela|voc[eê]|quem|algu[eé]m|ningu[eé]m)\\s+da\\s+(aten[cç][aã]o|bola|risada|valor|conta|bom\\s+dia|oi|um|uma|uns|umas|o|a|os|as|pra|para|certo|trabalho|medo|raiva|vontade|sono|fome)(?![${L}])`), "$1 dá $2", "acento", "“dá” (verbo dar) leva acento"],
+  [P(`(o|a|um|uma|meu|minha|esse|essa|este|seu|sua|nosso|nossa|aquele|aquela)\\s+(\\p{Ll}{3,})\\s+e\\s+(mau|mal|bom|boa|grande|pequen[oa]|legal|lind[oa]|car[oa]|barat[oa]|nov[oa]|velh[oa]|fei[oa]|f[aá]cil|dif[ií]cil|[oó]tim[oa]|bonit[oa]|perfeit[oa]|chat[oa]|lent[oa]|r[aá]pid[oa]|importante|verdade|melhor|pior|incr[ií]vel|maravilhos[oa]|horr[ií]vel|azul|verde|vermelh[oa]|branc[oa]|pret[oa]|amarel[oa]|demais|top|muito|muita|super|t[aã]o|sempre|meu|minha)(?![${L}])`), (m, d, n, a) => /^(e|ou|que|de|em|com)$/i.test(n) ? null : `${d} ${n} é ${a}`, "acento", "“é” do verbo ser leva acento"],
+  [P(`(ontem|anteontem)((?:\\s+\\p{L}+){0,4}?)\\s+pode(?=\\s+(vir|ir|ficar|sair|chegar|falar|atender|ajudar|ver|fazer|ligar|responder|trabalhar|dormir|comer|pagar|levar|buscar)(?![${L}]))`), (m, a, b) => `${a}${b} pôde`, "acento", "no passado é “pôde” (com acento)"],
+  [P(`mau\\s+educad([oa]s?)`), "mal-educad$1", "ortografia", "“mal-educado” leva hífen (e é “mal”)"],
   [P(`(n[aã]o|j[aá]|isso|que|s[oó]|tudo|nem|como)\\s+da\\s+(pra|para|certo|errado|tempo|n[aã]o|mais|nada|medo|vontade|um\\s+jeito|jeito)(?![${L}])`), "$1 dá $2", "acento", "“dá” (verbo dar) leva acento"],
   [P(`(^|eu\\s+)to\\s+(\\p{L}+ndo|aqui|a[ií]|bem|mal|com|sem|em|no|na|cansad[oa]|feliz|triste|pront[oa]|livre|ocupad[oa]|online|chegando|saindo|indo|morrendo)(?![${L}])`), (m, a, w) => `${a}tô ${w}`, "acento", "“tô” (estou) leva acento"],
   [P(`(ontem|hoje|amanh[aã]|sexta|s[aá]bado|domingo|segunda|ter[cç]a|quarta|quinta|toda\\s+noite\\s+e)\\s+a\\s+(noite|tarde)(?![${L}])`), "$1 à $2", "crase", "“à noite / à tarde” leva crase"],
@@ -435,10 +440,108 @@ export function definirLexico(texto) {
   return LEX.size;
 }
 export function carregarLexico(url = new URL("./corretor/lexico.txt?v=1", import.meta.url).href) {
-  if (LEX) return Promise.resolve(true);
-  if (!carregando) carregando = fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error("lexico")))).then((t) => { definirLexico(t); return true; })
-    .catch(() => { carregando = null; return false; });
+  if (LEX) { carregarContexto(); return Promise.resolve(true); }
+  if (!carregando) carregando = Promise.all([
+    fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error("lexico")))).then((t) => { definirLexico(t); return true; }),
+    carregarContexto()
+  ]).then(([ok]) => ok).catch(() => { carregando = null; return false; });
   return carregando;
+}
+
+// =====================================================
+// Corretor que aprende (12/11/2026): palavras que se confundem (e/é, mas/mais, mal/mau, esta/está, nos/nós, por/pôr...)
+// são escolhidas pelas palavras em volta, com contagens tiradas de 2,5 milhões de palavras de textos em português
+// (corretor/contexto.json, gerado por scripts/corretor/gerar-contexto.py). Cada grupo tem a margem de confiança medida
+// em frases que o modelo não viu no treino: só corrige sozinho onde acertou 99% delas; entre 93% e 99% vira sugestão.
+// E aprende com a pessoa: correção que ela desliga várias vezes deixa de vir ligada (e depois some); sugestão que ela
+// liga várias vezes passa a vir ligada (aprenderEscolhas, guardado só no aparelho).
+// =====================================================
+let CTX = null, carregandoCtx = null;
+export const contextoPronto = () => !!CTX;
+export function definirContexto(dados) {
+  const d = typeof dados === "string" ? JSON.parse(dados) : dados;
+  const membro = new Map(), ger = new Map(), soma = new Map();
+  d.grupos.forEach((g, gi) => {
+    const c = new Map(); let n = 0;
+    for (const w of g) { membro.set(w, gi); n += d.tot[w] || 0; for (const [f, k] of Object.entries(d.f[w] || {})) c.set(f, (c.get(f) || 0) + k); }
+    ger.set(gi, c); soma.set(gi, n);
+  });
+  CTX = { ...d, membro, ger, soma };
+}
+export function carregarContexto(url = new URL("./corretor/contexto.json?v=1", import.meta.url).href) {
+  if (CTX) return Promise.resolve(true);
+  if (!carregandoCtx) carregandoCtx = fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))).then((j) => { definirContexto(j); return true; })
+    .catch(() => { carregandoCtx = null; return false; });
+  return carregandoCtx;
+}
+const TOK_CTX = /[\p{L}]+(?:-[\p{L}]+)*|[.,;:!?]/gu;
+function pontuarCtx(gi, toks, i) {
+  const g = CTX.grupos[gi], ger = CTX.ger.get(gi), n0 = CTX.soma.get(gi);
+  const at = (j) => (j >= 0 && j < toks.length ? semAcento(toks[j].w.toLowerCase()) : "<>");
+  const fs = ["l:" + at(i - 1), "r:" + at(i + 1), "ll:" + at(i - 2) + "_" + at(i - 1), "rr:" + at(i + 1) + "_" + at(i + 2)];
+  const pont = {};
+  for (const c of g) {
+    const n = CTX.tot[c] || 0, fc = CTX.f[c] || {};
+    let s = Math.log(n + 1);
+    for (const f of fs) {
+      if (!ger.has(f)) continue;
+      const pf = (ger.get(f) + 0.5) / (n0 + 50);
+      s += Math.log(((fc[f] || 0) + 4 * pf) / (n + 4));
+    }
+    pont[c] = s;
+  }
+  return pont;
+}
+function corrigirPeloContexto(s, anotar) {
+  if (!CTX) return s;
+  const toks = [...s.matchAll(TOK_CTX)].map((m) => ({ w: m[0], i: m.index }));
+  const troca = [];
+  toks.forEach((t, i) => {
+    const k = t.w.toLowerCase();
+    if (k !== semAcento(k) || !CTX.membro.has(k)) return; // só o que foi escrito sem acento (ou a outra palavra do par)
+    if (/\p{Lu}/u.test(t.w) && i > 0 && !/[.!?]/.test(toks[i - 1].w)) return; // nome próprio no meio da frase
+    const gi = CTX.membro.get(k), lim = CTX.lim[CTX.grupos[gi][0]];
+    if (!lim) return;
+    const p = pontuarCtx(gi, toks, i);
+    const [melhor, sm] = Object.entries(p).sort((a, b) => b[1] - a[1])[0];
+    if (melhor === k) return;
+    const margem = sm - p[k];
+    const conf = margem > Math.max(lim[0], 4) ? "alta" : margem > Math.max(lim[1], 3) ? "media" : null;
+    if (!conf) return;
+    const para = comoOriginal(t.w, melhor);
+    const de = (i > 0 && !/[.,;:!?]/.test(toks[i - 1].w) ? toks[i - 1].w + " " : "") + t.w; // um pouco do contexto na lista
+    const deAte = de === t.w ? para : de.slice(0, de.length - t.w.length) + para;
+    if (anotar(de, deAte, MAIS_ACENTO.has(k) ? "acento" : "ortografia", "escolhida pelas palavras em volta", conf)) troca.push({ i: t.i, f: t.i + t.w.length, para });
+  });
+  for (const t of troca.sort((a, b) => b.i - a.i)) s = s.slice(0, t.i) + t.para + s.slice(t.f);
+  return s;
+}
+const MAIS_ACENTO = new Set("e as esta nos pais da ai por pode publico duvida historia seria ate la le numero musica ultimo ultima publica mes manha".split(" "));
+
+// ---- aprende com a pessoa (no aparelho) ----
+const CHAVE_GOSTO = "hf-corretor-gosto";
+let GOSTO = null;
+function gosto() {
+  if (!GOSTO) { try { GOSTO = JSON.parse(localStorage.getItem(CHAVE_GOSTO) || "{}"); } catch { GOSTO = {}; } }
+  return GOSTO;
+}
+// escolhas: [[chave, ligada], ...] — chamada quando a pessoa aplica a revisão
+export function aprenderEscolhas(escolhas) {
+  const g = gosto();
+  for (const [k, on] of escolhas) { const x = g[k] || [0, 0]; x[on ? 0 : 1]++; g[k] = x; }
+  const ks = Object.keys(g); if (ks.length > 600) ks.slice(0, ks.length - 600).forEach((k) => delete g[k]);
+  try { localStorage.setItem(CHAVE_GOSTO, JSON.stringify(g)); } catch {}
+}
+export function esquecerEscolhas() { GOSTO = {}; try { localStorage.removeItem(CHAVE_GOSTO); } catch {} }
+// "alta" vira "media" (vem desligada) quando a pessoa desligou 2+ vezes; some com 4+ recusas e nenhuma aceita;
+// "media" vira "alta" quando ela ligou 2+ vezes e nunca recusou mais do que aceitou.
+function confAprendida(chave, conf) {
+  const x = gosto()[chave]; if (!x) return conf;
+  const [sim, nao] = x;
+  if (nao >= 4 && sim === 0) return null;
+  if (conf === "alta" && nao >= 2 && nao > sim) return "media";
+  if (conf === "media" && sim >= 2 && sim >= nao) return "alta";
+  return conf;
 }
 export function adicionarAoDicionario(w) {
   PESSOAL.add(String(w).toLowerCase());
@@ -562,6 +665,8 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
     if (!de || de === para) return false;
     const chave = semAcento(de.toLowerCase()) + "→" + para.toLowerCase();
     if (pular.has(chave)) return false;
+    conf = confAprendida(chave, conf);
+    if (!conf) return false;
     const ligada = conf === "alta" || aceitar.has(chave);
     const ja = mudancas.find((x) => x.chave === chave);
     if (ja) ja.n++; else mudancas.push({ de, para, tipo, motivo, chave, n: 1, conf, ligada });
@@ -634,6 +739,8 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       }
       return w;
     });
+    // 1b) palavras que se confundem, escolhidas pelas palavras em volta (corretor que aprende)
+    s = corrigirPeloContexto(s, anotar);
     // 2) palavra repetida: "o o" → "o" (menos as que se repetem de propósito)
     s = s.replace(/(?<![\p{L}])(\p{L}+)\s+\1(?![\p{L}])/giu, (m, w) => {
       if (/^(n[aã]o|sim|muito|bem|tchau|oi|pode|vai|corre|ai|aí|r[aá]pido|j[aá]|tá|ta|kk+|ha|he|blá|bla|tic|toc)$/i.test(w)) return m;
