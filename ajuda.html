@@ -26,7 +26,7 @@
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="description" content="Tire suas dúvidas sobre o Help Floripa: conta e senha, pedidos, avaliações, reclamações, anúncios, planos, Diário, Flash e segurança." />
-  <meta name="theme-color" content="#0b1014" />
+  <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Help Floripa" />
@@ -59,13 +59,13 @@
       var tema = c.tema || "sistema";
       var escuro = tema === "escuro" || (tema === "sistema" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
-      document.querySelector('meta[name="theme-color"]').content = escuro ? "#0f161b" : "#ffffff";
+      document.querySelector('meta[name="theme-color"]').content = escuro ? "#000000" : "#ffffff";
     })();
   </script>
-  <link rel="stylesheet" href="categoria.css?v=18" />
+  <link rel="stylesheet" href="categoria.css?v=19" />
   <link rel="stylesheet" href="info.css?v=11" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="categoria.js?v=88"></script>
+  <script type="module" src="categoria.js?v=89"></script>
 </head>
 <body data-classe="info">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
