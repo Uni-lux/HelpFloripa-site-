@@ -40,7 +40,7 @@ import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPra
 // ======================================================
 const CHAVE_CONFIG = "hf-chat-config";
 // Papel de parede padrão: Pontilhado (09/11/2026, pedido do dono: a Ponte saiu do padrão e virou só uma opção).
-const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", veu: 0.55, enterEnvia: true, corretor: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
+const CONFIG_PADRAO = { tema: "sistema", fundo: "padrao", fonte: "media", veu: 0.55, enterEnvia: true, corretor: true, atalhoNotas: true, sons: true, vibrar: true, previaNotificacao: true, mostrarOnline: true, mostrarDigitando: true, confirmacaoLeitura: true };
 const CHAVE_FUNDO_FOTO = "hf-chat-fundo-foto";
 let config = { ...CONFIG_PADRAO };
 try { config = { ...CONFIG_PADRAO, ...JSON.parse(localStorage.getItem(CHAVE_CONFIG) || "{}") }; } catch {}
@@ -1549,6 +1549,8 @@ function renderizarLista() {
   { let q = pSol.querySelector(".pill-n"); if (!q) { q = document.createElement("b"); q.className = "pill-n"; pSol.appendChild(q); } q.textContent = String(pedidos.length); q.hidden = !pedidos.length; }
   pintarPillsAssunto();
   // Número de não lidas na pílula (da aba atual)
+  { const pT = document.querySelector('.pill[data-filtro="todas"]'); if (pT) { pT.hidden = filtro === "todas"; pT.textContent = "Voltar a todas"; } }
+  { const box = document.querySelector(".pills"); if (box) box.classList.toggle("vazia", ![...box.querySelectorAll(".pill")].some((x) => !x.hidden) && !$("pillsAssunto")?.children.length); }
   const pNl = document.querySelector('.pill[data-filtro="naoLidas"]');
   if (pNl) {
     const n = conversas.filter((c) => c.naoLida && !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId) && modoDe(c) === modo).length;
@@ -1580,7 +1582,7 @@ function renderizarLista() {
   }
 
   // Notas: conversa fixa só sua no alto da aba Pessoal (como as conversas fixadas)
-  if (modo === "pessoal" && filtro === "todas" && (!termo || "notas anotações anotacoes".includes(termo))) lista.appendChild(itemNotas());
+  if (config.atalhoNotas !== false && modo === "pessoal" && filtro === "todas" && (!termo || "notas anotações anotacoes".includes(termo))) lista.appendChild(itemNotas());
 
   if (!itens.length) {
     const vazio = document.createElement("div");
@@ -2708,7 +2710,10 @@ $("msgs").addEventListener("scroll", () => {
   clearTimeout(timerDiaFlutuante);
   if (!dia) { chip.classList.remove("on"); return; }
   chip.textContent = dia.textContent;
-  chip.style.top = (caixa.offsetTop + 8) + "px";
+  // Com a faixa do atendimento à mostra, a etiqueta do dia fica logo abaixo dela (antes ficava por cima: "Atender Ontem até 18h").
+  const fa = $("faixaAtend");
+  const abaixoFaixa = fa && !fa.hidden && fa.offsetHeight ? fa.offsetTop + fa.offsetHeight + 6 : 0;
+  chip.style.top = Math.max(caixa.offsetTop + 8, abaixoFaixa) + "px";
   chip.classList.add("on");
   timerDiaFlutuante = setTimeout(() => chip.classList.remove("on"), 1200);
 }, { passive: true });
@@ -4841,6 +4846,7 @@ document.querySelectorAll("[data-cfg-bool]").forEach((inp) => {
     if (inp.dataset.cfgBool === "mostrarOnline") { marcarPresenca(); atualizarStatusTopo(); }
     if (inp.dataset.cfgBool === "mostrarDigitando") { renderizarLista(); atualizarStatusTopo(); }
     if (inp.dataset.cfgBool === "confirmacaoLeitura") { renderizarLista(); atualizarChecks(); }
+    if (inp.dataset.cfgBool === "atalhoNotas") renderizarLista();
   });
 });
 
@@ -5175,7 +5181,18 @@ function itemNotas() {
   const nome = document.createElement("div"); nome.className = "conv-nome";
   const nm = document.createElement("span"); nm.className = "conv-nm"; nm.textContent = "Notas";
   const so = document.createElement("span"); so.className = "notas-so"; so.textContent = "Só você";
-  const pin = icone("pin", "i xs"); pin.setAttribute("aria-label", "Fixada"); pin.style.cssText = "margin-left:4px;opacity:.7;vertical-align:-2px";
+  // Alfinete = tirar o atalho da lista (volta em Configurações → Atalho para as Notas).
+  const pin = document.createElement("span"); pin.className = "notas-pin"; pin.setAttribute("role", "button"); pin.tabIndex = 0;
+  pin.title = "Tirar as Notas da lista"; pin.setAttribute("aria-label", "Tirar as Notas da lista de conversas");
+  pin.appendChild(icone("pin", "i xs"));
+  const tirarAtalho = async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!(await confirmarHF({ titulo: "Tirar as Notas da lista?", texto: "Suas notas continuam guardadas. Para pôr o atalho de volta: Configurações das Mensagens → Atalho para as Notas.", ok: "Tirar da lista", icone: "info", cor: "normal" }))) return;
+    config.atalhoNotas = false; salvarConfig(); aplicarConfig?.(); renderizarLista();
+    toast("Notas fora da lista. Ponha de volta nas Configurações.");
+  };
+  pin.addEventListener("click", tirarAtalho);
+  pin.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") tirarAtalho(e); });
   nome.append(nm, so, pin);
   const quando = document.createElement("div"); quando.className = "conv-hora"; quando.textContent = r.ult ? dataLista(new Date(r.ult.em)) : "";
   l1.append(nome, quando);

@@ -39,19 +39,19 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=100" />
+  <link rel="stylesheet" href="rede.css?v=102" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="feed.js?v=191"></script>
+  <script type="module" src="feed.js?v=193"></script>
 </head>
 <body>
   <header class="topo">
     <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <button type="button" class="icone-btn topo-criar" id="btnComporFeed" aria-label="Criar uma publicação" title="Criar uma publicação"><span class="tc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
-    <button type="button" class="marca-ponte" id="marcaTopo" aria-label="Help Floripa · voltar ao topo" title="Help Floripa"><img class="mp-escuro" src="logo-ponte.webp" width="168" height="108" alt="" data-sem-suave draggable="false" decoding="async" /><img class="mp-claro" src="logo-ponte-claro.webp" width="168" height="108" alt="" data-sem-suave draggable="false" decoding="async" /></button>
+    <button type="button" class="marca-ponte" id="marcaTopo" aria-label="Help Floripa · voltar ao topo" title="Help Floripa"><span class="mp" aria-hidden="true"><i class="mp-ondas"></i><i class="mp-est"></i></span></button>
     <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
+  <!-- "+" do lado, como no X (12/11/2026): só no Diário e na Comunidade, no mesmo estilo do quadradinho de antes. -->
+  <button type="button" class="fab-hf" id="btnComporFeed" aria-label="Criar uma publicação" title="Criar uma publicação"><span class="tc-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
 
   <main class="pagina larga">
     <div class="duas-col">
@@ -103,14 +103,6 @@
               <div class="exp-tit"><h2 class="titulo-sec" id="titComunidade">Na Comunidade</h2><small>Doações, trocas, achados e perdidos e quartos para dividir · proibido vender</small></div>
               <div id="filtrosComunidadeExp"></div>
               <div class="exp-trilho" id="exploraComunidade"></div>
-            </section>
-            <section class="exp-sec" id="secPostsPerto" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Publicações perto de você</h2><small id="subPostsPerto">Da sua região</small></div>
-              <div class="exp-grade" id="gradePostsPerto"></div>
-            </section>
-            <section class="exp-sec" id="secSugestoes" hidden>
-              <div class="exp-tit"><h2 class="titulo-sec">Sugestões para você</h2><small>Pessoas da sua rede, da sua cidade e quem está online</small></div>
-              <div id="exploraSugestoes"></div>
             </section>
           </div>
           <h2 class="titulo-sec" id="titPessoas" hidden>Resultados</h2>

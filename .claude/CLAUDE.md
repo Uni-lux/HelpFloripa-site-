@@ -2348,6 +2348,33 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   No Explorar some (`body.aba-explorar`, posto pelo `trocarAba`). Comunidade (mural.html) e Perfil (usuarios.html): marca
   saiu (`.topo-meio`, espaço vazio). As outras páginas (Início, vitrines, institucionais) continuam com a marca escrita.
   Teste `t-marca-ponte.mjs` (9); `t-comunidade-rede` e `t-auditoria-diario` atualizados.
+- **Topo da rede, Explorar, Mensagens e Notas (12/11/2026, PR depois do #199, sem regra nova):** prints dele. Ponte do
+  Diário maior (72×46) e nas cores do tema: 2 máscaras `logo-ponte-estrutura.webp` (pintada com `--text`) e
+  `logo-ponte-ondas.webp` (degradê azul) em `.marca-ponte .mp i` (os webp de antes saíram). "+" saiu do topo e virou
+  `.fab-hf` (quadradinho escuro do lado, como no X; `#btnComporFeed` no feed.html e `#btnPublicarMural` no mural.html; some
+  no Explorar e no modo lugar). Engrenagem SÓ no Perfil; Diário/Comunidade: casinha | meio | sino. Explorar sem "Sugestões
+  para você" e sem "Perto de você"/"Publicações perto" (`pintarSugestoes`/`pintarPostsPerto` não são chamadas; negócios =
+  da cidade ou destaques; sugestões continuam no meio do Diário, sem "Ver tudo"). Mensagens: sem as pílulas Todas/Não lidas
+  (`.pills.vazia` some; "Voltar a todas" só aparece com outro filtro ativo); Notas com a foto no jeito das conversas,
+  alfinete `.notas-pin` tira o atalho (`config.atalhoNotas`) e Configurações → "Atalho para as Notas" põe de volta;
+  etiqueta do dia abaixo da faixa do atendimento. Notas: caixa de digitação `#ntComp` (como o campo do chat: "+" = lista/
+  modelos (`#ntNova`), campo que cresce, botão de lista de tarefas, enviar = nota nova na pasta aberta; Enter salva no
+  computador), sem o botão "Nova nota" no topo, aviso de uma linha, números das tarefas numa fileira. Testes
+  `t-marca-ponte` (16), `t-notas-rapida.mjs` (13); `t-comunidade-rede`, `t-x-transicoes`, `t-auditoria-diario`,
+  `t-solicitacoes`, `t-deslizar-responder` atualizados. Desatualizados (testam o que saiu): sugestões/perto em `t-explorar`,
+  `t-sugestoes-online`, `t-perto`, `t-principais`; `t-deslizar-responder` já parava antes (aba Negócios escondida para a Ana).
+- **Perfil enxuto (12/11/2026, PR depois do #200, MUDA 1 REGRA — não publicada; 21 partes, 1040 testes):** pedido dele
+  ("moderno, completo, compacto, só o necessário e o resto se a pessoa ativar"). Ordem do cabeçalho (`tplPerfil`): capa mais
+  baixa (trocar capa = só o ícone `.so-icone`), foto 96 px, nome, @ · cidade, bio (2 linhas) → números numa linha sem cartão
+  (`.pf-stats` flex) + ícone das estatísticas (`data-stat="insights"`, `i-graf`) → ações (seu: Editar perfil · Compartilhar ·
+  ⋯ `#meuPerfilMais`; dos outros: Seguir · Mensagem · ⋯) → negócios em pílulas (sem o "Novo" tracejado e sem a pílula de
+  visibilidade) → destaques só quando existem (stories.js: "Novo" só depois de ter 1; `novoDestaque`/`abrirArquivo`
+  exportados). Saíram do corpo: cartão "Estatísticas do perfil", chip do selo e o botão Social — tudo no ⋯ (`menuMeuPerfil`:
+  O que aparece no perfil, Estatísticas, Social, Novo destaque, Arquivo do Flash, Meus negócios/Criar, Pedir o selo,
+  Configurações). **O que aparece** (`personalizarPerfil`): Cidade, Avaliação, Atalhos dos negócios e Destaques do Flash →
+  `pref_publicas.negociosNoPerfil` + `pref_publicas.perfil {cidade, nota, destaques}` (regra nova; `prefPublicas`/`salvarPref`/
+  `aplicarPref` em usuarios-app.js; vale para quem visita e no seu perfil também). Sem as regras: avisa que vale depois da
+  publicação. Teste `t-perfil-enxuto.mjs` (13).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -2410,7 +2437,7 @@ chat da equipe).
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (21 partes em `_regras/`, 1037 testes; inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (21 partes em `_regras/`, 1040 testes; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=148";
+} from "./rede.js?v=149";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -5030,12 +5030,8 @@ export async function destaquesNoPerfil(corpo, uid) {
   const ds = escondido(uid) ? [] : await lerDestaques(uid);
   if (!fila.isConnected) return;
   fila.replaceChildren();
-  fila.hidden = !meu && !ds.length;
-  if (meu) {
-    const novo = bolinhaDestaque("Novo", "", "mais"); novo.classList.add("novo"); novo.setAttribute("aria-label", "Novo destaque");
-    novo.addEventListener("click", () => novoDestaque());
-    fila.appendChild(novo);
-  }
+  // Perfil enxuto (12/11/2026): a fileira só aparece com destaques; "Novo destaque" e "Arquivo" ficam no ⋯ do perfil.
+  fila.hidden = !ds.length;
   ds.forEach((d) => {
     const b = bolinhaDestaque(d.nome, d.capaMini);
     b.setAttribute("aria-label", `Destaque ${d.nome}`);
@@ -5050,10 +5046,10 @@ export async function destaquesNoPerfil(corpo, uid) {
     }
     fila.appendChild(b);
   });
-  if (meu) {
-    const arq = bolinhaDestaque("Arquivo", "", "relogio"); arq.classList.add("arquivo"); arq.setAttribute("aria-label", "Arquivo dos seus flashes");
-    arq.addEventListener("click", () => abrirArquivo());
-    fila.appendChild(arq);
+  if (meu && ds.length) {
+    const novo = bolinhaDestaque("Novo", "", "mais"); novo.classList.add("novo"); novo.setAttribute("aria-label", "Novo destaque");
+    novo.addEventListener("click", () => novoDestaque());
+    fila.appendChild(novo);
   }
 }
 async function abrirDestaque(d) {
@@ -5111,7 +5107,7 @@ function adicionarAoDestaque(s, aoFechar) {
   pintar();
 }
 // Arquivo: os seus flashes (os de agora e os que já saíram do ar), 12 por vez. Com "selecionar", devolve os escolhidos.
-function abrirArquivo({ selecionar = false, marcados = [], titulo = "Arquivo do Flash", botao = "Próximo" } = {}) {
+export function abrirArquivo({ selecionar = false, marcados = [], titulo = "Arquivo do Flash", botao = "Próximo" } = {}) {
   return new Promise((resolver) => {
     const corpo = abrirLista(titulo);
     const sel = new Map(); let concluiu = false;
@@ -5166,7 +5162,7 @@ function abrirArquivo({ selecionar = false, marcados = [], titulo = "Arquivo do 
   });
 }
 // Novo destaque: escolhe os flashes no arquivo, depois o nome (a capa é o último escolhido; dá para trocar na edição).
-async function novoDestaque() {
+export async function novoDestaque() {
   const ds = await lerDestaques(eu.uid);
   if (ds.length >= MAX_DESTAQUES) { toast(`Você chegou ao máximo de ${MAX_DESTAQUES} destaques.`); return; }
   const escolhidos = await abrirArquivo({ selecionar: true, titulo: "Novo destaque" });

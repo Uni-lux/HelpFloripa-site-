@@ -1,3 +1,28 @@
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            // título em cima (opcional) e o modelo escolhido (como a publicação é desenhada)
+            && (!('titulo' in d) || (d.titulo is string && d.titulo.size() >= 1 && d.titulo.size() <= 90))
+            && (!('layout' in d) || (d.layout is string && d.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
+            && (!('midias' in d)
+                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
+                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
+                    && fotoPubOk(d.midias[1])
+                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
+                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+      }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
       function marcadosOk(d) {
         return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
             && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
@@ -139,35 +164,4 @@
     function caminhoStats(negocioId, dia) {
       return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
     }
-    function caminhoVisita(negocioId, dia) {
-      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
-    }
-
-    match /neg_visitas/{id} {
-      function visitaNova() {
-        let d = request.resource.data;
-        let st = caminhoStats(d.negocioId, d.dia);
-        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
-            && d.uid == request.auth.uid
-            && d.negocioId is string && d.negocioId.size() <= 60
-            && d.dia == diaBR() && d.hora == horaBR()
-            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
-            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
-            && d.acoes == [] && d.itens == []
-            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
-            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
-      }
-      // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
-      function novoNaLista(campo, max) {
-        let d = request.resource.data;
-        let x = d[campo][d[campo].size() - 1];
-        let st = caminhoStats(resource.data.negocioId, resource.data.dia);
-        let mapa = campo == 'acoes' ? 'a' : 'it';
-        return d.diff(resource.data).affectedKeys().hasOnly([campo])
-            && d[campo].size() <= max
-            && d[campo] == resource.data[campo].concat([x])
-            && !(x in resource.data[campo])
-            && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
-            && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
-      }
 // ===== FIM DA PARTE 17 DE 21 =====

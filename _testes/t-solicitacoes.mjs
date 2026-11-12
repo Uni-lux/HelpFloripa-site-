@@ -49,7 +49,7 @@ ok(await pa.locator(".sol-faixa").isVisible(), "faixa “Solicitações de mensa
 ok(await pa.locator("#listaConversas .conv-item", { hasText: "Eduardo" }).count() === 0, "a solicitação não entra em Todas");
 ok(!(await pa.locator('.modos [data-modo="negocios"]').isVisible()), "sem negócio: aba Negócios escondida");
 // alinhamento: busca, filtros e fotos na mesma linha da esquerda
-const lados = await pa.evaluate(() => [document.querySelector(".search")?.getBoundingClientRect().left, document.querySelector('.pill[data-filtro="todas"]').getBoundingClientRect().left, document.querySelector(".sol-faixa .avatar").getBoundingClientRect().left]);
+const lados = await pa.evaluate(() => [document.querySelector(".search")?.getBoundingClientRect().left, document.querySelector('.pill:not([hidden])').getBoundingClientRect().left, document.querySelector(".sol-faixa .avatar").getBoundingClientRect().left]);
 ok(Math.max(...lados) - Math.min(...lados) <= 1.5, `busca, filtros e lista alinhados à esquerda (${lados.map(Math.round).join(", ")})`);
 await pa.screenshot({ path: "saida/sol-ana-lista.png" });
 await pa.locator(".sol-faixa").click(); await pa.waitForTimeout(500);

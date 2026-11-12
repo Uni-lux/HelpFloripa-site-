@@ -33,9 +33,9 @@ async function rodar(mobile) {
   const fecharFolhas = async () => { for (let i = 0; i < 3 && await p.locator(".folha.aberta").count(); i++) { await p.locator(".folha.aberta [data-fechar]").last().click().catch(() => {}); await p.waitForTimeout(300); } };
   // ---- topo ----
   A("topo: casinha leva ao Início", (await p.locator(".topo a.icone-btn").first().getAttribute("href")) === "index.html");
-  A("topo: só o símbolo da ponte", (await p.locator(".topo .marca-ponte img.mp-escuro").count()) === 1 && (await p.locator(".topo .marca").count()) === 0);
+  A("topo: só o símbolo da ponte", (await p.locator(".topo .marca-ponte .mp-est").count()) === 1 && (await p.locator(".topo .marca").count()) === 0);
   A("topo: sino leva às notificações", (await p.locator('.topo a[href="notificacoes.html"]').count()) === 1);
-  A("topo: engrenagem leva às configurações", (await p.locator('.topo a[href="configuracoes.html"]').count()) === 1);
+  A("topo: sem engrenagem no Diário (só no Perfil)", (await p.locator('.topo a[href="configuracoes.html"]').count()) === 0);
   await p.locator("#btnComporFeed").click(); await p.waitForTimeout(500);
   A("topo: + abre a nova publicação", await p.locator("#folhaPublicar.aberta").count() === 1);
   const ferr = await p.locator("#folhaPublicar .pub-ferr:visible").allTextContents();
@@ -64,7 +64,7 @@ async function rodar(mobile) {
   A("publicação: nome do autor e a linha do local com o tempo", (await card.locator(".post-cab").textContent()).includes("Bruno") && await card.locator(".post-cab .sub-linha small").count() === 1);
   A("publicação: local clicável", await card.locator(".local-post").count() === 1);
   A("publicação: 'com Ana' (marcados)", (await card.locator(".post-com").textContent().catch(() => "")).includes("Ana"));
-  A("publicação: #hashtag vira link", await card.locator('.post-texto a[href*="tag=reforma"]').count() >= 1);
+  A("publicação: #hashtag vira link", await card.locator(':is(.post-texto, .post-tags) a[href*="tag=reforma"]').count() >= 1);
   A("publicação: @menção vira link", await card.locator(".post-texto a", { hasText: "@brunoreparos" }).count() >= 1);
   const vm = card.locator(".ver-mais");
   if (await vm.count()) { await vm.click(); A("publicação: 'ver mais' abre o texto inteiro", await card.locator(".post-texto.curto").count() === 0); }

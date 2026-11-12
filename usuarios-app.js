@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=148";
+} from "./rede.js?v=149";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -16,8 +16,8 @@ import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerRes
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=97";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=22";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash } from "./stories.js?v=120";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=105";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=121";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=106";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -33,6 +33,35 @@ function montarCabecalho(raiz) {
   const el = (n) => raiz.querySelector(`[data-el="${n}"]`);
   const stat = (n) => raiz.querySelector(`[data-stat="${n}"]`);
   return { raiz, el, stat };
+}
+
+// ---------- O que aparece no perfil (12/11/2026, pedido dele: perfil enxuto, o resto só se a pessoa ativar) ----------
+// pref_publicas/{uid}: negociosNoPerfil (já existia) e perfil {cidade, nota, destaques}. Padrão: tudo aparece.
+const cachePref = new Map();
+function prefPublicas(uid) {
+  if (!cachePref.has(uid)) cachePref.set(uid, fb.getDoc(fb.doc(fb.db, "pref_publicas", uid)).then((d) => (d.exists() ? d.data() : {})).catch(() => ({})));
+  return cachePref.get(uid);
+}
+const mostraNoPerfil = (pref, k) => k === "negocios" ? pref?.negociosNoPerfil !== false : pref?.perfil?.[k] !== false;
+async function salvarPref(campos) {
+  const atual = await prefPublicas(eu.uid);
+  const novo = { ...atual, ...campos, perfil: { ...(atual.perfil || {}), ...(campos.perfil || {}) } };
+  if (!campos.perfil) delete novo.perfil;
+  cachePref.set(eu.uid, Promise.resolve(novo));
+  try {
+    await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { ...campos, atualizadoEm: fb.serverTimestamp() }, { merge: true });
+    return true;
+  } catch (e) {
+    cachePref.set(eu.uid, Promise.resolve(atual));
+    toast(e?.code === "permission-denied" ? "Essa escolha passa a valer depois da publicação das regras novas." : "Não foi possível salvar agora.");
+    return false;
+  }
+}
+// Cidade, avaliação e destaques seguem a escolha (também no seu perfil: você vê como os outros veem).
+function aplicarPref(h, pref) {
+  h.raiz.querySelectorAll(".pf-handle .pf-cidade").forEach((x) => { x.hidden = !mostraNoPerfil(pref, "cidade"); });
+  const nota = h.stat("nota"); if (nota) nota.hidden = !mostraNoPerfil(pref, "nota");
+  h.raiz.querySelector(".pf-corpo")?.classList.toggle("sem-destaques", !mostraNoPerfil(pref, "destaques"));
 }
 
 function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = {}) {
@@ -52,7 +81,7 @@ function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = 
   }
   const cidade = textoCidade({ cidade: nomeCidade(p.cidade || p.cidadeNome), uf: p.uf });
   if (cidade) {
-    const s = document.createElement("span");
+    const s = document.createElement("span"); s.className = "pf-cidade";
     s.append(icone("pin", "i xs"), document.createTextNode(cidade));
     handle.appendChild(s);
   }
@@ -96,8 +125,9 @@ function renderizarMeuPerfil() {
     // Botões de foto e capa
     const btnCapa = document.createElement("button");
     btnCapa.type = "button";
-    btnCapa.className = "pf-editar-capa";
-    btnCapa.append(icone("camera", "i xs"), document.createTextNode("Editar capa"));
+    btnCapa.className = "pf-editar-capa so-icone";
+    btnCapa.setAttribute("aria-label", "Trocar a capa"); btnCapa.title = "Trocar a capa";
+    btnCapa.append(icone("camera", "i xs"));
     btnCapa.addEventListener("click", () => escolherImagem("capa", true));
     meuCab.el("capa").appendChild(btnCapa);
     // "+" na foto = novo flash (como no Instagram). Trocar a foto fica no lápis da foto grande (tocar e segurar).
@@ -120,13 +150,18 @@ function renderizarMeuPerfil() {
     bEditar.type = "button"; bEditar.className = "btn pri";
     bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
     bEditar.addEventListener("click", abrirEditar);
-    const bSocial = botaoSocial(eu.uid);
-    bSocial.id = "meuSocial";
+    // Perfil enxuto (12/11/2026): Editar perfil · Compartilhar · ⋯ (Social, estatísticas, negócios, destaques, selo e o
+    // que aparece no perfil ficam no ⋯).
     const bComp = document.createElement("button");
-    bComp.type = "button"; bComp.className = "btn sec icone"; bComp.setAttribute("aria-label", "Compartilhar perfil");
-    bComp.appendChild(icone("compartilhar", "i s"));
+    bComp.type = "button"; bComp.className = "btn sec";
+    bComp.append(icone("compartilhar", "i xs"), document.createTextNode("Compartilhar"));
     bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
-    acoes.append(bEditar, bSocial, bComp);
+    const bMais = document.createElement("button");
+    bMais.type = "button"; bMais.className = "btn sec icone"; bMais.id = "meuPerfilMais";
+    bMais.setAttribute("aria-label", "Mais opções do perfil"); bMais.title = "Mais opções";
+    bMais.appendChild(icone("pontos", "i s"));
+    bMais.addEventListener("click", menuMeuPerfil);
+    acoes.append(bEditar, bComp, bMais);
     // Estatísticas
     meuCab.stat("posts").addEventListener("click", () => $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }));
     meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
@@ -134,6 +169,8 @@ function renderizarMeuPerfil() {
     meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
     const bIns = meuCab.stat("insights");
     bIns.hidden = false;
+    bIns.replaceChildren(icone("graf", "i s"));
+    bIns.title = "Estatísticas do perfil";
     bIns.addEventListener("click", abrirInsightsPerfil);
   }
   pintarMeuSocial();
@@ -150,34 +187,50 @@ function renderizarMeuPerfil() {
     b.addEventListener("click", () => { abrirEditar(); setTimeout(() => $("edBio").focus(), 120); });
     bio.appendChild(b);
   }
-  // Verificação
-  const extra = meuCab.el("extra");
-  extra.replaceChildren();
-  const painel = document.createElement("button");
-  painel.type = "button"; painel.className = "pf-painel";
-  const tp = document.createElement("span"); tp.className = "tx";
-  const t1 = document.createElement("strong"); t1.textContent = "Estatísticas do perfil";
-  const t2 = document.createElement("small"); t2.textContent = "Alcance, interações, seguidores e público";
-  tp.append(t1, t2);
-  painel.append(icone("graf", "i s"), tp, icone("avancar", "i xs"));
-  painel.addEventListener("click", abrirInsightsPerfil);
-  extra.appendChild(painel);
-  if (!dados.verificado) {
-    const c = document.createElement("button");
-    c.type = "button"; c.className = "chip-verif";
-    c.append(icone("selo", "i xs"), document.createTextNode(dados.solicitacaoVerificacao ? "Verificação em análise" : "Solicitar selo de verificado"));
-    c.disabled = !!dados.solicitacaoVerificacao;
-    c.addEventListener("click", solicitarVerificacao);
-    extra.appendChild(c);
-  }
+  // Estatísticas, selo e o resto ficam no ⋯ e no ícone ao lado dos números (antes eram cartões grandes aqui).
+  meuCab.el("extra").replaceChildren();
+  prefPublicas(eu.uid).then((pref) => aplicarPref(meuCab, pref));
   desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, (dados.duoCapa || "clicavel") === "clicavel");
   renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
   pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
   document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
 }
 
+// ⋯ do seu perfil: tudo o que não precisa ficar à mostra.
+function menuMeuPerfil() {
+  const ops = [
+    { rotulo: "O que aparece no perfil", sub: "Cidade, avaliação, negócios e destaques", icone: "olho", fn: personalizarPerfil },
+    { rotulo: "Estatísticas do perfil", sub: "Alcance, interações, seguidores e público", icone: "graf", fn: abrirInsightsPerfil },
+    { rotulo: "Social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
+    { rotulo: "Novo destaque", sub: "Junte flashes num destaque do perfil", icone: "estrela", fn: () => novoDestaque() },
+    { rotulo: "Arquivo do Flash", sub: "Seus flashes que já saíram", icone: "relogio", fn: () => abrirArquivo() },
+    { rotulo: meusNegocios.length ? "Meus negócios" : "Criar um negócio", sub: meusNegocios.length ? "Editar, planos e estatísticas" : "Serviços, delivery, loja, imóveis...", icone: "maleta", fn: () => { location.href = meusNegocios.length ? "negocios.html" : "negocios.html?novo=1"; } }
+  ];
+  if (!dados.verificado) ops.push({ rotulo: dados.solicitacaoVerificacao ? "Verificação em análise" : "Pedir o selo de verificado", icone: "selo", fn: solicitarVerificacao });
+  ops.push({ rotulo: "Configurações", icone: "config", fn: () => { location.href = "configuracoes.html"; } });
+  abrirOpcoes("Seu perfil", ops);
+}
+// O que aparece no perfil para quem visita (e para você, igual): só o essencial fica sempre.
+async function personalizarPerfil() {
+  const pref = await prefPublicas(eu.uid);
+  const itens = [
+    ["cidade", "Cidade", "pin"], ["nota", "Avaliação", "estrela"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Destaques do Flash", "raio"]
+  ];
+  abrirOpcoes("O que aparece no seu perfil", itens.map(([k, rot, ic]) => {
+    const on = mostraNoPerfil(pref, k);
+    return { rotulo: rot, sub: on ? "Aparece · tocar para esconder" : "Escondido · tocar para mostrar", icone: on ? ic : "olho-off",
+      fn: async () => {
+        const ok = k === "negocios" ? await salvarPref({ negociosNoPerfil: !on }) : await salvarPref({ perfil: { [k]: !on } });
+        if (!ok) return;
+        toast(`${rot}: ${on ? "escondido do perfil" : "aparece no perfil"}`);
+        renderizarMeuPerfil();
+        setTimeout(personalizarPerfil, 250);
+      } };
+  }));
+}
+
 function abrirInsightsPerfil() {
-  import("./insights.js?v=112").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=113").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -554,7 +607,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=115").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=116").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1069,6 +1122,7 @@ async function abrirPerfilPublico(uid) {
   perfis.delete(uid);
   const p = await obterPerfil(uid);
   preencherCabecalho(ppCab, p);
+  prefPublicas(uid).then((pref) => { if (ppCab) aplicarPref(ppCab, pref); });
   pintarNotaPerfil(ppCab, uid);
   anelNoPerfil(ppCab.el("avatar"), uid);
   voltarAoFlash();
@@ -1119,6 +1173,7 @@ async function abrirPerfilPublico(uid) {
   ppContagem.seguidores = c1.status === "fulfilled" ? c1.value : 0;
   ppContagem.seguindo = c2.status === "fulfilled" ? c2.value : 0;
   preencherCabecalho(ppCab, p, { posts: lista.length, ...ppContagem });
+  prefPublicas(uid).then((pref) => { if (ppCab) aplicarPref(ppCab, pref); });
   const acoes = ppCab.el("acoes");
   acoes.replaceChildren();
   ppMeSegue = meSegue;
@@ -1318,18 +1373,11 @@ async function carregarMeusNegocios() {
 
 // Atalhos dos negócios no perfil (12/11/2026): quem tem negócio escolhe se aparecem para os visitantes; quem não tem
 // não vê a fileira (nem o "Novo negócio"). Guardado em pref_publicas/{uid}.negociosNoPerfil (todos leem).
-const cacheAtalhos = new Map();
-function atalhosNoPerfil(uid) {
-  if (!cacheAtalhos.has(uid)) cacheAtalhos.set(uid, fb.getDoc(fb.doc(fb.db, "pref_publicas", uid)).then((d) => !(d.exists() && d.data().negociosNoPerfil === false)).catch(() => true));
-  return cacheAtalhos.get(uid);
-}
+function atalhosNoPerfil(uid) { return prefPublicas(uid).then((d) => mostraNoPerfil(d, "negocios")); }
 async function mudarAtalhos(mostrar) {
-  try {
-    await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { negociosNoPerfil: mostrar, atualizadoEm: fb.serverTimestamp() }, { merge: true });
-    cacheAtalhos.set(eu.uid, Promise.resolve(mostrar));
-    toast(mostrar ? "Seus negócios aparecem no seu perfil" : "Seus negócios saíram do seu perfil (continuam nas vitrines e na busca)");
-    renderizarMeuPerfil();
-  } catch (e) { toast(e?.code === "permission-denied" ? "Essa escolha passa a valer depois da publicação das regras novas." : "Não foi possível salvar agora."); }
+  if (!(await salvarPref({ negociosNoPerfil: mostrar }))) return;
+  toast(mostrar ? "Seus negócios aparecem no seu perfil" : "Seus negócios saíram do seu perfil (continuam nas vitrines e na busca)");
+  renderizarMeuPerfil();
 }
 function renderizarNegocios(box, lista, { proprio, dono }) {
   // Sem negócio: nada (o "Novo negócio" fica em Meus negócios e no menu).
@@ -1368,35 +1416,7 @@ function renderizarNegocios(box, lista, { proprio, dono }) {
     b.addEventListener("click", abrirNeg);
     linha.appendChild(b);
   });
-  if (proprio && lista.length < Object.keys(NEGOCIOS).length) {
-    const novo = document.createElement("button");
-    novo.type = "button";
-    novo.className = "vinculo novo";
-    const av = document.createElement("div");
-    av.className = "avatar";
-    av.appendChild(icone("mais", "i s"));
-    const n = document.createElement("span");
-    n.className = "nome";
-    n.textContent = "Novo";
-    const pp = document.createElement("span");
-    pp.className = "papel";
-    pp.textContent = "negócio";
-    novo.append(av, n, pp);
-    novo.addEventListener("click", () => { location.href = "negocios.html?novo=1"; });
-    linha.appendChild(novo);
-  }
   box.appendChild(linha);
-  if (proprio) {
-    // O dono escolhe se os atalhos aparecem para quem visita (os negócios continuam públicos nas vitrines e na busca).
-    const vis = document.createElement("button"); vis.type = "button"; vis.className = "neg-visib";
-    box.appendChild(vis);
-    atalhosNoPerfil(eu.uid).then((mostra) => {
-      vis.classList.toggle("oculto", !mostra);
-      vis.replaceChildren(icone(mostra ? "olho" : "olho-off", "i xs"), document.createTextNode(mostra ? "Visível no seu perfil para todos · Esconder" : "Escondido do seu perfil · Mostrar"));
-      vis.setAttribute("aria-label", mostra ? "Esconder os atalhos dos negócios do seu perfil" : "Mostrar os atalhos dos negócios no seu perfil");
-      vis.onclick = () => mudarAtalhos(!mostra);
-    });
-  }
 }
 
 

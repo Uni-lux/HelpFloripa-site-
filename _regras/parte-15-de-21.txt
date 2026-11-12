@@ -149,11 +149,16 @@
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil'])
                     // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
                     && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
                     && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
                     && request.resource.data.get('negociosNoPerfil', true) is bool
+                    // o que aparece no perfil para quem visita (12/11/2026): cidade, avaliação e destaques do Flash
+                    && (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
+                        && request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
+                        && request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
+                        && request.resource.data.perfil.get('destaques', true) is bool))
                     && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
                     && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
                     && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
@@ -180,16 +185,6 @@
                     && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
                     && valorTextoAte(request.resource.data.get('texto', ''), 1000)
                     && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
-    }
-
-    // ===================================================
-    // Ranking do Diário (Etapa A, com o plano Blaze): ranking_diario/br e ranking_diario/uf_XX, montados a cada 15 min
-    // pela Cloud Function montarRankingDiario (functions/diario-ranking.js). Só o servidor grava; quem está logado lê.
-    // servidor_atendimento/{conversa} (espera do tempo de resposta) é só do servidor: sem regra, ninguém lê nem grava.
-    // ===================================================
-    match /ranking_diario/{id} {
-      allow read: if logado();
-      allow write: if false;
     }
 
 // ===== FIM DA PARTE 15 DE 21 =====
