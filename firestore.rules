@@ -452,7 +452,11 @@ service cloud.firestore {
             && textoAte('cidade', 80)
             && localOk()
             && listaAte('busca', 12)
-            && dataOuNulo('desativadaAte');
+            && dataOuNulo('desativadaAte')
+            // "online agora": só a hora de agora (ou nada); antes dava para gravar uma data no futuro e ficar sempre online
+            && (request.resource.data.get('ultimoAcesso', null) == null
+                || request.resource.data.ultimoAcesso == request.time
+                || (resource != null && request.resource.data.ultimoAcesso == resource.data.get('ultimoAcesso', null)));
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
@@ -593,6 +597,7 @@ service cloud.firestore {
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && request.resource.data.criadoEm == request.time
                     && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
 
       allow update: if false;
@@ -838,6 +843,7 @@ service cloud.firestore {
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.tipo in ['imovel']
+                    && !banidoDoPrograma(request.auth.uid, 'imoveis')
                     && request.resource.data.keys().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoCreate()
                     && contaVerificada()

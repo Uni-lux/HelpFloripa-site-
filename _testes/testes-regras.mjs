@@ -31,6 +31,11 @@ const perfil = (extra) => ({ uid: "ana", nome: "Ana", cidade: "Florianópolis", 
 await t("perfil: cria com uf + cidadeIbge certos (SC/Florianópolis)", () => assertSucceeds(setDoc(doc(ctx("ana"), "perfis_publicos", "ana"), perfil({ uf: "SC", cidadeIbge: 4205407 }))));
 await t("perfil: atualiza para SP/São Paulo", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { cidade: "São Paulo", uf: "SP", cidadeIbge: 3550308 })));
 await t("perfil: DF/Brasília (código 5300108)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { cidade: "Brasília", uf: "DF", cidadeIbge: 5300108 })));
+await t("perfil: online agora com a hora de agora", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { ultimoAcesso: serverTimestamp() })));
+await t("perfil: online no futuro (sempre online) é recusado", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { ultimoAcesso: Timestamp.fromMillis(Date.now() + 365 * 864e5) })));
+await t("perfil: esconder o online (null)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { ultimoAcesso: null })));
+await t("seguir: com a data de agora", () => assertSucceeds(setDoc(doc(ctx("ana"), "relacoes", "ana_teste-seg"), { tipo: "seguir", seguidorId: "ana", alvoId: "teste-seg", criadoEm: serverTimestamp() })));
+await t("seguir: data inventada é recusada", () => assertFails(setDoc(doc(ctx("ana"), "relacoes", "ana_teste-seg2"), { tipo: "seguir", seguidorId: "ana", alvoId: "teste-seg2", criadoEm: Timestamp.fromMillis(Date.now() + 864e5) })));
 await t("perfil: recusa UF inexistente", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { uf: "XX" })));
 await t("perfil: recusa código de outro estado (SC + código de SP)", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { uf: "SC", cidadeIbge: 3550308 })));
 await t("perfil: recusa código em texto", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { uf: "SC", cidadeIbge: "4205407" })));
@@ -1190,6 +1195,11 @@ await t("automotivo: perfil com TUDO junto (máximo, com busca) cabe nas regras"
   semana: ["", "08:00-12:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", "08:00-18:00", ""], promocao: { titulo: "Revisão completa", texto: "10% na revisão", codigo: "REVISA10", ate: Timestamp.fromMillis(Date.now() + 10 * 864e5) }, geo: { lat: -27.6, lng: -48.5 }, capa: "data:image/jpeg;base64,AAA",
   itens: Array.from({ length: 12 }, (_, i) => ({ nome: "Serviço " + i, preco: 100 + i, foto: "", unidade: "fixo", duracao: "1 hora", descricao: "x".repeat(160) })) }))));
 await t("automotivo: banimento do programa Automotivo", () => assertSucceeds(setDoc(doc(ctx("mod"), "programa_banidos", "bia_automotivo"), { uid: "bia", tipo: "automotivo", motivo: "Golpe", por: "mod", em: serverTimestamp() })));
+await t("imóveis: banido do programa Imóveis não cria anúncio", async () => {
+  await assertSucceeds(setDoc(doc(ctx("mod"), "programa_banidos", "dono_imoveis"), { uid: "dono", tipo: "imoveis", motivo: "Golpe", por: "mod", em: serverTimestamp() }));
+  await assertFails(setDoc(doc(ctx("dono"), "anuncios", "a-ban"), anuncio()));
+  await assertSucceeds(deleteDoc(doc(ctx("mod"), "programa_banidos", "dono_imoveis")));
+});
 await t("automotivo: banido não cria o perfil", () => assertFails(setDoc(doc(ctx("bia"), "negocios", "bia_automotivo"), auto("bia"))));
 
 // ---------- banimento de um programa ----------

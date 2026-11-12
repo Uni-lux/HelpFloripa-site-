@@ -1,3 +1,10 @@
+      // Só quem recebeu o pedido pode aceitar, e só muda o status.
+      allow update: if logado()
+                    && resource.data.status == 'pendente'
+                    && request.auth.uid == resource.data.para
+                    && request.resource.data.status == 'aceito'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
+
       // Qualquer um dos dois pode cancelar, recusar ou desfazer.
       allow delete: if logado()
                     && request.auth.uid in resource.data.participantes;
@@ -157,6 +164,7 @@
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.tipo in ['imovel']
+                    && !banidoDoPrograma(request.auth.uid, 'imoveis')
                     && request.resource.data.keys().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoCreate()
                     && contaVerificada()
