@@ -2399,6 +2399,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   "Pesquisar"); com `body.aba-explorar` só ela aparece no topo. **Comunidade:** `.mu-linha` (busca + lugar) no `header.topo
   .topo-com` (sem casinha e sino), alertas em pílulas pequenas (número só com `.tem`), aviso menor e vazio compacto
   (tipos em pílulas). Teste `t-x-preto.mjs` (17, com `reducedMotion: reduce`).
+- **Tela inteira e barras translúcidas como no X (12/11/2026, PR depois do #202, sem regra nova):** prints dele (faixa de
+  gestos do Android preta no tema claro e de outra cor no escuro). Topo e barra de baixo das páginas com a barra ficam
+  translúcidos com desfoque (escuro rgba(0,0,0,.62), claro rgba(255,255,255,.78); bloco "Barras translúcidas" no fim do
+  rede.css, no CSS do barra-rede.js e no mensagens.css); no Mensagens a barra fica `position: absolute` por cima da lista.
+  A barra vai até o fim da tela (viewport-fit=cover, por baixo da faixa de gestos): dentro de iframe o
+  `env(safe-area-inset-*)` vale 0, então a casca (rede-app.js `pintarInsets`, `__hfShell.insets`, chamado também pelo
+  `ligarQuadro`) mede com uma sonda e passa `--sab`/`--sat`; rede.css, mensagens.css, mural.css e barra-rede.js usam
+  `var(--sab, env(safe-area-inset-bottom, 0px))`. theme-color: rede.js/menu.js/barra-rede.js põem #000 no escuro com a
+  barra (antes #0f161b). Não conferido num Android de verdade: depende do Chrome desenhar por baixo da faixa (versões novas).
+  Teste `t-x-preto.mjs` (22). `t-x-transicoes` falha em "topo parado/Explorar → Comunidade" também antes (teste velho).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).

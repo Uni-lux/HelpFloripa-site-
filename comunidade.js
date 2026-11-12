@@ -15,8 +15,8 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
-import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=15";
-import { prepararConversa } from "./vitrine.js?v=97";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=16";
+import { prepararConversa } from "./vitrine.js?v=98";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },

@@ -11,7 +11,7 @@
 // Não atrapalha: começa a 24 px das bordas (o "voltar" do celular usa as bordas), ignora campos, vídeos e
 // janelas abertas; carrossel só fica com o gesto se ainda pode rolar para aquele lado.
 
-import { casca } from "./quadro-rede.js?v=2";
+import { casca } from "./quadro-rede.js?v=3";
 
 const CAMADAS = [
   ".folha.aberta", ".story-visor", ".flash-criar", ".visor-exp", ".reels", "div.hfc", ".hf-confirma-fundo",

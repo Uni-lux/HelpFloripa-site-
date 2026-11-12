@@ -20,7 +20,17 @@ const cores = await feed.evaluate(() => {
 });
 ok(cores.bg === "rgb(0, 0, 0)", "Diário: fundo preto (" + cores.bg + ")");
 ok(cores.linha === "rgb(255, 255, 255)" && cores.cor === "rgb(255, 255, 255)", "barra de baixo: ativo branco com a linha branca");
-ok(cores.sw <= cores.vw && Math.abs(cores.larg - cores.vw) < 5 && cores.bbg === "rgb(0, 0, 0)" && cores.rotulo === "1px", "barra de baixo de ponta a ponta, preta e só com ícones (como no X)");
+ok(cores.sw <= cores.vw && Math.abs(cores.larg - cores.vw) < 5 && /rgba\(0, 0, 0, 0\.6/.test(cores.bbg) && cores.rotulo === "1px", "barra de baixo de ponta a ponta, preta translúcida e só com ícones (" + cores.bbg + ")");
+{
+  const v = await feed.evaluate(() => {
+    const t = getComputedStyle(document.querySelector("header.topo")), b = document.getElementById("barraRede"), h0 = b.offsetHeight;
+    const sab = getComputedStyle(document.documentElement).getPropertyValue("--sab");
+    document.documentElement.style.setProperty("--sab", "24px"); const h1 = b.offsetHeight; document.documentElement.style.setProperty("--sab", sab);
+    return { tbg: t.backgroundColor, tblur: t.backdropFilter, bblur: getComputedStyle(b).backdropFilter, sab, h0, h1 };
+  });
+  ok(/rgba\(0, 0, 0, 0\.6/.test(v.tbg) && /blur/.test(v.tblur) && /blur/.test(v.bblur), "topo e barra translúcidos com desfoque (o conteúdo aparece por baixo)");
+  ok(v.sab.trim() === "0px" && v.h1 - v.h0 === 24, "a casca passa a faixa do sistema (--sab) e a barra cresce por baixo dela");
+}
 ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#000000", "barra do celular preta");
 await p.screenshot({ path: "saida/xp-diario.png" });
 // topo some ao descer e volta ao subir (precisa de conteúdo alto)
@@ -70,6 +80,19 @@ await p.keyboard.press("Escape"); await p.waitForTimeout(300);
 await p.evaluate(() => window.__hfShell.ir("mensagens")); await p.waitForTimeout(1500);
 const ms = quadro(/mensagens\.html/);
 ok(await ms.evaluate(() => getComputedStyle(document.body).backgroundColor) === "rgb(0, 0, 0)", "Mensagens: fundo preto");
+ok(await ms.evaluate(() => { const b = document.getElementById("barraRede"), l = document.getElementById("listaConversas");
+  return getComputedStyle(b).position === "absolute" && b.getBoundingClientRect().bottom >= innerHeight - 1 && l.getBoundingClientRect().bottom > b.getBoundingClientRect().top; }),
+  "Mensagens: a lista passa por baixo da barra (que vai até o fim da tela)");
 await p.screenshot({ path: "saida/xp-mensagens.png" });
+// Tema claro: barra e faixa do celular brancas (antes a faixa ficava preta)
+await p.evaluate(() => { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "claro" })); });
+await p.reload(); await p.waitForTimeout(500);
+for (let i = 0; i < 40 && !(await p.evaluate(() => document.querySelector('.hf-quadro[data-carregou]'))); i++) await p.waitForTimeout(500);
+await p.waitForTimeout(2000);
+ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content) === "#ffffff", "tema claro: faixa do celular branca");
+const fc = quadro(/feed\.html/) || quadro(/mensagens\.html/);
+const claro = await fc.evaluate(() => ({ t: document.documentElement.dataset.theme, b: getComputedStyle(document.getElementById("barraRede")).backgroundColor }));
+ok(claro.t === "light" && /rgba\(255, 255, 255, 0\.7/.test(claro.b), "tema claro: barra de baixo branca translúcida (" + claro.b + ")");
+await p.screenshot({ path: "saida/xp-claro.png" });
 ok(!erros.length, "sem erros" + (erros.length ? ": " + erros.join(" | ") : ""));
 await A.browser.close();

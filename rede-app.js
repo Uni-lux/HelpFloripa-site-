@@ -62,6 +62,24 @@ function quadro(id, aba) {
   return f;
 }
 
+// Faixas do sistema (barra de gestos do Android, entalhe do iPhone). Com viewport-fit=cover a rede desenha até o fim da
+// tela, por baixo dessas faixas, mas dentro de um iframe o env(safe-area-inset-*) vale 0: a casca mede e passa como
+// --sab/--sat para cada quadro (as barras usam var(--sab, env(...))).
+const sonda = document.createElement("div");
+sonda.style.cssText = "position:fixed;left:0;top:0;width:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)";
+document.body.appendChild(sonda);
+function medidas() { const c = getComputedStyle(sonda); return { t: parseFloat(c.paddingTop) || 0, b: parseFloat(c.paddingBottom) || 0 }; }
+function pintarInsets(w) {
+  try {
+    const m = medidas(), r = w.document.documentElement.style;
+    r.setProperty("--sat", m.t + "px"); r.setProperty("--sab", m.b + "px");
+  } catch {}
+}
+window.__hfShell.insets = pintarInsets;
+const repintarInsets = () => Object.values(quadros).forEach((f) => { try { pintarInsets(f.contentWindow); } catch {} });
+addEventListener("resize", repintarInsets);
+addEventListener("orientationchange", () => setTimeout(repintarInsets, 300));
+
 // Cada carga de página dentro de um quadro.
 function carregou(id) {
   const f = quadros[id];
@@ -72,6 +90,7 @@ function carregou(id) {
   // Login, conta e saída: a página inteira.
   if (/^(login|cadastre-se|conta|verificar-email)\.html$/.test(p)) { location.href = l.href; return; }
   f.dataset.carregou = "1";
+  pintarInsets(w);
   if (QUADRO_DE[atual] === id) document.title = w.document.title || "Help Floripa";
   // Toques dentro do quadro contam como "mexeu na página" para a proteção de saída (confirmar.js).
   try {
