@@ -23,7 +23,7 @@ const topo = (f) => f.evaluate(() => {
 const d = await topo(feed);
 ok(d.ponte && !d.escrita && !d.texto, "Diário: só a ponte, sem nome e slogan");
 ok(d.centro < 3, "Diário: ponte no meio do topo (" + d.centro.toFixed(1) + " px)");
-ok(/0, 173, 238/.test(d.cabo), "Diário: cabos em azul Help Floripa");
+ok(d.cabo && d.cabo !== "none", "Diário: cabo desenhado na cor do texto (" + d.cabo + ")");
 await p.screenshot({ path: "saida/mp-diario.png" });
 await feed.evaluate(() => scrollTo(0, 900)); await p.waitForTimeout(300);
 await feed.locator("#marcaTopo").click(); await p.waitForTimeout(900);
