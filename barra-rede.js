@@ -62,6 +62,11 @@ body.com-barra .toast { bottom: calc(72px + var(--sab, env(safe-area-inset-botto
    através delas; a barra vai até o fim da tela (por baixo da faixa de gestos do Android, viewport-fit=cover). */
 .barra-rede, :root[data-theme="dark"] .barra-rede { background: rgba(255, 255, 255, .94); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
 :root[data-theme="dark"] .barra-rede { background: #000; }
+/* Barra igual em todas as abas (13/11/2026, print do dono: no Mensagens ela ficava um pouco menor). Mesma largura (a tela
+   toda, sem recuo dos lados), 5 colunas iguais e nada da página pode empurrar a tela para o lado. */
+.barra-rede { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-left: 0; padding-right: 0; box-sizing: border-box; }
+.barra-rede a, .barra-rede button { min-width: 0; }
+html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 `;
 function estilo() {
   if (document.getElementById("hf-barra-css") || document.querySelector('link[href*="rede.c' + 'ss"]')) return;
