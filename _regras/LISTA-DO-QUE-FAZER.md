@@ -18,6 +18,9 @@ anterior estiver marcada como pronta.** Coisa nova só entra depois da parte 1.
       **e-mails do domínio** (imprensa@, privacidade@, juridico@, contato@).
 - [ ] **Mapbox**: criar a chave pública e me mandar (`MAPBOX-LEIA-ME.md`).
 
+## 1b. Regras: o que ficou da revisão de 12–13/11 → `_regras/REGRAS-PENDENTES.md`
+- [ ] Prioridade: Flash "Amigos próximos"/"Ocultar de" de verdade (hoje só o app esconde).
+
 ## 2. Decisões suas (eu não invento)
 - [ ] Visibilidade justa: no máximo 1 pagante nos 4 cartões depois de cada espaço pago?
 - [ ] Corridas e entregas: tarifas sugeridas, comissão (sim/não, quanto), seguro e regras municipais de passageiro.

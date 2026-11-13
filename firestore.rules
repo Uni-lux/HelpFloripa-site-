@@ -3455,6 +3455,7 @@ service cloud.firestore {
         return (c().paraId == '' || c().paraId == request.auth.uid)
             && c().clienteId != request.auth.uid
             && e.get('status', '') == 'ativo'
+            && !banidoDoPrograma(request.auth.uid, 'entregas')
             && e.veiculo == c().veiculo && c().servico in e.servicos
             && !bloqueioEntre(request.auth.uid, c().clienteId)
             && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'atualizadoEm'])

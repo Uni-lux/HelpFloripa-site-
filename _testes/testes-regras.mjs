@@ -1467,6 +1467,11 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("aceitar: carro não aceita pedido de moto", () => assertFails(aceitar("carro1", "pedidoEntrega01", { veiculo: "carro", placa: "XYZ9876", modelo: "Gol", cor: "Branco" })));
   await t("aceitar: não mostra outra placa", () => assertFails(aceitar("moto1", "pedidoEntrega01", { placa: "AAA1111" })));
   await t("aceitar: quem pede não aceita o próprio", () => assertFails(aceitar("cli", "pedidoEntrega01")));
+  await t("aceitar: banido de Entregas não aceita (mesmo com o cadastro ativo)", async () => {
+    await semRegras((db) => setDoc(doc(db, "programa_banidos", "moto1_entregas"), { uid: "moto1", tipo: "entregas", motivo: "teste", ate: null }));
+    await assertFails(aceitar("moto1", "pedidoEntrega01"));
+    await semRegras((db) => deleteDoc(doc(db, "programa_banidos", "moto1_entregas")));
+  });
   await t("aceitar: moto aceita", () => assertSucceeds(aceitar("moto1", "pedidoEntrega01")));
   await t("aceitar: outro não aceita depois", () => assertFails(aceitar("moto2", "pedidoEntrega01", { nome: "Moto 2", modelo: "CG", cor: "Preta", placa: "ABC1D23" })));
   await t("contato: o entregador do pedido lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));

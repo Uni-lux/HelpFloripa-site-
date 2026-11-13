@@ -2474,6 +2474,9 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+**AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
+regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
+próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
 **Lista organizada do que fazer (12/11/2026, pedida por ele): `_regras/LISTA-DO-QUE-FAZER.md`.** Seguir a regra dela:
 uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x] quando ele confirmar.
 
