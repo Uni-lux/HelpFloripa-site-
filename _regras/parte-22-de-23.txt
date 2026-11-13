@@ -1,3 +1,40 @@
+    // Localização em tempo real no chat (como no WhatsApp): só os dois da conversa leem; quem compartilha atualiza a
+    // posição enquanto o site está aberto, até a hora escolhida (no máximo 8 h), e pode parar antes.
+    match /locais_vivos/{id} {
+      function d() { return request.resource.data; }
+      function coordOk() {
+        return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
+            && d().precisao is number && d().precisao >= 0 && d().rumo is number;
+      }
+      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
+                    && d().uid == request.auth.uid
+                    && d().participantes is list && d().participantes.size() == 2 && request.auth.uid in d().participantes
+                    && d().participantes[0] < d().participantes[1]
+                    && d().conv == d().participantes[0] + '_' + d().participantes[1]
+                    && exists(/databases/$(database)/documents/conversas/$(d().conv))
+                    && !bloqueioEntre(d().participantes[0], d().participantes[1])
+                    && coordOk()
+                    && d().ate is timestamp && d().ate > request.time && d().ate <= request.time + duration.value(485, 'm')
+                    && d().parado == false && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
+                    && coordOk() && d().ate <= resource.data.ate && d().parado is bool
+                    && (resource.data.ate > request.time || d().parado == true)
+                    && d().atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+    // =====================================================
+    // SOS E ALERTAS (alertas.html)
+    // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
+    // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
+    // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
+    function pontoAlertaOk(d) {
+      return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
+          && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
+    }
     match /sos/{id} {
       function d() { return request.resource.data; }
       function r() { return resource.data; }
@@ -119,24 +156,4 @@
                     && d().atualizadoEm == request.time;
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
-    match /pets_achados/{id} {
-      function d() { return request.resource.data; }
-      allow get, list: if logado();
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
-                    && d().autorId == request.auth.uid && valorTextoAte(d().get('autorNome', ''), 80)
-                    && petOk(d())
-                    && d().local is map && d().local.keys().hasOnly(['lat', 'lng', 'nome'])
-                    && d().local.lat is number && d().local.lng is number && valorTextoAte(d().local.get('nome', ''), 120)
-                    && d().geo4 is string && d().geo4.matches('^[0-9a-z]{4}$')
-                    && d().quando is timestamp && d().quando <= request.time
-                    && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && request.resource.data.atualizadoEm == request.time
-                    && ((resource.data.autorId == request.auth.uid && request.resource.data.status in ['ativo', 'devolvido', 'removido'])
-                        || (podeModerar() && request.resource.data.status == 'removido'));
-      allow delete: if false;
-    }
-
-  }
-}
-// ===== FIM DA PARTE 22 DE 22 =====
+// ===== FIM DA PARTE 22 DE 23 =====

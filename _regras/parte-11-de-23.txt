@@ -156,4 +156,4 @@
       allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
     }
 
-// ===== FIM DA PARTE 11 DE 22 =====
+// ===== FIM DA PARTE 11 DE 23 =====

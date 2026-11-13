@@ -1934,6 +1934,30 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   });
 }
 
+// ---------- links do perfil (13/11/2026): contatos_perfil/{uid}_{tipo} com "quem pode ver" ----------
+{
+  const lk = (u, tipo, valor, ver) => setDoc(doc(ctx(u), "contatos_perfil", `${u}_${tipo}`), { uid: u, tipo, valor, ver, em: serverTimestamp() });
+  await t("links: Instagram para todos", () => assertSucceeds(lk("lk_a", "instagram", "help.floripa", "todos")));
+  await t("links: WhatsApp só para seguidores", () => assertSucceeds(lk("lk_a", "whatsapp", "5548999990000", "seguidores")));
+  await t("links: Instagram com caractere estranho é recusado", () => assertFails(lk("lk_a", "instagram", "help floripa/x", "todos")));
+  await t("links: WhatsApp com letras é recusado", () => assertFails(lk("lk_a", "whatsapp", "48abc", "todos")));
+  await t("links: tipo fora da lista é recusado", () => assertFails(setDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_site"), { uid: "lk_a", tipo: "site", valor: "x", ver: "todos", em: serverTimestamp() })));
+  await t("links: id de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("lk_b"), "contatos_perfil", "lk_a_instagram"), { uid: "lk_b", tipo: "instagram", valor: "x", ver: "todos", em: serverTimestamp() })));
+  await t("links: visibilidade inventada é recusada", () => assertFails(lk("lk_a", "instagram", "x", "amigos")));
+  await t("links: campo a mais é recusado", () => assertFails(setDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_instagram"), { uid: "lk_a", tipo: "instagram", valor: "x", ver: "todos", em: serverTimestamp(), extra: 1 })));
+  await t("links: qualquer pessoa vê o que é para todos", () => assertSucceeds(getDoc(doc(ctx("lk_b"), "contatos_perfil", "lk_a_instagram"))));
+  await t("links: quem não segue não vê o 'só seguidores'", () => assertFails(getDoc(doc(ctx("lk_b"), "contatos_perfil", "lk_a_whatsapp"))));
+  await semRegras((db) => setDoc(doc(db, "relacoes", "lk_c_lk_a"), { tipo: "seguir", seguidorId: "lk_c", alvoId: "lk_a" }));
+  await t("links: quem segue vê o 'só seguidores'", () => assertSucceeds(getDoc(doc(ctx("lk_c"), "contatos_perfil", "lk_a_whatsapp"))));
+  await t("links: o dono vê o próprio", () => assertSucceeds(getDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_whatsapp"))));
+  await t("links: 'ninguém' esconde de quem segue", async () => { await lk("lk_a", "whatsapp", "5548999990000", "ninguem"); await assertFails(getDoc(doc(ctx("lk_c"), "contatos_perfil", "lk_a_whatsapp"))); });
+  await semRegras((db) => setDoc(doc(db, "bloqueios", "lk_a_lk_b"), { bloqueadorId: "lk_a", bloqueadoId: "lk_b" }));
+  await t("links: bloqueado não vê nem o que é para todos", () => assertFails(getDoc(doc(ctx("lk_b"), "contatos_perfil", "lk_a_instagram"))));
+  await t("links: ninguém lista a coleção", () => assertFails(getDocs(query(collection(ctx("lk_a"), "contatos_perfil"), where("uid", "==", "lk_a")))));
+  await t("links: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("lk_c"), "contatos_perfil", "lk_a_instagram"))));
+  await t("links: o dono apaga", () => assertSucceeds(deleteDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_instagram"))));
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

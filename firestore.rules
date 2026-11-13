@@ -3105,6 +3105,28 @@ service cloud.firestore {
       allow delete: if logado() && uid == request.auth.uid;
     }
 
+    // LINKS DO PERFIL (13/11/2026): contatos_perfil/{uid}_{instagram|whatsapp} {uid, tipo, valor, ver, em}.
+    // Quem vê: todos (com login), só quem segue a pessoa ou ninguém; o dono e a moderação sempre. Bloqueio esconde.
+    match /contatos_perfil/{id} {
+      allow get: if logado() && resource != null
+                    && (resource.data.uid == request.auth.uid || admin()
+                        || (!bloqueioEntre(request.auth.uid, resource.data.uid)
+                            && (resource.data.ver == 'todos'
+                                || (resource.data.ver == 'seguidores'
+                                    && exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))))));
+      allow list: if false;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.ver in ['todos', 'seguidores', 'ninguem']
+                    && request.resource.data.valor is string
+                    && ((request.resource.data.tipo == 'instagram' && request.resource.data.valor.matches('^[A-Za-z0-9._]{1,30}$'))
+                        || (request.resource.data.tipo == 'whatsapp' && request.resource.data.valor.matches('^[0-9]{10,13}$')))
+                    && request.resource.data.em == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || admin());
+    }
+
     // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
     match /notas/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;

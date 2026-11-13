@@ -29,7 +29,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
-  <link rel="stylesheet" href="rede.css?v=108" />
+  <link rel="stylesheet" href="rede.css?v=109" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -90,6 +90,7 @@
             </div>
             <div class="pf-handle" data-el="handle"></div>
             <p class="pf-bio" data-el="bio"></p>
+            <div class="pf-links" data-el="links" hidden></div>
           </div>
         </div>
       </div>
@@ -98,7 +99,6 @@
           <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
           <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
           <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">Seguindo</span></button>
-          <button type="button" class="pf-stat" data-stat="nota"><span class="num"><svg class="i xs"><use href="#i-estrela"/></svg><em style="font-style:normal">–</em></span><span class="rot">Avaliação</span></button>
           <button type="button" class="pf-stat pf-stat-mais" data-stat="insights" aria-label="Ver as estatísticas do perfil" hidden><svg class="i s"><use href="#i-avancar"/></svg></button>
         </div>
         <div class="pf-acoes" data-el="acoes"></div>
@@ -147,6 +147,19 @@
           <div class="ajuda"><span>Privado: não aparece no seu perfil público</span></div>
         </div>
         <div class="campo"><label for="edEmail">E-mail</label><input id="edEmail" disabled /></div>
+        <div class="ed-links" id="edLinks">
+          <h3 class="ed-sec">Links no perfil</h3>
+          <p class="ed-sec-sub">Aparecem como ícones embaixo da bio. Escolha quem pode ver cada um.</p>
+          <div class="campo">
+            <label for="edInsta">Instagram</label>
+            <div class="ed-link-linha"><span class="ed-link-pre">@</span><input id="edInsta" maxlength="80" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="seunome ou o link do perfil" /><select id="edInstaVer" aria-label="Quem pode ver"><option value="todos" selected>Todos</option><option value="seguidores">Quem me segue</option><option value="ninguem">Só eu</option></select></div>
+          </div>
+          <div class="campo">
+            <label for="edWhats">WhatsApp</label>
+            <div class="ed-link-linha"><input id="edWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><select id="edWhatsVer" aria-label="Quem pode ver"><option value="todos">Todos</option><option value="seguidores" selected>Quem me segue</option><option value="ninguem">Só eu</option></select></div>
+            <div class="ajuda"><span>Só o número: o botão abre a conversa no WhatsApp</span></div>
+          </div>
+        </div>
       </div>
       <div class="folha-rodape">
         <button type="button" class="btn sec" data-fechar>Cancelar</button>
@@ -227,6 +240,6 @@
     </div>
   </div>
 
-  <script type="module" src="usuarios-app.js?v=59"></script>
+  <script type="module" src="usuarios-app.js?v=60"></script>
 </body>
 </html>

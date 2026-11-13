@@ -166,25 +166,29 @@
 > Centro") e o endereço exato vai para `corridas/{id}/privado/rota`, que o entregador só lê depois de aceitar; coleção nova
 > `suporte_abertos/{uid}` (a lista dos chamados em andamento, que muda na mesma gravação): no máximo 3 em andamento
 > (SOS fora), também ao reabrir. Continuam **22 partes**, 1157 testes.
+>
+> **Links do perfil (13/11/2026):** coleção nova `contatos_perfil/{uid}_{instagram|whatsapp}` {uid, tipo, valor, ver, em}:
+> Instagram e WhatsApp em ícones no perfil, cada um com quem pode ver (`todos`, `seguidores` = quem segue a pessoa, `ninguem`);
+> quem não pode ver tem a leitura recusada; bloqueio esconde; ninguém lista a coleção. Agora são **23 partes**, 1174 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **22 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (260.964 bytes, 4.029 linhas, sha256 começa com `1214429c8cbe55b8`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 22 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (265.897 bytes, 4.095 linhas, sha256 começa com `7f3dc77b185f8227`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 23 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 22 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1139 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 23 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1174 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
 3. Abra `parte-1-de-22.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 22 =====`), abra a parte 2,
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 23 =====`), abra a parte 2,
    copie tudo e cole logo abaixo. Repita até a parte 22, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 22 DE 22 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 22 DE 23 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
    uma parte ficou faltando ou repetida. Confira se as 22 linhas `FIM DA PARTE` aparecem, de 1 a 22, uma vez cada.
 

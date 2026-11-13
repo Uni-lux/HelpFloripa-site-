@@ -205,4 +205,4 @@
       allow delete: if logado() && resource.data.autorId == request.auth.uid;
     }
 
-// ===== FIM DA PARTE 5 DE 22 =====
+// ===== FIM DA PARTE 5 DE 23 =====

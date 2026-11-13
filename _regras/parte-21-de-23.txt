@@ -1,3 +1,42 @@
+      match /privado/{doc} {
+        function cor() { return get(/databases/$(database)/documents/corridas/$(id)).data; }
+        allow get: if logado() && (cor().clienteId == request.auth.uid || cor().get('destinatarioId', '') == request.auth.uid || podeModerar()
+                    || (doc == 'contato' && cor().get('entregadorId', '') == request.auth.uid && cor().status in ['aceita', 'chegou', 'em_rota'])
+                    // endereço exato: quem aceitou (também depois, no histórico) e quem paga o presente
+                    || (doc == 'rota' && (cor().get('entregadorId', '') == request.auth.uid || cor().get('pagadorId', '') == request.auth.uid)));
+        allow create: if logado() && !exists(/databases/$(database)/documents/corridas/$(id))
+                    && getAfter(/databases/$(database)/documents/corridas/$(id)).data.clienteId == request.auth.uid
+                    && ((doc == 'pin' && request.resource.data.keys().hasOnly(['pin'])
+                         && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$'))
+                        || (doc == 'rota' && request.resource.data.keys().hasOnly(['origem', 'destino'])
+                         && pontoOk(request.resource.data.origem) && pontoOk(request.resource.data.destino))
+                        || (doc == 'contato' && request.resource.data.keys().hasOnly(['nome', 'telefone', 'obs'])
+                         && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                         && valorTextoAte(request.resource.data.get('telefone', ''), 20)
+                         && valorTextoAte(request.resource.data.get('obs', ''), 300)));
+        allow update, delete: if false;
+      }
+    }
+
+    // Cadastro de quem leva: conta verificada (selo), maior de idade, CNH para moto/carro/utilitário.
+    match /entregadores/{uid} {
+      function d() { return request.resource.data; }
+      function cadastroOk() {
+        return d().keys().hasOnly(['uid', 'nome', 'servicos', 'veiculo', 'modelo', 'cor', 'placa', 'cnh', 'cidade', 'uf', 'declaracoes', 'status', 'suspensoMotivo', 'criadoEm', 'atualizadoEm'])
+            && d().uid == uid
+            && valorTextoAte(d().get('nome', ''), 80)
+            && d().servicos is list && d().servicos.size() >= 1 && d().servicos.size() <= 2 && d().servicos.hasOnly(['entrega', 'corrida'])
+            && d().veiculo in ['bike', 'moto', 'carro', 'utilitario']
+            && (!('corrida' in d().servicos) || d().veiculo in ['moto', 'carro'])
+            && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
+            && (d().veiculo == 'bike'
+                ? (d().get('placa', '') == '' && d().get('cnh', '') == '')
+                : (d().get('placa', '').matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$') && d().get('cnh', '') in ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE']))
+            && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+            && d().declaracoes is map && d().declaracoes.get('maior', false) == true
+            && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
+            && d().atualizadoEm == request.time;
+      }
       allow read: if logado();
       allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
                     && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
@@ -109,41 +148,4 @@
       allow delete: if false;
     }
 
-    // Localização em tempo real no chat (como no WhatsApp): só os dois da conversa leem; quem compartilha atualiza a
-    // posição enquanto o site está aberto, até a hora escolhida (no máximo 8 h), e pode parar antes.
-    match /locais_vivos/{id} {
-      function d() { return request.resource.data; }
-      function coordOk() {
-        return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
-            && d().precisao is number && d().precisao >= 0 && d().rumo is number;
-      }
-      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
-                    && d().uid == request.auth.uid
-                    && d().participantes is list && d().participantes.size() == 2 && request.auth.uid in d().participantes
-                    && d().participantes[0] < d().participantes[1]
-                    && d().conv == d().participantes[0] + '_' + d().participantes[1]
-                    && exists(/databases/$(database)/documents/conversas/$(d().conv))
-                    && !bloqueioEntre(d().participantes[0], d().participantes[1])
-                    && coordOk()
-                    && d().ate is timestamp && d().ate > request.time && d().ate <= request.time + duration.value(485, 'm')
-                    && d().parado == false && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
-                    && coordOk() && d().ate <= resource.data.ate && d().parado is bool
-                    && (resource.data.ate > request.time || d().parado == true)
-                    && d().atualizadoEm == request.time;
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-    }
-
-    // =====================================================
-    // SOS E ALERTAS (alertas.html)
-    // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
-    // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
-    // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
-    function pontoAlertaOk(d) {
-      return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
-          && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
-    }
-// ===== FIM DA PARTE 21 DE 22 =====
+// ===== FIM DA PARTE 21 DE 23 =====
