@@ -2585,6 +2585,9 @@ chat da equipe).
   o `ligarTopoQueSome` do barra-rede.js; volta ao subir, ao trocar de aba (`__hfMostrarTopoLista` no `trocarModo`), ao focar a
   busca, na seleção e quando a aba aparece na rede. No computador a cabeça é `display: contents` (nada muda). Seletores
   `.sidebar > .side-top` viraram `.sidebar .side-top` (rede-app.js `topoDe`, t-rede-igual). Teste `t-mensagens-topo-some.mjs` (8).
+- **Abas do Mensagens sem negócio (13/11/2026, PR depois do #214, sem regra nova):** pedido dele. Com só Pessoal e Chamadas
+  (`.modos.sem-negocios`), uma aba em cada ponta, alinhadas com as fotos e a hora das conversas (14 px; sublinhado do largo da
+  aba). Fim do mensagens.css. Conferido no `t-mensagens-topo-some.mjs`.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

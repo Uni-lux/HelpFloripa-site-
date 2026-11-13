@@ -1730,3 +1730,8 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
   html:not(.embutido) .side-cabeca { display: block; position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: var(--panel); will-change: transform; }
   html:not(.embutido) .sidebar > .conv-list { scroll-padding-top: 0; }
 }
+
+/* Sem negócio (só Pessoal e Chamadas): uma aba em cada ponta, alinhadas com a lista (13/11/2026, pedido do dono). */
+.modos.sem-negocios { justify-content: space-between; padding: 0 14px; }
+.modos.sem-negocios button { flex: 0 0 auto; padding: 0 6px; }
+.modos.sem-negocios button[aria-selected="true"]::after { left: 0; right: 0; }
