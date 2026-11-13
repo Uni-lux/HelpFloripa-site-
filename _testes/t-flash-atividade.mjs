@@ -23,7 +23,7 @@ const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.ana
 const f2 = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`, `${U.ana}_delivery`],
   enquete: { pergunta: "Praia ou piscina?", opcoes: ["Praia", "Piscina"], x: 0.5, y: 0.7, fimEm: fim, cor: "roxo" }, caixa: { pergunta: "Me pergunte", anonima: false, x: 0.5, y: 0.3 },
   toques: ["l|Lagoa da Conceição, Florianópolis|-27.6|-48.47|0.5|0.12|0.5|0.05", "h|praia|0.5|0.2|0.3|0.05"], criadoEm: Timestamp.fromMillis(Date.now() - 10 * 60000) })).id;
-await db.doc(`enquete_votos/f_${f2}_${U.bruno}`).set({ alvo: `f_${f2}`, tipo: "f", itemId: f2, uid: U.bruno, opcao: 0, fatia: 3, fimEm: fim, criadoEm: Timestamp.now() });
+await db.doc(`enquete_votos/f_${f2}_${U.bruno}`).set({ alvo: `f_${f2}`, tipo: "f", itemId: f2, uid: U.bruno, autorId: U.ana, opcao: 0, fatia: 3, fimEm: fim, criadoEm: Timestamp.now() });
 await db.doc(`enquete_contas/f_${f2}_3`).set({ n0: 1 });
 await db.collection("caixa_respostas").add({ alvo: `f_${f2}`, tipo: "f", itemId: f2, autorId: U.ana, uid: U.bruno, nome: "Bruno Reparos", texto: "Qual seu lanche favorito?", anonima: false, criadoEm: Timestamp.now() });
 await db.doc(`stories/${f2}/vistos/${U.bruno}`).set({ criadoEm: Timestamp.now() });

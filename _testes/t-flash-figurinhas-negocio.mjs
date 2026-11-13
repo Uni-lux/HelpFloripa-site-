@@ -20,7 +20,7 @@ const figurinhas = (pergunta) => ({
   contagem: { titulo: "Promoção acaba", fim: ts(agora + 5 * 864e5), x: 0.5, y: 0.22 },
   toques: ["h|reforma|0.5|0.8|0.3|0.05"]
 });
-await pôr("stories", "fnFig1", { autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: JPEG, negocios: [NEG], perfil: false, criadoEm: ts(agora - 3600e3), ...figurinhas("Faz orçamento no sábado?") });
+await pôr("stories", "fnFig1", { restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: JPEG, negocios: [NEG], perfil: false, criadoEm: ts(agora - 3600e3), ...figurinhas("Faz orçamento no sábado?") });
 
 // ---------- 1) vitrine do negócio ----------
 console.log("Perfil do negócio (vitrine)");
@@ -61,8 +61,8 @@ await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
 
 // ---------- 3) repost de quem foi marcado ----------
 console.log("Repost");
-await pôr("stories", "fnOrig", { autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: JPEG, mencoes: [U.ana], criadoEm: ts(agora - 1800e3), ...figurinhas("Gostou do serviço?") });
-await pôr("stories", "fnRepost", { autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: JPEG, repostDe: { storyId: "fnOrig", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: ts(agora - 600e3) });
+await pôr("stories", "fnOrig", { restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: JPEG, mencoes: [U.ana], criadoEm: ts(agora - 1800e3), ...figurinhas("Gostou do serviço?") });
+await pôr("stories", "fnRepost", { restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: JPEG, repostDe: { storyId: "fnOrig", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: ts(agora - 600e3) });
 const E = await navegador({ mobile: true });
 const pe = await entrar(E.ctx, "edu", "feed.html?flash=fnRepost");
 pe.on("pageerror", (x) => erros.push(x.message));
