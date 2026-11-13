@@ -1,3 +1,26 @@
+      // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
+      // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
+      // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
+      // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
+      // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
+      // do serviço mostra que os dois fazem parte dele.
+      function servicoOk(sv, p) {
+        return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
+            && (sv.tipo == 'corrida'
+                  ? [get(/databases/$(database)/documents/corridas/$(sv.id)).data.clienteId,
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('entregadorId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('destinatarioId', ''),
+                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('pagadorId', '')].hasAll(p)
+              : sv.tipo == 'sos'
+                  ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
+                    && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
+              : sv.tipo == 'pet'
+                  ? get(/databases/$(database)/documents/pets/$(sv.id)).data.donoId in p
+                    && get(/databases/$(database)/documents/pets/$(sv.id)).data.status == 'perdido'
+              : sv.tipo == 'achado'
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.autorId in p
+                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.status == 'ativo');
+      }
       function acessoNova() {
         let d = request.resource.data;
         let outro = d.participantes[0] == request.auth.uid ? d.participantes[1] : d.participantes[0];
@@ -172,26 +195,5 @@
                       && request.resource.data.criadoEm == request.time
                       && textoAte('texto', 4000)
                       && mensagemOk();
-
-        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
-        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
-        // Editar e apagar só até 10 minutos depois de enviar.
-        function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
-
-        allow update: if logado()
-                      && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer()
-                      && !('apagada' in resource.data)
-                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
-                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
-                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
-                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
-                      && request.resource.data.editadaEm == request.time
-                      && request.resource.data.edicoes is list
-                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
-                      && request.resource.data.edicoes.size() <= 20
-                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
-                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
-                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
 
 // ===== FIM DA PARTE 6 DE 21 =====

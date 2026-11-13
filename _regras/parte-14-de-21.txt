@@ -121,10 +121,20 @@
     match /stories/{id} {
       // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
       // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
-      allow read: if logado() && (resource.data.autorId == request.auth.uid
-                    || resource.data.criadoEm > request.time - duration.value(26, 'h')
-                    || resource.data.get('destacado', false) == true
-                    || podeModerar());
+      // Quem pode ver (13/11/2026; antes qualquer pessoa logada lia, e só o app escondia): para todos (restrito false);
+      // Amigos próximos só quem está na lista; com gente ocultada, todos menos ela (esses a fileira acha pelo
+      // stories_restritos e abre um por um). Flash antigo, sem o campo, vale pelo publico/ocultoPara dele.
+      // ATENÇÃO: numa consulta (list) o campo que ela não filtra vale o padrão do .get(campo, padrão) — por isso a consulta
+      // só passa com "restrito == false" ou "lista array-contains eu"; a conferência de "ocultoPara" é só ao abrir (get).
+      allow get: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
+                         || resource.data.get('destacado', false) == true)
+                        && (resource.data.get('publico', 'todos') == 'amigos'
+                            ? request.auth.uid in resource.data.lista
+                            : !(request.auth.uid in resource.data.get('ocultoPara', [])))));
+      allow list: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || (resource.data.criadoEm > request.time - duration.value(26, 'h')
+                        && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
       // Anti-spam: até 50 flashes por dia (ritmo/{uid}, gravado junto na mesma operação).
       allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid) && ritmoOk('flash');
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
@@ -153,28 +163,6 @@
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow delete: if logado() && uid == request.auth.uid;
       }
-    }
-
-    // ===================================================
-    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
-    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
-    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
-    // ===================================================
-    match /destaques/{id} {
-      function destaqueOk(d) {
-        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
-          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
-          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
-          && d.atualizadoEm == request.time
-          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
-          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
-      }
-      allow read: if logado();
-      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
-      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
-      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
 // ===== FIM DA PARTE 14 DE 21 =====

@@ -3,7 +3,7 @@
     // tocáveis) estava no limite.
     function flashNovoOk(d) {
       let k = d.keys();
-      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo'])
+      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo', 'restrito'])
           // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
           // (+ contagem regressiva e público do flash, 02/11/2026)
           && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || extrasFlashOk(d))
@@ -14,6 +14,10 @@
           && d.get('publico', 'todos') in ['todos', 'amigos']
           && (!('lista' in k) || uidsOk(d.lista, 150))
           && (!('ocultoPara' in k) || uidsOk(d.ocultoPara, 100))
+          // Privacidade de verdade (13/11/2026): "restrito" = Amigos próximos ou com gente ocultada. Amigos próximos leva
+          // só a lista (quem foi ocultado já sai dela); para todos não leva lista. A leitura usa isso (match /stories).
+          && d.restrito == (d.get('publico', 'todos') == 'amigos' || d.get('ocultoPara', []).size() > 0)
+          && (d.get('publico', 'todos') == 'amigos' ? ('lista' in k && !('ocultoPara' in k)) : !('lista' in k))
           && d.autorId == request.auth.uid
           && d.criadoEm == request.time
           && d.tipo in ['imagem', 'video']
@@ -229,12 +233,5 @@
                     && request.auth.uid == userId;
     }
 
-
-    // =====================================================
-    // PERFIL PÚBLICO
-    // Usado somente para busca e exibição pública.
-    // NÃO deve conter e-mail, telefone ou data de nascimento.
-    // =====================================================
-    match /perfis_publicos/{userId} {
 
 // ===== FIM DA PARTE 2 DE 21 =====

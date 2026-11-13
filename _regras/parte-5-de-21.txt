@@ -1,3 +1,20 @@
+      // Vaga em quarto/moradia compartilhada: só a divisão das despesas entre moradores.
+      function quartoOk(q) {
+        return q is map
+            && q.keys().hasOnly(['vaga', 'rateio', 'contasInclusas', 'mobiliado', 'vagas', 'para', 'disponivelEm', 'regras'])
+            && q.get('vaga', 'quarto').matches('^(individual|compartilhado|republica)$')
+            && (q.get('rateio', null) == null || (q.rateio is number && q.rateio >= 0 && q.rateio <= 5000))
+            && q.get('contasInclusas', false) is bool && q.get('mobiliado', false) is bool
+            && (q.get('vagas', null) == null || (q.vagas is int && q.vagas >= 1 && q.vagas <= 10))
+            && [q.get('para', 'todos'), q.get('disponivelEm', ''), q.get('regras', '')].join('\n')
+                 .matches('^(todos|mulheres|homens|lgbt)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,300}$');
+      }
+      // Achados e perdidos: perdi / encontrei, onde e quando.
+      function achadoOk(a) {
+        return a is map && a.keys().hasOnly(['tipo', 'data', 'local'])
+            && [a.get('tipo', ''), a.get('data', ''), a.get('local', '')].join('\n')
+                 .matches('^(perdido|encontrado)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,80}$');
+      }
       function comunidadeOk() {
         let d = request.resource.data;
         let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
@@ -153,27 +170,4 @@
                 && valorTextoAte(c.get('titulo', ''), 120));
       }
 
-      // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
-      // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
-      // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
-      // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
-      // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
-      // do serviço mostra que os dois fazem parte dele.
-      function servicoOk(sv, p) {
-        return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
-            && (sv.tipo == 'corrida'
-                  ? [get(/databases/$(database)/documents/corridas/$(sv.id)).data.clienteId,
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('entregadorId', ''),
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('destinatarioId', ''),
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('pagadorId', '')].hasAll(p)
-              : sv.tipo == 'sos'
-                  ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
-                    && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
-              : sv.tipo == 'pet'
-                  ? get(/databases/$(database)/documents/pets/$(sv.id)).data.donoId in p
-                    && get(/databases/$(database)/documents/pets/$(sv.id)).data.status == 'perdido'
-              : sv.tipo == 'achado'
-                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.autorId in p
-                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.status == 'ativo');
-      }
 // ===== FIM DA PARTE 5 DE 21 =====
