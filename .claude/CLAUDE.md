@@ -2614,6 +2614,11 @@ chat da equipe).
   pessoa: topo de app `.pp-topo` (voltar · @nome + selo · compartilhar `#ppCompartilhar`), o @ não repete embaixo do nome.
   Teste `t-perfil-organizado.mjs` (17); `t-perfil`, `t-voltar`, `t-social2`, `t-tipos-pub`, `t-perfil-enxuto` atualizados
   (`t-perfil` "toque duplo no texto" e `t-social2` "gravou agendada" já falhavam antes).
+- **Faixa de baixo do app no tema (13/11/2026, PR depois do #217, sem regra nova):** print dele (barra de gestos do Android
+  PRETA no tema claro, no app instalado). Causa: o Chrome pinta a barra de baixo do app instalado (WebAPK) com a cor FIXA do
+  manifest (`background_color` nas versões antigas, `theme_color` nas novas), que era #000 desde o #201. Os dois saíram do
+  `manifest.webmanifest`: a barra segue o tema claro/escuro do celular e o status bar continua pelo `<meta theme-color>` de
+  cada página. Vale depois que o Android atualizar o app (alguns dias) ou reinstalando. Tela de abertura do app ficou branca.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
