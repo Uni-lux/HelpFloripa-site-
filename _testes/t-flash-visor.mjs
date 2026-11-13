@@ -15,9 +15,9 @@ const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-fv
 for (const u of [U.ana, U.bruno]) for (const s of (await db.collection("stories").where("autorId", "==", u).get()).docs) await s.ref.delete();
 const fim = Timestamp.fromMillis(Date.now() + 20 * 3600e3);
 const fa = [];
-fa.push((await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 3 * 3600e3) })).id);
+fa.push((await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 3 * 3600e3) })).id);
 // figurinhas nas pontas: perguntas lá em cima (cobriria o nome) e enquete lá embaixo (cobriria o responder)
-fa.push((await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000),
+fa.push((await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000),
   caixa: { pergunta: "Me faça uma pergunta", anonima: false, x: 0.5, y: 0.02 },
   enquete: { pergunta: "Cor?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.98, fimEm: fim } })).id);
 await db.doc(`usuarios/${U.ana}`).set({ flashConfig: { amigos: [U.bruno], publico: "todos" } }, { merge: true });

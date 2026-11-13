@@ -140,8 +140,13 @@
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
       // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
       allow update: if logado() && resource.data.autorId == request.auth.uid
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
-                    && request.resource.data.destacado is bool;
+                    && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
+                         && request.resource.data.destacado is bool)
+                        // Flash de antes do campo "restrito": o autor completa (só com o valor certo) e ele volta à fileira.
+                        || (!('restrito' in resource.data)
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
+                            && request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
+                                                                  || resource.data.get('ocultoPara', []).size() > 0)));
       match /vistos/{uid} {
         allow create: if logado() && uid == request.auth.uid
                       && request.resource.data.keys().hasOnly(['criadoEm'])

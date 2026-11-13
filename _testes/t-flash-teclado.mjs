@@ -18,10 +18,10 @@ for (const u of [U.ana, U.bruno]) for (const s of (await db.collection("stories"
 await db.doc("diario/ftPost").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Telhado novo", mediaUrl: PX, criadoEm: Timestamp.fromMillis(Date.now() - 5 * 60000) });
 // Bruno: 3 flashes (o do meio com uma publicação compartilhada)
 const fl = [];
-for (let k = 0; k < 3; k++) fl.push((await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, ...(k === 1 ? { postDe: { postId: "ftPost", autorId: U.bruno, nome: "Bruno Reparos" } } : {}), criadoEm: Timestamp.fromMillis(Date.now() - (30 - k) * 60000) })).id);
+for (let k = 0; k < 3; k++) fl.push((await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, ...(k === 1 ? { postDe: { postId: "ftPost", autorId: U.bruno, nome: "Bruno Reparos" } } : {}), criadoEm: Timestamp.fromMillis(Date.now() - (30 - k) * 60000) })).id);
 // Ana: 2 flashes, vistos pelo Bruno (com estrela no 2º)
 const fa = [];
-for (let k = 0; k < 2; k++) fa.push((await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - (20 - k) * 60000) })).id);
+for (let k = 0; k < 2; k++) fa.push((await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - (20 - k) * 60000) })).id);
 for (const id of fa) await db.doc(`stories/${id}/vistos/${U.bruno}`).set({ criadoEm: Timestamp.now() });
 await db.doc(`stories/${fa[1]}/reacoes/${U.bruno}`).set({ curtiu: true, emoji: "🔥", em: Timestamp.now() });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() }).catch(() => {});

@@ -655,6 +655,17 @@ await t("flash privado: consulta sem 'restrito == false' é recusada", () => ass
 await t("flash privado: consulta dos para todos funciona", () => assertSucceeds(getDocs(query(collection(ctx("edu"), "stories"), where("autorId", "in", ["ana"]), where("restrito", "==", false), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))))));
 await t("flash privado: o índice dos restritos é lido (sem foto)", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "stories_restritos"), where("autorId", "in", ["ana"]), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))))));
 await t("flash privado: índice falso (flash para todos) é recusado", async () => { await criarFlash(doc(ctx("ana"), "stories", "pvPub"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: serverTimestamp() }); await assertFails(setDoc(doc(ctx("ana"), "stories_restritos", "pvPub"), { autorId: "ana", criadoEm: serverTimestamp() })); });
+await t("flash antigo: a autora completa o restrito com o valor certo (e o índice)", async () => {
+  await semRegras((db) => setDoc(doc(db, "stories", "velhoOc"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, ocultoPara: ["edu"], criadoEm: Timestamp.fromMillis(Date.now() - 3600e3) }));
+  await assertFails(updateDoc(doc(ctx("ana"), "stories", "velhoOc"), { restrito: false }));
+  const db = ctx("ana"), b = writeBatch(db), c = Timestamp.fromMillis(Date.now() - 3600e3);
+  const x = await getDoc(doc(db, "stories", "velhoOc"));
+  b.update(doc(db, "stories", "velhoOc"), { restrito: true });
+  b.set(doc(db, "stories_restritos", "velhoOc"), { autorId: "ana", criadoEm: x.data().criadoEm });
+  await assertSucceeds(b.commit());
+  await assertFails(getDoc(doc(ctx("edu"), "stories", "velhoOc")));
+});
+await t("flash antigo: outra pessoa não completa", async () => { await semRegras((db) => setDoc(doc(db, "stories", "velhoB"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, criadoEm: Timestamp.now() })); await assertFails(updateDoc(doc(ctx("bia"), "stories", "velhoB"), { restrito: false })); });
 await t("flash privado: a autora lê os próprios", async () => { await assertSucceeds(getDoc(doc(ctx("ana"), "stories", "pvAm"))); await assertSucceeds(getDoc(doc(ctx("ana"), "stories", "pvOc"))); });
 await t("notas: só a própria pessoa lê e grava", async () => {
   const n = { titulo: "Estratégia", texto: "[ ] ligar\n[x] orçamento", cor: "azul", pasta: "Trabalho", fixada: true, arquivada: false, lixeira: 0, prazo: "2026-11-20", criadoEm: 1, em: 2 };

@@ -123,7 +123,7 @@ ok(JSON.stringify(fFoto.mencoes) === JSON.stringify([U.bruno]) && !fFoto.mencoes
 
 // ---------- 4) visor: responder com o teclado aberto não encolhe o flash ----------
 const PXB = "data:image/png;base64," + (await import("node:fs")).readFileSync("saida/foto-g1.png").toString("base64");
-const fBruno = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PXB, caixa: { pergunta: "Me faça uma pergunta", anonima: false, x: 0.5, y: 0.3 }, criadoEm: Timestamp.now() })).id;
+const fBruno = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PXB, caixa: { pergunta: "Me faça uma pergunta", anonima: false, x: 0.5, y: 0.3 }, criadoEm: Timestamp.now() })).id;
 await p.goto(p.url().split("?")[0] + `?flash=${fBruno}`); await p.waitForTimeout(3500);
 await p.waitForSelector(".story-visor .story-responder input", { timeout: 10000 }).catch(() => {});
 const q0 = await p.locator(".story-quadro").boundingBox();

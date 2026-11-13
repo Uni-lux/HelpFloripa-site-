@@ -5,12 +5,16 @@ Os itens abaixo NÃO foram corrigidos: ou mudam também as buscas do site (não 
 servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 
 ## A. Prioridade alta (privacidade prometida na tela)
+- [x] **FEITO em 13/11/2026** (pedido dele): Amigos próximos só para quem está na lista e "Ocultar de" barrado na regra
+      (`restrito` + `stories_restritos`, `flash-privado.js`, 5 índices novos). Texto antigo abaixo, para histórico:
 - [ ] **Flash "Amigos próximos" e "Ocultar de"** — pela regra qualquer pessoa logada lê qualquer flash das últimas
       26 h, inclusive os de Amigos próximos, os ocultados de alguém e os publicados só nos negócios (`perfil: false`).
       Só o app esconde. Correção: separar as buscas (públicos `publico == 'todos'` × amigos `lista array-contains eu`),
       regra exigindo isso, índices novos; "Ocultar de" provavelmente vira lista de quem pode ver. PR próprio, médio.
 
 ## B. Prioridade média (precisam mudar as buscas junto)
+- [x] **FEITO em 13/11/2026:** votos só para quem votou e o autor (`enquete_votos.autorId`). Votos de antes (sem
+      autorId) ficam só para quem votou; enquetes de antes de 26/10 perdem o resultado para os outros. Texto antigo:
 - [ ] **Votos de enquete não anônima**: qualquer pessoa logada vê em quem cada um votou (deveria ser só o autor). A
       contagem de enquetes antigas (`enquetes.js`, sem os pedaços) usa essa leitura — trocar antes.
 - [ ] **Conteúdo escondido pela equipe** (Diário, negócios, Comunidade com `ocultoAte`/`ocultoPelaEquipe`) ainda abre
@@ -40,8 +44,8 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
       a corrida; o contato e o PIN ficam escondidos).
 
 ## Decisões suas
-- [ ] Item A: fazer o PR do Flash privado de verdade agora?
-- [ ] Item B (votos): votos de enquete só para o autor?
+- [x] Item A: sim (feito em 13/11/2026).
+- [x] Votos de enquete só para o autor: sim (feito em 13/11/2026).
 
 ## Já corrigido nesta revisão (vai junto na próxima publicação)
 - Erro de tipo da linha 738 que o console recusou (`d.keys().toSet()`).
@@ -54,4 +58,5 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - Moderação não sanciona a equipe nem apaga a própria sanção; não decide a própria verificação nem se dá o selo.
 - Banido de Entregas não aceita corrida, mesmo com o cadastro de entregador ativo.
 
-Partes que mudaram em relação ao main: 2, 3, 4, 6, 9, 10, 19 e 20 (as outras 13 ficam iguais). Testes: 1053 passando.
+Depois do Flash privado e dos votos (13/11), quase todas as partes mudaram: colar as 21 de novo. Testes: 1074 passando.
+Índices: agora 32 (5 novos do Flash) — `firebase deploy --only firestore:indexes`.

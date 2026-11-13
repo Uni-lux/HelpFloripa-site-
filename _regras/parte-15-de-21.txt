@@ -10,7 +10,7 @@
       allow create: if logado()
                     && request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
                     && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(id)).data.criadoEm
                     && getAfter(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid
                     && getAfter(/databases/$(database)/documents/stories/$(id)).data.restrito == true
                     && getAfter(/databases/$(database)/documents/stories/$(id)).data.get('publico', 'todos') != 'amigos'

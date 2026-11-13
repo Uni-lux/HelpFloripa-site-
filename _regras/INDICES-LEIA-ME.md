@@ -38,6 +38,16 @@ Crie um por vez, com **Escopo da consulta: Coleção**:
 | `corridas` | `entregadorId` Crescente | `criadoEm` Decrescente | — |
 | `corridas` | `status` Crescente | `paraId` Crescente | `geo4` Crescente |
 
+Mais 5 do **Flash privado** (13/11/2026; sem eles a fileira do Flash não carrega depois de publicar as regras novas):
+
+| Coleção    | Campo 1          | Campo 2                 | Campo 3                     |
+|------------|------------------|-------------------------|-----------------------------|
+| `stories`  | `autorId` Crescente | `restrito` Crescente | `criadoEm` Decrescente |
+| `stories`  | `lista` Matrizes ("Array contains") | `criadoEm` Decrescente | — |
+| `stories`  | `negocios` Matrizes ("Array contains") | `restrito` Crescente | `criadoEm` Decrescente |
+| `stories_restritos` | `autorId` Crescente | `criadoEm` Decrescente | — |
+| `stories_restritos` | `negocios` Matrizes ("Array contains") | `criadoEm` Decrescente | — |
+
 Mais 3 que vêm de antes (confira se já existem; se não, crie também):
 
 | Coleção    | Campo 1          | Campo 2                 |
@@ -47,7 +57,7 @@ Mais 3 que vêm de antes (confira se já existem; se não, crie também):
 | `anuncios` | `tipo` Crescente | `atualizadoEm` Decrescente |
 
 **Jeito rápido (todos de uma vez):** no Cloud Shell, dentro da pasta do repositório, rode
-`firebase deploy --only firestore:indexes --project helpfloripa-61e0d`. Ele lê o `firestore.indexes.json` e cria os 27.
+`firebase deploy --only firestore:indexes --project helpfloripa-61e0d`. Ele lê o `firestore.indexes.json` e cria os 32.
 Se perguntar se quer apagar índices que existem no console e não estão no arquivo, responda **N** (não).
 
 O 5º índice faz o Diário e o Explorar trazerem também as publicações recentes do seu estado. Os 2 da Comunidade fazem o

@@ -13,15 +13,16 @@ import {
   meusSeguindo, meusSeguindoPronto, escondido, silenciado, alternarSilenciar, obterPerfil, abrirOpcoes, abrirLista, linhaPessoa, pessoasEmPilha,
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
-  responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico
-} from "./rede.js?v=153";
+  responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
+} from "./rede.js?v=154";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=7";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { comRitmo } from "./ritmo.js?v=3";
-import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=22";
+import { lerFlashesVisiveis, privacidadeDoFlash } from "./flash-privado.js?v=1";
+import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=23";
 import { minhaPosicao } from "./perto.js?v=3";
 import { lerFlashTexto, pegarGuardado } from "./flash-direto.js?v=1";
 import { fimEscolhido, MAX_FLASH_MIN, fimDaEnquete, encerrada, faltaTexto, resultadoFinal, lerContasEnquete } from "./enquetes.js?v=7";
@@ -133,8 +134,9 @@ async function carregar() {
   const autores = [eu.uid, ...[...meusSeguindo].filter((u) => u !== eu.uid && !escondido(u) && !silenciado(u))].slice(0, 600);
   const lotes = []; for (let i = 0; i < autores.length; i += 30) lotes.push(autores.slice(i, i + 30));
   try {
-    const res = await Promise.all(lotes.map((l) => fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "in", l), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(150)))));
-    docs = res.flatMap((s) => s.docs).map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+    // Privacidade (flash-privado.js): para todos + Amigos próximos em que você está + os com gente ocultada abertos um a um.
+    const res = await lerFlashesVisiveis(fb, eu.uid, { autores });
+    docs = res.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
   } catch (e) {
     // Sem o índice (ou com as regras antigas): os mais NOVOS das últimas 24 h, filtrados aqui.
     console.warn("Flash:", e?.code || e?.message);
@@ -150,6 +152,7 @@ async function carregar() {
   docs.filter((x) => ativo(x) && (x.autorId === eu.uid || (x.perfil !== false && meusSeguindo.has(x.autorId) && !escondido(x.autorId) && !silenciado(x.autorId) && podeVer(x))))
     .forEach((x) => { if (!porAutor.has(x.autorId)) porAutor.set(x.autorId, []); porAutor.get(x.autorId).push(x); });
   limparVencidos();
+  completarPrivacidade();
   pintarBarra();
   guardarBarra();
   setTimeout(guardarBarra, 2500); // de novo depois que os nomes e fotos chegarem
@@ -176,13 +179,32 @@ function posicaoDoLeitor() {
 }
 const noPublico = (x) => !x.alvo || x.autorId === eu?.uid || combinaPublico({ autorId: x.autorId, publico: x.alvo }, leitorAgora());
 const podeVer = (x) => !(Array.isArray(x.ocultoPara) && x.ocultoPara.includes(eu.uid)) && (x.publico !== "amigos" || (Array.isArray(x.lista) && x.lista.includes(eu.uid))) && noPublico(x);
+// Flashes seus de antes do campo "restrito" (13/11/2026): com as regras novas os outros só acham na fileira o que tem
+// o campo; o seu aparelho completa (uma vez por sessão) e, se tem gente ocultada, cria o índice junto.
+let privacidadeFeita = false;
+async function completarPrivacidade() {
+  if (privacidadeFeita || !eu?.uid) return;
+  privacidadeFeita = true;
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.where("criadoEm", ">=", fb.Timestamp.fromMillis(Date.now() - DIA)), fb.orderBy("criadoEm", "desc"), fb.limit(60)));
+    for (const d of s.docs) {
+      const x = d.data();
+      if ("restrito" in x) continue;
+      const amigos = x.publico === "amigos", restrito = amigos || (x.ocultoPara || []).length > 0;
+      const lote = fb.writeBatch(fb.db);
+      lote.update(d.ref, { restrito });
+      if (restrito && !amigos) lote.set(fb.doc(fb.db, "stories_restritos", d.id), { autorId: eu.uid, criadoEm: x.criadoEm, ...(x.negocios ? { negocios: x.negocios } : {}), ...(x.perfil === false ? { perfil: false } : {}) });
+      await lote.commit().catch(() => {}); // regras de antes: não aceitam o campo (e nem precisam)
+    }
+  } catch {}
+}
 // Depois das 24 h o flash vai para o ARQUIVO (só você vê), como no Instagram. Quem desligou "Guardar no arquivo" nas
 // Configurações do Flash tem os vencidos apagados (menos os que estão num destaque).
 async function limparVencidos() {
   if (configFlash().arquivo !== false) return;
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.limit(50)));
-    s.docs.filter((d) => { const x = d.data({ serverTimestamps: "estimate" }); return !ativo(x) && !x.destacado; }).forEach((d) => fb.deleteDoc(d.ref).catch(() => {}));
+    s.docs.filter((d) => { const x = d.data({ serverTimestamps: "estimate" }); return !ativo(x) && !x.destacado; }).forEach((d) => apagarFlashDoc(d.id).catch(() => {}));
   } catch {}
 }
 // Flashes no ar de uma pessoa (24 h). Com o índice (stories: autorId + criadoEm) lê só os dela; sem ele, os das últimas
@@ -190,7 +212,8 @@ async function limparVencidos() {
 // consulta antiga.
 async function flashesNoArDe(uid) {
   const desde = fb.Timestamp.fromMillis(Date.now() - DIA);
-  try { return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(30)))).docs; } catch {}
+  if (uid === eu?.uid) { try { return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "desc"), fb.limit(30)))).docs; } catch {} }
+  else { try { return await lerFlashesVisiveis(fb, eu.uid, { autores: [uid], limite: 30 }); } catch {} }
   try { return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("criadoEm", ">=", desde), fb.orderBy("criadoEm", "asc"), fb.limit(400)))).docs.filter((d) => d.data().autorId === uid); } catch {}
   return (await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", uid), fb.limit(30)))).docs;
 }
@@ -3505,6 +3528,11 @@ function desenharTexto(texto, [a, b], letra, cor, extra = null, arrobas = null) 
   return url;
 }
 
+// Apaga o flash e o índice dos "para todos menos os ocultados" (se tiver; sem ele não acontece nada).
+function apagarFlashDoc(id) {
+  fb.deleteDoc(fb.doc(fb.db, "stories_restritos", id)).catch(() => {});
+  return fb.deleteDoc(fb.doc(fb.db, "stories", id));
+}
 async function gravar(extraCom, { imagem = null } = {}) {
   const cfg = configFlash();
   const { _publico, ...extra } = extraCom;
@@ -3515,11 +3543,12 @@ async function gravar(extraCom, { imagem = null } = {}) {
     ...(amigos ? { publico: "amigos", lista: cfg.amigos.slice(0, 150) } : {}),
     ...(cfg.ocultarDe.length ? { ocultoPara: cfg.ocultarDe.slice(0, 100) } : {})
   };
-  const docFlash = { autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() };
+  // Privacidade de verdade (13/11/2026): "restrito" + o índice dos "para todos menos os ocultados" (flash-privado.js).
+  const { doc: docFlash, indice } = privacidadeDoFlash({ autorId: eu.uid, nome: String(dados.nome || "Usuário").slice(0, 80), ...extra, ...escolhas, criadoEm: fb.serverTimestamp() });
   // Anti-spam: cada flash soma 1 no limite diário (ritmo.js, 50 por dia) na mesma gravação. Com as regras de antes (sem
   // o tipo "flash" no limite), o lote é recusado e o flash vai sozinho, como antes.
   const criar = async (d) => {
-    try { return await comRitmo(fb, eu.uid, "flash", (lote) => { const r = fb.doc(fb.collection(fb.db, "stories")); lote.set(r, d); return r; }); }
+    try { return await comRitmo(fb, eu.uid, "flash", (lote) => { const r = fb.doc(fb.collection(fb.db, "stories")); lote.set(r, d); if (indice && "restrito" in d) lote.set(fb.doc(fb.db, "stories_restritos", r.id), indice); return r; }); }
     catch (e) { if (e?.code !== "permission-denied") throw e; return fb.addDoc(fb.collection(fb.db, "stories"), d); }
   };
   let ref;
@@ -3551,6 +3580,7 @@ async function gravar(extraCom, { imagem = null } = {}) {
 // Cópia do flash sem os campos que as regras antigas recusam (null = não tinha nenhum).
 function semCamposNovos(d) {
   const c = { ...d }; let mudou = false;
+  if ("restrito" in c) { delete c.restrito; mudou = true; } // regras de antes não conhecem o campo
   if ("toques" in c) { delete c.toques; mudou = true; }
   if (c.mencoesOcultas) {
     const oc = c.mencoesOcultas; delete c.mencoesOcultas; mudou = true;
@@ -4502,7 +4532,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
   function pularFlash(s, meu) {
     const l = mapa.get(ordem[ai]) || [];
     const k = l.indexOf(s); if (k >= 0) l.splice(k, 1);
-    if (meu) fb.deleteDoc(fb.doc(fb.db, "stories", s.id)).then(() => avisarFlashNegocio(s.negocios)).catch(() => {});
+    if (meu) apagarFlashDoc(s.id).then(() => avisarFlashNegocio(s.negocios)).catch(() => {});
     if (si < l.length) { mostrar(); return; }
     si = Math.max(0, l.length - 1);
     proximoAutor();
@@ -4568,7 +4598,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     abrirOpcoes("Flash", [
       meu && { rotulo: "Apagar este flash", icone: "lixo", perigo: true, fn: async () => {
         if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo.", ok: "Apagar", icone: "lixo" })) return;
-        try { await fb.deleteDoc(fb.doc(fb.db, "stories", s.id)); avisarFlashNegocio(s.negocios); const l = mapa.get(s.autorId); l.splice(si, 1); if (!l.length) mapa.delete(s.autorId); toast("Flash apagado"); if (!mapa.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
+        try { await apagarFlashDoc(s.id); avisarFlashNegocio(s.negocios); const l = mapa.get(s.autorId); l.splice(si, 1); if (!l.length) mapa.delete(s.autorId); toast("Flash apagado"); if (!mapa.get(s.autorId)) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); } }
         catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
       } },
       meu && destaque && { rotulo: "Tirar deste destaque", sub: destaque.nome, icone: "destaque", perigo: true, fn: async () => {
@@ -4744,7 +4774,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
   bLixo.addEventListener("click", async () => {
     if (!await confirmarHF({ titulo: "Apagar este flash?", texto: "Ele some para todo mundo, também das visualizações.", ok: "Apagar", icone: "lixo" })) return;
     try {
-      await fb.deleteDoc(fb.doc(fb.db, "stories", s.id));
+      await apagarFlashDoc(s.id);
       avisarFlashNegocio(s.negocios);
       toast("Flash apagado");
       const x = s; const k = meus.findIndex((y) => y.id === x.id); if (k >= 0) meus.splice(k, 1);
@@ -4872,7 +4902,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
     try {
       const [contas, votos] = await Promise.all([
         lerContasEnquete(fb, fb.db, alvo, e.opcoes.length, { fresco: true }).catch(() => e.opcoes.map(() => 0)),
-        e.anonima ? Promise.resolve([]) : fb.getDocs(fb.query(fb.collection(fb.db, "enquete_votos"), fb.where("alvo", "==", alvo), fb.limit(300))).then((x) => x.docs.map((d) => d.data())).catch(() => [])
+        e.anonima ? Promise.resolve([]) : votosDaEnquete(alvo).then((x) => x.docs.map((d) => d.data())).catch(() => [])
       ]);
       if (minha !== vez) return;
       const porOp = contas.some((n) => n > 0) ? contas : e.opcoes.map((_, i) => votos.filter((v) => Number(v.opcao) === i).length);

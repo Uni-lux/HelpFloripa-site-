@@ -54,7 +54,7 @@ await p.keyboard.press("Escape"); await p.waitForTimeout(500);
 await p.locator("#folhaOpcoes.aberta button", { hasText: "Descartar" }).tap().catch(() => {}); await p.waitForTimeout(500);
 
 // ---------- 3) respostas e reações no chat, no mesmo modelo ----------
-const f1 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, criadoEm: Timestamp.now() })).id;
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, criadoEm: Timestamp.now() })).id;
 const conv = [U.ana, U.bruno].sort().join("_");
 await db.doc(`conversas/${conv}`).set({ participantes: [U.ana, U.bruno].sort(), atualizadoEm: Timestamp.now(), ultimaMensagem: "oi" }, { merge: true });
 const msgs = db.collection(`conversas/${conv}/mensagens`);

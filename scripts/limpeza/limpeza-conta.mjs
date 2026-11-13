@@ -67,6 +67,7 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     const flashes = await col("stories").where("autorId", "==", uid).get();
     for (const f of flashes.docs) { await apagar("stories_vistos", f.ref.collection("vistos")); await apagar("stories_reacoes", f.ref.collection("reacoes")); }
     await apagar("stories", col("stories").where("autorId", "==", uid));
+    await apagar("stories_restritos", col("stories_restritos").where("autorId", "==", uid));
     await apagar("destaques", col("destaques").where("uid", "==", uid));
     // Notas pessoais (notas.html) e rascunhos do Diário.
     await apagar("notas", db.collection(`notas/${uid}/itens`));

@@ -21,9 +21,9 @@ await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana, criadoEm: Timestamp.now() });
 // publicação da Ana que vai para o flash dela e depois é apagada; e uma do Bruno, já apagada, com flash do Bruno
 await db.doc("diario/fmPost").set({ autorId: U.ana, nome: "Ana Souza", texto: "Pôr do sol", mediaUrl: PX, criadoEm: Timestamp.fromMillis(Date.now() - 3600e3) });
-const fApagada = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, postDe: { postId: "fmSumiu", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000) })).id;
-const fBom = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Olha isso @anasouza #obra", criadoEm: Timestamp.fromMillis(Date.now() - 10 * 60000) })).id;
-const fAna = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, postDe: { postId: "fmPost", autorId: U.ana, nome: "Ana Souza" }, criadoEm: Timestamp.fromMillis(Date.now() - 30 * 60000) })).id;
+const fApagada = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, postDe: { postId: "fmSumiu", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000) })).id;
+const fBom = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Olha isso @anasouza #obra", criadoEm: Timestamp.fromMillis(Date.now() - 10 * 60000) })).id;
+const fAna = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, postDe: { postId: "fmPost", autorId: U.ana, nome: "Ana Souza" }, criadoEm: Timestamp.fromMillis(Date.now() - 30 * 60000) })).id;
 
 const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html");

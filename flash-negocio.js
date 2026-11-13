@@ -6,6 +6,7 @@
 // Quem vê: as mesmas escolhas do autor (Amigos próximos e "Ocultar de") e 24 h.
 // =====================================================
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
+import { lerFlashesVisiveis } from "./flash-privado.js?v=1";
 const DIA = 864e5, TEMPO_FOTO = 6000;
 const COR_TIPO = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", imoveis: "#2fbf71", saude: "#0fb5a6", automotivo: "#f5b301" };
 const ms = (t) => (t?.toMillis ? t.toMillis() : t?.seconds ? t.seconds * 1000 : typeof t === "number" ? t : 0);
@@ -97,9 +98,10 @@ window.addEventListener("hf:gaveta", conferirVencidos);
 // Flash nos perfis de negócio faz parte dos planos: sem plano ativo do dono, o perfil do negócio não mostra flash.
 // Só os das últimas 24 h (a regra não deixa listar o arquivo de ninguém): com o índice (negocios + criadoEm) lê só os do
 // negócio; sem ele, os das últimas 24 h de todo mundo filtrados; com as regras antigas, a consulta antiga.
-async function noAr(fbx, negId) {
+async function noAr(fbx, negId, uid) {
   const desde = fbx.Timestamp.fromMillis(Date.now() - 864e5), col = fbx.collection(fbx.db, "stories");
-  try { return (await fbx.getDocs(fbx.query(col, fbx.where("negocios", "array-contains", negId), fbx.where("criadoEm", ">=", desde), fbx.orderBy("criadoEm", "desc"), fbx.limit(30)))).docs; } catch {}
+  // Privacidade (flash-privado.js): só o que a regra deixa você ver.
+  try { return await lerFlashesVisiveis(fbx, uid, { negocio: negId, limite: 30 }); } catch {}
   try { return (await fbx.getDocs(fbx.query(col, fbx.where("criadoEm", ">=", desde), fbx.orderBy("criadoEm", "asc"), fbx.limit(400)))).docs.filter((d) => (d.data().negocios || []).includes(negId)); } catch {}
   return (await fbx.getDocs(fbx.query(col, fbx.where("negocios", "array-contains", negId), fbx.limit(30)))).docs;
 }
@@ -107,7 +109,7 @@ export function flashesDoNegocio(fbx, euX, negId) {
   const dono = String(negId).split("_")[0];
   const c = cache.get(negId);
   if (c && Date.now() - c.em < VALIDADE) return c.p;
-  const p = lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => noAr(fbx, negId))
+  const p = lerPlano(fbx, dono).then((pl) => (nivelPlano(pl) || dono === euX?.uid ? true : Promise.reject(new Error("sem plano")))).then(() => noAr(fbx, negId, euX?.uid))
     .then((docs) => docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((x) => ativo(x) && podeVer(x, euX?.uid)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm)))
     .catch(() => []);
   cache.set(negId, { p, em: Date.now() });

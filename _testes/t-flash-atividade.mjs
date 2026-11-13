@@ -19,8 +19,8 @@ await db.doc(`negocios/${U.ana}_servicos`).set({ donoId: U.ana, tipo: "servicos"
 await db.doc(`negocios/${U.ana}_delivery`).set({ donoId: U.ana, tipo: "delivery", nome: "Ana Lanches", criadoEm: Timestamp.now() }, { merge: true });
 await db.doc("diario/faPerto").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Pôr do sol na Lagoa #praia", tags: ["praia"], mediaUrl: PX, local: { nome: "Lagoa da Conceição", lat: -27.6, lng: -48.47 }, criadoEm: Timestamp.now() });
 const fim = Timestamp.fromMillis(Date.now() + 20 * 3600e3);
-const f1 = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000) })).id;
-const f2 = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`, `${U.ana}_delivery`],
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 20 * 60000) })).id;
+const f2 = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`, `${U.ana}_delivery`],
   enquete: { pergunta: "Praia ou piscina?", opcoes: ["Praia", "Piscina"], x: 0.5, y: 0.7, fimEm: fim, cor: "roxo" }, caixa: { pergunta: "Me pergunte", anonima: false, x: 0.5, y: 0.3 },
   toques: ["l|Lagoa da Conceição, Florianópolis|-27.6|-48.47|0.5|0.12|0.5|0.05", "h|praia|0.5|0.2|0.3|0.05"], criadoEm: Timestamp.fromMillis(Date.now() - 10 * 60000) })).id;
 await db.doc(`enquete_votos/f_${f2}_${U.bruno}`).set({ alvo: `f_${f2}`, tipo: "f", itemId: f2, uid: U.bruno, opcao: 0, fatia: 3, fimEm: fim, criadoEm: Timestamp.now() });
@@ -60,7 +60,7 @@ ok(!(await db.doc(`stories/${f2}`).get()).exists, "lixeira das Visualizações a
 await p.keyboard.press("Escape"); await p.waitForTimeout(300);
 
 // ---------- 2) Bruno vê: negócios, lugar e hashtag ----------
-const f3 = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`, `${U.ana}_delivery`],
+const f3 = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`, `${U.ana}_delivery`],
   toques: ["l|Lagoa da Conceição, Florianópolis|-27.6|-48.47|0.5|0.3|0.5|0.06", "h|praia|0.5|0.5|0.3|0.06"], criadoEm: Timestamp.now() })).id;
 const nb = await navegador({ mobile: true });
 await nb.ctx.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ body: readFileSync("saida/foto-fa.png"), contentType: "image/png" }));

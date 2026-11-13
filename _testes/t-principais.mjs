@@ -18,7 +18,7 @@ await post("pAna2", "ana", "Ana Souza", "Outra da Ana", 2.1);
 await post("pFabi2", "fabi", "Fabi", "Muro novo", 2.2);
 // Flash da Ana (para o anel no perfil)
 const px = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
-await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: px, criadoEm: Timestamp.fromMillis(agora - 600e3) });
+await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: px, criadoEm: Timestamp.fromMillis(agora - 600e3) });
 
 const B = await navegador({ mobile: true });
 const pb = await entrar(B.ctx, "bruno", "feed.html");

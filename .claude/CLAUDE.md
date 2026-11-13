@@ -2474,6 +2474,19 @@ chat da equipe).
 - `versoes.py` agora falha se o mesmo módulo for importado com `?v=` diferentes (arquivo novo fica fora da troca).
 - `scripts/limpeza/converter-cidades.mjs` + workflow manual "Converter cidades" (simula por padrão).
 
+- **Flash privado + votos só do autor (13/11/2026, mesmo PR #205, MUDA REGRAS — não publicadas; 21 partes, 1074 testes;
+  5 índices novos, agora 32):** decidido por ele. `stories.restrito` (= Amigos próximos ou com `ocultoPara`); Amigos próximos
+  leva só `lista` (sem os ocultados, sem `ocultoPara`), para todos não leva `lista`. Regra de `stories` separada: **get**
+  confere lista/ocultoPara; **list** só com `restrito == false` ou `lista array-contains eu` (ATENÇÃO: numa consulta, campo
+  não filtrado vale o padrão do `.get(campo, padrão)` — por isso a conferência de ocultoPara não pode ficar no list; o emulador
+  devolvia o flash ocultado). "Para todos menos os ocultados" ganha `stories_restritos/{id}` {autorId, criadoEm, negocios?,
+  perfil?} (sem foto/texto) e a fileira abre cada um (`flash-privado.js` sem deps: `lerFlashesVisiveis(fb, uid, {autores |
+  negocio})` tenta a consulta antiga e, recusada, marca `hf-flash-privado` e usa públicos + amigos (1 consulta/60 s) +
+  restritos; `privacidadeDoFlash(d)` monta o doc e o índice). Usado na fileira (`carregar`), `flashesNoArDe` e flash-negocio
+  `noAr`. `apagarFlashDoc` apaga o índice junto; conta.js/limpeza-conta apagam `stories_restritos`. Flash antigo sem o campo:
+  o autor completa (`completarPrivacidade`, regra deixa só o valor certo). Votos: `enquete_votos.autorId` (opcional, conferido;
+  `gravarVoto` cai sem ele com as regras de antes), leitura só de quem votou/autor/moderação; `votosDaEnquete` (rede.js) lista
+  com `autorId == eu`. Votos de antes, sem autorId, só quem votou vê. Teste `t-flash-privado.mjs` (7).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

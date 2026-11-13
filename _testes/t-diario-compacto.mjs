@@ -14,7 +14,7 @@ const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-dc
 await db.doc("diario/dcBruno").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Telhado novo entregue hoje", mediaUrl: PX, criadoEm: Timestamp.fromMillis(Date.now() - 3 * 60000) });
 await db.doc("diario/dcTexto").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Dica: limpe as calhas antes da chuva", criadoEm: Timestamp.fromMillis(Date.now() - 4 * 60000) });
 for (const s of (await db.collection("stories").where("autorId", "==", U.ana).get()).docs) await s.ref.delete();
-const flash = await db.collection("stories").add({ autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, postDe: { postId: "dcBruno", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: Timestamp.now() });
+const flash = await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, postDe: { postId: "dcBruno", autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: Timestamp.now() });
 
 const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html");
@@ -98,7 +98,7 @@ ok(await p.locator(".toast", { hasText: "Preparando" }).count() === 0, "o aviso 
 await p.screenshot({ path: "saida/dc-criador.png" });
 
 // ---------- 6) caixa de perguntas no flash: a resposta vai para o seu flash ----------
-const fCaixa = await db.collection("stories").add({ autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual serviço vocês querem ver?", anonima: true }, criadoEm: Timestamp.now() });
+const fCaixa = await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual serviço vocês querem ver?", anonima: true }, criadoEm: Timestamp.now() });
 await db.collection("caixa_respostas").add({ alvo: `f_${fCaixa.id}`, tipo: "f", itemId: fCaixa.id, autorId: U.ana, texto: "Pintura de fachada!", anonima: true, criadoEm: Timestamp.now() });
 await p.goto(BASE + `feed.html?flash=${fCaixa.id}`); await p.waitForSelector(".story-cx .cx-ver", { timeout: 15000 }); await p.waitForTimeout(1500);
 // "ver" abre a Atividade do flash na aba Respostas (cartões); tocar no cartão mostra "Pôr no flash".
@@ -113,7 +113,7 @@ await p.locator(".flash-publicar").tap(); await p.waitForTimeout(3500);
 ok((await db.collection("stories").where("autorId", "==", U.ana).get()).size >= 2, "resposta publicada no flash");
 
 // ---------- 7) respostas desligadas: a estrela fica sozinha ----------
-const fSem = await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno", tipo: "imagem", midia: PX, respostas: "ninguem", criadoEm: Timestamp.now() });
+const fSem = await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "imagem", midia: PX, respostas: "ninguem", criadoEm: Timestamp.now() });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
 await p.goto(BASE + `feed.html?flash=${fSem.id}`); await p.waitForTimeout(4000);
 ok(await p.locator(".story-so-estrela .story-estrela").count() === 1 && await p.locator(".story-responder:not([hidden])").count() === 0, "respostas desligadas: estrela sem o campo de responder");

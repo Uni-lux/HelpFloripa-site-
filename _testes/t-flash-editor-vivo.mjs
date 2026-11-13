@@ -10,7 +10,7 @@ const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.ex
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-ev.png", 900, 1600)).toString("base64");
 for (const u of [U.ana, U.bruno]) for (const s of (await db.collection("stories").where("autorId", "==", u).get()).docs) await s.ref.delete();
-const f1 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, mencoes: [U.ana, U.dani], criadoEm: Timestamp.now() })).id;
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, mencoes: [U.ana, U.dani], criadoEm: Timestamp.now() })).id;
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
 
 const { browser, ctx } = await navegador({ mobile: true });

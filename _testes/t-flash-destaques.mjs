@@ -16,8 +16,8 @@ for (const u of [U.ana, U.bruno]) {
   for (const s of (await db.collection("destaques").where("uid", "==", u).get()).docs) await s.ref.delete();
 }
 const velhos = [];
-for (let k = 0; k < 2; k++) velhos.push((await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - (50 - k) * 3600e3) })).id);
-const noAr = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 30 * 60000) })).id;
+for (let k = 0; k < 2; k++) velhos.push((await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - (50 - k) * 3600e3) })).id);
+const noAr = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 30 * 60000) })).id;
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana, criadoEm: Timestamp.now() });
 
 const A = await navegador({ mobile: true });
