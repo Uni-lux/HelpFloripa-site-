@@ -36,8 +36,8 @@ await pa.screenshot({ path: "saida/foto-grande.png" });
 await pa.keyboard.press("Escape"); await pa.waitForTimeout(400);
 ok(await pa.locator(".foto-grande").count() === 0 && await pa.locator(".story-visor").count() === 0, "Esc fecha (e não abre o flash)");
 // Aba Textos: a enquete aparece junto do texto
-await pa.locator(".abas-perfil button[data-aba=textos]").tap(); await pa.waitForTimeout(1500);
-ok(await pa.locator(".lista-textos .texto-item .enquete .enq-op").count() === 2, "aba Textos: a enquete aparece na publicação de texto");
+await pa.locator(".abas-perfil button[data-aba=posts]").tap(); await pa.waitForTimeout(1500);
+ok(await pa.locator("#gradePosts .tile .mm-enq").count() >= 1, "aba Publicações: a enquete aparece na grade (cartão de enquete)");
 await pa.screenshot({ path: "saida/perfil-textos-enquete.png" });
 // Rosinha clicável abre o perfil do duo
 await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForTimeout(500);
@@ -45,7 +45,7 @@ ok(await pa.locator("#meuPerfil .pf-duo-bolha.aberta .avatar").count() === 1 && 
 await pa.screenshot({ path: "saida/rosinha-bolha.png" });
 await pa.locator("#meuPerfil .pf-duo-bolha").tap();
 await pa.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});
-ok((await pa.locator("#tPerfilPublico").textContent()).includes("Bruno"), "tocar na fotinho do duo abre o perfil dele");
+ok((await pa.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "tocar na fotinho do duo abre o perfil dele");
 // Perfil do Bruno visto pela Ana: Seguir · Mensagem · ⋯ e a rosinha dele
 await pa.waitForSelector("#ppCabecalho .pf-acoes .btn", { timeout: 15000 }); await pa.waitForTimeout(2000);
 const botoes = await pa.locator("#ppCabecalho .pf-acoes > *").count();

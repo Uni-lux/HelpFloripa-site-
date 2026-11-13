@@ -119,8 +119,8 @@ await pil.click(); await pb.waitForSelector("#folhaLista.aberta .linha", { timeo
 ok(await pb.locator("#folhaLista.aberta .linha").count() === 4, "tocar abre a lista das 4 pessoas");
 await B.browser.close();
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector(".abas-perfil", { timeout: 20000 }); await p.waitForTimeout(1500);
-await p.locator('.abas-perfil [data-aba="textos"]').click(); await p.waitForTimeout(1200);
-ok(await p.locator(".texto-item .casada").count() >= 1, "perfil: o texto casado fica na aba Textos (com a imagem)");
+await p.locator('.abas-perfil [data-aba="posts"]').click(); await p.waitForTimeout(1200);
+ok(await p.locator("#gradePosts .tile img").count() >= 1, "perfil: o texto com imagem fica na aba Publicações (com a imagem)");
 await p.screenshot({ path: "saida/tp-perfil-textos.png" });
 
 ok(!erros.length, "sem erros na página: " + erros.join(" | ").slice(0, 300));

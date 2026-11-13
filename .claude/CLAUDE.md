@@ -2601,6 +2601,19 @@ chat da equipe).
   `limparWhatsapp` põe o 55); no seu perfil "+ Links" (sem links) ou "+" (com links) e cadeado no ícone que não é para
   todos; ⋯ "Links: Instagram e WhatsApp". Sem as regras: grava só na conta e só o dono vê (avisa). Conta apagada: conta.js e
   limpeza-conta apagam. Teste `t-perfil-organizado.mjs` (15).
+- **Perfil como nas redes (13/11/2026, mesmo PR #216, MUDA REGRAS — não publicadas; 23 partes, 1180 testes):** prints dele
+  (Instagram/TikTok). Números (publicações · seguidores · seguindo, minúsculos) AO LADO da foto (`.pf-linha-av` no `tplPerfil`;
+  o ícone de estatísticas saiu, fica no ⋯). Sem bio ou sem redes o perfil fica limpo (sem "+ Adicionar uma bio" nem "+ Links";
+  edita-se em Editar perfil). **Pronomes** (select + "Outro…", ≤24) ao lado do nome e **profissão/ramo** (≤40, sugestões em
+  `#edProfissoes`) em cinza embaixo → `pref_publicas.pronomes/profissao` + cópia em `usuarios` (sem as regras só você vê;
+  `aplicarPref` pinta `data-el="pron"`/`"prof"`). **Redes:** `links-perfil.js` com instagram, whatsapp, tiktok, x, youtube
+  (`montarEditorLinks` gera as linhas `#edLink-<tipo>`/`#edLinkVer-<tipo>` em `#edLinksLista`; `limparTiktok/X/Youtube`
+  aceitam link ou @). **Abas:** Publicações (fotos, textos e enquetes juntos; enquete/caixa sem foto = `miniModelo`) ·
+  Vídeos · **Republicados** (`buscarRepublicados`: `republicacoes` uid + criadoEm → diario; tile com o selo de quem publicou,
+  abre como `_marcacao`) · Salvos; Textos e Marcados saíram (`desenharTextos`/`buscarMarcacoes` apagados). Perfil de outra
+  pessoa: topo de app `.pp-topo` (voltar · @nome + selo · compartilhar `#ppCompartilhar`), o @ não repete embaixo do nome.
+  Teste `t-perfil-organizado.mjs` (17); `t-perfil`, `t-voltar`, `t-social2`, `t-tipos-pub`, `t-perfil-enxuto` atualizados
+  (`t-perfil` "toque duplo no texto" e `t-social2` "gravou agendada" já falhavam antes).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2610,7 +2623,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1174 testes; inclui os links do perfil (`contatos_perfil`); inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1180 testes; inclui os links do perfil (`contatos_perfil`), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

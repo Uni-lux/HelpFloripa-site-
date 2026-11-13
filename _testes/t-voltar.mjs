@@ -45,9 +45,9 @@ ok(await p.locator(".hfc").count() === 0 && await p.locator("#folhaEndereco.aber
 await p.goBack(); await p.waitForTimeout(400);
 // 6) Perfil: abas
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector(".abas-perfil button", { timeout: 20000 }); await p.waitForTimeout(800);
-await p.locator(".abas-perfil button[data-aba=textos]").tap(); await p.waitForTimeout(400);
+await p.locator(".abas-perfil button[data-aba=reels]").tap(); await p.waitForTimeout(400);
 await p.goBack(); await p.waitForTimeout(600);
-ok((await p.locator('.abas-perfil button[aria-selected="true"]').getAttribute("data-aba")) !== "textos" && p.url().includes("usuarios.html"), "perfil: voltar volta para a aba anterior");
+ok((await p.locator('.abas-perfil button[aria-selected="true"]').getAttribute("data-aba")) !== "reels" && p.url().includes("usuarios.html"), "perfil: voltar volta para a aba anterior");
 await B.browser.close();
 
 // 7) Painel: seções e "Cobrar resposta" guardado
