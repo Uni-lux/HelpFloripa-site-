@@ -19,6 +19,9 @@ let e = await est();
 ok(e.cTop === 0 && Math.abs(e.pad - e.cAlt) <= 1, `cabeça no topo e a lista começa embaixo dela (${e.cAlt} px)`);
 ok(e.pri >= e.cBot - 1, `primeira conversa aparece inteira, abaixo da cabeça (${e.pri} ≥ ${e.cBot})`);
 const barraNormal = e.bTop;
+const abas = await p.evaluate(() => { const m = document.querySelector(".modos"); const bs = [...m.querySelectorAll("button")].filter((b) => !b.hidden).map((b) => b.getBoundingClientRect()); return { sem: m.classList.contains("sem-negocios"), n: bs.length, esq: Math.round(bs[0].left), dir: Math.round(innerWidth - bs[bs.length - 1].right) }; });
+if (abas.sem && abas.n === 2) ok(abas.esq <= 16 && abas.dir <= 16, `sem negócio: Pessoal e Chamadas uma em cada ponta (${abas.esq} px | ${abas.dir} px)`);
+
 const rolar = async (ate) => { for (let i = 0; i < 12; i++) { await p.evaluate((ate) => { const l = document.getElementById("listaConversas"); l.scrollTop += (ate - l.scrollTop) / 3; }, ate); await p.waitForTimeout(30); } await p.evaluate((ate) => { document.getElementById("listaConversas").scrollTop = ate; }, ate); await p.waitForTimeout(400); };
 await rolar(600);
 e = await est();
