@@ -1722,3 +1722,11 @@ html.embutido .sidebar > .conv-list { padding-bottom: 90px; }
 html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 /* No celular a barra do Mensagens fica presa na tela (como nas outras abas), não dentro da lista, que tinha 1 px de borda. */
 @media (max-width: 820px) { .sidebar { border-right: 0; } .sidebar > .barra-rede { position: fixed; left: 0; right: 0; bottom: 0; } }
+
+/* Topo da lista que some ao descer (13/11/2026): no celular a "cabeça" (título, busca, abas, filtros) fica por cima da
+   lista, que começa embaixo dela (padding-top posto pelo mensagens-app.js); ao descer ela sobe, a barra e o "+" descem. */
+.side-cabeca { display: contents; }
+@media (max-width: 820px) {
+  html:not(.embutido) .side-cabeca { display: block; position: absolute; top: 0; left: 0; right: 0; z-index: 5; background: var(--panel); will-change: transform; }
+  html:not(.embutido) .sidebar > .conv-list { scroll-padding-top: 0; }
+}

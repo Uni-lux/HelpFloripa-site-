@@ -917,6 +917,7 @@ async function conferirTemNegocio() {
 function trocarModo(novo) {
   if (novo === modo) return;
   modo = novo;
+  window.__hfMostrarTopoLista?.(true);
   document.body.classList.toggle("modo-chamadas", modo === "chamadas");
   pintarFab();
   // A lupa do topo serve às duas listas: conversas ou chamadas.
@@ -5950,3 +5951,72 @@ async function abrirFigurinhaRecebida(url, minha) {
   }
   corpo.appendChild(box);
 }
+
+
+// ======================================================
+// Topo e barra de baixo que somem ao descer a lista (13/11/2026, pedido do dono: como no Diário/Comunidade/Perfil).
+// No celular, o título, a busca, as abas e os filtros viram uma "cabeça" que fica por cima da lista (a lista ganha o
+// espaço dela no começo); ao descer, a cabeça sobe e a barra de baixo e o "+" descem acompanhando o dedo; ao subir,
+// voltam. Parou no meio = termina sozinho (por requestAnimationFrame, vale com "remover animações").
+// ======================================================
+(function topoQueSomeNaLista() {
+  const sidebar = document.querySelector(".sidebar"), lista = $("listaConversas");
+  const topo = sidebar?.querySelector(":scope > .side-top");
+  if (!sidebar || !lista || !topo) return;
+  const celular = matchMedia("(max-width: 820px)");
+  const cabeca = document.createElement("div");
+  cabeca.className = "side-cabeca";
+  sidebar.insertBefore(cabeca, topo);
+  for (const sel of [".side-top", ".search", ".modos", ".pills", ".faixa-suporte"]) {
+    const el = sidebar.querySelector(":scope > " + sel); if (el) cabeca.appendChild(el);
+  }
+  let desl = 0, H = 0, ultimo = 0, anim = 0, tFim = 0;
+  const ligado = () => celular.matches && !document.documentElement.classList.contains("embutido");
+  const medir = () => {
+    if (!ligado()) { lista.style.paddingTop = ""; H = 0; return; }
+    H = cabeca.offsetHeight;
+    lista.style.paddingTop = H + "px";
+  };
+  const aplicar = (v) => {
+    desl = v;
+    const k = H ? v / H : 0;
+    cabeca.style.transform = v ? `translate3d(0, ${-v}px, 0)` : "";
+    const b = $("barraRede"), fab = $("btnNovaConversa");
+    const bh = b ? b.offsetHeight + 2 : 0;
+    const t = k ? `translate3d(0, ${(k * bh).toFixed(1)}px, 0)` : "";
+    if (b) b.style.transform = t;
+    if (fab) fab.style.transform = t;
+    document.body.classList.toggle("lista-topo-some", H > 0 && v >= H - 1);
+  };
+  const animar = (alvo) => {
+    cancelAnimationFrame(anim);
+    const de = desl, t0 = performance.now(), dur = 200;
+    if (de === alvo) return;
+    const passo = (agora) => {
+      const p = Math.min(1, (agora - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      aplicar(de + (alvo - de) * e);
+      if (p < 1) anim = requestAnimationFrame(passo);
+    };
+    anim = requestAnimationFrame(passo);
+  };
+  lista.addEventListener("scroll", () => {
+    const y = Math.max(0, lista.scrollTop), d = y - ultimo;
+    ultimo = y;
+    if (!H || document.body.classList.contains("selecionando")) return;
+    cancelAnimationFrame(anim);
+    let v = Math.min(H, Math.max(0, desl + d));
+    if (y < H) v = Math.min(v, y); // perto do começo, nunca esconde mais do que rolou
+    aplicar(v);
+    clearTimeout(tFim);
+    tFim = setTimeout(() => { if (desl > 0 && desl < H) animar(desl > H / 2 && lista.scrollTop > H ? H : 0); }, 120);
+  }, { passive: true });
+  // Mostrar de novo: trocar de aba (Pessoal/Negócios/Chamadas), focar a busca, seleção, voltar à aba na rede.
+  window.__hfMostrarTopoLista = (na) => { if (na) aplicar(0); else animar(0); };
+  $("buscaConversas")?.addEventListener("focus", () => animar(0));
+  new MutationObserver(() => { if (document.body.classList.contains("selecionando")) animar(0); }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  addEventListener("hf:gaveta", () => { if (window.__hfGavetaAberta !== false) animar(0); });
+  // A cabeça muda de altura (faixa do suporte, filtros, busca do celular): a lista acompanha.
+  try { new ResizeObserver(() => { const antes = H; medir(); if (desl > H) aplicar(H); else if (antes !== H) aplicar(desl); }).observe(cabeca); } catch {}
+  celular.addEventListener?.("change", () => { medir(); aplicar(0); });
+  medir();
+})();

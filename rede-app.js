@@ -278,7 +278,7 @@ function copiaDaBarra(b) {
 // da aba que entra aparece por cima dela aos poucos (os topos do Diário, Comunidade e Perfil são iguais, então a troca
 // não se vê). Os ícones <use href="#..."> apontam para o desenho que está DENTRO do quadro: a cópia leva o desenho junto.
 // O Mensagens não tem header.topo: o topo dele é a .side-top (mesma altura), que também fica parada no deslize.
-const topoDe = (q) => { try { const h = q.contentDocument?.querySelector("header.topo") || q.contentDocument?.querySelector(".sidebar > .side-top"); return h && h.getBoundingClientRect().height ? h : null; } catch { return null; } };
+const topoDe = (q) => { try { const h = q.contentDocument?.querySelector("header.topo") || q.contentDocument?.querySelector(".sidebar .side-top"); return h && h.getBoundingClientRect().height ? h : null; } catch { return null; } };
 function copiaDoTopo(h) {
   const c = copiaDaBarra(h);
   if (!c) return null;
