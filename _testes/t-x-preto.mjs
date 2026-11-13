@@ -16,11 +16,11 @@ const feed = quadro(/feed\.html/), perfil = quadro(/usuarios\.html/);
 const cores = await feed.evaluate(() => {
   const b = document.querySelector("#barraRede"), at = b.querySelector('[aria-current="page"]');
   return { bg: getComputedStyle(document.body).backgroundColor, linha: getComputedStyle(at, "::before").backgroundColor, cor: getComputedStyle(at).color,
-    larg: b.getBoundingClientRect().width, vw: document.documentElement.clientWidth, sw: document.documentElement.scrollWidth, bbg: getComputedStyle(b).backgroundColor, rotulo: getComputedStyle(at.querySelector("span:not(.mini-av)")).width };
+    larg: b.getBoundingClientRect().width, vw: document.documentElement.clientWidth - (document.documentElement.classList.contains("hf-corte") ? 6 : 0), sw: document.documentElement.scrollWidth, bbg: getComputedStyle(b).backgroundColor, rotulo: getComputedStyle(at.querySelector("span:not(.mini-av)")).width };
 });
 ok(cores.bg === "rgb(0, 0, 0)", "Diário: fundo preto (" + cores.bg + ")");
 ok(cores.linha === "rgb(255, 255, 255)" && cores.cor === "rgb(255, 255, 255)", "barra de baixo: ativo branco com a linha branca");
-ok(cores.sw <= cores.vw && Math.abs(cores.larg - cores.vw) < 5 && cores.bbg === "rgb(0, 0, 0)" && cores.rotulo === "1px", "barra de baixo de ponta a ponta, preta e só com ícones (" + cores.bbg + ")");
+ok(cores.sw <= cores.vw + 6 && Math.abs(cores.larg - cores.vw) < 5 && cores.bbg === "rgb(0, 0, 0)" && cores.rotulo === "1px", "barra de baixo de ponta a ponta, preta e só com ícones (" + cores.bbg + ")");
 {
   const v = await feed.evaluate(() => {
     const t = getComputedStyle(document.querySelector("header.topo")), b = document.getElementById("barraRede"), h0 = b.offsetHeight;

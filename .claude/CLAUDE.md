@@ -2567,6 +2567,17 @@ chat da equipe).
   rede.css, do CSS do barra-rede.js e do mensagens.css (5 colunas `minmax(0, 1fr)`, sem recuo, `overflow-x: clip` no
   html/body com barra); no celular (≤820 px) a barra do Mensagens é `position: fixed` e a `.sidebar` sem borda; Perfil
   com margem −10 px até 640 px. Teste `t-barra-igual.mjs` (24: 4 abas × 360/390 px); `t-x-preto` aceita fixed.
+- **Abas da rede iguais e deslize igual (13/11/2026, PR depois do #212, sem regra nova):** relato dele (o Mensagens ainda
+  "encolhia" e a passagem Mensagens → Perfil era diferente). Causa de verdade: na rede.html os quadros do Diário/Comunidade/
+  Perfil são 6 px mais largos que a tela (truque da barrinha de rolagem do Android, `html.hf-corte` em sem-menu-imagem.js) e
+  as peças FIXAS usavam essa largura toda (barra de −3 a 396 px, ícones até 5 px fora do lugar, "+" 6 px mais para a
+  direita); o Mensagens fica de fora do truque. Agora `html.hf-corte` também faz a barra terminar 6 px antes (`right`),
+  o `.fab-hf` ganha `margin-right` e `.toast/.hf-novas/.pa-ind` andam meio corte (`translate`). Deslize (rede-app.js):
+  `topoDe` aceita a `.sidebar > .side-top` do Mensagens (antes o topo dele ia junto com a página), a cópia do topo sem
+  fundo próprio leva o fundo da página, `trazerDesenhos` vale também para a cópia da barra (a do Mensagens usa `<use>` e
+  ficava sem os ícones) e os topos trocam um de cada vez (o de quem sai some até 45%, o de quem entra fica embaixo com o
+  fundo e o conteúdo aparece de 45% a 85%). Teste `t-rede-igual.mjs` (25, dentro da casca); `t-x-preto` desconta o corte.
+  `t-rede` (toque na barra escondida pela rolagem) e `t-rede-cubo` (fundinho do item) já falhavam no main.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

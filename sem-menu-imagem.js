@@ -49,7 +49,9 @@ if (!window.__hfSemMenuImagem) {
           .vt-modal, .vt-local-fundo, .hf-confirma-fundo, .hf-den-fundo, .hf-aval-fundo, .hfe-fundo, .esc-lista, .pl-fundo, .pv-fundo,
           .ad-modal-fundo, .hm-local-pop, .hfl, .hf-volta-flash) { right: var(--hf-corte) !important; }
         html.hf-corte body.com-barra::after { right: var(--hf-corte); }
-        html.hf-corte .barra-rede { margin-left: calc(var(--hf-corte) / -2); }`;
+        html.hf-corte .barra-rede { right: var(--hf-corte) !important; margin-left: 0 !important; }
+        html.hf-corte .fab-hf { margin-right: var(--hf-corte); }
+        html.hf-corte :is(.toast, .hf-novas, .pa-ind) { translate: calc(var(--hf-corte) / -2) 0; }`;
       (document.head || document.documentElement).appendChild(c);
     }
   } catch {}
