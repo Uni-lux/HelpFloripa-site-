@@ -240,6 +240,20 @@ function copiarEstilo(orig, copia, raiz) {
   const fo = [...orig.children], fc = [...copia.children];
   fo.forEach((x, i) => fc[i] && copiarEstilo(x, fc[i], false));
 }
+// Os ícones <use href="#..."> apontam para o desenho que está DENTRO do quadro: a cópia leva o desenho junto
+// (sem isso a barra copiada do Mensagens, que usa <use>, ficava sem os ícones durante o deslize).
+function trazerDesenhos(c, doc) {
+  c.querySelectorAll("use").forEach((u) => {
+    const id = (u.getAttribute("href") || u.getAttribute("xlink:href") || "").replace(/^#/, "");
+    const sym = id && doc.getElementById(id), svg = u.ownerSVGElement;
+    if (!sym || !svg) return;
+    if (sym.getAttribute("viewBox") && !svg.getAttribute("viewBox")) svg.setAttribute("viewBox", sym.getAttribute("viewBox"));
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    for (const at of ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"]) if (sym.getAttribute(at)) g.setAttribute(at, sym.getAttribute(at));
+    g.innerHTML = sym.innerHTML;
+    u.replaceWith(g);
+  });
+}
 function copiaDaBarra(b) {
   try {
     const r = b.getBoundingClientRect();
@@ -255,6 +269,7 @@ function copiaDaBarra(b) {
     c._corNormal = cor("[data-barra]:not([aria-current])") || "#8fa0ab";
     const at = b.querySelector("[aria-current='page']");
     c._fundoAtivo = at ? w.getComputedStyle(at).backgroundColor : "transparent";
+    trazerDesenhos(c, b.ownerDocument);
     document.body.appendChild(c);
     return c;
   } catch { return null; }
@@ -262,21 +277,19 @@ function copiaDaBarra(b) {
 // O topo (header.topo) fica PARADO durante o deslize, como no X: uma cópia do topo da aba que sai fica por cima e a
 // da aba que entra aparece por cima dela aos poucos (os topos do Diário, Comunidade e Perfil são iguais, então a troca
 // não se vê). Os ícones <use href="#..."> apontam para o desenho que está DENTRO do quadro: a cópia leva o desenho junto.
-const topoDe = (q) => { try { const h = q.contentDocument?.querySelector("header.topo"); return h && h.getBoundingClientRect().height ? h : null; } catch { return null; } };
+// O Mensagens não tem header.topo: o topo dele é a .side-top (mesma altura), que também fica parada no deslize.
+const topoDe = (q) => { try { const h = q.contentDocument?.querySelector("header.topo") || q.contentDocument?.querySelector(".sidebar > .side-top"); return h && h.getBoundingClientRect().height ? h : null; } catch { return null; } };
 function copiaDoTopo(h) {
   const c = copiaDaBarra(h);
   if (!c) return null;
   const doc = h.ownerDocument;
-  c.querySelectorAll("use").forEach((u) => {
-    const id = (u.getAttribute("href") || u.getAttribute("xlink:href") || "").replace(/^#/, "");
-    const sym = id && doc.getElementById(id), svg = u.ownerSVGElement;
-    if (!sym || !svg) return;
-    if (sym.getAttribute("viewBox") && !svg.getAttribute("viewBox")) svg.setAttribute("viewBox", sym.getAttribute("viewBox"));
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    for (const at of ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"]) if (sym.getAttribute(at)) g.setAttribute(at, sym.getAttribute(at));
-    g.innerHTML = sym.innerHTML;
-    u.replaceWith(g);
-  });
+  // Topo sem fundo próprio (o do Mensagens): a cópia leva o fundo da página, senão o topo de baixo aparece através dela.
+  const cs = c.style.backgroundColor;
+  if (!cs || cs === "transparent" || /rgba\(.*,\s*0\)$/.test(cs)) {
+    const w = doc.defaultView; let fundo = "";
+    for (const el of [h.parentElement, doc.body, doc.documentElement]) { const b = el && w.getComputedStyle(el).backgroundColor; if (b && !/rgba\(.*,\s*0\)$/.test(b) && b !== "transparent") { fundo = b; break; } }
+    c.style.backgroundColor = fundo || "#000";
+  }
   c.style.zIndex = "19";
   return c;
 }
@@ -296,8 +309,12 @@ function acenderNaCopia(c, k) {
 function pintarDeslize(a, p) {
   const { de, para, lado } = a, w = W(), s = lado === "esq" ? -1 : 1;
   const [t0, t1] = a.topos || [];
-  if (t1) t1.style.opacity = String(Math.min(1, Math.max(0, (p - 0.15) / 0.6)));
-  else if (t0) t0.style.opacity = String(1 - p);
+  // Um topo some e depois o outro aparece (cruzados, os dois textos ficavam um em cima do outro no meio do caminho).
+  // O de quem sai fica por cima e some inteiro; o de quem entra fica embaixo, com o fundo já no lugar, e só o que está
+  // dentro dele aparece aos poucos (o topo nunca fica vazio nem transparente).
+  const lim = (x) => String(Math.min(1, Math.max(0, x)));
+  if (t0) t0.style.opacity = t1 ? lim(1 - p / 0.45) : lim(1 - p);
+  if (t1) { const o = lim(t0 ? (p - 0.45) / 0.4 : p); for (const f of t1.children) f.style.opacity = o; }
   de.style.transform = `translate3d(${s * p * w}px,0,0)`;
   para.style.transform = `translate3d(${-s * (1 - p) * w}px,0,0)`;
 }
@@ -315,7 +332,8 @@ function comecar(k, lado) {
   const tDe = topoDe(de), tPara = topoDe(para);
   const topos = [tDe && copiaDoTopo(tDe), tPara && copiaDoTopo(tPara)];
   if (topos[0]) tDe.style.visibility = "hidden";
-  if (topos[1]) { tPara.style.visibility = "hidden"; topos[1].style.opacity = "0"; topos[1].style.zIndex = "20"; }
+  if (topos[0]) topos[0].style.zIndex = "20";
+  if (topos[1]) { tPara.style.visibility = "hidden"; topos[1].style.zIndex = "19"; }
   arraste = { de, para, lado, alvo, k, p: 0, bDe, bPara, copia, aceso: false, tDe, tPara, topos };
   document.body.classList.add("girando");
   pintarDeslize(arraste, 0);

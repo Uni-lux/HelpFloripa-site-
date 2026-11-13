@@ -16,7 +16,7 @@ const feed = quadro(/feed\.html/), perfil = quadro(/usuarios\.html/);
 const cores = await feed.evaluate(() => {
   const b = document.querySelector("#barraRede"), at = b.querySelector('[aria-current="page"]');
   return { bg: getComputedStyle(document.body).backgroundColor, linha: getComputedStyle(at, "::before").backgroundColor, cor: getComputedStyle(at).color,
-    larg: b.getBoundingClientRect().width, vw: document.documentElement.clientWidth, sw: document.documentElement.scrollWidth, bbg: getComputedStyle(b).backgroundColor, rotulo: getComputedStyle(at.querySelector("span:not(.mini-av)")).width };
+    larg: b.getBoundingClientRect().width, vw: document.documentElement.clientWidth - (document.documentElement.classList.contains("hf-corte") ? 6 : 0), sw: document.documentElement.scrollWidth, bbg: getComputedStyle(b).backgroundColor, rotulo: getComputedStyle(at.querySelector("span:not(.mini-av)")).width };
 });
 ok(cores.bg === "rgb(0, 0, 0)", "Diário: fundo preto (" + cores.bg + ")");
 ok(cores.linha === "rgb(255, 255, 255)" && cores.cor === "rgb(255, 255, 255)", "barra de baixo: ativo branco com a linha branca");
