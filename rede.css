@@ -4071,3 +4071,61 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 /* Perfil no escuro: a capa encosta nas bordas usando o recuo de verdade da página (no celular é 10 px; com 16 px a página
    vazava 6 px para o lado). */
 @media (max-width: 640px) { :root[data-theme="dark"] #meuPerfil > .pf2 { margin: -10px -10px 0; } }
+
+/* =====================================================================================================
+   Perfil organizado (13/11/2026, pedido dele: "elegante, moderno, completo, sem poluição, compacto"):
+   sem o "+" na foto, bio inteira, links em ícones pequenos (Instagram/WhatsApp), números sem a média de estrelas
+   (só nos perfis de negócio), botões mais baixos e o @ do topo limpo.
+   ===================================================================================================== */
+.topo .topo-nick { display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: none; -webkit-background-clip: border-box; background-clip: border-box;
+  color: var(--text); font-family: "HF Marca", system-ui, sans-serif; font-weight: 600; font-size: 16.5px; letter-spacing: .01em; }
+.topo .topo-nick .tn-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topo .topo-nick i { font-style: normal; font-weight: 500; margin-right: 1px; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+.topo .topo-nick .tn-selo { flex: none; width: 16px; height: 16px; color: var(--accent); }
+/* foto e nome */
+.pf2 .pf-anel { width: 88px; height: 88px; }
+.pf2 .pf-topo { margin-top: -44px; }
+.pf2 .pf-nome { font-size: clamp(20px, 5.4vw, 23px); line-height: 1.15; }
+.pf2 .pf-handle { font-size: 13.5px; margin-top: 3px; }
+/* bio inteira (até 280 letras), sem cortar */
+.pf2 .pf-bio, .pf2 .pf-bio.aberta { display: block; -webkit-line-clamp: unset; overflow: visible; font-size: 14.5px; line-height: 1.45; margin-top: 8px; white-space: pre-line; }
+/* links: ícones pequenos e redondos, monocromáticos (a cor da marca só ao passar o dedo/mouse) */
+.pf2 .pf-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.pf2 .pf-links[hidden] { display: none; }
+.pf-link { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 34px; min-width: 34px; padding: 0; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: var(--text); text-decoration: none; cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.pf-link .pl-ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pf-link.add { padding: 0 12px 0 9px; color: var(--muted); border-style: dashed; font: 600 13px/1 inherit; font-family: inherit; }
+.pf-link.add.so-icone { padding: 0; width: 34px; }
+.pf-link.add .pl-ic { width: 16px; height: 16px; }
+.pf-link-priv { position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 1.5px solid var(--bg); color: var(--muted); }
+.pf-link-priv .pl-cad { width: 9px; height: 9px; fill: none; stroke: currentColor; stroke-width: 2.4; }
+@media (hover: hover) {
+  .pf-link.instagram:hover { color: #e1306c; border-color: color-mix(in srgb, #e1306c 55%, transparent); }
+  .pf-link.whatsapp:hover { color: #25d366; border-color: color-mix(in srgb, #25d366 55%, transparent); }
+  .pf-link.add:hover { color: var(--accent); border-color: var(--accent); }
+}
+.pf-link:active { transform: scale(.94); }
+/* números: 3 na linha + estatísticas (só no seu) */
+.pf2 .pf-stats { margin: 2px 0 12px; }
+.pf2 .pf-stats .pf-stat { padding: 4px 2px; }
+.pf2 .pf-stat .num { font-size: 16.5px; }
+.pf2 .pf-stat .rot { font-size: 12px; font-weight: 500; }
+.pf2 .pf-stats .pf-stat-mais { flex-basis: 36px; width: 36px; height: 36px; border-radius: 10px; color: var(--muted); background: transparent; border: 1px solid var(--line); }
+.pf2 .pf-stats .pf-stat-mais .i { width: 17px; height: 17px; }
+/* ações: baixas e discretas (como nos apps) */
+.pf2 .pf-acoes, .pf2 .pf-acoes:has(> :nth-child(4)) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 6px; }
+.pf2 .pf-acoes > .btn { min-height: 34px; height: 34px; padding: 0 10px; border-radius: 10px; font-size: 13.5px; font-weight: 650; gap: 6px; }
+.pf2 .pf-acoes > .btn .i.xs { width: 15px; height: 15px; }
+.pf2 .pf-acoes > .btn.icone { width: 36px; padding: 0; }
+.pf2 .pf-acoes > .btn.icone .i { width: 18px; height: 18px; }
+.pf2 .pf-acoes > .btn.sec { background: var(--panel-2); border: 1px solid var(--line); }
+#meuPerfil .pf2 .pf-acoes > .btn.pri { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+/* editor: links */
+.ed-links { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.ed-sec { margin: 0; font-size: 15px; font-weight: 750; }
+.ed-sec-sub { margin: 2px 0 12px; color: var(--muted); font-size: 13px; }
+.ed-link-linha { display: flex; align-items: center; gap: 8px; }
+.ed-link-linha input { flex: 1; min-width: 0; }
+.ed-link-linha select { flex: 0 0 auto; width: auto; max-width: 46%; }
+.ed-link-pre { color: var(--muted); font-weight: 600; margin-right: -4px; }

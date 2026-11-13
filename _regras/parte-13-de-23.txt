@@ -174,4 +174,4 @@
       return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
           && (canal != 'avisos' || papel() == 'dono');
     }
-// ===== FIM DA PARTE 13 DE 22 =====
+// ===== FIM DA PARTE 13 DE 23 =====

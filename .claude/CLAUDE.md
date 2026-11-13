@@ -2588,6 +2588,19 @@ chat da equipe).
 - **Abas do Mensagens sem negócio (13/11/2026, PR depois do #214, sem regra nova):** pedido dele. Com só Pessoal e Chamadas
   (`.modos.sem-negocios`), uma aba em cada ponta, alinhadas com as fotos e a hora das conversas (14 px; sublinhado do largo da
   aba). Fim do mensagens.css. Conferido no `t-mensagens-topo-some.mjs`.
+- **Perfil organizado + links do perfil (13/11/2026, PR depois do #215, MUDA REGRAS — não publicadas; 23 partes, 1174
+  testes):** prints dele. Sem o "+" na foto de perfil (novo flash fica no Diário e na foto grande), bio inteira (sem corte),
+  **sem a média de estrelas no perfil pessoal** (só nos perfis de negócio; `data-stat="nota"`, `pintarNotaPerfil` e
+  `abrirAvaliacoes` saíram; "Avaliação" saiu do "O que aparece"), botões de 34 px (Editar perfil em ciano suave, sem
+  ícones), estatísticas num quadradinho com borda, @ do topo limpo (Sora 600, "@" cinza, selo se verificado).
+  **Links** `links-perfil.js` (sem deps): Instagram e WhatsApp em ícones redondos monocromáticos embaixo da bio
+  (`.pf-links`, `data-el="links"`; cor da marca só no hover), cada um com quem pode ver → `contatos_perfil/{uid}_{tipo}`
+  {uid, tipo instagram|whatsapp, valor, ver todos|seguidores|ninguem, em} (regra: get só se pode ver — seguidores =
+  `relacoes/{eu}_{uid}` existe —, bloqueio esconde, list proibido) + cópia em `usuarios.linksPerfil`. Editor: seção "Links no
+  perfil" no Editar perfil (`#edInsta`/`#edWhats` + `#edInstaVer`/`#edWhatsVer`; `limparInstagram` aceita link/@,
+  `limparWhatsapp` põe o 55); no seu perfil "+ Links" (sem links) ou "+" (com links) e cadeado no ícone que não é para
+  todos; ⋯ "Links: Instagram e WhatsApp". Sem as regras: grava só na conta e só o dono vê (avisa). Conta apagada: conta.js e
+  limpeza-conta apagam. Teste `t-perfil-organizado.mjs` (15).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2597,7 +2610,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (21 partes em `_regras/`, 1040 testes; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1174 testes; inclui os links do perfil (`contatos_perfil`); inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

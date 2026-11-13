@@ -21,6 +21,28 @@
       allow delete: if logado() && uid == request.auth.uid;
     }
 
+    // LINKS DO PERFIL (13/11/2026): contatos_perfil/{uid}_{instagram|whatsapp} {uid, tipo, valor, ver, em}.
+    // Quem vê: todos (com login), só quem segue a pessoa ou ninguém; o dono e a moderação sempre. Bloqueio esconde.
+    match /contatos_perfil/{id} {
+      allow get: if logado() && resource != null
+                    && (resource.data.uid == request.auth.uid || admin()
+                        || (!bloqueioEntre(request.auth.uid, resource.data.uid)
+                            && (resource.data.ver == 'todos'
+                                || (resource.data.ver == 'seguidores'
+                                    && exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))))));
+      allow list: if false;
+      allow create, update: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.ver in ['todos', 'seguidores', 'ninguem']
+                    && request.resource.data.valor is string
+                    && ((request.resource.data.tipo == 'instagram' && request.resource.data.valor.matches('^[A-Za-z0-9._]{1,30}$'))
+                        || (request.resource.data.tipo == 'whatsapp' && request.resource.data.valor.matches('^[0-9]{10,13}$')))
+                    && request.resource.data.em == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || admin());
+    }
+
     // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
     match /notas/{uid}/itens/{id} {
       allow read, delete: if logado() && uid == request.auth.uid;
@@ -143,41 +165,4 @@
                 && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
       }
 
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'midia', 'enquete', 'criadoEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && textoComentarioOk(request.resource.data)
-                    && midiaComentOk(request.resource.data) && enqueteComentOk(request.resource.data)
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && fotoOk(request.resource.data.get('foto', ''))
-                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
-                    && podeComentar(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
-                    && respostaOk(request.resource.data)
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
-                    && ritmoOk('com')
-                    && request.resource.data.criadoEm == request.time;
-
-      allow update: if logado()
-                    && emailOk()
-                    && (
-                      // quem comentou corrige o texto
-                      (resource.data.autorId == request.auth.uid
-                        && mudou().hasOnly(['texto', 'editadoEm'])
-                        && textoComentarioOk(request.resource.data)
-                        && request.resource.data.editadoEm == request.time)
-                      ||
-                      // o dono da publicação oculta ou mostra o comentário
-                      (resource.data.postAutorId == request.auth.uid
-                        && mudou().hasOnly(['oculto'])
-                        && request.resource.data.oculto is bool)
-                    );
-
-      allow delete: if logado()
-                    && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
-      allow delete: if podeModerar();
-    }
-
-// ===== FIM DA PARTE 17 DE 22 =====
+// ===== FIM DA PARTE 17 DE 23 =====

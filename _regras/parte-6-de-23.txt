@@ -183,4 +183,4 @@
                     && acessoNova()
                     && textoAte('ultimaMensagem', 200);
 
-// ===== FIM DA PARTE 6 DE 22 =====
+// ===== FIM DA PARTE 6 DE 23 =====

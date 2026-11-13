@@ -12,7 +12,8 @@ import {
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
-import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas, media, notaTexto, TIPOS_NEGOCIO } from "./avaliacoes.js?v=20";
+import { avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas } from "./avaliacoes.js?v=20";
+import { lerLinks, pintarLinks, gravarLinks, esquecerLinks, limparInstagram, limparWhatsapp, formatarWhatsapp, VER_LINK } from "./links-perfil.js?v=1";
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
@@ -61,7 +62,6 @@ async function salvarPref(campos) {
 // Cidade, avaliação e destaques seguem a escolha (também no seu perfil: você vê como os outros veem).
 function aplicarPref(h, pref) {
   h.raiz.querySelectorAll(".pf-handle .pf-cidade").forEach((x) => { x.hidden = !mostraNoPerfil(pref, "cidade"); });
-  const nota = h.stat("nota"); if (nota) nota.hidden = !mostraNoPerfil(pref, "nota");
   h.raiz.querySelector(".pf-corpo")?.classList.toggle("sem-destaques", !mostraNoPerfil(pref, "destaques"));
 }
 
@@ -95,28 +95,14 @@ function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = 
   h.stat("seguidores").querySelector(".num").textContent = numero(seguidores);
   h.stat("seguindo").querySelector(".num").textContent = numero(seguindo);
 }
-// Nota do perfil: média das avaliações dos perfis de negócio; sem nenhuma, a das publicações.
-const notasPerfil = new Map();
-async function pintarNotaPerfil(h, uid, { recarregar = false } = {}) {
-  if (!uid) return null;
-  if (recarregar || !notasPerfil.has(uid)) notasPerfil.set(uid, notaDoPerfil(fb, uid).catch(() => null));
-  const r = await notasPerfil.get(uid);
-  if (h?.stat("nota")) h.stat("nota").querySelector("em").textContent = r?.geral?.total ? notaTexto(media(r.geral)) : "–";
-  return r;
-}
-async function abrirAvaliacoes(p, uid) {
-  const r = await pintarNotaPerfil(null, uid);
-  if (!r) { toast("Não foi possível carregar as avaliações."); return; }
-  const fontes = Object.entries(TIPOS_NEGOCIO)
-    .map(([t, rot]) => ({ rotulo: rot, resumo: r.resumos[`neg_${uid}_${t}`], principal: r.origem === "negocios" }))
-    .filter((f) => f.resumo?.total);
-  fontes.push({ rotulo: "Publicações", resumo: r.pub, principal: r.origem === "publicacoes" });
-  if (r.cliente.total) fontes.push({ rotulo: "Como cliente", resumo: r.cliente, principal: false });
-  abrirDetalhamento({
-    fbx: fb, titulo: `Avaliações de ${p?.nome || "usuário"}`,
-    sub: r.origem === "negocios" ? "Média das avaliações dos perfis de negócio." : r.origem === "publicacoes" ? "Sem avaliações de negócio: vale a média das publicações." : "",
-    geral: r.geral, fontes, alvoId: uid
-  });
+// Perfil pessoal sem a média das estrelas (13/11/2026, pedido dele): a avaliação fica só nos perfis de negócio.
+// Links (Instagram/WhatsApp) em ícones pequenos embaixo da bio; cada um com "quem pode ver" (links-perfil.js).
+function pintarLinksPerfil(h, uid, { proprio = false } = {}) {
+  const alvo = h?.el("links");
+  if (!alvo) return;
+  lerLinks(fb, uid, { proprio, dados: proprio ? dados : null })
+    .then((l) => { if (h.el("links") === alvo) pintarLinks(alvo, l, { proprio, aoEditar: proprio ? () => abrirEditar("links") : null }); })
+    .catch(() => {});
 }
 
 // ---------- meu perfil ----------
@@ -132,15 +118,7 @@ function renderizarMeuPerfil() {
     btnCapa.append(icone("camera", "i xs"));
     btnCapa.addEventListener("click", () => escolherImagem("capa", true));
     meuCab.el("capa").appendChild(btnCapa);
-    // "+" na foto = novo flash (como no Instagram). Trocar a foto fica no lápis da foto grande (tocar e segurar).
-    const btnFoto = document.createElement("button");
-    btnFoto.type = "button";
-    btnFoto.className = "pf-editar-foto pf-mais-flash";
-    btnFoto.setAttribute("aria-label", "Novo flash");
-    btnFoto.title = "Novo flash";
-    btnFoto.appendChild(icone("mais", "i xs"));
-    btnFoto.addEventListener("click", (e) => { e.stopPropagation(); novoFlash(() => anelNoPerfil(meuCab.el("avatar"), eu.uid)); });
-    meuCab.raiz.querySelector(".pf-avatar-wrap").appendChild(btnFoto);
+    // Sem o "+" na foto (13/11/2026, pedido dele): o novo flash fica no Diário e na foto grande (tocar e segurar).
     segurarFoto(meuCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid: eu.uid, p: dados, proprio: true }));
     anelNoPerfil(meuCab.el("avatar"), eu.uid);
     voltarAoFlash(); // voltou de um link aberto de dentro de um flash
@@ -150,13 +128,13 @@ function renderizarMeuPerfil() {
     const acoes = meuCab.el("acoes");
     const bEditar = document.createElement("button");
     bEditar.type = "button"; bEditar.className = "btn pri";
-    bEditar.append(icone("lapis", "i xs"), document.createTextNode("Editar perfil"));
+    bEditar.textContent = "Editar perfil";
     bEditar.addEventListener("click", abrirEditar);
     // Perfil enxuto (12/11/2026): Editar perfil · Compartilhar · ⋯ (Social, estatísticas, negócios, destaques, selo e o
     // que aparece no perfil ficam no ⋯).
     const bComp = document.createElement("button");
     bComp.type = "button"; bComp.className = "btn sec";
-    bComp.append(icone("compartilhar", "i xs"), document.createTextNode("Compartilhar"));
+    bComp.textContent = "Compartilhar";
     bComp.addEventListener("click", () => compartilharPerfil(eu.uid, dados.nome));
     const bMais = document.createElement("button");
     bMais.type = "button"; bMais.className = "btn sec icone"; bMais.id = "meuPerfilMais";
@@ -168,7 +146,6 @@ function renderizarMeuPerfil() {
     meuCab.stat("posts").addEventListener("click", () => $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }));
     meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
     meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
-    meuCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(dados, eu.uid));
     const bIns = meuCab.stat("insights");
     bIns.hidden = false;
     bIns.replaceChildren(icone("graf", "i s"));
@@ -177,7 +154,7 @@ function renderizarMeuPerfil() {
   }
   pintarMeuSocial();
   preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
-  pintarNotaPerfil(meuCab, eu.uid);
+  pintarLinksPerfil(meuCab, eu.uid, { proprio: true });
   // Bio vazia vira convite
   const bio = meuCab.el("bio");
   if (!dados.bio) {
@@ -200,16 +177,20 @@ function renderizarMeuPerfil() {
   const tn = $("topoNick");
   if (tn) {
     tn.replaceChildren();
-    if (dados.nickname) { const a = document.createElement("i"); a.textContent = "@"; tn.append(a, document.createTextNode(dados.nickname)); }
-    else tn.textContent = dados.nome || "";
-    tn.title = tn.textContent;
+    const n = document.createElement("span"); n.className = "tn-nome";
+    if (dados.nickname) { const a = document.createElement("i"); a.textContent = "@"; n.append(a, document.createTextNode(dados.nickname)); }
+    else n.textContent = dados.nome || "";
+    tn.append(n);
+    if (dados.verificado) { const v = icone("selo", "i tn-selo"); v.setAttribute("aria-label", "Verificado"); tn.append(v); }
+    tn.title = n.textContent;
   }
 }
 
 // ⋯ do seu perfil: tudo o que não precisa ficar à mostra.
 function menuMeuPerfil() {
   const ops = [
-    { rotulo: "O que aparece no perfil", sub: "Cidade, avaliação, negócios e destaques", icone: "olho", fn: personalizarPerfil },
+    { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e destaques", icone: "olho", fn: personalizarPerfil },
+    { rotulo: "Links: Instagram e WhatsApp", sub: "E quem pode ver cada um", icone: "link", fn: () => abrirEditar("links") },
     { rotulo: "Estatísticas do perfil", sub: "Alcance, interações, seguidores e público", icone: "graf", fn: abrirInsightsPerfil },
     { rotulo: "Social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
     { rotulo: "Novo destaque", sub: "Junte flashes num destaque do perfil", icone: "estrela", fn: () => novoDestaque() },
@@ -223,7 +204,7 @@ function menuMeuPerfil() {
 async function personalizarPerfil() {
   const pref = await prefPublicas(eu.uid);
   const itens = [
-    ["cidade", "Cidade", "pin"], ["nota", "Avaliação", "estrela"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Destaques do Flash", "raio"]
+    ["cidade", "Cidade", "pin"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Destaques do Flash", "raio"]
   ];
   abrirOpcoes("O que aparece no seu perfil", itens.map(([k, rot, ic]) => {
     const on = mostraNoPerfil(pref, k);
@@ -907,7 +888,7 @@ const NICK_RE = /^[a-z0-9._]{3,20}$/;
 let nickDisponivel = true, timerNick = null;
 
 let edLocal = null;
-function abrirEditar() {
+function abrirEditar(foco) {
   edRascunho = { fotoPerfil: dados.fotoPerfil || "", fotoCapa: dados.fotoCapa || "" };
   $("edNome").value = dados.nome || "";
   $("edUsuario").value = dados.nickname || "";
@@ -921,8 +902,17 @@ function abrirEditar() {
   nickDisponivel = true;
   mostrarStatusNick("3 a 20 caracteres: letras minúsculas, números, ponto e _");
   pintarEditor();
+  // Links: o que está guardado (contatos_perfil ou a cópia na conta).
+  const l0 = dados.linksPerfil || {};
+  $("edInsta").value = l0.instagram?.valor || ""; $("edInstaVer").value = l0.instagram?.ver || "todos";
+  $("edWhats").value = formatarWhatsapp(l0.whatsapp?.valor || ""); $("edWhatsVer").value = l0.whatsapp?.ver || "seguidores";
+  lerLinks(fb, eu.uid, { proprio: true, dados }).then((l) => {
+    if (!$("edInsta").value && l.instagram) { $("edInsta").value = l.instagram.valor; $("edInstaVer").value = l.instagram.ver; }
+    if (!$("edWhats").value && l.whatsapp) { $("edWhats").value = formatarWhatsapp(l.whatsapp.valor); $("edWhatsVer").value = l.whatsapp.ver; }
+  }).catch(() => {});
   fecharFolha("folhaConfig");
   abrirFolha("folhaEditar");
+  if (foco === "links") setTimeout(() => { $("edLinks").scrollIntoView({ behavior: "smooth", block: "start" }); $("edInsta").focus({ preventScroll: true }); }, 160);
 }
 function pintarEditor() {
   pintarAvatar($("edAvatar"), edRascunho.fotoPerfil, $("edNome").value || dados.nome);
@@ -969,6 +959,12 @@ $("edSalvar").addEventListener("click", async () => {
   const { uf, cidade, cidadeIbge } = edLocal ? edLocal.ler() : { uf: dados.uf || "", cidade: dados.cidade || "", cidadeIbge: dados.cidadeIbge || null };
   const telefone = $("edTelefone").value.trim();
   if (nome.length < 2) { toast("Informe seu nome."); $("edNome").focus(); return; }
+  const insta = limparInstagram($("edInsta").value);
+  const whats = limparWhatsapp($("edWhats").value);
+  if (whats === null) { toast("WhatsApp: informe o número com DDD."); $("edWhats").focus(); return; }
+  const linksNovos = { instagram: { valor: insta, ver: $("edInstaVer").value }, whatsapp: { valor: whats, ver: $("edWhatsVer").value } };
+  const l0 = dados.linksPerfil || {};
+  const linksMudaram = ["instagram", "whatsapp"].some((t) => (l0[t]?.valor || "") !== linksNovos[t].valor || (linksNovos[t].valor && (l0[t]?.ver || "") !== linksNovos[t].ver));
   if (nick && (!NICK_RE.test(nick) || !nickDisponivel)) { toast("Escolha um nome de usuário disponível."); $("edUsuario").focus(); return; }
   const btn = $("edSalvar");
   btn.disabled = true; btn.textContent = "Salvando...";
@@ -1002,6 +998,12 @@ $("edSalvar").addEventListener("click", async () => {
     await gravarComLocal((d) => fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), d, { merge: true }), publico, NOVOS.perfil);
     fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, busca: palavrasBusca(publico.nome || dados.nome, publico.nickname || dados.nickname) }, { merge: true }).catch(() => {});
     try { if (authFns.updateProfile && nome !== eu.displayName) await authFns.updateProfile(eu, { displayName: nome }); } catch {}
+    let avisoLinks = "";
+    if (linksMudaram) {
+      const r = await gravarLinks(fb, eu.uid, linksNovos);
+      dados.linksPerfil = Object.fromEntries(Object.entries(linksNovos).filter(([, v]) => v.valor));
+      if (r === "sem-regras") avisoLinks = " · os links aparecem para os outros depois da publicação das regras";
+    }
     Object.assign(dados, privado);
     perfis.delete(eu.uid);
     // As publicações antigas passam a mostrar o nome e a foto novos (Flash, Mensagens, grade, comentários).
@@ -1009,7 +1011,7 @@ $("edSalvar").addEventListener("click", async () => {
     renderizarMeuPerfil();
     renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
     fecharFolha("folhaEditar");
-    toast("Perfil atualizado");
+    toast("Perfil atualizado" + avisoLinks);
   } catch (e) {
     console.error(e);
     toast("Não foi possível salvar: " + erroAmigavel(e));
@@ -1146,13 +1148,14 @@ async function abrirPerfilPublico(uid) {
   definirOrigem("perfil");
   if (!uid) return;
   if (uid === eu.uid) { pilha.slice().forEach(fecharFolha); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+  esquecerLinks(uid); // seguir/deixar de seguir muda o que dá para ver
   ppCab = montarCabecalho($("ppCabecalho"));
   $("ppGrade").replaceChildren();
   perfis.delete(uid);
   const p = await obterPerfil(uid);
   preencherCabecalho(ppCab, p);
   prefPublicas(uid).then((pref) => { if (ppCab) aplicarPref(ppCab, pref); });
-  pintarNotaPerfil(ppCab, uid);
+  pintarLinksPerfil(ppCab, uid);
   anelNoPerfil(ppCab.el("avatar"), uid);
   voltarAoFlash();
   destaquesNoPerfil(ppCab.raiz.querySelector(".pf-corpo"), uid);
@@ -1221,7 +1224,6 @@ async function abrirPerfilPublico(uid) {
   ppCab.stat("posts").addEventListener("click", () => $("ppGrade").scrollIntoView({ behavior: "smooth" }));
   ppCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(uid, "seguidores"));
   ppCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(uid, "seguindo"));
-  ppCab.stat("nota").addEventListener("click", () => abrirAvaliacoes(p, uid));
   renderizarGrade($("ppGrade"), lista, { proprio: false, autor: { ...p, uid }, uid });
 }
 

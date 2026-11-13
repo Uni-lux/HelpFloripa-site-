@@ -140,4 +140,4 @@
         let a = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
         return a.acao == 'entrou' && a.ultimo == id && a.ids.size() <= 3;
       }
-// ===== FIM DA PARTE 10 DE 22 =====
+// ===== FIM DA PARTE 10 DE 23 =====

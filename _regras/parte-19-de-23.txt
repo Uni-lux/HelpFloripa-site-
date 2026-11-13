@@ -1,3 +1,25 @@
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
+                                                              'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
+                    && tipoOk(request.resource.data)
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // Região de quem publica (Diário e Explorar priorizam a cidade e o estado de quem lê): UF e código IBGE.
+                    && (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
+                    && (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
+                    && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
+                    // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 10090))
+                    && ritmoOk('pub')
+                    && publicacaoOk()
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: fica em agendadas/{id} (só o autor) e entra aqui na hora; o Diário não aceita mais data futura
+                    // (antes ficava aqui com agendadoPara e dava para ler numa lista antes da hora)
+                    && !('agendadoPara' in request.resource.data);
+
       allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
@@ -168,34 +190,4 @@
           && math.abs(p.lat * 100 - math.round(p.lat * 100)) < 0.001
           && math.abs(p.lng * 100 - math.round(p.lng * 100)) < 0.001;
     }
-    function posOk(p) {
-      return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
-          && p.lat is number && p.lat >= -34 && p.lat <= 6
-          && p.lng is number && p.lng >= -75 && p.lng <= -28
-          && p.get('rumo', 0) is number && p.get('vel', 0) is number
-          && p.em == request.time;
-    }
-
-    match /corridas/{id} {
-      function c() { return resource.data; }
-      function n() { return request.resource.data; }
-      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
-      function cad() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
-      function pinCerto() { return n().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(id)/privado/pin).data.pin; }
-      // Corrida ou entrega de presente: quem deu o presente paga (direto para quem leva) e acompanha.
-      function presenteCorridaOk() {
-        let p = get(/databases/$(database)/documents/presentes/$(n().presenteId)).data;
-        return p.para == request.auth.uid && p.status == 'aceito' && p.tipo == n().servico
-            && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
-            && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
-      }
-      // Quem recebe a entrega: ninguém, ou alguém com quem quem pede já conversa (conversa aceita e sem bloqueio).
-      // Antes dava para pôr qualquer pessoa: ela passava a ver a corrida e o PIN, e a conversa de serviço furava
-      // o "quem pode me mandar mensagem".
-      function destinatarioOk(dest) {
-        return dest == '' || conversaAceita(/databases/$(database)/documents/conversas/$(par(request.auth.uid, dest)), dest);
-      }
-      function conversaAceita(conv, dest) {
-        return exists(conv) && pedidoAceito(get(conv).data.get('pedido', null)) && !bloqueioEntre(request.auth.uid, dest);
-      }
-// ===== FIM DA PARTE 19 DE 22 =====
+// ===== FIM DA PARTE 19 DE 23 =====

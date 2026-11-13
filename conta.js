@@ -121,6 +121,8 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
   const ehGuardado = (d) => d.ref.path.startsWith("guardados/");
   await Promise.all(docs.filter((d) => !ehNota(d) && !ehGuardado(d)).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
   await Promise.all(docs.filter(ehGuardado).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+  // Links do perfil (Instagram/WhatsApp).
+  await Promise.all(["instagram", "whatsapp"].map((t) => fb.deleteDoc(fb.doc(fb.db, "contatos_perfil", `${uid}_${t}`)).catch(() => {})));
   await Promise.all(docs.filter(ehNota).map(async (d) => {
     const { postId, nota } = d.data(); const n = Number(nota) || 0;
     try {
