@@ -162,6 +162,14 @@ onAuthStateChanged(auth, async (u) => {
       return;
     }
     try { sessionStorage.setItem(chave, "1"); } catch {}
+    // Pendências da própria conta (uma vez por sessão): publicações agendadas que já passaram da hora vão para o Diário
+    // (agendadas.js) e o que uma suspensão já vencida escondeu volta (guardar.js).
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then(async (f) => {
+      const fbx = { ...f, db };
+      const [ag, gu] = await Promise.all([import("./agendadas.js?v=1"), import("./guardar.js?v=1")]);
+      await ag.publicarVencidas(fbx, u.uid, { perfil: d }).catch(() => {});
+      await gu.devolverVencidos(fbx, u.uid).catch(() => {});
+    }).catch(() => {});
     // Notificações com o app fechado (push.js): o endereço do aparelho pode mudar; renova 1×/dia se estiver ligado.
     import("./push.js?v=2").then(async (m) => m.renovarPush({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid, d)).catch(() => {});
     // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar.

@@ -1,45 +1,3 @@
-    match /sos/{id} {
-      function d() { return request.resource.data; }
-      function r() { return resource.data; }
-      // Quem está perto só lê enquanto o pedido está aberto (depois de resolvido, o lugar e o nome não ficam expostos).
-      allow get, list: if logado() && ((resource.data.publico == true && resource.data.status in ['aberto', 'atendido']) || resource.data.uid == request.auth.uid
-                    || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
-                    && d().get('equipe', false) is bool && d().get('escalarMin', 0) is int && d().get('escalarMin', 0) >= 0 && d().get('escalarMin', 0) <= 15
-                    && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
-                    && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
-                    && valorTextoAte(d().get('texto', ''), 300)
-                    && pontoAlertaOk(d()) && d().precisao is number
-                    && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
-                    && d().status == 'aberto' && d().ajudanteId == ''
-                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
-      function sosMuda(k, st, ns) {
-        let dono = r().uid == request.auth.uid;
-        let ajudante = r().ajudanteId == request.auth.uid;
-        return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
-            // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
-            || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
-                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
-            || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
-                && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
-            || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
-                && !bloqueioEntre(request.auth.uid, r().uid)
-                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
-                && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
-            || (ajudante && st == 'atendido' && ns == 'aberto'
-                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
-      }
-      allow delete: if false;
-    }
-
-    // Ocorrências (roubo, furto, golpe, suspeita). Anônima = sem autorId; quem fez fica em ocorrencias_autoria/{id}
-    // (só a pessoa e a moderação leem) e é por ele que a pessoa marca "recuperado".
-    function autorOcorrencia(oc) {
-      let a = /databases/$(database)/documents/ocorrencias_autoria/$(oc);
-      return exists(a) && get(a).data.uid == request.auth.uid;
-    }
     match /ocorrencias/{id} {
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
@@ -139,4 +97,4 @@
 
   }
 }
-// ===== FIM DA PARTE 21 DE 21 =====
+// ===== FIM DA PARTE 22 DE 22 =====

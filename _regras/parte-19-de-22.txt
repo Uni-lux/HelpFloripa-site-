@@ -1,3 +1,88 @@
+    match /neg_stats/{id} {
+      function statsNovo() {
+        let d = request.resource.data;
+        let vis = caminhoVisita(d.negocioId, d.dia);
+        let va = getAfter(vis).data;
+        return d.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
+            && id == d.negocioId + '_' + d.dia
+            && d.donoId == get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId
+            && !exists(vis) && va.dia == d.dia
+            && d.v == 1
+            && d.o.keys().hasOnly([va.origem]) && d.o[va.origem] == 1
+            && d.h.keys().hasOnly([string(va.hora)]) && d.h[string(va.hora)] == 1
+            && d.a == {} && d.it == {};
+      }
+      function maisUmNoMapa(d, r, mapa, x) {
+        return d[mapa].diff(r[mapa]).affectedKeys().hasOnly([x]) && d[mapa][x] == r[mapa].get(x, 0) + 1;
+      }
+      function statsMais() {
+        let d = request.resource.data;
+        let r = resource.data;
+        let k = d.diff(r).affectedKeys();
+        let vis = caminhoVisita(r.negocioId, r.dia);
+        return (k.hasOnly(['v', 'o', 'h'])
+                && !exists(vis) && getAfter(vis).data.dia == r.dia
+                && d.v == r.v + 1
+                && maisUmNoMapa(d, r, 'o', getAfter(vis).data.origem)
+                && maisUmNoMapa(d, r, 'h', string(getAfter(vis).data.hora)))
+            || (k.hasOnly(['a'])
+                && getAfter(vis).data.acoes.size() == get(vis).data.acoes.size() + 1
+                && maisUmNoMapa(d, r, 'a', getAfter(vis).data.acoes[getAfter(vis).data.acoes.size() - 1]))
+            || (k.hasOnly(['it'])
+                && getAfter(vis).data.itens.size() == get(vis).data.itens.size() + 1
+                && maisUmNoMapa(d, r, 'it', getAfter(vis).data.itens[getAfter(vis).data.itens.size() - 1]));
+      }
+      allow read: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create: if logado() && statsNovo();
+      allow update: if logado() && statsMais();
+      allow delete: if false;
+    }
+
+      // =====================================================
+    // ENTREGAS E CORRIDAS (entregas.html = quem pede; entregador.html = quem leva)
+    // Pedido em corridas/{id}: procurando → aceita → chegou → em_rota → concluida (ou cancelada).
+    // O PIN (corridas/{id}/privado/pin) só quem pede e quem recebe leem; quem leva digita para embarcar (corrida) ou
+    // finalizar (entrega) e a regra confere. O pagamento é direto entre as pessoas: o site não cobra nem recebe.
+    function entregadorAtivo(uid) {
+      let e = /databases/$(database)/documents/entregadores/$(uid);
+      return exists(e) && get(e).data.get('status', '') == 'ativo';
+    }
+    function pontoOk(p) {
+      return p is map && p.keys().hasOnly(['lat', 'lng', 'nome', 'sub'])
+          && p.lat is number && p.lat >= -34 && p.lat <= 6
+          && p.lng is number && p.lng >= -75 && p.lng <= -28
+          && valorTextoAte(p.get('nome', ''), 120) && valorTextoAte(p.get('sub', ''), 160);
+    }
+    function posOk(p) {
+      return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
+          && p.lat is number && p.lat >= -34 && p.lat <= 6
+          && p.lng is number && p.lng >= -75 && p.lng <= -28
+          && p.get('rumo', 0) is number && p.get('vel', 0) is number
+          && p.em == request.time;
+    }
+
+    match /corridas/{id} {
+      function c() { return resource.data; }
+      function n() { return request.resource.data; }
+      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
+      function cad() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
+      function pinCerto() { return n().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(id)/privado/pin).data.pin; }
+      // Corrida ou entrega de presente: quem deu o presente paga (direto para quem leva) e acompanha.
+      function presenteCorridaOk() {
+        let p = get(/databases/$(database)/documents/presentes/$(n().presenteId)).data;
+        return p.para == request.auth.uid && p.status == 'aceito' && p.tipo == n().servico
+            && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
+            && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
+      }
+      // Quem recebe a entrega: ninguém, ou alguém com quem quem pede já conversa (conversa aceita e sem bloqueio).
+      // Antes dava para pôr qualquer pessoa: ela passava a ver a corrida e o PIN, e a conversa de serviço furava
+      // o "quem pode me mandar mensagem".
+      function destinatarioOk(dest) {
+        return dest == '' || conversaAceita(/databases/$(database)/documents/conversas/$(par(request.auth.uid, dest)), dest);
+      }
+      function conversaAceita(conv, dest) {
+        return exists(conv) && pedidoAceito(get(conv).data.get('pedido', null)) && !bloqueioEntre(request.auth.uid, dest);
+      }
       function pedidoAceito(pd) { return pd == null || pd.status == 'aceito'; }
       allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
                     || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
@@ -90,69 +175,4 @@
             && n().desistencias == c().get('desistencias', 0) + 1
             && n().atualizadoEm == request.time;
       }
-      // Quem leva avança as etapas, com o PIN onde precisa.
-      function etapaOk(k, st, ns) {
-        return souEu('entregadorId')
-            && k.hasOnly(['status', 'chegouEm', 'coletadoEm', 'concluidaEm', 'pinInformado', 'atualizadoEm', 'pos'])
-            && n().atualizadoEm == request.time
-            && ((st == 'aceita' && ns == 'chegou' && n().chegouEm == request.time)
-                || (st == 'chegou' && ns == 'em_rota' && n().coletadoEm == request.time
-                    && (c().pinEm != 'embarque' || pinCerto()))
-                || (st == 'em_rota' && ns == 'concluida' && n().concluidaEm == request.time
-                    && (c().pinEm != 'entrega' || pinCerto())));
-      }
-      // Avaliação de quem pediu (uma vez, depois de concluído), com o resumo de notas de quem levou na mesma gravação.
-      function avaliacaoOk(st) {
-        return souEu('clienteId') && st == 'concluida' && c().get('avaliacao', null) == null
-            && n().avaliacao.keys().hasOnly(['nota', 'elogios', 'texto', 'em'])
-            && n().avaliacao.nota in [1, 2, 3, 4, 5]
-            && n().avaliacao.get('elogios', []) is list && n().avaliacao.get('elogios', []).size() <= 5
-            && valorTextoAte(n().avaliacao.get('texto', ''), 300)
-            && n().avaliacao.em == request.time
-            && getAfter(/databases/$(database)/documents/entregadores_notas/$(c().entregadorId)).data.ultima == id;
-      }
-      // Quem levou avalia quem pediu (uma vez).
-      function avaliacaoEntregadorOk(st) {
-        return souEu('entregadorId') && st == 'concluida' && c().get('avaliacaoEntregador', null) == null
-            && n().avaliacaoEntregador.keys().hasOnly(['nota', 'em'])
-            && n().avaliacaoEntregador.nota in [1, 2, 3, 4, 5]
-            && n().avaliacaoEntregador.em == request.time;
-      }
-      allow delete: if false;
-
-      match /privado/{doc} {
-        function cor() { return get(/databases/$(database)/documents/corridas/$(id)).data; }
-        allow get: if logado() && (cor().clienteId == request.auth.uid || cor().get('destinatarioId', '') == request.auth.uid || podeModerar()
-                    || (doc == 'contato' && cor().get('entregadorId', '') == request.auth.uid && cor().status in ['aceita', 'chegou', 'em_rota']));
-        allow create: if logado() && !exists(/databases/$(database)/documents/corridas/$(id))
-                    && getAfter(/databases/$(database)/documents/corridas/$(id)).data.clienteId == request.auth.uid
-                    && ((doc == 'pin' && request.resource.data.keys().hasOnly(['pin'])
-                         && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$'))
-                        || (doc == 'contato' && request.resource.data.keys().hasOnly(['nome', 'telefone', 'obs'])
-                         && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                         && valorTextoAte(request.resource.data.get('telefone', ''), 20)
-                         && valorTextoAte(request.resource.data.get('obs', ''), 300)));
-        allow update, delete: if false;
-      }
-    }
-
-    // Cadastro de quem leva: conta verificada (selo), maior de idade, CNH para moto/carro/utilitário.
-    match /entregadores/{uid} {
-      function d() { return request.resource.data; }
-      function cadastroOk() {
-        return d().keys().hasOnly(['uid', 'nome', 'servicos', 'veiculo', 'modelo', 'cor', 'placa', 'cnh', 'cidade', 'uf', 'declaracoes', 'status', 'suspensoMotivo', 'criadoEm', 'atualizadoEm'])
-            && d().uid == uid
-            && valorTextoAte(d().get('nome', ''), 80)
-            && d().servicos is list && d().servicos.size() >= 1 && d().servicos.size() <= 2 && d().servicos.hasOnly(['entrega', 'corrida'])
-            && d().veiculo in ['bike', 'moto', 'carro', 'utilitario']
-            && (!('corrida' in d().servicos) || d().veiculo in ['moto', 'carro'])
-            && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
-            && (d().veiculo == 'bike'
-                ? (d().get('placa', '') == '' && d().get('cnh', '') == '')
-                : (d().get('placa', '').matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$') && d().get('cnh', '') in ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE']))
-            && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
-            && d().declaracoes is map && d().declaracoes.get('maior', false) == true
-            && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
-            && d().atualizadoEm == request.time;
-      }
-// ===== FIM DA PARTE 19 DE 21 =====
+// ===== FIM DA PARTE 19 DE 22 =====

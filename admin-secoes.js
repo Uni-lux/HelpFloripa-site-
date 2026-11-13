@@ -6,9 +6,9 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=43";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=44";
 import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=26";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=27";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
@@ -17,8 +17,10 @@ import {
   C, D, h, ms, DIA, agora, data, dataHora, relativo, idade, nomeCidade, avatar, pessoaCel, selo, toast, modal, estado, ativoHa,
   TIPOS_NEG, MOTIVOS_DEN, MOTIVOS_QX, registrar, enviarAviso, fluxoAviso, fluxoSancao, tirarSancao, definirSelo, abrirFicha,
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
-  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma, seloEmail
-} from "./admin-base.js?v=29";
+  PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma, seloEmail,
+  esconderItem, mostrarItem
+} from "./admin-base.js?v=30";
+import { completarGuardados, guardarItem } from "./guardar.js?v=1";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
 const bloco = (titulo, sub) => { const b = h("section", "ad-bloco"); const t = h("div", "ad-bloco-topo"); const tt = h("div"); tt.append(h("h3", null, titulo)); if (sub) tt.append(h("p", null, sub)); t.appendChild(tt); b.appendChild(t); b.topo = t; return b; };
@@ -432,10 +434,10 @@ export function denuncias(el) {
     if ((v.acao === "suspensao" || v.acao === "banimento") && !(await fluxoSancao(d.alvoId, v.acao))) return;
     if (v.acao === "programa" && !(await banirPrograma(d.alvoId, d.tipo === "comunidade" ? "comunidade" : String(d.itemId).split("_").pop(), d.tipo === "comunidade" && d.motivo === "venda" ? "Venda ou cobrança na Comunidade, o que é proibido." : ""))) return;
     if (v.acao === "remover") {
-      if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
+      if (d.tipo === "publicacao") { await fb.deleteDoc(fb.doc(fb.db, "diario", d.itemId)); fb.deleteDoc(fb.doc(fb.db, "guardados", "diario_" + d.itemId)).catch(() => {}); D.posts = D.posts.filter((x) => x.id !== d.itemId); }
       else if (d.tipo === "comentario") await fb.deleteDoc(fb.doc(fb.db, "comentarios", d.itemId));
-      else if (d.tipo === "negocio") { await fb.updateDoc(fb.doc(fb.db, "negocios", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true }); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
-      else if (d.tipo === "comunidade") await fb.updateDoc(fb.doc(fb.db, "comunidade", d.itemId), { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true });
+      else if (d.tipo === "negocio") { await esconderItem("negocios", d.itemId); const n = D.negocios.find((x) => x.id === d.itemId); if (n) n.ocultoAte = { toMillis: () => new Date("2999-12-31").getTime() }; }
+      else if (d.tipo === "comunidade") await esconderItem("comunidade", d.itemId);
       else { toast("Perfis e mensagens não são removidos: use aviso, suspensão ou banimento."); return; }
       await registrar("remover_conteudo", d.alvoId, `${d.tipo} ${d.itemId}`);
     }
@@ -567,7 +569,7 @@ export function negocios(el) {
       snap = await fb.getDocs(fb.query(neg, fb.where("tipo", "==", filtroNeg), ...depois, fb.limit(POR_PAGINA)));
     }
     cursor = snap.docs.at(-1) || cursor;
-    return { itens: snap.docs.map(doc), fim: snap.size < POR_PAGINA };
+    return { itens: await completarGuardados(fb, "negocios", snap.docs.map(doc)), fim: snap.size < POR_PAGINA };
   }
   async function carregarMais() {
     const meu = ++pedido;
@@ -633,7 +635,7 @@ export function negocios(el) {
       const link = h("a", "ad-bt", "Ver"); link.href = `${n.tipo === "imoveis" ? "imoveis.html" : ({ servicos: "servicos.html", delivery: "delivery.html", lojinha: "shopping.html", saude: "saude.html", automotivo: "automotivo.html" }[n.tipo])}?negocio=${encodeURIComponent(n.id)}`; link.target = "_blank";
       w.append(link); if (pode("moderar")) w.append(btn(esc ? "Mostrar" : "Esconder", esc ? "" : "perigo", async () => {
         if (!esc && !(await confirmarHF({ titulo: "Esconder da vitrine?", texto: `"${n.nome}" deixa de aparecer para todos até ser mostrado de novo.`, ok: "Esconder", icone: "olhoOff" }))) return;
-        await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { ocultoAte: esc ? null : fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: !esc });
+        if (esc) await mostrarItem("negocios", n.id); else await esconderItem("negocios", n.id);
         n.ocultoAte = esc ? null : { toMillis: () => new Date("2999-12-31").getTime() };
         const m = D.negocios.find((x) => x.id === n.id); if (m) m.ocultoAte = n.ocultoAte;
         await registrar(esc ? "mostrar_negocio" : "esconder_negocio", n.donoId, n.id); toast(esc ? "Negócio visível de novo" : "Negócio escondido"); pintar();
@@ -1483,7 +1485,7 @@ async function voltarNegociosVerificados(uid) {
   const { fb } = C;
   for (const col of ["negocios", "anuncios"]) {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where("donoId", "==", uid), fb.limit(50))).catch(() => ({ docs: [] }));
-    for (const d of s.docs) if (ms(d.data().ocultoAte) === OCULTO_SEM_VERIF) await fb.updateDoc(d.ref, { ocultoAte: null, ocultoPelaEquipe: false }).catch(() => {});
+    for (const d of s.docs) if (ms(d.data().ocultoAte) === OCULTO_SEM_VERIF) await mostrarItem(col, d.id).catch(() => {});
   }
 }
 function blocoSemVerificacao(el) {
@@ -1501,10 +1503,9 @@ function blocoSemVerificacao(el) {
     bt.addEventListener("click", async () => {
       if (!(await confirmarHF({ titulo: `Tirar do ar ${negs.length + ans.length} item(ns)?`, texto: `Perfis e anúncios de ${donos.size} conta(s) sem verificação saem das vitrines. Cada pessoa recebe um aviso para verificar a conta; ao ser aprovada, tudo volta sozinho.`, ok: "Tirar do ar", icone: "olhoOff" }))) return;
       bt.disabled = true;
-      const { fb } = C, marca = { ocultoAte: fb.Timestamp.fromMillis(OCULTO_SEM_VERIF), ocultoPelaEquipe: true };
       let feitos = 0;
-      for (const n of negs) { try { await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), marca); feitos++; } catch {} }
-      for (const a of ans) { try { await fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), marca); feitos++; } catch {} }
+      for (const n of negs) { try { await esconderItem("negocios", n.id, "sem_verif"); feitos++; } catch {} }
+      for (const a of ans) { try { await esconderItem("anuncios", a.id, "sem_verif"); feitos++; } catch {} }
       for (const uid of donos) await enviarAviso(uid, { titulo: "Seus anúncios saíram do ar: verifique sua conta", texto: "Para anunciar no Help Floripa, a conta precisa ser verificada (selo azul). Peça a verificação em Configurações › Verificação do perfil. Assim que for aprovada, seus perfis e anúncios voltam sozinhos. Nada foi apagado.", tipo: "alerta" }).catch(() => {});
       await registrar("tirar_negocios_sem_verificacao", "", `${feitos} item(ns) de ${donos.size} conta(s)`);
       toast(`${feitos} item(ns) fora do ar`); C.irPara("verificacoes");
@@ -2207,6 +2208,8 @@ export function publicacoes(el) {
   }));
   // Etapa D: fotos antigas (data:image dentro dos documentos) → Storage, pela função migrarFotos (só os donos).
   if (pode("dono")) linhaF.append(btn("Passar fotos para o Storage", "mini", (b) => migrarFotosStorage(b)));
+  // Itens escondidos do jeito antigo (só ocultoAte, conteúdo no documento): guarda de verdade (guardar.js).
+  if (pode("dono")) linhaF.append(btn("Guardar o que já está escondido", "mini", (b) => guardarEscondidosAntigos(b)));
   el.appendChild(linhaF);
   const lista = h("div", "ad-lista"); el.appendChild(lista);
   const escondida = (p) => ms(p.ocultoAte) > agora();
@@ -2232,12 +2235,12 @@ export function publicacoes(el) {
       if (pode("moderar")) {
         ac.append(btn(escondida(p) ? "Mostrar" : "Esconder", "mini", async () => {
           const { fb } = C; const vai = !escondida(p);
-          await fb.updateDoc(fb.doc(fb.db, "diario", p.id), { ocultoAte: vai ? fb.Timestamp.fromDate(new Date("2999-12-31")) : null, ocultoPelaEquipe: vai });
+          if (vai) await esconderItem("diario", p.id); else await mostrarItem("diario", p.id);
           p.ocultoAte = vai ? { toMillis: () => new Date("2999-12-31").getTime() } : null;
           await registrar(vai ? "esconder_publicacao" : "mostrar_publicacao", p.autorId, String(p.texto || "").slice(0, 120)); toast(vai ? "Publicação escondida" : "Publicação visível de novo"); pintar();
         }), btn("Remover", "mini perigo", async () => {
           if (!(await confirmarHF({ titulo: "Remover esta publicação?", texto: "Ela é apagada de vez. Não dá para desfazer.", ok: "Remover", icone: "lixo" }))) return;
-          const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "diario", p.id));
+          const { fb } = C; await fb.deleteDoc(fb.doc(fb.db, "diario", p.id)); fb.deleteDoc(fb.doc(fb.db, "guardados", "diario_" + p.id)).catch(() => {});
           D.posts = D.posts.filter((x) => x !== p); await registrar("remover_conteudo", p.autorId, `publicacao ${p.id}: ${String(p.texto || "").slice(0, 100)}`); toast("Publicação removida"); pintar();
         }), btn("Avisar autor", "mini", () => fluxoAviso(p.autorId)));
       }
@@ -2283,6 +2286,36 @@ async function percorrer(simular, aoAndar) {
   return total;
 }
 const mb = (b) => (b / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " MB";
+// Antes de 13/11/2026, esconder só marcava ocultoAte: o conteúdo continuava no documento e dava para ler numa lista.
+// Isto passa cada item ainda escondido para guardados/ (no lugar fica o esqueleto vazio), com o motivo certo:
+// equipe (ocultoPelaEquipe), anunciante sem verificação (data-marca), suspensão (sanção ativa do dono) ou conta desativada.
+async function guardarEscondidosAntigos(b) {
+  const { fb } = C, rotulo = b.textContent;
+  const SEMV = new Date("2999-11-30T00:00:00Z").getTime();
+  try {
+    b.disabled = true; b.textContent = "Procurando…";
+    const achados = [];
+    for (const col of ["negocios", "anuncios", "diario", "comunidade"]) {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where("ocultoAte", ">", fb.Timestamp.now()), fb.limit(1000))).catch(() => ({ docs: [] }));
+      s.docs.filter((d) => d.data().guardado !== true).forEach((d) => achados.push([col, d]));
+    }
+    if (!achados.length) { toast("Nada escondido do jeito antigo: tudo já está guardado."); return; }
+    if (!(await confirmarHF({ titulo: `Guardar ${achados.length} item(ns) escondido(s)?`, texto: "O conteúdo de cada um vai para a área guardada (só o dono e a equipe leem) e no lugar fica um registro vazio. Nada é apagado: quando for mostrado de novo, volta exatamente como era.", ok: "Guardar", icone: "escudo", cor: "normal" }))) return;
+    let feitos = 0, erros = 0;
+    for (const [col, d] of achados) {
+      const x = d.data(), dono = x.donoId || x.autorId, sanc = D.sancoes.get(dono);
+      const sancAtiva = sanc && (sanc.tipo === "banimento" || ms(sanc.ate) > agora());
+      const fimMarca = ms(x.ocultoAte);
+      const motivo = x.ocultoPelaEquipe === true ? (fimMarca === SEMV ? "sem_verif" : "moderacao") : sancAtiva ? "sancao" : "conta";
+      const ate = motivo === "sancao" ? (sanc.tipo === "banimento" ? null : new Date(ms(sanc.ate))) : motivo === "conta" && fimMarca < new Date("2999-01-01").getTime() ? new Date(fimMarca) : null;
+      try { await guardarItem(fb, col, d.id, { motivo, ate, por: C.eu.uid }); feitos++; } catch (e) { erros++; console.warn("[Guardar]", col, d.id, e?.code || e); }
+      b.textContent = `Guardando… ${feitos}/${achados.length}`;
+    }
+    await registrar("guardar_escondidos", "", `${feitos} item(ns)${erros ? `, ${erros} erro(s)` : ""}`);
+    toast(`Pronto: ${feitos} item(ns) guardado(s)${erros ? `, ${erros} ficaram para depois (aperte de novo)` : ""}.`);
+  } catch (e) { toast("Não foi possível: " + (e?.message || e)); }
+  finally { b.disabled = false; b.textContent = rotulo; }
+}
 async function migrarFotosStorage(b) {
   const rotulo = b.textContent;
   try {

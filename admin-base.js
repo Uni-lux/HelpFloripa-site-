@@ -4,6 +4,7 @@
 // em admin_log) e a ficha completa do usuário.
 // =====================================================
 import { confirmarHF, avisoHF } from "./confirmar.js?v=6";
+import { guardarItem, devolverItem, devolverDe, completarGuardados } from "./guardar.js?v=1";
 export const C = { fb: null, A: null, eu: null, nome: "", irPara: () => {}, recarregar: async () => {}, contadores: () => {}, presenca: new Map(), chat: [], online: () => false, marcarChatVisto: () => {}, aoMudarEquipe: null, papel: "dono", tarefas: [], marcarItem: null, pintarVendo: null, aoMudarTarefas: null };
 export const D = {
   pessoas: new Map(), negocios: [], anuncios: [], posts: [], denuncias: [], queixas: [], suporte: [], parcerias: [], planosPedidos: [], planosNeg: [], planos: new Map(), reportes: [], notasSuporte: [], verificacoes: [],
@@ -73,8 +74,15 @@ export function garantirNegocios() {
     const { fb } = C;
     const todos = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.limit(3000))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
     const posts = fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.orderBy("criadoEm", "desc"), fb.limit(3000))).catch(() => fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.limit(3000))))
-      .then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() })));
-    carregandoNeg = Promise.all([todos("negocios"), todos("anuncios"), posts]).then(([n, a, p]) => { D.negocios = n; D.anuncios = a; D.posts = p; D.negociosProntos = true; })
+      .then(async (s) => {
+        // Escondidas de verdade (esqueletos sem criadoEm) não vêm na consulta ordenada: lê à parte.
+        const esq = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("guardado", "==", true), fb.limit(1000))).catch(() => ({ docs: [] }));
+        const vistos = new Set(s.docs.map((d) => d.id));
+        return [...s.docs, ...esq.docs.filter((d) => !vistos.has(d.id))].map((d) => ({ id: d.id, ...d.data() }));
+      });
+    // Escondidos de verdade (esqueletos): a equipe lê o conteúdo guardado (guardar.js).
+    carregandoNeg = Promise.all([todos("negocios").then((l) => completarGuardados(fb, "negocios", l)), todos("anuncios").then((l) => completarGuardados(fb, "anuncios", l)), posts.then((l) => completarGuardados(fb, "diario", l))])
+      .then(([n, a, p]) => { D.negocios = n; D.anuncios = a; D.posts = p; D.negociosProntos = true; })
       .finally(() => { carregandoNeg = null; });
   }
   return carregandoNeg;
@@ -83,7 +91,7 @@ export function garantirNegocios() {
 export async function negociosDe(uid) {
   if (D.negociosProntos) return { negocios: D.negocios.filter((n) => n.donoId === uid), anuncios: D.anuncios.filter((a) => a.donoId === uid) };
   const { fb } = C;
-  const ler = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.where("donoId", "==", uid), fb.limit(50))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []);
+  const ler = (n) => fb.getDocs(fb.query(fb.collection(fb.db, n), fb.where("donoId", "==", uid), fb.limit(50))).then((s) => completarGuardados(fb, n, s.docs.map((d) => ({ id: d.id, ...d.data() })))).catch(() => []);
   const [negocios, anuncios] = await Promise.all([ler("negocios"), ler("anuncios")]);
   return { negocios, anuncios };
 }
@@ -213,20 +221,34 @@ export async function enviarAviso(uid, { titulo, texto, tipo = "info" }) {
   await fb.addDoc(fb.collection(fb.db, "avisos"), { uid, titulo: titulo.slice(0, 120), texto: texto.slice(0, 2000), tipo, por: C.eu.uid, em: fb.serverTimestamp(), lidoEm: null });
   await registrar("aviso", uid, `${tipo}: ${titulo}`);
 }
-// Esconde (ate = data) ou mostra (null) o conteúdo público de alguém.
+// Esconde (ate = data) ou mostra (null) o conteúdo público de alguém por causa de uma sanção.
+// Esconder de verdade (guardar.js): o conteúdo vai para guardados/ (motivo "sancao", até o fim da suspensão) e no lugar
+// fica um esqueleto vazio. Quando a suspensão acaba, volta assim que a pessoa entrar (ou na hora, se a equipe tirar).
 async function marcarConteudo(uid, ate) {
   const { fb } = C;
   const valor = ate ? fb.Timestamp.fromDate(ate) : null;
-  const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
-  const [neg, an, posts] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId")]);
-  // O que a equipe escondeu por moderação continua escondido (o dono nem pode mexer).
-  const refs = [...neg.docs, ...an.docs, ...posts.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
-  for (let i = 0; i < refs.length; i += 400) { const b = fb.writeBatch(fb.db); refs.slice(i, i + 400).forEach((r) => b.update(r, { ocultoAte: valor })); await b.commit(); }
+  if (!ate) await devolverDe(fb, uid, ["sancao"]).catch((e) => console.warn("[Sanção] devolver:", e));
+  else {
+    const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
+    const [neg, an, posts] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId")]);
+    const fim = ate.getTime() >= new Date("2999-01-01").getTime() ? null : ate;
+    const itens = [["negocios", neg], ["anuncios", an], ["diario", posts]].flatMap(([col, x]) => x.docs.map((d) => [col, d.id]));
+    for (const [col, id] of itens) await guardarItem(fb, col, id, { motivo: "sancao", ate: fim, por: C.eu.uid }).catch((e) => console.warn("[Sanção] guardar:", col, id, e?.code || e));
+  }
   await fb.updateDoc(fb.doc(fb.db, "perfis_publicos", uid), { desativadaAte: valor }).catch(() => {});
   const marca = ate ? { toMillis: () => ate.getTime() } : null;
   [...D.negocios, ...D.anuncios].filter((x) => x.donoId === uid).forEach((x) => { x.ocultoAte = marca; });
   D.posts.filter((x) => x.autorId === uid).forEach((x) => { x.ocultoAte = marca; });
   const p = D.pessoas.get(uid); if (p) p.desativadaAte = marca;
+}
+// Esconde de verdade um item pela equipe (moderação) ou devolve (guardar.js).
+export const esconderItem = (col, id, motivo = "moderacao") => guardarItem(C.fb, col, id, { motivo, ate: null, por: C.eu.uid });
+// Itens escondidos do jeito antigo (só ocultoAte, sem guardado): mostrar = tirar a marca.
+export async function mostrarItem(col, id) {
+  const { fb } = C;
+  if (await devolverItem(fb, col, id)) return true;
+  await fb.updateDoc(fb.doc(fb.db, col, id), { ocultoAte: null, ocultoPelaEquipe: false });
+  return true;
 }
 const SEM_DATA = new Date("2999-12-31T00:00:00Z");
 export async function sancionar(uid, { tipo, dias = 0, motivo }) {
@@ -548,14 +570,13 @@ export async function punirMaFe(uid, ligadas = new Map()) {
   if (v.motivo.trim().length < 5) { toast("Escreva o que aconteceu."); return false; }
   const nivel = Number(v.nivel) || 1, motivo = `${MARCA_MA_FE}: ${v.motivo.trim()}`.slice(0, 300);
   const alvos = [uid, ...(v.ligadas === "sim" ? [...ligadas.keys()] : [])];
-  const esconder = { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true };
   for (const alvo of alvos) {
     if (nivel === 3) { await sancionar(alvo, { tipo: "banimento", motivo }); continue; }
     const ate = nivel === 1 ? fb.Timestamp.fromMillis(agora() + 30 * DIA) : null;
     for (const t of TIPOS_ANUNCIO) await fb.setDoc(fb.doc(fb.db, "programa_banidos", `${alvo}_${t}`), { uid: alvo, tipo: t, motivo, ...(ate ? { ate } : {}), por: C.eu.uid, em: fb.serverTimestamp() });
     const { negocios, anuncios } = await negociosDe(alvo);
-    for (const n of negocios) await fb.updateDoc(fb.doc(fb.db, "negocios", n.id), esconder).catch(() => {});
-    for (const a of anuncios) await fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), esconder).catch(() => {});
+    for (const n of negocios) await esconderItem("negocios", n.id).catch(() => {});
+    for (const a of anuncios) await esconderItem("anuncios", a.id).catch(() => {});
     if ((D.pessoas.get(alvo) || {}).verificado || alvo === uid) await definirSelo(alvo, false, motivo).catch(() => {});
     if (nivel === 2) await sancionar(alvo, { tipo: "suspensao", dias: 30, motivo });
     else await enviarAviso(alvo, { titulo: "Seus perfis de negócio saíram do ar", texto: `Por 30 dias você não pode anunciar no Help Floripa e o selo de verificado foi retirado.\n\nMotivo: ${v.motivo.trim()}\n\nSe repetir, a conta é suspensa. Se achar que foi um engano, fale com a gente pelo Suporte.`, tipo: "grave" }).catch(() => {});
@@ -583,13 +604,12 @@ export async function banirPrograma(uid, tipoInicial = "comunidade", motivoInici
   const ate = dias ? fb.Timestamp.fromMillis(agora() + dias * DIA) : null;
   await fb.setDoc(fb.doc(fb.db, "programa_banidos", `${uid}_${v.tipo}`), { uid, tipo: v.tipo, motivo: v.motivo.slice(0, 300), ...(ate ? { ate } : {}), por: C.eu.uid, em: fb.serverTimestamp() });
   // Esconde o que a pessoa tem no programa (perfil do tipo ou os anúncios da Comunidade).
-  const esconder = { ocultoAte: fb.Timestamp.fromDate(new Date("2999-12-31")), ocultoPelaEquipe: true };
   let escondidos = 0;
   if (v.tipo === "comunidade") {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", uid), fb.limit(100))).catch(() => ({ docs: [] }));
-    for (const d of s.docs) { try { await fb.updateDoc(d.ref, esconder); escondidos++; } catch {} }
+    for (const d of s.docs) { try { if (await esconderItem("comunidade", d.id)) escondidos++; } catch {} }
   } else {
-    try { await fb.updateDoc(fb.doc(fb.db, "negocios", `${uid}_${v.tipo}`), esconder); escondidos++; } catch {}
+    try { if (await esconderItem("negocios", `${uid}_${v.tipo}`)) escondidos++; } catch {}
   }
   await registrar("banir_programa", uid, `${PROGRAMAS[v.tipo]} · ${dias ? dias + " dias" : "sem prazo"} · ${v.motivo}${escondidos ? ` · ${escondidos} item(ns) escondido(s)` : ""}`);
   await enviarAviso(uid, { titulo: `Você foi banido(a) de ${PROGRAMAS[v.tipo]}`, texto: `${dias ? `Por ${dias} dias.` : "Sem prazo para acabar."} Motivo: ${v.motivo}\n\nSe achar que foi um engano, fale com a gente pelo Suporte.`, tipo: "grave" }).catch(() => {});

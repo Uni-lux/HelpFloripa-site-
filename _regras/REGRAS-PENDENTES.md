@@ -17,10 +17,12 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
       autorId) ficam só para quem votou; enquetes de antes de 26/10 perdem o resultado para os outros. Texto antigo:
 - [ ] **Votos de enquete não anônima**: qualquer pessoa logada vê em quem cada um votou (deveria ser só o autor). A
       contagem de enquetes antigas (`enquetes.js`, sem os pedaços) usa essa leitura — trocar antes.
-- [x] **FEITO em 13/11/2026 (parte):** escondido pela equipe (Diário, negócios, imóveis, Comunidade) e publicação agendada
-      não abrem mais por LINK DIRETO (`podeAbrir` nas regras: só o dono e a equipe). **Continua:** um app modificado ainda
-      consegue vê-los numa LISTA (as buscas não filtram por `ocultoAte`; filtrar exigiria gravar o campo em todos os
-      documentos antigos e mudar todas as buscas). O jeito definitivo continua sendo a moderação apagar.
+- [x] **FEITO em 13/11/2026 (completo):** escondido pela equipe, por suspensão, por falta de verificação ou com a conta
+      desativada vira um ESQUELETO vazio e o conteúdo vai para `guardados/` (só o dono e a equipe leem): nem numa lista dá
+      para ler. Publicação agendada fica em `agendadas/` (só o autor) e entra no Diário na hora. Limites: sem servidor, a
+      agendada sai quando o autor abre o site depois da hora, e o que a suspensão escondeu volta quando a pessoa entra
+      depois do fim (ou na hora, se a equipe tirar a sanção). O que já estava escondido do jeito antigo: botão
+      "Guardar o que já está escondido" no painel (Publicações), só para os donos — apertar depois de publicar as regras.
 
 ## C. Dependem do servidor (Blaze / Cloud Functions)
 - [ ] **PIN da entrega/corrida** tem 4 números: um entregador mal-intencionado pode tentar todos. Conferir o PIN numa
@@ -60,6 +62,6 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - Moderação não sanciona a equipe nem apaga a própria sanção; não decide a própria verificação nem se dá o selo.
 - Banido de Entregas não aceita corrida, mesmo com o cadastro de entregador ativo.
 
-Depois do Flash privado, dos votos, do escondido por link e do destinatário (13/11), quase todas as partes mudaram: colar
-as 21 de novo. Testes: 1092 passando.
+Depois do Flash privado, dos votos, do escondido de verdade, das agendadas e do destinatário (13/11), quase todas as partes
+mudaram: colar as 22 de novo. Testes: 1127 passando. Depois: painel → Publicações → "Guardar o que já está escondido".
 Índices: agora 32 (5 novos do Flash) — `firebase deploy --only firestore:indexes`.

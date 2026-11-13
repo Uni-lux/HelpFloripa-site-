@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=154";
+} from "./rede.js?v=155";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -16,8 +16,9 @@ import { notaDoPerfil, abrirDetalhamento, avaliarNegocio, avaliarCliente, lerRes
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=99";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=126";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=111";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=127";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=112";
+import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -237,7 +238,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=118").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=119").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -324,7 +325,22 @@ async function buscarPosts(uid) {
   const snap = await lerOrdenado(
     fb.query(col, fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(120)),
     fb.query(col, fb.where("autorId", "==", uid), fb.limit(120)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
+  let lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (uid === eu.uid) {
+    // As suas escondidas de verdade (esqueletos sem criadoEm não vêm na consulta ordenada) e as agendadas
+    // (agendadas/{id}, só você vê): guardar.js e agendadas.js.
+    const [esq, ag] = await Promise.all([
+      fb.getDocs(fb.query(col, fb.where("autorId", "==", uid), fb.where("guardado", "==", true), fb.limit(60))).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch(() => []),
+      import("./agendadas.js?v=1").then(async (m) => {
+        // Agendadas antigas (no Diário com data futura): passam para o lugar novo.
+        for (const x of lista.filter((p) => (p.agendadoPara?.toMillis?.() ?? 0) > Date.now())) await m.moverAntiga(fb, uid, x).catch(() => {});
+        return m.minhasAgendadas(fb, uid);
+      }).catch(() => [])
+    ]);
+    const agIds = new Set(ag.map((x) => x.id)), ja = new Set(lista.map((x) => x.id));
+    lista = [...ag, ...(await completarGuardados(fb, "diario", [...lista.filter((x) => !agIds.has(x.id)), ...esq.filter((x) => !ja.has(x.id))]))];
+  }
+  return lista.filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
 }
 
 // Publicações em que a pessoa foi marcada ou mencionada (de outras contas): aba Marcados.
@@ -611,10 +627,10 @@ function mostrarPost() {
   if (proprio && agenda > Date.now()) {
     const a = el("div", "aviso-agendada"); a.append(icone("relogio", "i xs"), document.createTextNode(`Agendada para ${new Date(agenda).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Só você vê até lá.`));
     const ja = el("button", "btn pri mini", "Publicar agora"); ja.type = "button";
-    ja.addEventListener("click", async () => { try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
+    ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=1"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=121").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=122").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -633,6 +649,7 @@ async function toqueDuploPost(alvo, simples = false) {
 function pintarSocialPost(post) {
   const box = $("postSocial");
   box.replaceChildren();
+  if (post._agendada) return; // ainda não está no Diário: sem estrelas nem comentários
   const lista = el("div");
   const barra = barraPost = barraInteracao(post, { aoComentar: () => lista.querySelector("textarea")?.focus() });
   box.append(barra, lista);
@@ -643,9 +660,11 @@ $("postProximo").addEventListener("click", () => { if (postCtx.indice < postCtx.
 $("folhaPost").addEventListener("fechada", () => $("postMidia").querySelector("video")?.pause());
 $("postApagar").addEventListener("click", async () => {
   const post = postCtx.lista[postCtx.indice];
-  if (!await confirmarHF({ titulo: "Apagar esta publicação?", texto: "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
+  if (!await confirmarHF({ titulo: post._agendada ? "Apagar esta publicação agendada?" : "Apagar esta publicação?", texto: post._agendada ? "Ela não vai ser publicada. Não dá para desfazer." : "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
   try {
-    await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
+    if (post._agendada) await fb.deleteDoc(fb.doc(fb.db, "agendadas", post.id));
+    else if (post.guardado) await apagarComGuardado(fb, "diario", post.id); // escondida: o esqueleto e o conteúdo guardado juntos
+    else await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
     apagarFlashesDaPublicacao(post.id);
     fecharFolha("folhaPost");
     meusPosts = meusPosts.filter((p) => p.id !== post.id);
@@ -660,6 +679,8 @@ $("postApagar").addEventListener("click", async () => {
 
 $("postEditar").addEventListener("click", () => {
   const post = postCtx.lista[postCtx.indice];
+  if (post._agendada) { toast("Para mudar uma publicação agendada, apague e agende de novo (ou publique agora e edite)."); return; }
+  if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
   editarPublicacao(post, () => { mostrarPost(); if (postCtx.proprio) renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
 });
 $("postDenunciar").addEventListener("click", () => {

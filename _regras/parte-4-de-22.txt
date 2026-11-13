@@ -1,3 +1,37 @@
+      allow list: if logado()
+                  && (resource.data.bloqueadorId == request.auth.uid
+                      || resource.data.bloqueadoId == request.auth.uid);
+
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
+                    && request.resource.data.bloqueadorId == request.auth.uid
+                    && request.resource.data.bloqueadoId is string
+                    && request.resource.data.bloqueadoId != request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.bloqueadoId;
+
+      allow update: if false;
+
+      allow delete: if logado()
+                    && resource.data.bloqueadorId == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // VÍNCULOS SOCIAIS (duo, família, amigos)
+    // Documento: vinculos/{uidMenor}_{uidMaior}
+    // =====================================================
+    match /vinculos/{id} {
+
+      function inversos() {
+        return {
+          'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+          'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+          'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+          'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+          'parceiro': 'parceiro'
+        };
+      }
+
       // Pedidos pendentes só são visíveis para os dois envolvidos.
       allow read: if logado()
                   && (resource.data.status == 'aceito'
@@ -129,7 +163,7 @@
                     && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 
-      allow update: if logado()
+      allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
@@ -138,6 +172,9 @@
                     && naoTocaCamposProtegidosNoUpdate()
                     && travaModeracao()
                     && negocioOk();
+
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('negocios', id, 'donoId') || voltaDoGuardado('negocios', id));
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
@@ -185,33 +222,4 @@
       allow get: if logado() && podeAbrir('donoId');
       allow list: if logado();
 
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.donoId == request.auth.uid
-                    && request.resource.data.tipo in ['imovel']
-                    && !banidoDoPrograma(request.auth.uid, 'imoveis')
-                    && request.resource.data.keys().hasOnly(camposAnuncio())
-                    && naoTocaCamposProtegidosNoCreate()
-                    && contaVerificada()
-                    && anuncioOk();
-
-      allow update: if logado()
-                    && emailOk()
-                    && resource.data.donoId == request.auth.uid
-                    && request.resource.data.donoId == resource.data.donoId
-                    && request.resource.data.tipo == resource.data.tipo
-                    && gravou().hasOnly(camposAnuncio())
-                    && naoTocaCamposProtegidosNoUpdate()
-                    && travaModeracao()
-                    && anuncioOk();
-
-      allow delete: if logado()
-                    && resource.data.donoId == request.auth.uid;
-
-      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-    }
-
-
-// ===== FIM DA PARTE 4 DE 21 =====
+// ===== FIM DA PARTE 4 DE 22 =====

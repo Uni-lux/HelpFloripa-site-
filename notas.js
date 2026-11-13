@@ -9,7 +9,7 @@
 // Guardadas NO APARELHO na hora (localStorage hf-notas-<uid>, funciona sem internet) e copiadas para a conta em
 // notas/{uid}/itens/{id} (regra própria: só o dono). Sem a regra publicada, ficam só no aparelho e a página avisa.
 // =====================================================
-import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=154";
+import { $, toast, fb, eu, iniciarRede, montarBarraRede } from "./rede.js?v=155";
 import { confirmarHF } from "./confirmar.js?v=6";
 
 const PASTAS_PADRAO = ["Pessoal", "Ideias", "Estratégias", "Trabalho"];

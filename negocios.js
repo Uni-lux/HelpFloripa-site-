@@ -10,7 +10,7 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import {
   $, el, icone, pintarAvatar, urlSegura, nomeCidade, toast, erroAmigavel, abrirFolha, fecharFolha,
   fb, eu, dados, salvarImagem, editarImagem, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, criarFolha
-} from "./rede.js?v=154";
+} from "./rede.js?v=155";
 import { lerResumos, estrelas, media, notaTexto } from "./avaliacoes.js?v=19";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade, semAcento } from "./endereco.js?v=1";
 import { lerStats, listaDias, somarPeriodo } from "./estat-negocio.js?v=1";
@@ -20,6 +20,7 @@ import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
 import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=35";
 import { termosBusca } from "./busca.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
+import { completarGuardados, motivoTexto } from "./guardar.js?v=1";
 import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, CATEGORIAS_AUTO, PALAVRAS_AUTO, MODOS_AUTO, DIFERENCIAIS_AUTO, prazoPromo } from "./vitrine.js?v=99";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
@@ -67,14 +68,16 @@ let meusComunidade = null;
 async function carregarComunidade() {
   try {
     const s = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", eu.uid), fb.limit(50)));
-    meusComunidade = s.docs.map((d) => d.data()).filter((a) => a.status !== "concluido");
+    meusComunidade = (await completarGuardados(fb, "comunidade", s.docs.map((d) => ({ id: d.id, ...d.data() })))).filter((a) => a.status !== "concluido");
   } catch { meusComunidade = []; }
   pintarPainel();
 }
 
 async function buscarNegocios(uid) {
   const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "negocios"), fb.where("donoId", "==", uid), fb.limit(8)));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => Object.keys(NEGOCIOS).indexOf(a.tipo) - Object.keys(NEGOCIOS).indexOf(b.tipo));
+  // Escondidos de verdade (esqueletos): o dono lê o conteúdo guardado (guardar.js).
+  const lista = await completarGuardados(fb, "negocios", snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  return lista.sort((a, b) => Object.keys(NEGOCIOS).indexOf(a.tipo) - Object.keys(NEGOCIOS).indexOf(b.tipo));
 }
 async function carregarMeusNegocios() {
   try { meusNegocios = await buscarNegocios(eu.uid); } catch (e) { console.warn("Negócios indisponíveis:", e); meusNegocios = []; }
@@ -148,7 +151,7 @@ const pausadoAqui = (n) => meusNegocios.length > 1 && n.tipo !== principalEscolh
 function sincronizarPrincipal() {
   const p = principalEscolhido();
   if (!p) return;
-  for (const n of meusNegocios) if (n.principal !== p) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { principal: p }).then(() => { n.principal = p; }).catch(() => {});
+  for (const n of meusNegocios) if (n.principal !== p && !n.guardado) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { principal: p }).then(() => { n.principal = p; }).catch(() => {});
 }
 async function deixarNoAr(n) {
   const atual = meusNegocios.find((x) => x.tipo === principalEscolhido());
@@ -183,7 +186,7 @@ async function exigirVerificacao() {
     texto: "Para criar perfis de negócio e anúncios, a conta precisa ser verificada: a equipe confere seu documento e você ganha o selo azul. Isso protege os clientes contra golpes e perfis falsos.",
     ok: "Verificar agora", icone: "selo", cor: "normal"
   });
-  if (ok) import("./verificacao.js?v=111").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
+  if (ok) import("./verificacao.js?v=112").then((m) => m.abrirVerificacao({ aoMudar: () => { pintarPainel(); } })).catch((e) => toast(erroAmigavel(e)));
   return false;
 }
 
@@ -191,7 +194,7 @@ async function exigirVerificacao() {
 async function sincronizarExtras() {
   for (const n of meusNegocios) {
     const p = extrasPendentes(n.id);
-    if (!p) continue;
+    if (!p || n.guardado) continue;
     try {
       await fb.setDoc(fb.doc(fb.db, "negocios", n.id), { ...p, atualizadoEm: fb.serverTimestamp() }, { merge: true });
       Object.assign(n, p);
@@ -213,7 +216,7 @@ async function carregarNumeros() {
       lerResumos(fb, meusNegocios.map((n) => "neg_" + n.id), { recarregar: true }),
       fb.getDocs(fb.query(fb.collection(fb.db, "avaliacoes"), fb.where("alvoId", "==", eu.uid), fb.limit(300))).catch(() => ({ docs: [] })),
       Promise.resolve(null),
-      meusNegocios.some((n) => n.tipo === "imoveis") ? buscarAnuncios(fb, eu.uid).catch(() => []) : Promise.resolve([])
+      meusNegocios.some((n) => n.tipo === "imoveis") ? buscarAnuncios(fb, eu.uid).then((l) => completarGuardados(fb, "anuncios", l)).catch(() => []) : Promise.resolve([])
     ]);
     const todas = avs.docs.map((d) => ({ id: d.id, ...d.data() }));
     const recl = todas.filter((a) => a.tipo === "negocio" && a.nota <= 2);
@@ -310,7 +313,7 @@ function avisoVerificacao() {
   if (dados.verificado || !meusNegocios.length) return;
   const d = el("div", "ng-verif"); d.id = "ngVerif";
   const b = btnIc("btn pri mini", "selo", "Verificar minha conta");
-  b.addEventListener("click", () => import("./verificacao.js?v=111").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
+  b.addEventListener("click", () => import("./verificacao.js?v=112").then((m) => m.abrirVerificacao({ aoMudar: () => pintarPainel() })));
   d.append(el("strong", null, "Verifique sua conta para continuar anunciando"),
     el("span", null, `Agora todo anunciante do Help Floripa tem a conta verificada (selo azul). Verifique até ${PRAZO_VERIFICACAO.toLocaleDateString("pt-BR")}: depois disso, perfis de contas não verificadas saem do ar. Nada é apagado.`), b);
   $("painelNegocios").before(d);
@@ -530,7 +533,7 @@ async function abrirEstatisticas(n) {
   await garantirPlano();
   if (semPlano()) { verPlanos("plus"); return; } // estatísticas fazem parte dos planos
   try {
-    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=124");
+    const { abrirInsightsNegocio } = await import("./insights-negocio.js?v=125");
     abrirInsightsNegocio(n, { aoEditar: (neg) => abrirFormNegocio(meusNegocios.find((x) => x.id === neg.id) || neg) });
   } catch (e) { toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)); }
 }
@@ -590,9 +593,9 @@ const buscaDoAnuncio = (a) => termosBusca([a.titulo, a.categoriaPersonalizada ||
 // Perfis e anúncios criados antes da busca nacional ganham as palavras sozinhos quando o dono abre Meus negócios.
 // Sem as regras novas publicadas a gravação é recusada em silêncio e tenta de novo na próxima visita.
 async function completarBusca() {
-  for (const n of meusNegocios) if (!Array.isArray(n.busca) && n.nome) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { busca: buscaDoNegocio(n) }).then(() => { n.busca = true; }).catch(() => {});
+  for (const n of meusNegocios) if (!Array.isArray(n.busca) && n.nome && !n.guardado) fb.updateDoc(fb.doc(fb.db, "negocios", n.id), { busca: buscaDoNegocio(n) }).then(() => { n.busca = true; }).catch(() => {});
   if (!meusNegocios.some((n) => n.tipo === "imoveis")) return;
-  for (const a of await buscarAnuncios(fb, eu.uid).catch(() => [])) if (!Array.isArray(a.busca)) fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), { busca: buscaDoAnuncio(a) }).catch(() => {});
+  for (const a of await buscarAnuncios(fb, eu.uid).catch(() => [])) if (!Array.isArray(a.busca) && !a.guardado) fb.updateDoc(fb.doc(fb.db, "anuncios", a.id), { busca: buscaDoAnuncio(a) }).catch(() => {});
 }
 // Ponto do endereço para o "Perto de você": reaproveita o anterior se o endereço não mudou; senão procura
 // (OpenStreetMap). Sem rua nem CEP, fica sem ponto e vale o centro da cidade.
@@ -602,7 +605,14 @@ async function pontoDoEndereco(loc, antigo) {
   return (await geocodificar(loc).catch(() => null)) || null;
 }
 const extrasPendentes = (id) => (dados.negociosExtras && typeof dados.negociosExtras === "object" ? dados.negociosExtras[id] : null) || null;
+// Escondido (pela equipe, suspensão, conta desativada ou sem verificação): o conteúdo está guardado e não dá para editar.
+function avisarGuardado(x) {
+  if (!x?.guardado) return false;
+  toast(`${motivoTexto(x)}: enquanto isso não dá para editar.${x._guardado?.porEquipe ? " Se achar que foi um engano, fale com a gente pelo Suporte." : ""}`);
+  return true;
+}
 function abrirFormNegocio(n, { promo = false } = {}) {
+  if (avisarGuardado(n)) return;
   if (n) { const p = extrasPendentes(n.id); if (p) n = { ...n, ...Object.fromEntries(Object.entries(p).filter(([k]) => NOVOS_NEG.includes(k) && !n[k])) }; }
   negEditando = n;
   areasBusca = ""; areasAbertos = null;
@@ -1210,7 +1220,7 @@ let meusAnuncios = [], anEdit = null, anEditandoId = null;
 const FINALIDADES = { aluguel: "Aluguel", venda: "Venda", temporada: "Temporada" };
 
 async function pintarMeusAnuncios(lista) {
-  try { meusAnuncios = await buscarAnuncios(fb, eu.uid); } catch { meusAnuncios = []; }
+  try { meusAnuncios = await completarGuardados(fb, "anuncios", await buscarAnuncios(fb, eu.uid)); } catch { meusAnuncios = []; }
   lista.replaceChildren();
   if (!meusAnuncios.length) {
     const p = document.createElement("p");
@@ -1260,6 +1270,7 @@ async function concluirAnuncio(a, depois) {
 const moedaBR = (v) => (Number(v) > 0 ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : "");
 
 function abrirFormAnuncio(a) {
+  if (avisarGuardado(a)) return;
   anEditandoId = a?.id || null;
   anEdit = JSON.parse(JSON.stringify({ finalidade: "aluguel", categoria: "apartamento", cidade: nomeCidade(dados.cidade), fotos: [], ...(a || {}), criadoEm: null, atualizadoEm: null }));
   // Endereço do imóvel: estado, cidade (IBGE) e bairro obrigatórios; rua, número e CEP opcionais.

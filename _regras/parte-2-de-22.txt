@@ -117,6 +117,35 @@
           || resource.data.get(campoDono, '') == request.auth.uid || admin();
     }
 
+    // ---------- conteúdo escondido de verdade (guardar.js, 13/11/2026) ----------
+    // Esconder = o conteúdo vai para guardados/{colecao}_{id} e no lugar fica um ESQUELETO vazio
+    // { dono, tipo?, ocultoAte, ocultoPelaEquipe, guardado: true }: nem numa lista dá para ler o que foi escondido.
+    // Quem pode esconder/devolver é conferido no guardados (create/delete); aqui só a forma do documento.
+    function guardadoRef(col, id) {
+      return /databases/$(database)/documents/guardados/$(col + '_' + id);
+    }
+    function ehEsqueleto() {
+      return resource.data.get('guardado', false) == true;
+    }
+    // Documento cheio -> esqueleto, com o guardado sendo criado na mesma gravação.
+    function viraEsqueleto(col, id, campo) {
+      let n = request.resource.data;
+      return n.get('guardado', false) == true
+          && !ehEsqueleto()
+          && n.keys().hasOnly([campo, 'tipo', 'ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+          && n[campo] == resource.data[campo]
+          && n.get('tipo', null) == resource.data.get('tipo', null)
+          && n.ocultoAte is timestamp && n.ocultoAte > request.time
+          && !exists(guardadoRef(col, id))
+          && n.ocultoPelaEquipe == getAfter(guardadoRef(col, id)).data.porEquipe;
+    }
+    // Esqueleto -> documento de volta, exatamente como estava guardado (o guardado sai na mesma gravação).
+    function voltaDoGuardado(col, id) {
+      return ehEsqueleto()
+          && !existsAfter(guardadoRef(col, id))
+          && request.resource.data == get(guardadoRef(col, id)).data.dados;
+    }
+
     // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
     function moderacaoOk() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
@@ -200,28 +229,4 @@
     // =====================================================
     match /usuarios/{userId} {
 
-      allow read: if logado()
-                  && request.auth.uid == userId;
-      // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
-      allow read: if podeModerar();
-      // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar() && (userId != request.auth.uid || papel() == 'dono')
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
-                    && seloLiberado(userId);
-
-      // criadoEm é a data real do cadastro (conta antiga = pode avaliar/reclamar).
-      allow create: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && request.resource.data.aceiteTermos == true
-                    && (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
-                    && emailConfirmadoOk()
-                    && emailDaContaOk()
-                    && naoTocaCamposProtegidosNoCreate();
-
-      // E-mail confirmado (o painel mostra): a conta só grava o valor verdadeiro, o que o login diz (token).
-      function emailConfirmadoOk() {
-        return !('emailConfirmado' in request.resource.data)
-            || request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
-      }
-// ===== FIM DA PARTE 2 DE 21 =====
+// ===== FIM DA PARTE 2 DE 22 =====

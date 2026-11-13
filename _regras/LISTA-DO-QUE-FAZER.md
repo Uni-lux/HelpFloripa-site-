@@ -4,7 +4,7 @@ Regra para não ficar corrigindo para sempre: **uma área por vez, um PR por ár
 anterior estiver marcada como pronta.** Coisa nova só entra depois da parte 1.
 
 ## 1. Só você pode fazer (trava quase todo o resto) — nesta ordem
-- [ ] **Publicar as regras** (21 partes em `_regras/`, passo a passo no `LEIA-ME.md`), criar os **índices**
+- [ ] **Publicar as regras** (22 partes em `_regras/`, passo a passo no `LEIA-ME.md`), criar os **índices**
       (`INDICES-LEIA-ME.md`) e apertar "Recalcular estrelas" no painel.
 - [ ] **Plano Blaze** com alerta de orçamento (ex.: R$ 50/mês).
 - [ ] **Storage**: ativar, regras, CORS e "Passar fotos para o Storage" no painel (`STORAGE-LEIA-ME.md`).

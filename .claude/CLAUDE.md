@@ -2499,6 +2499,30 @@ chat da equipe).
   encontrado" (vai pelo suporte). Teste `t-escondido-link.mjs` (8). `t-solicitacoes` falha no "botão para esconder os atalhos"
   também antes (o botão foi para o ⋯ no #201). Fotos de teste: `saida/fotos-pub/*.jpg` (qualquer JPEG); `t-comunidade-rede`
   precisa de `saida/seed-ids.json` e os testes com firebase-admin de `FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`.
+- **Escondido de verdade + agendadas fora do Diário (13/11/2026, PR depois do #206, MUDA REGRAS — não publicadas; 22 partes,
+  1127 testes):** completa o item B da `REGRAS-PENDENTES.md` (o #206 só fechou o link direto). `guardar.js` (sem deps):
+  esconder = `guardarItem(fb, col, id, {motivo, ate, por})` grava `guardados/{col}_{id}` {colecao, docId, dono, dados (o doc
+  sem ocultoAte/ocultoPelaEquipe/guardado), motivo conta|sancao|moderacao|sem_verif, porEquipe, ate, por, em} e troca o item
+  por um ESQUELETO {dono, tipo?, ocultoAte (SEMPRE 2999-12-31; sem_verif = 2999-11-30), ocultoPelaEquipe, guardado: true} na
+  mesma gravação; `devolverItem` põe o doc de volta igual e apaga o guardado; `completarGuardados`/`lerComGuardado` (dono e
+  equipe veem o conteúdo, `_guardado` com o motivo), `devolverDe(uid, motivos)`, `devolverVencidos` (sanção vencida),
+  `apagarComGuardado`, `motivoTexto`; motivo da equipe "manda mais" que o da conta (`FORCA`). Regras: `viraEsqueleto`/
+  `voltaDoGuardado` em negocios/anuncios/diario/comunidade (quem pode é conferido no `match /guardados`: conta = o dono ou a
+  moderação; os outros só `podeModerar`; dono devolve conta sempre e sanção só depois de `ate`); o dono NÃO edita esqueleto
+  (`!ehEsqueleto()` no update dele). Esqueleto sem criadoEm/atualizadoEm não aparece em consulta ordenada; no Diário o painel
+  e o perfil leem `where guardado == true` à parte. Usado por: conta.js (desativar/reativar, motivo conta), painel (sanção =
+  `marcarConteudo` motivo sancao até o fim; `esconderItem`/`mostrarItem` em admin-base.js para negócio/publicação/denúncia/
+  banir programa/má-fé; sem verificação = sem_verif; `mostrarItem` cai no jeito antigo se não houver guardado), Meus negócios
+  (`avisarGuardado`: não edita), perfil (apagar escondida = esqueleto + guardado), Comunidade. Botão do painel (Publicações,
+  só donos) "Guardar o que já está escondido" passa os itens antigos (`ocultoAte` no futuro sem guardado). **Agendadas:**
+  `agendadas.js` (`agendar`, `minhasAgendadas`, `publicarAgendada` = cria `diario/{mesmo id}` com comRitmo + apaga a
+  agendada, enquete com a mesma duração a partir de agora, reserva sem `NOVOS_PUB`; `publicarVencidas`; `moverAntiga` para a
+  agendada antiga que estava no Diário). `agendadas/{id}` {autorId, quando (até 60 dias), dados, criadoEm}: só o autor. O
+  Diário RECUSA `agendadoPara` na criação e no update só aceita `= request.time` (publicar agora a antiga). firebase.js, uma
+  vez por sessão: `publicarVencidas` + `devolverVencidos`. **Sem servidor:** a agendada sai quando o autor abre o site depois
+  da hora; desativação com data e suspensão voltam quando a pessoa entra depois da data (textos de conta-pagina/configuracoes
+  trocados). Conta apagada: conta.js e limpeza-conta apagam `agendadas` e `guardados` (guardados por último). Teste
+  `t-guardados.mjs` (21).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

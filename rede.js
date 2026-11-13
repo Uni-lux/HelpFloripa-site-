@@ -1606,7 +1606,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=126").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=127").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2377,7 +2377,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=126").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=127").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -3511,6 +3511,26 @@ function ligarCompositor() {
       const textoMeio = titulo ? `${titulo}\n\n${texto}`.slice(0, 1000) : texto;
       // Região de quem publica (Diário e Explorar priorizam a sua cidade e o seu estado).
       const regiao = /^[A-Z]{2}$/.test(dados.uf || "") ? { autorUf: dados.uf, ...(Number.isInteger(dados.cidadeIbge) ? { autorIbge: dados.cidadeIbge } : {}) } : {};
+      // Agendada: fica guardada em agendadas/{id} (só você lê) e entra no Diário na hora marcada (agendadas.js).
+      if (agenda) {
+        const guardada = { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto, mediaUrl, mediaTipo, ...(midias ? { midias } : {}), ...extras, ...regiao };
+        delete guardada.agendadoPara;
+        const { agendar } = await import("./agendadas.js?v=1");
+        let aRef;
+        try { aRef = await agendar(fb, eu.uid, guardada, agenda); }
+        catch (e) {
+          if (e?.code === "permission-denied") { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
+          throw e;
+        }
+        if (pubRascunhoId) fb.deleteDoc(fb.doc(fb.db, "rascunhos", eu.uid, "itens", pubRascunhoId)).catch(() => {});
+        esquecerAutomatico();
+        btn.disabled = false;
+        limparPublicacao();
+        fecharFolha("folhaPublicar");
+        toast(`Agendada para ${agenda.toDate().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}. Até lá, só você vê (no seu perfil).`);
+        $("folhaPublicar").aoPublicar?.({ ...guardada, id: aRef.id, agendadoPara: agenda, _agendada: true });
+        return;
+      }
       const gravar = (novos) => comRitmo(fb, eu.uid, "pub", (lote) => {
         const r = fb.doc(fb.collection(fb.db, "diario"));
         lote.set(r, { autorId: eu.uid, nome: dados.nome || "Usuário", fotoPerfil: foto, texto: novos === "meio" ? textoMeio : texto, mediaUrl, mediaTipo, ...(novos && midias ? { midias } : {}), ...(novos === true ? { ...extras, ...regiao } : novos === "meio" ? { ...extrasMeio, ...regiao } : {}), criadoEm: fb.serverTimestamp() });
@@ -3526,7 +3546,6 @@ function ligarCompositor() {
       catch (e) {
         // Regras antigas no servidor: publica sem os campos novos. Agendada não vai na hora: avisa e para.
         if (e?.code !== "permission-denied" || (!midias && !Object.keys(extras).length && !Object.keys(regiao).length)) throw e;
-        if (agenda) { toast("Agendar começa a funcionar quando as regras novas forem publicadas. Publique agora ou salve como rascunho."); return; }
         if (enquete) { toast("Enquetes começam a funcionar quando as regras novas forem publicadas. Tire a enquete para publicar agora."); return; }
         if (caixa) { toast("A caixa de perguntas começa a funcionar quando as regras novas forem publicadas. Tire a caixa para publicar agora."); return; }
         // Sem a regra o público iria para todos: não publica (a pessoa escolheu quem vê).

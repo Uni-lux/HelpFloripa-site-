@@ -6,7 +6,7 @@
 //   - exclusão vencida: Concluir exclusão (confirma a senha) / Sair
 // =====================================================
 import { destinoSeguro, firebasePronto } from "./acesso.js?v=6";
-import { estadoConta, reativarConta, apagarTudo, reautenticar } from "./conta.js?v=8";
+import { estadoConta, reativarConta, apagarTudo, reautenticar } from "./conta.js?v=9";
 
 const $ = (id) => document.getElementById(id);
 const data = (t) => new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
@@ -58,7 +58,7 @@ const destino = destinoSeguro("index.html");
   if (est.tipo === "desativada") {
     $("titulo").textContent = "Sua conta está desativada";
     $("sub").textContent = est.automatica
-      ? `Ela volta sozinha em ${data(est.ate)}. Se quiser, reative agora.`
+      ? `A partir de ${data(est.ate)}, ela volta assim que você entrar. Se quiser, reative agora.`
       : "Você escolheu reativar quando voltasse. É só tocar no botão abaixo.";
     detalhe("Enquanto estiver desativada, seu perfil, publicações, negócios e anúncios não aparecem e ninguém consegue te mandar mensagem. Seguidores, conversas e avaliações continuam guardados.");
     b.textContent = "Reativar minha conta";

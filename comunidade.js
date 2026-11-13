@@ -15,6 +15,7 @@ import { camposEndereco, textoCidade, semAcento } from "./endereco.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=1";
+import { completarGuardados, lerComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=17";
 import { prepararConversa } from "./vitrine.js?v=99";
 
@@ -366,6 +367,7 @@ async function reduzirFoto(arquivo) {
   return dados;
 }
 function abrirForm(a = null, catInicial = "doacao") {
+  if (a?.guardado) { toast(`${motivoTexto(a)}: enquanto isso não dá para editar.`); return; }
   if (!eu) { location.href = "login.html"; return; }
   if (banimento) { avisoBanido(); return; }
   if (emailPendente(eu)) { mostrarAvisoEmail(eu); toast(MSG_EMAIL); return; }
@@ -657,7 +659,8 @@ async function iniciar() {
     try {
       const meus = await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", u.uid), fb.limit(50)));
       const ja = new Set(todos.map((x) => x.id));
-      meus.docs.forEach((d) => { if (!ja.has(d.id)) todos.push({ id: d.id, ...d.data() }); });
+      // Os seus escondidos (esqueletos) vêm com o conteúdo guardado (guardar.js).
+      (await completarGuardados(fb, "comunidade", meus.docs.map((d) => ({ id: d.id, ...d.data() })))).forEach((x) => { if (!ja.has(x.id)) todos.push(x); });
     } catch {}
     if (posEu) await comDistancia(todos, posEu);
     if (posEu) { const o = $("cmOrdem"); if (o) o.querySelector('[value="perto"]').disabled = false; }
@@ -699,7 +702,7 @@ export async function prepararEmbutido({ fb: f, eu: u, perfil, aoMudar }) {
 }
 export async function abrirItemPorId(id, conhecido) {
   let a = conhecido ? { ...conhecido } : todos.find((x) => x.id === id);
-  if (!a) { try { const s = await fb.getDoc(fb.doc(fb.db, "comunidade", id)); if (s.exists()) a = { id: s.id, ...s.data() }; } catch {} }
+  if (!a) { try { a = await lerComGuardado(fb, "comunidade", id); if (a) a = { ...a, id }; } catch {} }
   if (!a || !(a.donoId === eu?.uid || (!oculto(a) && a.status !== "concluido"))) { toast("Este anúncio não está mais disponível."); return; }
   if (!todos.some((x) => x.id === a.id)) todos.push(a);
   abrirItem(todos.find((x) => x.id === a.id));
