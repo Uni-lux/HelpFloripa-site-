@@ -72,8 +72,12 @@ async function prepararParametros() {
   }
   if (para && para !== eu.uid) {
     try {
-      const p = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", para));
-      if (p.exists()) { S.dest = { uid: para, nome: p.data().nome || "", foto: p.data().fotoPerfil || "" }; S.contato.nome = S.dest.nome; }
+      // As regras só aceitam como destinatário quem já conversa com você (conversa aceita, sem bloqueio).
+      const idConv = [eu.uid, para].sort().join("_");
+      const [p, c] = await Promise.all([fb.getDoc(fb.doc(fb.db, "perfis_publicos", para)), fb.getDoc(fb.doc(fb.db, "conversas", idConv)).catch(() => null)]);
+      const pd = c?.exists() ? c.data().pedido : null;
+      if (c && (!c.exists() || (pd && pd.status !== "aceito"))) toast("Para enviar para essa pessoa, ela precisa aceitar a sua conversa primeiro.");
+      else if (p.exists()) { S.dest = { uid: para, nome: p.data().nome || "", foto: p.data().fotoPerfil || "" }; S.contato.nome = S.dest.nome; }
     } catch {}
   }
   if (ent && ent !== eu.uid) await escolherEntregadorPorUid(ent, true);
@@ -647,7 +651,8 @@ async function criarPedido() {
     await lote.commit();
   } catch (e) {
     enviando = false; atualizarBotao();
-    toast(e?.code === "permission-denied" ? "Não foi possível pedir: confirme seu e-mail (e, se for a primeira vez, aguarde a liberação desta função)." : "Não foi possível pedir: " + erroAmigavel(e));
+    toast(e?.code === "permission-denied" && S.dest ? "Não foi possível pedir: a entrega só vai para quem já conversa com você (conversa aceita e sem bloqueio)."
+      : e?.code === "permission-denied" ? "Não foi possível pedir: confirme seu e-mail (e, se for a primeira vez, aguarde a liberação desta função)." : "Não foi possível pedir: " + erroAmigavel(e));
     return;
   }
   enviando = false;

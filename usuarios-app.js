@@ -809,7 +809,7 @@ async function abrirPostPorLink(id) {
     if (escondido(post.autorId) || ((post.ocultoAte?.toMillis?.() ?? 0) > Date.now() && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); return; }
     const autor = post.autorId === eu.uid ? dados : { uid: post.autorId, ...(await obterPerfil(post.autorId).catch(() => ({}))) };
     abrirPost([post], 0, { proprio: post.autorId === eu.uid, autor });
-  } catch (e) { toast("Não foi possível abrir a publicação: " + erroAmigavel(e)); }
+  } catch (e) { toast(e?.code === "permission-denied" ? "Essa publicação não está disponível." : "Não foi possível abrir a publicação: " + erroAmigavel(e)); }
 }
 
 // ---------- nova publicação (rede.js) ----------

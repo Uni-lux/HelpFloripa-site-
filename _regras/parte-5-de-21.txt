@@ -1,3 +1,15 @@
+    // =====================================================
+    // COMUNIDADE: doações, trocas, pedidos de ajuda, vagas em quarto compartilhado e achados e perdidos.
+    // Documento: comunidade/{id}. É PROIBIDO vender ou cobrar: não aceita preço, "R$" nem "vendo/venda" no texto
+    // (o quarto compartilhado só mostra a divisão das despesas, no campo próprio). Quem descumpre é banido do
+    // programa (programa_banidos/{uid}_comunidade) e pode ter a conta suspensa.
+    // =====================================================
+    match /comunidade/{id} {
+      function camposComunidade() {
+        return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
+                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras', 'busca',
+                'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
+      }
       // Vaga em quarto/moradia compartilhada: só a divisão das despesas entre moradores.
       function quartoOk(q) {
         return q is map
@@ -39,7 +51,8 @@
             && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
             && dataOuNulo('ocultoAte');
       }
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
       allow create: if logado() && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.keys().hasOnly(camposComunidade())

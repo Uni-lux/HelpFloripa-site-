@@ -1,3 +1,26 @@
+      // E-mail gravado na conta = o do login (o painel mostra e busca por ele; antes dava para gravar o e-mail de outra
+      // pessoa). Maiúsculas não contam (o cadastro grava em minúsculas).
+      function emailDaContaOk() {
+        return !('email' in request.resource.data)
+            || request.resource.data.email == null || request.resource.data.email == ''
+            || request.resource.data.email.lower() == request.auth.token.email.lower();
+      }
+
+      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
+      allow update: if logado()
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && (!mudou().hasAny(['criadoEm'])
+                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+                    && (!mudou().hasAny(['emailConfirmado']) || emailConfirmadoOk())
+                    && (!mudou().hasAny(['email']) || emailDaContaOk())
+                    && naoTocaCamposProtegidosNoUpdate();
+
+      allow delete: if logado()
+                    && request.auth.uid == userId;
+    }
+
+
     // =====================================================
     // PERFIL PÚBLICO
     // Usado somente para busca e exibição pública.
@@ -230,11 +253,5 @@
           'parceiro': 'parceiro'
         };
       }
-
-      // Pedidos pendentes só são visíveis para os dois envolvidos.
-      allow read: if logado()
-                  && (resource.data.status == 'aceito'
-                      || request.auth.uid in resource.data.participantes);
-      allow read: if admin();
 
 // ===== FIM DA PARTE 3 DE 21 =====

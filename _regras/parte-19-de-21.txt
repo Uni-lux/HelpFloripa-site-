@@ -1,3 +1,4 @@
+      function pedidoAceito(pd) { return pd == null || pd.status == 'aceito'; }
       allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
                     || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
                     || podeModerar());
@@ -20,7 +21,7 @@
                         : (n().pacote is map && n().pacote.keys().hasOnly(['tamanho', 'oque']) && n().pacote.tamanho in ['P', 'M', 'G', 'GG']
                            && n().pacote.oque is string && n().pacote.oque.size() >= 2 && n().pacote.oque.size() <= 80))
                     && n().paraId is string && (n().paraId == '' || (n().paraId != request.auth.uid && entregadorAtivo(n().paraId)))
-                    && n().destinatarioId is string && n().destinatarioId != request.auth.uid && n().destinatarioId.size() <= 128
+                    && n().destinatarioId is string && n().destinatarioId != request.auth.uid && n().destinatarioId.size() <= 128 && destinatarioOk(n().destinatarioId)
                     && n().geo4 is string && n().geo4.matches('^[0-9a-z]{4}$') && n().geo5 is string && n().geo5.matches('^' + n().geo4 + '[0-9a-z]$')
                     && n().raioKm in [5, 10, 20, 40]
                     && n().pinEm == (n().servico == 'corrida' ? 'embarque' : 'entrega')
@@ -154,16 +155,4 @@
             && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
             && d().atualizadoEm == request.time;
       }
-      allow read: if logado();
-      allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
-                    && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
-      allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
-                    && resource.data.status != 'suspenso' && cadastroOk()
-                    && d().status in ['ativo', 'pausado'] && !mudou().hasAny(['suspensoMotivo', 'criadoEm']);
-      // A equipe suspende (ou devolve) quem leva.
-      allow update: if podeModerar() && mudou().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
-                    && d().status in ['ativo', 'pausado', 'suspenso'] && valorTextoAte(d().get('suspensoMotivo', ''), 200);
-      allow delete: if logado() && request.auth.uid == uid;
-    }
-
 // ===== FIM DA PARTE 19 DE 21 =====

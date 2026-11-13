@@ -51,7 +51,8 @@
     // =====================================================
     match /diario/{postId} {
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('autorId');
+      allow list: if logado();
 
       function publicacaoOk() {
         let d = request.resource.data;

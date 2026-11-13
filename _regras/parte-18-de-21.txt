@@ -183,4 +183,13 @@
             && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
             && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
       }
+      // Quem recebe a entrega: ninguém, ou alguém com quem quem pede já conversa (conversa aceita e sem bloqueio).
+      // Antes dava para pôr qualquer pessoa: ela passava a ver a corrida e o PIN, e a conversa de serviço furava
+      // o "quem pode me mandar mensagem".
+      function destinatarioOk(dest) {
+        return dest == '' || conversaAceita(/databases/$(database)/documents/conversas/$(par(request.auth.uid, dest)), dest);
+      }
+      function conversaAceita(conv, dest) {
+        return exists(conv) && pedidoAceito(get(conv).data.get('pedido', null)) && !bloqueioEntre(request.auth.uid, dest);
+      }
 // ===== FIM DA PARTE 18 DE 21 =====

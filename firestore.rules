@@ -295,6 +295,19 @@ service cloud.firestore {
           && !(resource.data.get('ocultoPelaEquipe', false) == true && mudou().hasAny(['ocultoAte']));
     }
 
+    // Escondido agora (pela equipe ou com a conta do dono desativada: ocultoAte no futuro) ou agendado para depois.
+    function abertoAgora(d) {
+      return !(d.get('ocultoAte', null) is timestamp && d.ocultoAte > request.time)
+          && !(d.get('agendadoPara', null) is timestamp && d.agendadoPara > request.time);
+    }
+    // Abrir UM documento (link direto): escondido ou agendado, só o dono e a equipe. Documento que não existe
+    // continua respondendo "não existe" (o site mostra "não está mais disponível").
+    // As listas continuam abertas (as buscas não filtram por ocultoAte; o site esconde na tela).
+    function podeAbrir(campoDono) {
+      return resource == null || abertoAgora(resource.data)
+          || resource.data.get(campoDono, '') == request.auth.uid || admin();
+    }
+
     // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
     function moderacaoOk() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
@@ -774,7 +787,8 @@ service cloud.firestore {
             && extrasNegocioOk();
       }
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
 
       allow create: if logado()
                     && emailOk()
@@ -841,7 +855,8 @@ service cloud.firestore {
             && dataOuNulo('ocultoAte');
       }
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
 
       allow create: if logado()
                     && emailOk()
@@ -925,7 +940,8 @@ service cloud.firestore {
             && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
             && dataOuNulo('ocultoAte');
       }
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
       allow create: if logado() && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.keys().hasOnly(camposComunidade())
@@ -3133,7 +3149,8 @@ service cloud.firestore {
     // =====================================================
     match /diario/{postId} {
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('autorId');
+      allow list: if logado();
 
       function publicacaoOk() {
         let d = request.resource.data;
@@ -3422,6 +3439,16 @@ service cloud.firestore {
             && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
             && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
       }
+      // Quem recebe a entrega: ninguém, ou alguém com quem quem pede já conversa (conversa aceita e sem bloqueio).
+      // Antes dava para pôr qualquer pessoa: ela passava a ver a corrida e o PIN, e a conversa de serviço furava
+      // o "quem pode me mandar mensagem".
+      function destinatarioOk(dest) {
+        return dest == '' || conversaAceita(/databases/$(database)/documents/conversas/$(par(request.auth.uid, dest)), dest);
+      }
+      function conversaAceita(conv, dest) {
+        return exists(conv) && pedidoAceito(get(conv).data.get('pedido', null)) && !bloqueioEntre(request.auth.uid, dest);
+      }
+      function pedidoAceito(pd) { return pd == null || pd.status == 'aceito'; }
       allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
                     || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
                     || podeModerar());
@@ -3444,7 +3471,7 @@ service cloud.firestore {
                         : (n().pacote is map && n().pacote.keys().hasOnly(['tamanho', 'oque']) && n().pacote.tamanho in ['P', 'M', 'G', 'GG']
                            && n().pacote.oque is string && n().pacote.oque.size() >= 2 && n().pacote.oque.size() <= 80))
                     && n().paraId is string && (n().paraId == '' || (n().paraId != request.auth.uid && entregadorAtivo(n().paraId)))
-                    && n().destinatarioId is string && n().destinatarioId != request.auth.uid && n().destinatarioId.size() <= 128
+                    && n().destinatarioId is string && n().destinatarioId != request.auth.uid && n().destinatarioId.size() <= 128 && destinatarioOk(n().destinatarioId)
                     && n().geo4 is string && n().geo4.matches('^[0-9a-z]{4}$') && n().geo5 is string && n().geo5.matches('^' + n().geo4 + '[0-9a-z]$')
                     && n().raioKm in [5, 10, 20, 40]
                     && n().pinEm == (n().servico == 'corrida' ? 'embarque' : 'entrega')

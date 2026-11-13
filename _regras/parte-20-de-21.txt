@@ -1,3 +1,15 @@
+      allow read: if logado();
+      allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
+                    && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
+      allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
+                    && resource.data.status != 'suspenso' && cadastroOk()
+                    && d().status in ['ativo', 'pausado'] && !mudou().hasAny(['suspensoMotivo', 'criadoEm']);
+      // A equipe suspende (ou devolve) quem leva.
+      allow update: if podeModerar() && mudou().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
+                    && d().status in ['ativo', 'pausado', 'suspenso'] && valorTextoAte(d().get('suspensoMotivo', ''), 200);
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
     // Quem está online agora (posição arredondada, para quem pede ver os veículos perto e quanto tempo levam).
     match /entregadores_online/{uid} {
       allow read: if logado();

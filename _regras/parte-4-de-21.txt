@@ -1,3 +1,9 @@
+      // Pedidos pendentes só são visíveis para os dois envolvidos.
+      allow read: if logado()
+                  && (resource.data.status == 'aceito'
+                      || request.auth.uid in resource.data.participantes);
+      allow read: if admin();
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
@@ -108,7 +114,8 @@
             && extrasNegocioOk();
       }
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
 
       allow create: if logado()
                     && emailOk()
@@ -175,7 +182,8 @@
             && dataOuNulo('ocultoAte');
       }
 
-      allow read: if logado();
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
 
       allow create: if logado()
                     && emailOk()
@@ -206,16 +214,4 @@
     }
 
 
-    // =====================================================
-    // COMUNIDADE: doações, trocas, pedidos de ajuda, vagas em quarto compartilhado e achados e perdidos.
-    // Documento: comunidade/{id}. É PROIBIDO vender ou cobrar: não aceita preço, "R$" nem "vendo/venda" no texto
-    // (o quarto compartilhado só mostra a divisão das despesas, no campo próprio). Quem descumpre é banido do
-    // programa (programa_banidos/{uid}_comunidade) e pode ter a conta suspensa.
-    // =====================================================
-    match /comunidade/{id} {
-      function camposComunidade() {
-        return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
-                'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras', 'busca',
-                'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
-      }
 // ===== FIM DA PARTE 4 DE 21 =====
