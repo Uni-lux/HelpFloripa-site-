@@ -19,7 +19,8 @@ anterior estiver marcada como pronta.** Coisa nova só entra depois da parte 1.
 - [ ] **Mapbox**: criar a chave pública e me mandar (`MAPBOX-LEIA-ME.md`).
 
 ## 1b. Regras: o que ficou da revisão de 12–13/11 → `_regras/REGRAS-PENDENTES.md`
-- [ ] Prioridade: Flash "Amigos próximos"/"Ocultar de" de verdade (hoje só o app esconde).
+- [x] Flash "Amigos próximos"/"Ocultar de" de verdade (PR #205), escondido de verdade e agendadas (PR #206/#207).
+- [ ] Depois do Blaze: agendadas e escondidos voltando na hora certa (Cloud Function; ver REGRAS-PENDENTES, seção C).
 
 ## 2. Decisões suas (eu não invento)
 - [ ] Visibilidade justa: no máximo 1 pagante nos 4 cartões depois de cada espaço pago?
