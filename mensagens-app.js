@@ -1530,6 +1530,8 @@ function renderizarLista() {
   let itens = conversas.filter((c) => !termo || c.nome.toLowerCase().includes(termo) || (c.nick || "").toLowerCase().includes(termo));
   // Apagada "só para mim": some até chegar mensagem nova. Arquivada: só no filtro Arquivadas.
   itens = itens.filter((c) => !conversaOculta(c));
+  // Conversa criada e nunca usada ("Nova conversa", sem mensagem): só aparece quando tiver mensagem (ou se estiver aberta).
+  itens = itens.filter((c) => String(c.dados?.ultimaMensagem || "").trim() || ativa?.id === c.id || c.pedido);
   // Solicitações de mensagem: só no filtro "Solicitações" (como nas grandes redes).
   const pedidos = conversas.filter((c) => c.pedido && !conversaOculta(c) && !bloqueado(c.outroId));
   itens = filtro === "solicitacoes" ? itens.filter((c) => c.pedido) : itens.filter((c) => !c.pedido);
@@ -4700,7 +4702,7 @@ $("btnNovaConversa").addEventListener("click", () => (modo === "chamadas" ? abri
 function pintarFab() {
   const b = $("btnNovaConversa"); if (!b) return;
   const ch = modo === "chamadas";
-  b.querySelector("use")?.setAttribute("href", ch ? "#i-telefone" : "#i-nova");
+  b.querySelector("use")?.setAttribute("href", ch ? "#i-telefone" : "#i-mais-novo");
   b.setAttribute("aria-label", ch ? "Nova chamada" : "Nova conversa"); b.title = b.getAttribute("aria-label");
 }
 $("btnConfig").addEventListener("click", () => abrirPainel("painelConfig"));

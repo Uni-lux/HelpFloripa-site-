@@ -64,7 +64,7 @@ Para cada área: você manda os prints do que incomoda **de uma vez**, eu corrij
 - [ ] Painel da equipe
 - [ ] Páginas de acesso e institucionais (login, cadastro, ajuda, termos...)
 
-### Achados dos prints de 12/11/2026 (corrigir num PR só, sem regra nova)
+### Achados dos prints de 12/11/2026 (corrigir num PR só, sem regra nova) — FEITOS em 13/11/2026, falta você conferir
 - [ ] Mensagens: o "+" flutuante cobre a data da conversa de baixo ("03/11/26"); deixar espaço no fim da lista.
 - [ ] Mensagens: o "+" é diferente do Diário/Comunidade (círculo dentro do quadrado); deixar os três iguais.
 - [ ] Mensagens: conversas sem nenhuma mensagem ("Nova conversa") enchem a lista; esconder até ter mensagem.

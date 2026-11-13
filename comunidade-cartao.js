@@ -2,7 +2,7 @@
 // Cartões da Comunidade (doações, trocas, pedidos de ajuda, quartos compartilhados, achados e perdidos) para o Início
 // e o Explorar. Sem dependências: quem chama passa a leitura (docsComValidade). Toque abre comunidade.html?item=ID.
 // =====================================================
-import { lerPorLocal } from "./por-local.js?v=1";
+import { lerPorLocal } from "./por-local.js?v=2";
 
 export const CAT_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f" },

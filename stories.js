@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
-} from "./rede.js?v=155";
+} from "./rede.js?v=156";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -260,6 +260,16 @@ function pintarBarra() {
     obterPerfil(u).then((p) => { perfisBarra.set(u, p); c.querySelector(".nome").textContent = String(p.nome || "Usuário").split(" ")[0]; c.setAttribute("aria-label", `Flash de ${p.nome || "Usuário"}${todosVistos(u) ? "" : " (novo)"}`); pintarAvatar(c.querySelector(".avatar"), p.fotoPerfil, p.nome); }).catch(() => {});
     barra.appendChild(c);
   });
+  // Só o "Seu flash" (você sem flash e ninguém que você segue com flash agora): fileira baixinha, numa linha,
+  // em vez do círculo grande ocupando a faixa toda (achado de 12/11/2026).
+  const so = !meus.length && !ordemAutores().length;
+  barra.classList.toggle("so-meu", so);
+  if (so) {
+    const b = barra.querySelector(".story-circ.meu");
+    const tx = el("span", "so-tx");
+    tx.append(el("strong", null, "Criar um flash"), el("small", null, "Ninguém que você segue tem flash agora"));
+    b?.querySelector(".nome")?.replaceWith(tx);
+  }
   barra.hidden = false;
 }
 function circulo({ uid, nome, foto, nomeReal, meu = false, lista = [] }) {

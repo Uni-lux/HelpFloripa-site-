@@ -21,8 +21,8 @@ import { lerPlano, nivelPlano, seloPlano, semPausados, mostraSelo, corDoPlano, p
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
 import { lerLocal, salvarLocal, rotuloLocal, noLocal, escolherLocal, atualizarPeloGps, aoMudarLocal } from "./local-escolhido.js?v=3";
 import { CATEGORIAS, FINALIDADE, NOMES_TIPO, PAGINA_TIPO, moeda, nomeCategoria, nomeCat } from "./vitrine.js?v=99";
-import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=3";
-import { lerPorLocal, quandoVisivel } from "./por-local.js?v=1";
+import { lerComunidade, cartaoComunidade, filtrosComunidade } from "./comunidade-cartao.js?v=4";
+import { lerPorLocal, quandoVisivel } from "./por-local.js?v=2";
 import { NOME_UF } from "./endereco.js?v=1";
 
 const $ = (id) => document.getElementById(id);

@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=35" />
+  <link rel="stylesheet" href="mensagens.css?v=36" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -88,6 +88,7 @@
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.6c0 4.3-3.8 7.6-8.5 7.6-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1.1-1.3-1.7-3-1.7-4.8C3.5 7.4 7.3 4 12 4s8.5 3.4 8.5 7.6z"/></symbol>
     <symbol id="i-maleta" viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12.5" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+    <symbol id="i-mais-novo" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-nova" viewBox="0 0 24 24"><path d="M12 20.5c4.7 0 8.5-3.6 8.5-8s-3.8-8-8.5-8-8.5 3.6-8.5 8c0 1.6.5 3.1 1.4 4.3L4 20l3.6-1c1.3.9 2.8 1.5 4.4 1.5z"/><path d="M12 9v7M8.5 12.5h7"/></symbol>
     <symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
     <symbol id="i-clipe" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.6-8.6a3.7 3.7 0 015.2 5.2l-8.6 8.6a1.8 1.8 0 01-2.6-2.6l7.9-7.9"/></symbol>
@@ -185,7 +186,7 @@
         <b class="fs-n" id="fsQtd"></b>
       </button>
       <div class="conv-list" id="listaConversas"></div>
-      <button type="button" class="fab-nova" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><svg class="i"><use href="#i-nova"/></svg></button>
+      <button type="button" class="fab-nova" id="btnNovaConversa" aria-label="Nova conversa" title="Nova conversa"><span class="tc-ic"><svg class="i"><use href="#i-mais-novo"/></svg></span></button>
       <!-- Barra da rede (a mesma do Diário e do Perfil) -->
       <nav class="barra-rede" id="barraRede" aria-label="Rede social">
         <a href="feed.html"><svg class="i"><use href="#i-feed"/></svg><span>Diário</span></a>
@@ -576,6 +577,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=57"></script>
+  <script type="module" src="mensagens-app.js?v=58"></script>
 </body>
 </html>
