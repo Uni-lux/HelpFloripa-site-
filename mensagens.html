@@ -54,7 +54,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="mensagens.css?v=36" />
+  <link rel="stylesheet" href="mensagens.css?v=37" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
 </head>
@@ -148,8 +148,7 @@
     <!-- ================= LISTA DE CONVERSAS ================= -->
     <aside class="sidebar" aria-label="Conversas">
       <div class="side-top">
-        <img class="side-logo" src="icone-192.png" alt="" width="38" height="38" data-sem-suave />
-        <div class="side-tit"><h1>Mensagens</h1><small id="sideResumo">Help Floripa</small></div>
+        <div class="side-tit"><h1>Mensagens</h1><b id="sideResumo" class="side-nl" hidden></b></div>
         <button type="button" class="icon-btn" id="btnSuporte" aria-label="Ajuda e suporte" title="Ajuda e suporte"><svg class="i"><use href="#i-suporte"/></svg><b class="badge-suporte" id="badgeSuporte" hidden></b></button>
         <button type="button" class="icon-btn" id="btnConfig" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></button>
       </div>
@@ -577,6 +576,6 @@
     <img id="visualizadorImg" alt="Imagem da conversa" />
   </div>
 
-  <script type="module" src="mensagens-app.js?v=59"></script>
+  <script type="module" src="mensagens-app.js?v=60"></script>
 </body>
 </html>
