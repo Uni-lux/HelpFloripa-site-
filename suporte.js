@@ -17,7 +17,7 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=156";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=157";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
@@ -26,6 +26,7 @@ import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suport
 import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=2";
 import { palavrasDe } from "./busca.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
+import { comRitmo } from "./ritmo.js?v=3";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
 ligarVoltar();
 
@@ -261,12 +262,18 @@ async function criarChamado({ assunto, categoria, texto }) {
   try { return await gravarChamado({ assunto, categoria, texto, prioridade }); }
   catch (e) { if (e?.code !== "permission-denied") throw e; return gravarChamado({ assunto, categoria, texto }); } // regras antigas: sem a prioridade
 }
-async function gravarChamado({ assunto, categoria, texto, prioridade }) {
+// Até 5 chamados novos por dia (ritmo.js "sup", as regras conferem); com as regras de antes, vai sem o contador.
+async function gravarChamado(c) {
+  try { return await comRitmo(fb, eu.uid, "sup", (lote) => montarChamado(lote, c)).then((r) => r); }
+  catch (e) {
+    if (e?.code !== "permission-denied") throw e;
+    const lote = fb.writeBatch(fb.db); const id = montarChamado(lote, c); await lote.commit(); return id;
+  }
+}
+function montarChamado(lote, { assunto, categoria, texto, prioridade }) {
   const ref = fb.doc(fb.collection(fb.db, "suporte"));
-  const lote = fb.writeBatch(fb.db);
   lote.set(ref, { ...(prioridade ? { prioridade } : {}), uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: assunto.slice(0, 120), categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
   lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: texto.slice(0, 2000), em: fb.serverTimestamp() });
-  await lote.commit();
   return ref.id;
 }
 

@@ -126,7 +126,7 @@ onAuthStateChanged(auth, async (u) => {
   if (PAGINAS_LIVRES.includes(pagina)) return;
   avisosDaEquipe(u);
   // Ligações de voz e vídeo: a tela de chamada aparece em qualquer página quando alguém liga (chamadas.js).
-  import("./chamadas.js?v=8").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
+  import("./chamadas.js?v=9").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
   // Presença ("online agora"): a cada 4 min com a página à vista (presenca.js; respeita quem escondeu).
   import("./presenca.js?v=1").then((m) => m.ligarPresenca(db, u.uid)).catch((e) => console.warn("[Presença]", e?.message || e));
   // Localização em tempo real do chat: continua enviando a posição em qualquer página aberta (local-vivo.js; só carrega
@@ -166,7 +166,7 @@ onAuthStateChanged(auth, async (u) => {
     // (agendadas.js) e o que uma suspensão já vencida escondeu volta (guardar.js).
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js").then(async (f) => {
       const fbx = { ...f, db };
-      const [ag, gu] = await Promise.all([import("./agendadas.js?v=1"), import("./guardar.js?v=1")]);
+      const [ag, gu] = await Promise.all([import("./agendadas.js?v=2"), import("./guardar.js?v=1")]);
       await ag.publicarVencidas(fbx, u.uid, { perfil: d }).catch(() => {});
       await gu.devolverVencidos(fbx, u.uid).catch(() => {});
     }).catch(() => {});

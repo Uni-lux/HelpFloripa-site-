@@ -11,9 +11,9 @@
 // - Sempre com o nome da pessoa, nunca "o negócio".
 // =====================================================
 import { fotoSegura, conferirEmail, emailPendente, MSG_EMAIL } from "./seguranca.js?v=1";
-import { estrelas } from "./avaliacoes.js?v=19";
-import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=19";
-import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=99";
+import { estrelas } from "./avaliacoes.js?v=20";
+import { abrirQueixa, responderQueixa, resolverQueixa, semResposta, MOTIVOS, PRAZO_DIAS } from "./queixas.js?v=20";
+import { NOMES_TIPO, PAGINA_TIPO } from "./vitrine.js?v=100";
 import { docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { lerLocal, noLocal, aoMudarLocal } from "./local-escolhido.js?v=3";
 

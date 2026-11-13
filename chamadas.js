@@ -344,7 +344,7 @@ function escolherResposta(tela) {
 }
 async function mandarResposta(conv, eu, texto) {
   const fb = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const { comRitmo } = await import("./ritmo.js?v=3");
+  const { comRitmo } = await import("./ritmo.js?v=4");
   const f = { ...fb, db: db() };
   const ref = doc(db(), "conversas", conv);
   await comRitmo(f, eu, "msg", (lote) => lote.set(doc(collection(db(), "conversas", conv, "mensagens")), { remetenteId: eu, texto, criadoEm: serverTimestamp() }));

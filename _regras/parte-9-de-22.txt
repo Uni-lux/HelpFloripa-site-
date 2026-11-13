@@ -1,3 +1,10 @@
+      allow update: if logado()
+                    && avaliacaoNova()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
+                    && request.resource.data.total == resource.data.total + 1
+                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
+                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
+
       // Edição de uma avaliação n_/c_: troca a nota antiga pela nova (o total não muda).
       function edicao() {
         let antes = get(caminhoNova()).data;

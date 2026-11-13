@@ -167,9 +167,12 @@
                       && (!(request.auth.uid in request.resource.data.reacoes)
                           || request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
 
+        // Apagar de vez (até 10 min): o conteúdo vai para apagadas/{id} na mesma gravação (a moderação ainda abre por
+        // 24 h se houver denúncia); antes sumia sem cópia.
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer();
+                      && noPrazoDeMexer()
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
       }
 
       // ===================================================

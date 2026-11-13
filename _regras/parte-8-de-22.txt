@@ -5,7 +5,8 @@
                       && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
                       && request.resource.data.remetenteId == request.auth.uid
                       && original().remetenteId == request.auth.uid
-                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && (!existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId))
+                          || getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid)
                       && request.resource.data.apagadaEm == request.time
                       && request.resource.data.conteudo is map
                       && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
@@ -84,7 +85,14 @@
             && valorTextoAte(d.get('comentario', ''), 500)
             && valorTextoAte(d.get('autorNome', ''), 80)
             && fotoOk(d.get('autorFoto', ''))
+            // nome e foto de quem avalia = os do perfil público dele (antes vinham do celular e dava para mostrar outro nome)
+            && autorConfere(d, /databases/$(database)/documents/perfis_publicos/$(request.auth.uid))
             && d.criadoEm == request.time;
+      }
+      function autorConfere(d, pp) {
+        return (d.get('autorNome', '') == '' && d.get('autorFoto', '') == '')
+            || (exists(pp) && d.get('autorNome', '') in ['', get(pp).data.get('nome', '')]
+                && d.get('autorFoto', '') in ['', get(pp).data.get('fotoPerfil', '')]);
       }
 
       function resumoAtualizado(chave) {
@@ -206,12 +214,5 @@
                     && request.resource.data[estrela()] == 1
                     && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
                        + request.resource.data.n4 + request.resource.data.n5 == 1;
-
-      allow update: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', estrela()])
-                    && request.resource.data.total == resource.data.total + 1
-                    && request.resource.data.soma == resource.data.soma + getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == resource.data.get(estrela(), 0) + 1;
 
 // ===== FIM DA PARTE 8 DE 22 =====

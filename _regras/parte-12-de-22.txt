@@ -1,3 +1,29 @@
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm', 'negociacaoId'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.plano in ['plus', 'pro', 'premium']
+                    && request.resource.data.valor is number && request.resource.data.valor > 0
+                    && ('negociacaoId' in request.resource.data
+                        ? negociacaoPagavel(request.resource.data)
+                        : (request.resource.data.meses in [1, 3, 6, 12] && request.resource.data.valor <= 1000))
+                    && request.resource.data.txid is string && request.resource.data.txid.matches('^[A-Z0-9]{4,25}$')
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'pendente'
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if logado() && resource.data.uid == request.auth.uid
+                    && resource.data.status == 'pendente'
+                    && mudou().hasOnly(['status'])
+                    && request.resource.data.status == 'cancelado';
+      allow update: if donoDoSite()
+                    && resource.data.status == 'pendente'
+                    && mudou().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
+                    && request.resource.data.status in ['pago', 'recusado']
+                    && request.resource.data.decididoPor == request.auth.uid
+                    && request.resource.data.decididoEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow delete: if false;
+    }
     // Plano ativo da conta: público (selo e destaque); só os donos do site mudam.
     // Primeiro acesso: a própria pessoa começa 30 dias grátis no plano que escolher (só se a conta nunca teve plano).
     match /planos/{uid} {
@@ -129,21 +155,6 @@
                     && (!mudou().hasAny(['responsavelNome', 'assumidoEm']) || responsavelOk())
                     && valorTextoAte(request.resource.data.get('notas', ''), 3000);
       allow delete: if podeComercial();
-    }
-
-    // Presença da equipe no painel (quem está online) e chat interno da equipe.
-    match /equipe_presenca/{uid} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome', 'status'])
-                    && request.resource.data.get('status', 'disponivel') in ['disponivel', 'pausa', 'fora']
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
-                    && valorTextoAte(request.resource.data.get('item', null), 160)
-                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
-                    && request.resource.data.em == request.time;
-      allow delete: if admin() && request.auth.uid == uid;
     }
 
 // ===== FIM DA PARTE 12 DE 22 =====

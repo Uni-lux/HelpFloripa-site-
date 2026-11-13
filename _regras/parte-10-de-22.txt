@@ -121,6 +121,10 @@
                     && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    // o e-mail do chamado é o do login (a equipe responde para ele)
+                    && (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
+                    // até 5 chamados novos por dia (ritmo/{uid}, na mesma gravação); SOS não tem limite
+                    && (request.resource.data.categoria == 'sos' || ritmoOk('sup'))
                     && request.resource.data.status == 'aberto'
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.atualizadoEm == request.time

@@ -7,7 +7,7 @@
 // (firebase.js chama publicarVencidas uma vez por sessão). Com o Blaze, uma função pode publicar na hora certa.
 // Sem dependência do rede.js.
 // =====================================================
-import { comRitmo } from "./ritmo.js?v=3";
+import { comRitmo } from "./ritmo.js?v=4";
 
 // Campos que as regras antigas não conhecem (mesma lista do formulário de publicar, rede.js).
 export const NOVOS_PUB = ["tipo", "estilo", "titulo", "layout", "publico", "quemComenta", "ocultarNotas"];

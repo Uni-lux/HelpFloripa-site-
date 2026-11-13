@@ -99,7 +99,9 @@ async function avaliarCli(quem, cliente, extra = {}) {
   b.set(doc(db, "notas", `cli_${cliente}`), { total: 1, soma: 5, n1: 0, n2: 0, n3: 0, n4: 0, n5: 1, ultima: id });
   return b.commit();
 }
-await t("avaliação: negócio avalia o cliente que conversou", () => assertSucceeds(avaliarCli("dono", "ana")));
+await semRegras((db) => setDoc(doc(db, "perfis_publicos", "dono"), { uid: "dono", nome: "Dono Reparos", fotoPerfil: "" }, { merge: true }));
+await t("avaliação: nome do autor diferente do perfil público é recusado", () => assertFails(avaliarCli("dono", "ana", { autorNome: "Loja Famosa" })));
+await t("avaliação: negócio avalia o cliente que conversou (nome do perfil)", () => assertSucceeds(avaliarCli("dono", "ana", { autorNome: "Dono Reparos" })));
 await t("avaliação: negócio não avalia quem não respondeu (falaram)", () => assertFails(avaliarCli("dono", "edu2")));
 await t("avaliação: outra pessoa não avalia em nome do negócio", () => assertFails(avaliarCli("bia", "nova")));
 
@@ -139,16 +141,39 @@ await t("suporte: não põe outra pessoa como responsável ao abrir", () => asse
 await t("suporte: abertoPor precisa ser quem abre", () => assertFails(abrirConversaSuporte("adm", "ana", { abertoPor: "mod" })));
 
 // ---------- suporte nacional: prioridade, fila, notas internas e respostas prontas ----------
-const abrirChamadoUsuario = async (uid, extra, id = "sn_" + Math.random().toString(36).slice(2, 8)) => {
+// Chamado novo soma 1 no ritmo/{uid} ("sup", até 5 por dia; SOS não conta).
+// Sem mexer no ritmo dos outros testes: se a pessoa não tinha ritmo, abre a janela e depois apaga (como estava antes).
+await semRegras((db) => setDoc(doc(db, "ritmo", "sup_lim"), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0 }));
+async function comRitmoSup(uid, montar) {
+  let tinha = false;
+  await semRegras(async (db) => { tinha = (await getDoc(doc(db, "ritmo", uid))).exists(); });
   const db = ctx(uid), b = writeBatch(db);
-  b.set(doc(db, "suporte", id), { uid, nome: uid, email: uid + "@t.com", assunto: "Preciso de ajuda", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario", ...extra });
-  b.set(doc(db, "suporte", id, "mensagens", "inicio"), { autorId: uid, equipe: false, texto: "Detalhes do problema", em: serverTimestamp() });
-  await b.commit(); return id;
+  montar(b, db);
+  if (tinha) b.set(doc(db, "ritmo", uid), { sup: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "sup" }, { merge: true });
+  else b.set(doc(db, "ritmo", uid), { inicio: serverTimestamp(), msg: 0, pub: 0, com: 0, parc: 0, sup: 1, ultimaEm: serverTimestamp(), ultimoTipo: "sup" });
+  try { await b.commit(); } finally { if (!tinha) await semRegras((x) => deleteDoc(doc(x, "ritmo", uid))); }
+}
+const abrirChamadoUsuario = async (uid, extra, id = "sn_" + Math.random().toString(36).slice(2, 8), semRitmo = false) => {
+  const montar = (b, db) => {
+    b.set(doc(db, "suporte", id), { uid, nome: uid, email: uid + "@t.com", assunto: "Preciso de ajuda", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario", ...extra });
+    b.set(doc(db, "suporte", id, "mensagens", "inicio"), { autorId: uid, equipe: false, texto: "Detalhes do problema", em: serverTimestamp() });
+  };
+  if (semRitmo) { const db = ctx(uid), b = writeBatch(db); montar(b, db); await b.commit(); }
+  else await comRitmoSup(uid, montar);
+  return id;
 };
 let idFila = null;
 await t("fila: chamado de golpe nasce urgente", async () => { idFila = await abrirChamadoUsuario("ana", { categoria: "golpe", prioridade: "urgente" }); });
 await t("fila: chamado de pagamento nasce com prioridade alta", () => abrirChamadoUsuario("ana", { categoria: "pagamento", prioridade: "alta" }));
 await t("fila: quem abre não se dá urgente num assunto comum", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "urgente" })));
+await t("suporte: chamado sem somar no ritmo é recusado", () => assertFails(abrirChamadoUsuario("ana", {}, undefined, true)));
+await t("suporte: e-mail do chamado diferente do login é recusado", () => assertFails(abrirChamadoUsuario("ana", { email: "outra@pessoa.com" })));
+await t("suporte: e-mail do login com maiúsculas é aceito", () => assertSucceeds(abrirChamadoUsuario("sup_lim", { email: "SUP_LIM@t.com" })));
+await t("suporte: SOS não conta no limite (vai sem o ritmo)", () => assertSucceeds(abrirChamadoUsuario("sup_lim", { categoria: "sos", prioridade: "urgente" }, undefined, true)));
+await t("suporte: até 5 chamados novos por dia; o 6º é recusado", async () => {
+  for (let i = 0; i < 4; i++) await assertSucceeds(abrirChamadoUsuario("sup_lim", {}));
+  await assertFails(abrirChamadoUsuario("sup_lim", {}));
+});
 await t("fila: alta sem plano Pro e sem assunto de alta é recusada", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "alta" })));
 await t("fila: plano Pro ativo dá prioridade alta em qualquer assunto", async () => { await semRegras((db) => setDoc(doc(db, "planos", "bia"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) })); await abrirChamadoUsuario("bia", { categoria: "conta", prioridade: "alta" }); });
 await t("fila: quem abre não se põe como escalonado", () => assertFails(abrirChamadoUsuario("ana", { escalonadoPara: "donos" })));
@@ -303,6 +328,15 @@ await semRegras(async (db) => { await setDoc(doc(db, "conversas", convAB, "mensa
 await t("10 min: depois de 10 minutos não edita", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "v1"), { texto: "mudou", editadaEm: serverTimestamp(), edicoes: [{ texto: "de 11 minutos atrás", em: passou }] })));
 await t("10 min: depois de 10 minutos não apaga para todos", async () => { const db = ctx("ana"), b = writeBatch(db); b.set(doc(db, "conversas", convAB, "mensagens", "v1"), { remetenteId: "ana", criadoEm: passou, apagada: { por: "ana", em: serverTimestamp() } }); b.set(doc(db, "conversas", convAB, "apagadas", "v1"), { remetenteId: "ana", conteudo: { texto: "de 11 minutos atrás" }, apagadaEm: serverTimestamp() }); await assertFails(b.commit()); });
 await t("10 min: depois de 10 minutos não apaga de vez", () => assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "v1"))));
+await semRegras(async (db) => { await setDoc(doc(db, "conversas", convAB, "mensagens", "dv1"), { remetenteId: "ana", texto: "apago já", criadoEm: Timestamp.now() }); });
+await t("apagar de vez (10 min): sem guardar a cópia é recusado", () => assertFails(deleteDoc(doc(ctx("ana"), "conversas", convAB, "mensagens", "dv1"))));
+await t("apagar de vez (10 min): com a cópia em apagadas/ na mesma gravação", async () => {
+  const db = ctx("ana"), b = writeBatch(db);
+  b.delete(doc(db, "conversas", convAB, "mensagens", "dv1"));
+  b.set(doc(db, "conversas", convAB, "apagadas", "dv1"), { remetenteId: "ana", conteudo: { texto: "apago já" }, apagadaEm: serverTimestamp() });
+  await assertSucceeds(b.commit());
+});
+await t("apagar de vez: a moderação abre a cópia", () => assertSucceeds(getDoc(doc(ctx("mod"), "conversas", convAB, "apagadas", "dv1"))));
 await t("apagar para mim: fica só na própria conta", () => assertSucceeds(setDoc(doc(ctx("bia"), "usuarios", "bia"), { ocultasMsg: { [convAB]: ["e1"] } }, { merge: true })));
 
 // Chat da equipe: editar e apagar.
@@ -373,12 +407,10 @@ await t("presença: situação inventada é recusada", () => assertFails(setDoc(
 await t("presença: sem situação continua valendo (versão antiga)", () => assertSucceeds(setDoc(doc(ctx("mod"), "equipe_presenca", "mod"), pres("mod"))));
 
 // Suporte do usuário e avisos.
-await t("suporte: usuário abre chamado com a primeira mensagem", async () => {
-  const db = ctx("bia"), b = writeBatch(db);
+await t("suporte: usuário abre chamado com a primeira mensagem", () => assertSucceeds(comRitmoSup("bia", (b, db) => {
   b.set(doc(db, "suporte", "cb1"), { uid: "bia", nome: "Bia", email: "bia@t.com", assunto: "Ajuda com a conta", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
   b.set(doc(db, "suporte", "cb1", "mensagens", "inicio"), { autorId: "bia", equipe: false, texto: "Não consigo entrar.", em: serverTimestamp() });
-  await assertSucceeds(b.commit());
-});
+})));
 await t("suporte: usuário não escreve como equipe", () => assertFails(setDoc(doc(ctx("bia"), "suporte", "cb1", "mensagens", "x"), { autorId: "bia", equipe: true, texto: "oficial", em: serverTimestamp() })));
 await t("suporte: equipe responde", async () => {
   const db = ctx("mod2"), b = writeBatch(db);
@@ -942,7 +974,11 @@ await t("verificação: a moderação lê", () => assertSucceeds(getDoc(doc(ctx(
 await t("verificação: aprovar sem apagar a foto do documento é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
 await t("verificação: a pessoa não muda o pedido em análise (só cancela)", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { nomeLegal: "Outro Nome" })));
 await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
-await t("verificação: depois de recusada, pede de novo", () => assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
+await t("verificação: recusada, não pede de novo antes de 30 dias", () => assertFails(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
+await t("verificação: 30 dias depois da recusa, pede de novo", async () => {
+  await semRegras((db) => updateDoc(doc(db, "verificacoes", "bia"), { analisadaEm: Timestamp.fromMillis(Date.now() - 31 * 864e5) }));
+  await assertSucceeds(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV()));
+});
 await t("verificação: cancelar sem apagar a selfie é recusado", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField() })));
 await t("verificação: a pessoa cancela (as fotos saem junto)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 await t("verificação: a moderação não aprova em nome de outro", async () => { await setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV()); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "adm", analisadaEm: serverTimestamp(), documento: deleteField() })); });
@@ -1813,6 +1849,20 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
     await semRegras((db) => setDoc(doc(db, "diario", "agVelha"), { autorId: "ag_eu", nome: "Ag", texto: "velha", agendadoPara: futuro, criadoEm: antigo }));
     await assertFails(updateDoc(doc(ctx("ag_eu"), "diario", "agVelha"), { agendadoPara: Timestamp.fromMillis(Date.now() + 864e5) }));
     await assertSucceeds(updateDoc(doc(ctx("ag_eu"), "diario", "agVelha"), { agendadoPara: serverTimestamp() }));
+  });
+}
+
+// ===================== @ liberado quando o perfil público sai =====================
+{
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "perfis_publicos", "nk_eu"), { uid: "nk_eu", nome: "Nk", nickname: "nkeu" });
+    await setDoc(doc(db, "nicknames", "nkeu"), { uid: "nk_eu" });
+  });
+  await t("@: apagar o perfil público sem liberar o @ é recusado", () => assertFails(deleteDoc(doc(ctx("nk_eu"), "perfis_publicos", "nk_eu"))));
+  await t("@: apagar o perfil público junto com o @ é aceito", async () => {
+    const db = ctx("nk_eu"), b = writeBatch(db);
+    b.delete(doc(db, "nicknames", "nkeu")); b.delete(doc(db, "perfis_publicos", "nk_eu"));
+    await assertSucceeds(b.commit());
   });
 }
 
