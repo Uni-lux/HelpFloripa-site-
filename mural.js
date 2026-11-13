@@ -7,9 +7,9 @@
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=6";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, abrirFolha, fecharFolha } from "./rede.js?v=155";
-import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=3";
-import { lerPorLocal } from "./por-local.js?v=1";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, abrirFolha, fecharFolha } from "./rede.js?v=156";
+import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=4";
+import { lerPorLocal } from "./por-local.js?v=2";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps, salvarLocal, marcarManual } from "./local-escolhido.js?v=3";
 import { buscarNoServidor, semAcento } from "./busca.js?v=1";
@@ -155,9 +155,17 @@ async function compartilhar(a) {
     else { await navigator.clipboard.writeText(url); toast("Link copiado"); }
   } catch {}
 }
+let leitura = { erro: false, foraDoAr: 0 };
 function vazio() {
   const v = el("div", "mu-vazio");
   const c = filtro ? CAT_COM[filtro] : null, l = lerLocal();
+  if (leitura.erro && !todos.length) {
+    const icE = el("span", "mu-vazio-em"); icE.appendChild(iconeCom("comunidade"));
+    v.append(icE, el("strong", null, "Não deu para carregar a Comunidade agora"), el("p", null, "Confira a internet e tente de novo. Se continuar, fale com a gente pelo Suporte."));
+    const b = el("button", "mu-acao", "Tentar de novo"); b.type = "button";
+    b.addEventListener("click", async () => { b.disabled = true; b.textContent = "Carregando..."; buscarDeNovo(); await carregar().catch(() => {}); pintarTudo(); });
+    const bts = el("div", "mu-vazio-bts"); bts.appendChild(b); v.appendChild(bts); return v;
+  }
   if (termo) {
     const icB = el("span", "mu-vazio-em"); icB.appendChild(iconeCom("busca"));
     v.append(icB, el("strong", null, `Nada com “${termo}” por aqui`), el("p", null, "Tente outra palavra ou publique um pedido: quem tiver pode oferecer."));
@@ -168,7 +176,9 @@ function vazio() {
   const icV = el("span", "mu-vazio-em"); icV.appendChild(iconeCom(filtro || "comunidade"));
   v.append(icV,
     el("strong", null, c ? `Nenhuma publicação de ${c.plural.toLowerCase()} ${l.uf ? "em " + rotuloLocal(l) : "por aqui"}` : `Ainda não tem publicações ${l.uf ? "em " + rotuloLocal(l) : "por aqui"}`),
-    el("p", null, "Seja a primeira pessoa! Quem estiver perto vê a sua publicação e chama você no chat."));
+    el("p", null, leitura.foraDoAr && !c
+      ? `${leitura.foraDoAr === 1 ? "O anúncio daqui está reservado, concluído ou passou de 60 dias" : `Os ${leitura.foraDoAr} anúncios daqui estão reservados, concluídos ou passaram de 60 dias`} (depois disso precisam ser renovados). Publique o seu ou renove em Meus anúncios.`
+      : "Seja a primeira pessoa! Quem estiver perto vê a sua publicação e chama você no chat."));
   const atalhos = el("div", "mu-vazio-tipos");
   ["doacao", "pedido", "troca"].forEach((k) => { const a = el("a", "mu-vazio-tipo"); a.href = link(k); a.style.setProperty("--cc", CAT_COM[k].cor); const ic = el("span", "mu-vt-ic"); ic.appendChild(iconeCom(k)); a.append(ic, el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica)); atalhos.appendChild(a); });
   v.appendChild(atalhos);
@@ -211,7 +221,9 @@ async function carregarPerfis(lista) {
   ids.forEach((id) => perfisAut.set(id, r.get(id) || {}));
 }
 async function carregar() {
-  const { lista } = await lerPorLocal(fb, docsComValidade, { colecao: "comunidade", loc: lerLocal(), limite: 60, minimo: 30, noAr: comunidadeNoAr, chave: "cm" }).catch(() => ({ lista: [] }));
+  const { lista, erro, foraDoAr } = await lerPorLocal(fb, docsComValidade, { colecao: "comunidade", loc: lerLocal(), limite: 60, minimo: 30, noAr: comunidadeNoAr, chave: "cm" }).catch(() => ({ lista: [], erro: true, foraDoAr: 0 }));
+  // Vazio de verdade × não deu para ler × só tem anúncio vencido/reservado: o vazio diz qual é (antes era sempre "ainda não tem").
+  leitura = { erro: !!erro, foraDoAr: foraDoAr || 0 };
   todos = lista;
   maisAntigo = todos.reduce((m, a) => { const t = ms(a.atualizadoEm); return t && (!m || t < m) ? t : m; }, 0) || null;
   maisNoServidor = lista.length >= 30;
@@ -247,7 +259,7 @@ async function trocarLugar() {
 // em vez de trocar para a página comunidade.html. Os links antigos (comunidade.html?item=ID / ?novo=TIPO) continuam nos
 // cartões para "abrir em nova aba" e compartilhar, mas o toque é tratado aqui.
 let com = null;
-const carregarCom = () => (com ||= import("./comunidade.js?v=65").then(async (m) => {
+const carregarCom = () => (com ||= import("./comunidade.js?v=66").then(async (m) => {
   await m.prepararEmbutido({ fb, eu, perfil: dados, aoMudar: () => { buscarDeNovo(); carregar().then(pintarTudo).catch(() => {}); } });
   return m;
 }));

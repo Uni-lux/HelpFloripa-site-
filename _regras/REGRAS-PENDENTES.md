@@ -30,6 +30,11 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - [ ] **"Responde rápido"** (`perfis_publicos.atendimento.resposta`) é gravado pelo próprio dono (dá para forjar).
       Já pronto no servidor (`respostaServ`), falta o deploy + `FUNCOES_LIGADAS = true`.
 - [ ] **Pedido do chat** montado no celular de quem pede (o cartão é livre). Montar no servidor a partir do cardápio.
+- [ ] **Agendadas e escondidos na hora certa** (anotado em 13/11/2026, PR #207): sem servidor, a publicação agendada só
+      entra no Diário quando o autor abre o site depois da hora, e o que uma suspensão ou desativação com data escondeu só
+      volta quando a pessoa entra depois da data. Com o Blaze: Cloud Function agendada (a cada 5 min) que publica as
+      `agendadas` vencidas (mesma lógica do `publicarAgendada`) e devolve os `guardados` de motivo `sancao`/`conta` com
+      `ate` vencido (mesma lógica do `devolverItem`).
 - [ ] **Cartões do chat** (Pix, pedido, chamada, SOS...) são mapas livres: alguém com app modificado monta um cartão
       falso. O site já avisa nos casos de golpe; a correção de verdade é validar no servidor.
 

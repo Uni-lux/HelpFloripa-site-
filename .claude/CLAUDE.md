@@ -2523,6 +2523,16 @@ chat da equipe).
   da hora; desativação com data e suspensão voltam quando a pessoa entra depois da data (textos de conta-pagina/configuracoes
   trocados). Conta apagada: conta.js e limpeza-conta apagam `agendadas` e `guardados` (guardados por último). Teste
   `t-guardados.mjs` (21).
+- **Achados dos prints de 12/11 (13/11/2026, PR depois do #207, sem regra nova):** Mensagens: "+" (`.fab-nova`) no mesmo
+  quadrado do Diário/Comunidade (`.tc-ic` + `#i-mais-novo`; nas Chamadas continua o telefone), lista com espaço no fim
+  (`.sidebar > .conv-list` 150 px), conversa sem `ultimaMensagem` some da lista (menos a aberta e solicitação). Perfil: no seu
+  perfil o @ fica só no topo (`preencherCabecalho` pula o @ quando `h === meuCab`). Explorar › Em alta: `contarAssuntos` só
+  com 2+ publicações (a seção some se não houver). `automotivo.svg` sem a estrela solta. Diário: só o "Seu flash" (sem flash e
+  ninguém que você segue com flash) = fileira baixinha `.stories.so-meu` ("Criar um flash" + "Ninguém que você segue tem flash
+  agora"). Comunidade: `lerPorLocal` devolve `erro` (nenhuma leitura funcionou) e `foraDoAr` (vencidos/reservados); o Mural
+  mostra "Não deu para carregar" + Tentar de novo ou explica que os anúncios passaram de 60 dias/estão reservados.
+  Testes: `t-comunidade-inicio` precisa de `saida/fotos-previa.json` (fotos lisas servem); se um teste falhar com
+  permission-denied estranho, `node trocar-regras.mjs main` (algum teste deixou outras regras no emulador).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

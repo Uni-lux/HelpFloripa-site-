@@ -12,8 +12,8 @@ import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha,
   abrirCompositor
-} from "./rede.js?v=155";
-import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=127";
+} from "./rede.js?v=156";
+import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=128";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
@@ -25,7 +25,7 @@ import { CATEGORIAS, CORES_TIPO, NOMES_TIPO, PAGINA_TIPO, nomeCategoria, nomeCat
 import { fimDaEnquete, faltaTexto } from "./enquetes.js?v=7";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, rotuloPosicao, distanciaKm } from "./perto.js?v=3";
 import { semPausados, corDoPlano, lerPlano, classePlano, planosDosDonos, nivelPlano } from "./planos-base.js?v=16";
-import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=3";
+import { lerComunidade, cartaoComunidade, filtrosComunidade, comunidadeNoAr } from "./comunidade-cartao.js?v=4";
 import { combinaPublico, leitorDe } from "./publico-alvo.js?v=1";
 import { lerLocal as lugarEscolhido } from "./local-escolhido.js?v=3";
 import { maisNovo, haNovidade } from "./novidades.js?v=1";
@@ -394,7 +394,10 @@ function contarAssuntos(lista, agora = Date.now()) {
     p *= (1 + Math.log1p(pessoas - 1) * 0.7) * (pessoas === 1 ? 0.6 : 1);
     const nome = [...x.formas.entries()].sort((a, b) => b[1] - a[1])[0][0]; // a forma mais usada (com ou sem acento)
     return { ...x, nome: x.tipo === "tag" ? nome : x.nome, p, pessoas, novo: agora - x.primeiro < DIA && pessoas >= 2, subindo: x.hoje >= 2 && x.hoje > x.ontem * 1.5 };
-  }).sort((a, b) => b.p - a.p || b.pessoas - a.pessoas || b.n - a.n);
+  })
+    // Em alta só com 2+ publicações: com uma publicação só, todas as hashtags dela viravam o "Top" (achado de 12/11/2026).
+    .filter((x) => x.n >= 2)
+    .sort((a, b) => b.p - a.p || b.pessoas - a.pessoas || b.n - a.n);
 }
 const nomeAssunto = (x) => (x.tipo === "tag" ? "#" + x.nome : String(x.nome).split(",")[0]);
 const metaAssunto = (x) => plural(x.n, "publicação", "publicações") + (x.pessoas > 1 && x.pessoas < x.n ? ` de ${x.pessoas} pessoas` : "");
@@ -968,7 +971,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=74").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=75").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);

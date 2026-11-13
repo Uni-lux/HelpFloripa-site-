@@ -1681,3 +1681,18 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 /* Mensagens: a barra de baixo fica por cima da lista (translúcida, a lista passa por baixo) e vai até o fim da tela. */
 .sidebar > .barra-rede { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; }
 .sidebar > .conv-list { padding-bottom: calc(76px + var(--sab, env(safe-area-inset-bottom, 0px))); }
+
+/* ---------- "+" igual ao do Diário e da Comunidade (13/11/2026): quadrado com o sinal, sem círculo; a lista
+   termina acima dele (antes ele cobria a hora da última conversa) ---------- */
+.fab-nova, :root[data-theme="dark"] .fab-nova { width: auto; height: auto; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--text); }
+.fab-nova:hover { background: none; }
+.fab-nova .tc-ic { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; background: color-mix(in srgb, var(--panel-2) 92%, transparent);
+  border: 1.5px solid var(--line); box-shadow: 0 8px 22px rgba(0, 0, 0, .35); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: transform .12s, background .15s; }
+.fab-nova svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.fab-nova:active { transform: none; }
+.fab-nova:active .tc-ic { transform: scale(.9) rotate(-6deg); }
+@media (hover: hover) { .fab-nova:hover .tc-ic { background: var(--hover); } }
+:root[data-theme="light"] .fab-nova .tc-ic { box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+:root[data-theme="dark"] .fab-nova .tc-ic { background: rgba(0, 0, 0, .85); border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 8px 22px rgba(0, 0, 0, .7); }
+.sidebar > .conv-list { padding-bottom: calc(150px + var(--sab, env(safe-area-inset-bottom, 0px))); }
+html.embutido .sidebar > .conv-list { padding-bottom: 90px; }

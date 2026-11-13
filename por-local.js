@@ -9,7 +9,8 @@ const recente = (a, b) => ms(b.atualizadoEm || b.criadoEm) - ms(a.atualizadoEm |
 
 // colecao: "comunidade" | "negocios"...; filtros: [[campo, valor], ...] (igualdades fixas, ex.: [["tipo", "saude"]]);
 // loc: { uf, cidadeIbge } (vazio = Brasil); minimo: quantos itens bastam; noAr: filtro do que pode aparecer.
-// Devolve { lista, nivel } (nivel: "cidade" | "estado" | "brasil" — de onde veio o primeiro item).
+// Devolve { lista, nivel, erro, foraDoAr } (nivel: "cidade" | "estado" | "brasil" — de onde veio o primeiro item;
+// erro: nenhuma leitura funcionou; foraDoAr: quantos vieram do servidor mas o noAr tirou — vencidos, reservados...).
 export async function lerPorLocal(fb, docsComValidade, { colecao, filtros = [], loc = {}, limite = 30, minimo = 10, noAr = () => true, chave }) {
   const col = fb.collection(fb.db, colecao);
   const onde = (extra) => [...filtros, ...extra].map(([c, v]) => fb.where(c, "==", v));
@@ -18,9 +19,14 @@ export async function lerPorLocal(fb, docsComValidade, { colecao, filtros = [], 
     const tentar = (q, sufixo) => (docsComValidade ? docsComValidade(fb, k + sufixo, q, 10 * 60000) : fb.getDocs(q));
     let s;
     try { s = await tentar(fb.query(col, ...onde(extra), fb.orderBy("atualizadoEm", "desc"), fb.limit(limite)), ""); }
-    catch { s = await tentar(fb.query(col, ...onde(extra), fb.limit(limite)), "-s").catch(() => null); } // sem o índice
-    return s ? s.docs.map((d) => ({ id: d.id, ...d.data() })).filter(noAr).sort(recente) : [];
+    catch { s = await tentar(fb.query(col, ...onde(extra), fb.limit(limite)), "-s").catch((e) => { console.warn("[por-local]", colecao, nome, e?.code || e); return null; }); } // sem o índice
+    if (!s) { falhas++; return []; }
+    leituras++;
+    const todos = s.docs.map((d) => ({ id: d.id, ...d.data() })), bons = todos.filter(noAr);
+    foraDoAr += todos.length - bons.length;
+    return bons.sort(recente);
   }
+  let falhas = 0, leituras = 0, foraDoAr = 0;
   const vistos = new Set(), lista = [];
   let nivel = "";
   const somar = (l, n) => { l.forEach((x) => { if (!vistos.has(x.id)) { vistos.add(x.id); lista.push(x); } }); if (!nivel && l.length) nivel = n; };
@@ -28,7 +34,7 @@ export async function lerPorLocal(fb, docsComValidade, { colecao, filtros = [], 
   if (ibge) somar(await ler(`c${ibge}`, [["cidadeIbge", ibge]]), "cidade");
   if (loc.uf && lista.length < minimo) somar(await ler(`u${loc.uf}`, [["uf", loc.uf]]), "estado");
   if (lista.length < minimo) somar(await ler("br", []), "brasil");
-  return { lista, nivel: nivel || "brasil" };
+  return { lista, nivel: nivel || "brasil", erro: falhas > 0 && !leituras, foraDoAr };
 }
 
 // Carrega a seção só quando ela chega perto da tela (quem não rola até lá não gasta leitura).
