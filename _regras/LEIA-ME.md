@@ -162,6 +162,10 @@
 > **13/11/2026 (risco baixo):** avaliação com o nome/foto do perfil público; apagar o perfil público libera o @; apagar
 > mensagem de vez guarda a cópia em `apagadas/`; chamado com o e-mail do login e até 5 por dia (`ritmo.sup`, SOS fora);
 > verificação recusada só pede de novo depois de 30 dias. Continuam **22 partes**, 1139 testes.
+> **13/11/2026 (corrida, figurinhas e chamados):** a corrida em aberto guarda só a região (2 casas decimais, "Região de
+> Centro") e o endereço exato vai para `corridas/{id}/privado/rota`, que o entregador só lê depois de aceitar; coleção nova
+> `suporte_abertos/{uid}` (a lista dos chamados em andamento, que muda na mesma gravação): no máximo 3 em andamento
+> (SOS fora), também ao reabrir. Continuam **22 partes**, 1157 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **22 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
-} from "./rede.js?v=157";
+} from "./rede.js?v=158";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -871,14 +871,59 @@ async function abrirHashtagFlash(tag, aoFechar) {
 // Figurinhas que aparecem num flash: as dele e, num repost, as do flash original que ele não tem (enquete/teste, caixa de
 // perguntas, contagem, link do negócio e os toques de lugar, # e @). O que vem do original usa o id do original: o voto,
 // a resposta e o lembrete contam lá.
+// Figurinhas desenhadas com segurança (13/11/2026): as regras não conseguem conferir se pergunta, opções e título são
+// texto (estouraria o limite de 1.000 expressões do "flash com TUDO junto"). Aqui, o que vier fora do formato some em vez
+// de aparecer quebrado: texto cortado no tamanho certo, opções só de texto (2 a 4), posição e tamanho dentro dos limites.
+const txtFig = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+const numFig = (v, d, a, b) => (typeof v === "number" && Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d);
+function lugarFig(x, y0) {
+  const r = { x: numFig(x?.x, 0.5, 0, 1), y: numFig(x?.y, y0, 0, 1) };
+  if (x && "k" in x) r.k = numFig(x.k, 1, 0.6, 1.3);
+  return r;
+}
+export function enqueteLimpa(e) {
+  if (!e || typeof e !== "object") return null;
+  const opcoes = (Array.isArray(e.opcoes) ? e.opcoes : []).filter((o) => typeof o === "string" && o.trim()).map((o) => o.slice(0, 60)).slice(0, 4);
+  const pergunta = txtFig(e.pergunta, 140);
+  if (!pergunta.trim() || opcoes.length < 2) return null;
+  const r = { ...e, pergunta, opcoes, ...lugarFig(e, 0.6) };
+  if ("certa" in e && !(Number.isInteger(e.certa) && e.certa >= 0 && e.certa < opcoes.length)) delete r.certa;
+  if ("cor" in e && typeof e.cor !== "string") delete r.cor;
+  return r;
+}
+export function caixaLimpa(c) {
+  if (!c || typeof c !== "object") return null;
+  const pergunta = txtFig(c.pergunta, 140);
+  if (!pergunta.trim()) return null;
+  const r = { ...c, pergunta, anonima: c.anonima === true, ...lugarFig(c, 0.42) };
+  if ("cor" in c && typeof c.cor !== "string") delete r.cor;
+  return r;
+}
+function contagemLimpa(c) {
+  if (!c || typeof c !== "object") return null;
+  const titulo = txtFig(c.titulo, 40), fim = ms(c.fim);
+  if (!titulo.trim() || !fim) return null;
+  const r = { ...c, titulo, ...lugarFig(c, 0.32) };
+  if ("cor" in c && typeof c.cor !== "string") delete r.cor;
+  return r;
+}
+const LIMPA_FIG = { enquete: enqueteLimpa, caixa: caixaLimpa, contagem: contagemLimpa };
 export function figurinhasDe(s) {
   const o = s?._orig && s._orig.id !== s.id ? s._orig : null;
-  const de = (k) => (s?.[k] ? s : o?.[k] ? o : null);
+  // O documento (o próprio flash ou o original do repost) com a figurinha já limpa; inválida = sem figurinha.
+  const de = (k) => {
+    for (const src of [s, o]) {
+      if (!src?.[k]) continue;
+      const limpa = LIMPA_FIG[k](src[k]);
+      return limpa ? { ...src, [k]: limpa } : null;
+    }
+    return null;
+  };
   const linkOk = (l) => l?.negocioId && PAGINA_NEGOCIO[l.tipo];
   return {
     enquete: de("enquete"),
     caixa: de("caixa"),
-    contagem: (s?.contagem?.titulo && s.contagem.fim) ? s : (o?.contagem?.titulo && o.contagem.fim) ? o : null,
+    contagem: de("contagem"),
     link: linkOk(s?.link) ? s.link : linkOk(o?.link) ? o.link : null,
     links: linksDoFlash(s) || linksDoFlash(o) || null,
     toques: [...figurinhasTocaveis(s || {}), ...(o ? figurinhasTocaveis(o) : [])].slice(0, 12)
@@ -4192,7 +4237,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista, aba: b.matches(".cx-ver") ? "respostas" : "enquete" });
     }, true);
     if (enq) {
-      const w = el("div", "story-enq"); if (fig.enquete === s) paraAtividade(w);
+      const w = el("div", "story-enq"); if (fig.enquete.id === s.id) paraAtividade(w);
       w.appendChild(enq); quadro.appendChild(w); encaixar(w, fig.enquete.enquete.x ?? 0.5, fig.enquete.enquete.y ?? 0.6, fig.enquete.enquete.k);
       ["pointerdown", "pointerup", "click"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
     }
@@ -4246,7 +4291,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
     caixa.querySelector(".story-cx")?.remove();
     const cx = fig.caixa ? blocoCaixa(fig.caixa, { tipo: "f", escura: true }) : null;
     if (cx) {
-      const w = el("div", "story-enq story-cx"); if (fig.caixa === s) paraAtividade(w);
+      const w = el("div", "story-enq story-cx"); if (fig.caixa.id === s.id) paraAtividade(w);
       w.appendChild(cx); quadro.appendChild(w); encaixar(w, fig.caixa.caixa.x ?? 0.5, fig.caixa.caixa.y ?? 0.42, fig.caixa.caixa.k);
       ["pointerdown", "pointerup", "click", "keydown"].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation()));
       // escrever a resposta (ou abrir as respostas) pausa o flash
@@ -4907,7 +4952,8 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
   }
   // Resultado da enquete: cada opção com a barra, a porcentagem e quem votou nela (anônima: só os números).
   async function carregarEnquete() {
-    const minha = ++vez, e = s.enquete, alvo = "f_" + s.id;
+    const minha = ++vez, e = enqueteLimpa(s.enquete), alvo = "f_" + s.id;
+    if (!e) { conteudo.replaceChildren(el("div", "lista-vazia", "Esta enquete não pôde ser lida.")); return; }
     conteudo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
     try {
       const [contas, votos] = await Promise.all([
@@ -4946,7 +4992,8 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
   }
   // Respostas da caixa de perguntas em cartões (como no Instagram): tocar mostra Pôr no flash, Responder e Apagar.
   async function carregarRespostas() {
-    const minha = ++vez, c = s.caixa, alvo = "f_" + s.id;
+    const minha = ++vez, c = caixaLimpa(s.caixa), alvo = "f_" + s.id;
+    if (!c) { conteudo.replaceChildren(el("div", "lista-vazia", "Esta caixa de perguntas não pôde ser lida.")); return; }
     conteudo.replaceChildren(el("div", "lista-vazia", "Carregando..."));
     try {
       const x = await fb.getDocs(fb.query(fb.collection(fb.db, "caixa_respostas"), fb.where("autorId", "==", eu.uid), fb.where("alvo", "==", alvo), fb.limit(200)));

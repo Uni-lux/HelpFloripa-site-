@@ -42,16 +42,18 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - [x] **FEITO em 13/11/2026:** nome/foto do autor da **avaliação** têm que ser os do perfil público (ou vazios).
 - [x] **FEITO em 13/11/2026:** apagar o perfil público só junto com o @ (o @ não fica preso).
 - [x] **FEITO em 13/11/2026:** mensagem apagada de vez (10 min) só com a cópia em `apagadas/` na mesma gravação.
-- [x] **FEITO em 13/11/2026 (parte):** 30 dias depois da verificação recusada agora vale na regra. Chamados: a regra não
-      consegue contar os abertos (a equipe muda a situação em vários lugares), então vale um limite de **5 chamados novos
-      por dia** (`ritmo.sup`, SOS fora); o "3 em andamento" continua só no site.
+- [x] **FEITO em 13/11/2026:** 30 dias depois da verificação recusada agora vale na regra. Chamados: até **5 novos por
+      dia** (`ritmo.sup`) e no máximo **3 em andamento** pela lista `suporte_abertos/{uid}` (muda na mesma gravação; só
+      sai da lista um chamado encerrado ou que não existe; reabrir também conta). SOS fora dos dois.
 - [x] **FEITO em 13/11/2026:** e-mail do chamado = o do login (ou vazio).
-- [ ] Textos de **enquete/caixa/contagem do Flash** não conferem se são texto (pôr a conferência estoura o limite de
-      1.000 do "flash com TUDO junto"); o pior caso é a figurinha aparecer quebrada.
+- [x] **FEITO em 13/11/2026 (pelo site):** textos de **enquete/caixa/contagem do Flash** continuam sem conferência na
+      regra (estoura o limite de 1.000), mas o site só desenha o que é texto (`enqueteLimpa`, `caixaLimpa`, `contagemLimpa`
+      em stories.js): figurinha estragada não aparece e a posição volta para dentro do quadro.
 - [x] **FEITO em 13/11/2026:** corrida só aceita como destinatário quem já conversa com quem pede (conversa aceita, sem
       bloqueio). Antes, além de ver a corrida e o PIN, a conversa "de serviço" furava o "quem pode me mandar mensagem".
-- [ ] **Endereço de busca** de uma corrida em aberto aparece para todos os entregadores ativos (é assim que eles acham
-      a corrida; o contato e o PIN ficam escondidos).
+- [x] **FEITO em 13/11/2026:** a corrida em aberto mostra aos entregadores só a **região** (2 casas decimais, ~1 km, e
+      "Região de Centro"); o endereço exato fica em `corridas/{id}/privado/rota`, lido por quem pede, quem recebe, quem
+      paga e o entregador só **depois de aceitar**.
 
 ## Decisões suas
 - [x] Item A: sim (feito em 13/11/2026).

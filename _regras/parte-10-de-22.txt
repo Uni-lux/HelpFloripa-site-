@@ -88,6 +88,29 @@
       allow delete: if podeModerar();
     }
 
+    // Chamados em andamento de cada pessoa (limite de 3). Entra um chamado dela que não está encerrado; sai só um encerrado
+    // (ou que não existe mais). A equipe mexe à vontade.
+    match /suporte_abertos/{uid} {
+      function ab() { return request.resource.data; }
+      function antes() { return resource == null ? [] : resource.data.ids; }
+      function chRef() { return /databases/$(database)/documents/suporte/$(ab().ultimo); }
+      allow read: if logado() && (uid == request.auth.uid || admin());
+      allow create, update: if logado() && uid == request.auth.uid
+                    && ab().keys().hasOnly(['ids', 'ultimo', 'acao', 'atualizadoEm'])
+                    && ab().ids is list && ab().ids.size() <= 20
+                    && ab().ultimo is string && ab().ultimo.size() >= 1 && ab().ultimo.size() <= 40
+                    && ab().atualizadoEm == request.time
+                    && ((ab().acao == 'entrou'
+                         && ab().ids.size() == antes().size() + 1 && ab().ids.hasAll(antes())
+                         && ab().ultimo in ab().ids && !(ab().ultimo in antes())
+                         && existsAfter(chRef()) && getAfter(chRef()).data.uid == request.auth.uid && getAfter(chRef()).data.status != 'fechado')
+                     || (ab().acao == 'saiu'
+                         && ab().ids.size() == antes().size() - 1 && antes().hasAll(ab().ids)
+                         && ab().ultimo in antes() && !(ab().ultimo in ab().ids)
+                         && (!existsAfter(chRef()) || getAfter(chRef()).data.status == 'fechado')));
+      allow write: if admin();
+    }
+
     match /suporte/{id} {
       function camposChamado() {
         return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
@@ -111,74 +134,10 @@
             && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
             && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }
-      allow read: if logado() && resource.data.uid == request.auth.uid;
-      allow read: if admin();
-      // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(camposChamado())
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && valorTextoAte(request.resource.data.get('email', ''), 120)
-                    // o e-mail do chamado é o do login (a equipe responde para ele)
-                    && (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
-                    // até 5 chamados novos por dia (ritmo/{uid}, na mesma gravação); SOS não tem limite
-                    && (request.resource.data.categoria == 'sos' || ritmoOk('sup'))
-                    && request.resource.data.status == 'aberto'
-                    && request.resource.data.criadoEm == request.time
-                    && request.resource.data.atualizadoEm == request.time
-                    && request.resource.data.ultimaDe == 'usuario'
-                    && prioridadeOk(request.resource.data)
-                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'escalonadoPara', 'primeiraRespostaEm']);
-      // A equipe abre uma conversa de suporte com qualquer pessoa ("Suporte Help Floripa"):
-      // o chamado já nasce respondido, com a primeira mensagem da equipe gravada junto.
-      allow create: if admin()
-                    && request.resource.data.keys().hasOnly(camposChamado().concat(['abertoPor']))
-                    && request.resource.data.uid is string
-                    && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
-                    && request.resource.data.abertoPor == request.auth.uid
-                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
-                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
-                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
-                    && valorTextoAte(request.resource.data.get('email', ''), 120)
-                    && request.resource.data.status == 'respondido'
-                    && request.resource.data.criadoEm == request.time
-                    && request.resource.data.atualizadoEm == request.time
-                    && request.resource.data.ultimaDe == 'equipe'
-                    // quem abre pode já ficar como responsável pelo chamado
-                    && (!('responsavel' in request.resource.data)
-                        || (request.resource.data.responsavel == request.auth.uid
-                            && request.resource.data.get('assumidoEm', null) == request.time
-                            && valorTextoAte(request.resource.data.get('responsavelNome', ''), 80)))
-                    && existsAfter(/databases/$(database)/documents/suporte/$(id)/mensagens/inicio);
-      allow update: if logado()
-                    && ((resource.data.uid == request.auth.uid
-                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
-                         && request.resource.data.status in ['aberto', 'fechado']
-                         && request.resource.data.ultimaDe == 'usuario')
-                        || (admin()
-                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
-                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']
-                         && responsavelOk() && filaEquipeOk(request.resource.data)))
-                    && request.resource.data.atualizadoEm == request.time;
-      // A equipe assume ou passa o chamado, troca a prioridade, transfere de setor ou escala (sem mexer na data da conversa).
-      allow update: if admin()
-                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
-                    && responsavelOk() && filaEquipeOk(request.resource.data);
-      allow delete: if false;
-
-      match /mensagens/{msgId} {
-        function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
-        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
-        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
-        // Anexo: foto (JPEG) ou PDF dentro da mensagem, ou um arquivo do Storage do Firebase (foto, vídeo ou PDF).
-        function anexoOk(x) {
-          return x is map
-              && x.keys().hasOnly(['tipo', 'url', 'nome'])
-              && x.tipo in ['imagem', 'video', 'arquivo']
-              && valorTextoAte(x.get('nome', ''), 120)
-              && x.url is string && x.url.size() <= 750000
-              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
-        }
+      // No máximo 3 chamados em andamento por pessoa (SOS fora): a lista suporte_abertos/{uid} muda na MESMA gravação
+      // e as regras dela só deixam tirar um chamado que já foi encerrado.
+      function abertosOk() {
+        let a = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
+        return a.acao == 'entrou' && a.ultimo == id && a.ids.size() <= 3;
+      }
 // ===== FIM DA PARTE 10 DE 22 =====

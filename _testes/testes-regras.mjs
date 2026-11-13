@@ -144,24 +144,36 @@ await t("suporte: abertoPor precisa ser quem abre", () => assertFails(abrirConve
 // Chamado novo soma 1 no ritmo/{uid} ("sup", até 5 por dia; SOS não conta).
 // Sem mexer no ritmo dos outros testes: se a pessoa não tinha ritmo, abre a janela e depois apaga (como estava antes).
 await semRegras((db) => setDoc(doc(db, "ritmo", "sup_lim"), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0 }));
-async function comRitmoSup(uid, montar) {
+// Chamado novo também entra na lista suporte_abertos/{uid} (no máximo 3 em andamento), na mesma gravação.
+async function idsAbertos(uid) { let ids = []; await semRegras(async (db) => { const a = await getDoc(doc(db, "suporte_abertos", uid)); ids = a.exists() ? a.data().ids : []; }); return ids; }
+function marcarAberto(b, db, uid, ids, id) { b.set(doc(db, "suporte_abertos", uid), { ids: [...ids, id], ultimo: id, acao: "entrou", atualizadoEm: serverTimestamp() }); }
+async function fecharChamado(uid, id) {
+  const ids = await idsAbertos(uid), db = ctx(uid), b = writeBatch(db);
+  b.update(doc(db, "suporte", id), { status: "fechado", atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
+  b.set(doc(db, "suporte_abertos", uid), { ids: ids.filter((x) => x !== id), ultimo: id, acao: "saiu", atualizadoEm: serverTimestamp() });
+  await b.commit();
+}
+async function comRitmoSup(uid, montar, idChamado = null, semLista = false) {
   let tinha = false;
   await semRegras(async (db) => { tinha = (await getDoc(doc(db, "ritmo", uid))).exists(); });
+  const ids = idChamado && !semLista ? await idsAbertos(uid) : null;
   const db = ctx(uid), b = writeBatch(db);
   montar(b, db);
+  if (ids) marcarAberto(b, db, uid, ids, idChamado);
   if (tinha) b.set(doc(db, "ritmo", uid), { sup: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "sup" }, { merge: true });
   else b.set(doc(db, "ritmo", uid), { inicio: serverTimestamp(), msg: 0, pub: 0, com: 0, parc: 0, sup: 1, ultimaEm: serverTimestamp(), ultimoTipo: "sup" });
   try { await b.commit(); } finally { if (!tinha) await semRegras((x) => deleteDoc(doc(x, "ritmo", uid))); }
 }
-const abrirChamadoUsuario = async (uid, extra, id = "sn_" + Math.random().toString(36).slice(2, 8), semRitmo = false) => {
+const abrirChamadoUsuario = async (uid, extra, id = "sn_" + Math.random().toString(36).slice(2, 8), semRitmo = false, semLista = false) => {
   const montar = (b, db) => {
     b.set(doc(db, "suporte", id), { uid, nome: uid, email: uid + "@t.com", assunto: "Preciso de ajuda", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario", ...extra });
     b.set(doc(db, "suporte", id, "mensagens", "inicio"), { autorId: uid, equipe: false, texto: "Detalhes do problema", em: serverTimestamp() });
   };
   if (semRitmo) { const db = ctx(uid), b = writeBatch(db); montar(b, db); await b.commit(); }
-  else await comRitmoSup(uid, montar);
+  else await comRitmoSup(uid, montar, id, semLista);
   return id;
 };
+async function semRegrasLer(uid) { let r = []; await semRegras(async (db) => { r = (await getDocs(query(collection(db, "suporte"), where("uid", "==", uid), where("status", "==", "fechado")))).docs.filter((d) => d.data().categoria !== "sos").map((d) => d.id); }); return r; }
 let idFila = null;
 await t("fila: chamado de golpe nasce urgente", async () => { idFila = await abrirChamadoUsuario("ana", { categoria: "golpe", prioridade: "urgente" }); });
 await t("fila: chamado de pagamento nasce com prioridade alta", () => abrirChamadoUsuario("ana", { categoria: "pagamento", prioridade: "alta" }));
@@ -170,9 +182,57 @@ await t("suporte: chamado sem somar no ritmo é recusado", () => assertFails(abr
 await t("suporte: e-mail do chamado diferente do login é recusado", () => assertFails(abrirChamadoUsuario("ana", { email: "outra@pessoa.com" })));
 await t("suporte: e-mail do login com maiúsculas é aceito", () => assertSucceeds(abrirChamadoUsuario("sup_lim", { email: "SUP_LIM@t.com" })));
 await t("suporte: SOS não conta no limite (vai sem o ritmo)", () => assertSucceeds(abrirChamadoUsuario("sup_lim", { categoria: "sos", prioridade: "urgente" }, undefined, true)));
-await t("suporte: até 5 chamados novos por dia; o 6º é recusado", async () => {
-  for (let i = 0; i < 4; i++) await assertSucceeds(abrirChamadoUsuario("sup_lim", {}));
+await t("suporte: até 3 chamados em andamento; o 4º é recusado", async () => {
+  const a = [];
+  for (let i = 0; i < 2; i++) a.push(await assertSucceeds(abrirChamadoUsuario("sup_lim", {})));
   await assertFails(abrirChamadoUsuario("sup_lim", {}));
+});
+await t("suporte: chamado sem entrar na lista de abertos é recusado", async () => {
+  await fecharChamado("sup_lim", (await idsAbertos("sup_lim"))[0]);
+  await assertFails(abrirChamadoUsuario("sup_lim", {}, undefined, false, true));
+});
+await t("suporte: não tira da lista um chamado ainda aberto", async () => {
+  const ids = await idsAbertos("sup_lim");
+  await assertFails(setDoc(doc(ctx("sup_lim"), "suporte_abertos", "sup_lim"), { ids: ids.slice(1), ultimo: ids[0], acao: "saiu", atualizadoEm: serverTimestamp() }));
+});
+await t("suporte: não põe na lista chamado de outra pessoa", async () => {
+  const ids = await idsAbertos("sup_lim");
+  await assertFails(setDoc(doc(ctx("sup_lim"), "suporte_abertos", "sup_lim"), { ids: [...ids, idFila], ultimo: idFila, acao: "entrou", atualizadoEm: serverTimestamp() }));
+});
+await t("suporte: tira da lista um chamado que não existe mais", async () => {
+  await semRegras(async (db) => { const a = (await getDoc(doc(db, "suporte_abertos", "sup_lim"))).data(); await setDoc(doc(db, "suporte_abertos", "sup_lim"), { ...a, ids: [...a.ids, "sumiu1"] }); });
+  const ids = await idsAbertos("sup_lim");
+  await assertSucceeds(setDoc(doc(ctx("sup_lim"), "suporte_abertos", "sup_lim"), { ids: ids.filter((x) => x !== "sumiu1"), ultimo: "sumiu1", acao: "saiu", atualizadoEm: serverTimestamp() }));
+});
+await t("suporte: não apaga a própria lista", () => assertFails(deleteDoc(doc(ctx("sup_lim"), "suporte_abertos", "sup_lim"))));
+await t("suporte: outra pessoa não lê a lista", () => assertFails(getDoc(doc(ctx("ana"), "suporte_abertos", "sup_lim"))));
+let idReabrir = null;
+await t("suporte: encerrar tira da lista; abre outro no lugar", async () => {
+  idReabrir = (await idsAbertos("sup_lim"))[0];
+  await assertSucceeds(fecharChamado("sup_lim", idReabrir));
+  await assertSucceeds(abrirChamadoUsuario("sup_lim", {}));
+});
+await t("suporte: até 5 chamados novos por dia; o 6º é recusado", async () => {
+  await fecharChamado("sup_lim", (await idsAbertos("sup_lim"))[0]);
+  await assertSucceeds(abrirChamadoUsuario("sup_lim", {}));
+  await fecharChamado("sup_lim", (await idsAbertos("sup_lim"))[0]);
+  await assertFails(abrirChamadoUsuario("sup_lim", {}));
+});
+await t("suporte: reabrir sem voltar para a lista é recusado", () => assertFails(updateDoc(doc(ctx("sup_lim"), "suporte", idReabrir), { status: "aberto", atualizadoEm: serverTimestamp(), ultimaDe: "usuario" })));
+await t("suporte: reabrir voltando para a lista é aceito", async () => {
+  const ids = await idsAbertos("sup_lim"), db = ctx("sup_lim"), b = writeBatch(db);
+  b.update(doc(db, "suporte", idReabrir), { status: "aberto", atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
+  marcarAberto(b, db, "sup_lim", ids, idReabrir);
+  await assertSucceeds(b.commit());
+});
+await t("suporte: com 3 em andamento não reabre o 4º", async () => {
+  // abre um 3º pela equipe (sem lista) e encerra pela pessoa; com 3 na lista, reabrir é recusado
+  await semRegras(async (db) => { const a = (await getDoc(doc(db, "suporte_abertos", "sup_lim"))).data(); await setDoc(doc(db, "suporte_abertos", "sup_lim"), { ...a, ids: [...a.ids, "x1", "x2"].slice(0, 3) }); });
+  const ids = await idsAbertos("sup_lim"), fechado = (await semRegrasLer("sup_lim")).find((x) => !ids.includes(x));
+  const db = ctx("sup_lim"), b = writeBatch(db);
+  b.update(doc(db, "suporte", fechado), { status: "aberto", atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
+  marcarAberto(b, db, "sup_lim", ids, fechado);
+  await assertFails(b.commit());
 });
 await t("fila: alta sem plano Pro e sem assunto de alta é recusada", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "alta" })));
 await t("fila: plano Pro ativo dá prioridade alta em qualquer assunto", async () => { await semRegras((db) => setDoc(doc(db, "planos", "bia"), { plano: "pro", ate: Timestamp.fromMillis(Date.now() + 30 * 864e5) })); await abrirChamadoUsuario("bia", { categoria: "conta", prioridade: "alta" }); });
@@ -410,7 +470,7 @@ await t("presença: sem situação continua valendo (versão antiga)", () => ass
 await t("suporte: usuário abre chamado com a primeira mensagem", () => assertSucceeds(comRitmoSup("bia", (b, db) => {
   b.set(doc(db, "suporte", "cb1"), { uid: "bia", nome: "Bia", email: "bia@t.com", assunto: "Ajuda com a conta", categoria: "conta", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario" });
   b.set(doc(db, "suporte", "cb1", "mensagens", "inicio"), { autorId: "bia", equipe: false, texto: "Não consigo entrar.", em: serverTimestamp() });
-})));
+}, "cb1")));
 await t("suporte: usuário não escreve como equipe", () => assertFails(setDoc(doc(ctx("bia"), "suporte", "cb1", "mensagens", "x"), { autorId: "bia", equipe: true, texto: "oficial", em: serverTimestamp() })));
 await t("suporte: equipe responde", async () => {
   const db = ctx("mod2"), b = writeBatch(db);
@@ -1520,9 +1580,10 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("online: geo5 tem que começar com o geo4", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_online", "moto1"), online("moto1", { geo5: "6gkym" }))));
   await t("online: quem pede lista os entregadores perto", () => assertSucceeds(getDocs(query(collection(ctx("cli"), "entregadores_online"), where("geo4", "in", ["6gkz", "6gky"])))));
 
-  const ponto = (lat, lng, nome) => ({ lat, lng, nome, sub: "Centro · Florianópolis" });
+  const ponto = (lat, lng, nome) => ({ lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100, nome, sub: "Centro · Florianópolis" });
+  const rotaExata = { origem: { lat: -27.5954, lng: -48.5481, nome: "Rua A, 10", sub: "Centro" }, destino: { lat: -27.6012, lng: -48.5203, nome: "Rua B, 20", sub: "Saco" } };
   const pedido = (extra) => ({ servico: "entrega", modalidade: "entrega_moto", veiculo: "moto", clienteId: "cli", clienteNome: "Cli", origem: ponto(-27.595, -48.548, "Rua A, 10"), destino: ponto(-27.6, -48.52, "Rua B, 20"), km: 4.2, min: 12, valor: 15, valorSugerido: 14.5, pagamento: "pix", pacote: { tamanho: "P", oque: "Documentos" }, status: "procurando", paraId: "", destinatarioId: "dest", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "entrega", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  const criar = (db, id, extra, pin = "1234") => { const b = writeBatch(db); b.set(doc(db, "corridas", id), pedido(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin }); b.set(doc(db, "corridas", id, "privado", "contato"), { nome: "Dest", telefone: "48999990000", obs: "Apto 302" }); return b.commit(); };
+  const criar = (db, id, extra, pin = "1234", semRota = false) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), pedido(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin }); if (!semRota) b.set(doc(db, "corridas", id, "privado", "rota"), rotaExata); b.set(doc(db, "corridas", id, "privado", "contato"), { nome: "Dest", telefone: "48999990000", obs: "Apto 302" }); return b.commit(); };
   await t("pedido: cria com PIN e contato na mesma gravação", () => assertSucceeds(criar(ctx("cli"), "pedidoEntrega01")));
   await t("pedido: sem o PIN é recusado", () => assertFails(setDoc(doc(ctx("cli"), "corridas", "pedidoSemPin01"), pedido())));
   await t("pedido: não cria em nome de outra pessoa", () => assertFails(criar(ctx("cli"), "pedidoOutro0001", { clienteId: "dest" })));
@@ -1546,6 +1607,11 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("pedido: quem não é entregador não lista os pedidos", () => assertFails(getDocs(query(collection(ctx("dest"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", ""), where("geo4", "in", ["6gkz"])))));
   await t("pedido: o direcionado só aparece para quem foi chamado", () => assertSucceeds(getDocs(query(collection(ctx("moto2"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", "moto2")))));
   await t("pedido: outro entregador não lê o direcionado", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoPara00002"))));
+  await t("região: ponto exato no documento é recusado", () => assertFails(criar(ctx("cli"), "pedidoExato001", { origem: { lat: -27.5954, lng: -48.5481, nome: "Rua A, 10", sub: "" } })));
+  await t("região: sem o endereço exato em privado/rota é recusado", () => assertFails(criar(ctx("cli"), "pedidoSemRota1", {}, "1234", true)));
+  await t("rota exata: entregador não lê antes de aceitar", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "rota"))));
+  await t("rota exata: quem pede lê", () => assertSucceeds(getDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01", "privado", "rota"))));
+  await t("rota exata: quem recebe lê", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("contato: entregador não lê antes de aceitar", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
   await t("pedido: quem pede aumenta a oferta e o raio", () => assertSucceeds(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 18, raioKm: 10, atualizadoEm: serverTimestamp() })));
   await t("pedido: não diminui a oferta", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 10, atualizadoEm: serverTimestamp() })));
@@ -1561,6 +1627,8 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   });
   await t("aceitar: moto aceita", () => assertSucceeds(aceitar("moto1", "pedidoEntrega01")));
   await t("aceitar: outro não aceita depois", () => assertFails(aceitar("moto2", "pedidoEntrega01", { nome: "Moto 2", modelo: "CG", cor: "Preta", placa: "ABC1D23" })));
+  await t("rota exata: quem aceitou lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "rota"))));
+  await t("rota exata: outro entregador não lê", () => assertFails(getDoc(doc(ctx("moto2"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("contato: o entregador do pedido lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
   await t("posição: o entregador manda a posição ao vivo", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 90, vel: 8, em: serverTimestamp() } })));
   await t("posição: quem pede não mexe na posição", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
@@ -1641,7 +1709,7 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await updateDoc(doc(ctx("go"), "presentes", "prC"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
   const ponto = (lat, lng) => ({ lat, lng, nome: "Rua", sub: "" });
   const corridaP = (extra) => ({ servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", clienteId: "go", clienteNome: "Go", origem: ponto(-27.59, -48.54), destino: ponto(-27.6, -48.52), km: 4, min: 10, valor: 30, valorSugerido: 20, pagamento: "presente", pacote: null, status: "procurando", paraId: "", destinatarioId: "", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "embarque", presenteId: "prC", pagadorId: "gi", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  const usar = (db, id, extra) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), corridaP(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin: "1111" }); b.update(doc(db, "presentes", "prC"), { status: "usado", corridaId: id, usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }); return b.commit(); };
+  const usar = (db, id, extra) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), corridaP(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin: "1111" }); b.set(doc(db, "corridas", id, "privado", "rota"), { origem: { lat: -27.5912, lng: -48.5431, nome: "Rua", sub: "" }, destino: { lat: -27.6033, lng: -48.5212, nome: "Rua", sub: "" } }); b.update(doc(db, "presentes", "prC"), { status: "usado", corridaId: id, usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }); return b.commit(); };
   await t("corrida de presente: valor acima do presente é recusado", () => assertFails(usar(ctx("go"), "corridaPres01", { valor: 60 })));
   await t("corrida de presente: pagador tem que ser quem deu", () => assertFails(usar(ctx("go"), "corridaPres02", { pagadorId: "gu" })));
   await t("corrida de presente: sem marcar o presente como usado é recusada", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres03"), corridaP()); b.set(doc(db, "corridas", "corridaPres03", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });

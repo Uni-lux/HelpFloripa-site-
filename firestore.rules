@@ -1989,6 +1989,29 @@ service cloud.firestore {
       allow delete: if podeModerar();
     }
 
+    // Chamados em andamento de cada pessoa (limite de 3). Entra um chamado dela que não está encerrado; sai só um encerrado
+    // (ou que não existe mais). A equipe mexe à vontade.
+    match /suporte_abertos/{uid} {
+      function ab() { return request.resource.data; }
+      function antes() { return resource == null ? [] : resource.data.ids; }
+      function chRef() { return /databases/$(database)/documents/suporte/$(ab().ultimo); }
+      allow read: if logado() && (uid == request.auth.uid || admin());
+      allow create, update: if logado() && uid == request.auth.uid
+                    && ab().keys().hasOnly(['ids', 'ultimo', 'acao', 'atualizadoEm'])
+                    && ab().ids is list && ab().ids.size() <= 20
+                    && ab().ultimo is string && ab().ultimo.size() >= 1 && ab().ultimo.size() <= 40
+                    && ab().atualizadoEm == request.time
+                    && ((ab().acao == 'entrou'
+                         && ab().ids.size() == antes().size() + 1 && ab().ids.hasAll(antes())
+                         && ab().ultimo in ab().ids && !(ab().ultimo in antes())
+                         && existsAfter(chRef()) && getAfter(chRef()).data.uid == request.auth.uid && getAfter(chRef()).data.status != 'fechado')
+                     || (ab().acao == 'saiu'
+                         && ab().ids.size() == antes().size() - 1 && antes().hasAll(ab().ids)
+                         && ab().ultimo in antes() && !(ab().ultimo in ab().ids)
+                         && (!existsAfter(chRef()) || getAfter(chRef()).data.status == 'fechado')));
+      allow write: if admin();
+    }
+
     match /suporte/{id} {
       function camposChamado() {
         return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
@@ -2012,6 +2035,12 @@ service cloud.firestore {
             && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
             && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
       }
+      // No máximo 3 chamados em andamento por pessoa (SOS fora): a lista suporte_abertos/{uid} muda na MESMA gravação
+      // e as regras dela só deixam tirar um chamado que já foi encerrado.
+      function abertosOk() {
+        let a = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
+        return a.acao == 'entrou' && a.ultimo == id && a.ids.size() <= 3;
+      }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
       // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
@@ -2025,7 +2054,7 @@ service cloud.firestore {
                     // o e-mail do chamado é o do login (a equipe responde para ele)
                     && (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
                     // até 5 chamados novos por dia (ritmo/{uid}, na mesma gravação); SOS não tem limite
-                    && (request.resource.data.categoria == 'sos' || ritmoOk('sup'))
+                    && (request.resource.data.categoria == 'sos' || (ritmoOk('sup') && abertosOk()))
                     && request.resource.data.status == 'aberto'
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.atualizadoEm == request.time
@@ -2057,7 +2086,10 @@ service cloud.firestore {
                     && ((resource.data.uid == request.auth.uid
                          && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
                          && request.resource.data.status in ['aberto', 'fechado']
-                         && request.resource.data.ultimaDe == 'usuario')
+                         && request.resource.data.ultimaDe == 'usuario'
+                         // reabrir um encerrado conta de novo no limite de 3
+                         && (resource.data.status != 'fechado' || request.resource.data.status == 'fechado'
+                             || resource.data.categoria == 'sos' || abertosOk()))
                         || (admin()
                          && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
                          && request.resource.data.status in ['aberto', 'respondido', 'fechado']
@@ -3551,6 +3583,12 @@ service cloud.firestore {
           && p.lng is number && p.lng >= -75 && p.lng <= -28
           && valorTextoAte(p.get('nome', ''), 120) && valorTextoAte(p.get('sub', ''), 160);
     }
+    // Região da corrida à vista dos entregadores: ponto arredondado em 2 casas (uns 500 m); o exato fica em privado/rota.
+    function pontoAprox(p) {
+      return pontoOk(p)
+          && math.abs(p.lat * 100 - math.round(p.lat * 100)) < 0.001
+          && math.abs(p.lng * 100 - math.round(p.lng * 100)) < 0.001;
+    }
     function posOk(p) {
       return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
           && p.lat is number && p.lat >= -34 && p.lat <= 6
@@ -3593,7 +3631,9 @@ service cloud.firestore {
                     && n().modalidade in ['entrega_bike', 'entrega_moto', 'entrega_carro', 'entrega_frete', 'corrida_moto', 'corrida_carro']
                     && n().servico == n().modalidade.split('_')[0]
                     && n().veiculo == {'entrega_bike': 'bike', 'entrega_moto': 'moto', 'entrega_carro': 'carro', 'entrega_frete': 'utilitario', 'corrida_moto': 'moto', 'corrida_carro': 'carro'}[n().modalidade]
-                    && pontoOk(n().origem) && pontoOk(n().destino)
+                    // só a região (uns 500 m) e o endereço exato em privado/rota, na mesma gravação
+                    && pontoAprox(n().origem) && pontoAprox(n().destino)
+                    && existsAfter(/databases/$(database)/documents/corridas/$(id)/privado/rota)
                     && n().km is number && n().km >= 0 && n().km <= 400
                     && n().min is number && n().min >= 0 && n().min <= 900
                     && n().valor is number && n().valor >= 3 && n().valor <= 3000
@@ -3706,11 +3746,15 @@ service cloud.firestore {
       match /privado/{doc} {
         function cor() { return get(/databases/$(database)/documents/corridas/$(id)).data; }
         allow get: if logado() && (cor().clienteId == request.auth.uid || cor().get('destinatarioId', '') == request.auth.uid || podeModerar()
-                    || (doc == 'contato' && cor().get('entregadorId', '') == request.auth.uid && cor().status in ['aceita', 'chegou', 'em_rota']));
+                    || (doc == 'contato' && cor().get('entregadorId', '') == request.auth.uid && cor().status in ['aceita', 'chegou', 'em_rota'])
+                    // endereço exato: quem aceitou (também depois, no histórico) e quem paga o presente
+                    || (doc == 'rota' && (cor().get('entregadorId', '') == request.auth.uid || cor().get('pagadorId', '') == request.auth.uid)));
         allow create: if logado() && !exists(/databases/$(database)/documents/corridas/$(id))
                     && getAfter(/databases/$(database)/documents/corridas/$(id)).data.clienteId == request.auth.uid
                     && ((doc == 'pin' && request.resource.data.keys().hasOnly(['pin'])
                          && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$'))
+                        || (doc == 'rota' && request.resource.data.keys().hasOnly(['origem', 'destino'])
+                         && pontoOk(request.resource.data.origem) && pontoOk(request.resource.data.destino))
                         || (doc == 'contato' && request.resource.data.keys().hasOnly(['nome', 'telefone', 'obs'])
                          && valorTextoAte(request.resource.data.get('nome', ''), 80)
                          && valorTextoAte(request.resource.data.get('telefone', ''), 20)

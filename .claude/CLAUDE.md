@@ -2541,6 +2541,18 @@ chat da equipe).
   `ritmo.sup`, SOS fora; suporte.js `comRitmo(..., "sup")` com reserva sem o contador). Verificação recusada: pedir de novo só
   30 dias depois de `analisadaEm`. Ficaram de fora (explicado): texto das figurinhas do Flash (limite de 1.000) e endereço de
   busca da corrida (é como os entregadores acham). Testes de regras: `comRitmoSup` abre a janela do ritmo e apaga depois.
+- **Corrida só com a região, figurinhas seguras e 3 chamados nas regras (13/11/2026, PR depois do #209, MUDA REGRAS — não
+  publicadas; 22 partes, 1157 testes):** (1) `corridas.origem/destino` = só a região (`aproximar` em entregas-comum.js: lat/lng
+  com 2 casas, nome "Região de X"; regra `pontoAprox`) e o endereço exato em `corridas/{id}/privado/rota` {origem, destino}
+  (`pontoExato`, gravado no mesmo lote; regra exige existsAfter). Lê: quem pede/recebe (já liam `privado`), quem paga e o
+  entregador só depois de aceitar. Site: `lerEnderecos`/`comEnderecos` (entregas.js acompanhar e pedir de novo; entregador.js
+  ao pegar o trabalho). (2) Figurinhas do Flash: `enqueteLimpa`/`caixaLimpa`/`contagemLimpa` (stories.js, `LIMPA_FIG`) só
+  desenham texto; o que não é texto some; atividade avisa "não pôde ser lida". Teste `t-flash-figurinha-segura.mjs`.
+  (3) `suporte_abertos/{uid}` {ids, ultimo, acao entrou|saiu, atualizadoEm}: entra um chamado da pessoa não encerrado; sai só
+  encerrado ou que não existe (`get` de doc inexistente dá erro na regra: usar `existsAfter`); criar chamado (não SOS) e reabrir
+  exigem `abertosOk()` (lista ≤3 com ele, na mesma gravação). suporte.js: `arrumarAbertos` (ao carregar: tira encerrados/
+  inexistentes, põe os em andamento que faltam, 1 gravação cada), `gravarAbertos`, `emAndamento`, reserva sem a lista com as
+  regras de antes. Conta apagada: limpeza-conta apaga a lista. Teste `t-suporte-limite.mjs`.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

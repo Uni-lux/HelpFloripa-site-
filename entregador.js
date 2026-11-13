@@ -6,7 +6,7 @@
 // A posição vai para o pedido a cada poucos segundos: é ela que move o carrinho no mapa de quem pediu.
 // Parâmetros: ?convite=NICK (quem convidou), ?pedido=ID (abrir um chamado vindo do Mensagens).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=157";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=158";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=9";
 import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
@@ -15,11 +15,11 @@ import {
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=4";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=5";
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;
-let pedidos = new Map(), vistos = new Set(), pararLista = [], pararAtivo = null, trabalho = null, celulaAtual = "";
+let pedidos = new Map(), vistos = new Set(), pararLista = [], pararAtivo = null, trabalho = null, celulaAtual = "", enderecosJob = null;
 let ultimaOnline = 0, ultimaPosOnline = null, ultimaPos = 0, ultimaPosEnviada = null, rotaJob = null, enviandoPos = false;
 const painel = () => $("painel");
 
@@ -65,7 +65,7 @@ async function telaCadastro(editar = false) {
   // Conta verificada (selo) é obrigatória para levar pessoas e encomendas.
   if (!dados.verificado && !cad) {
     const n = h("div", "ent-nota alerta"); n.append(ic("alerta"), h("span", null, "Para fazer entregas e corridas, sua conta precisa ser verificada (documento com foto e selfie). A equipe confere e libera."));
-    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=114"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
+    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=115"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
     frag.appendChild(botao("Pedir uma entrega", "ent-btn sec", () => irPara("entregas.html")));
     p.replaceChildren(frag);
     return;
@@ -400,9 +400,12 @@ function ouvirTrabalho() {
   pararAtivo = fb.onSnapshot(fb.query(fb.collection(fb.db, "corridas"), fb.where("entregadorId", "==", eu.uid), fb.where("status", "in", ATIVAS), fb.limit(3)), async (s) => {
     const antes = trabalho;
     const lista = s.docs.map((d) => ({ id: d.id, ...d.data() }));
-    trabalho = lista[0] || null;
+    // Depois de aceitar, o endereço exato (privado/rota) troca a região aproximada.
+    trabalho = lista[0] ? comEnderecos(lista[0], enderecosJob?.id === lista[0].id ? enderecosJob.r : null) : null;
     if (trabalho && (!antes || antes.id !== trabalho.id)) {
       contatoJob = null; rotaJob = null; notaCliente = null;
+      const idJob = trabalho.id;
+      lerEnderecos(fb, idJob).then((r) => { if (!r) return; enderecosJob = { id: idJob, r }; if (trabalho?.id === idJob) { trabalho = comEnderecos(trabalho, r); rotaJob = null; telaTrabalho(); } });
       fb.getDoc(fb.doc(fb.db, "corridas", trabalho.id, "privado", "contato")).then((x) => { contatoJob = x.data() || null; if (trabalho) telaTrabalho(); }).catch(() => {});
       M?.nomes().filter((n) => n.startsWith("ped_")).forEach((n) => M.tirar(n));
       if (!pos) await pedirGps();

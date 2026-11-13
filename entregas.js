@@ -7,7 +7,7 @@
 // Parâmetros: ?modo=entrega|corrida, ?id=PEDIDO (acompanhar), ?para=UID (quem recebe, do Mensagens),
 // ?conversa=ID, ?entregador=UID (chamar uma pessoa específica).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=157";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=158";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=9";
 import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
@@ -16,7 +16,7 @@ import {
   modalidadesDe, modalidadesDoVeiculo, textoStatus, passo, pinEm, expirada, faixaValor, valorSugerido, minutosAte, distanciaKm, kmPelaRua,
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=4";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=5";
 
 const params = new URLSearchParams(location.search);
 const S = {
@@ -629,8 +629,8 @@ async function criarPedido() {
   const pedido = {
     servico: S.servico, modalidade: S.mod, veiculo: m.veiculo,
     clienteId: eu.uid, clienteNome: String(dados.nome || "").slice(0, 80),
-    origem: { lat: S.origem.lat, lng: S.origem.lng, nome: S.origem.nome || "", sub: S.origem.sub || "" },
-    destino: { lat: S.destino.lat, lng: S.destino.lng, nome: S.destino.nome || "", sub: S.destino.sub || "" },
+    // Só a região (uns 500 m) fica à vista dos entregadores; o endereço exato vai em privado/rota (entregas-comum.js).
+    origem: aproximar(S.origem), destino: aproximar(S.destino),
     km: Math.min(400, km), min: Math.min(900, min),
     valor: S.valor, valorSugerido: valorSugerido(S.mod, km, min),
     pagamento: S.pagamento,
@@ -646,6 +646,7 @@ async function criarPedido() {
     const lote = fb.writeBatch(fb.db);
     lote.set(ref, pedido);
     lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "pin"), { pin });
+    lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "rota"), { origem: pontoExato(S.origem), destino: pontoExato(S.destino) });
     if (S.presente) lote.update(fb.doc(fb.db, "presentes", S.presente.id), { status: "usado", corridaId: ref.id, usadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
     lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "contato"), { nome: S.contato.nome.trim().slice(0, 80), telefone: S.contato.telefone.trim().slice(0, 20), obs: S.contato.obs.trim().slice(0, 300) });
     await lote.commit();
@@ -661,28 +662,31 @@ async function criarPedido() {
   const sv = { servico: { tipo: "corrida", id: ref.id } }; // conversa do serviço: vai direto (as regras conferem a corrida)
   if (S.dest) mandarMensagem(S.dest.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "destinatario" } }, "Entrega a caminho de você", sv).catch(() => {});
   if (S.presente) mandarMensagem(S.presente.de, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "pagador", valor: S.valor } }, `Usou o seu presente: ${S.servico === "corrida" ? "corrida" : "entrega"}`, sv).catch(() => {});
-  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "Chamado de corrida para você" : "Chamado de entrega para você", sv).catch(() => {});
+  // Quem foi chamado ainda não aceitou: no cartão só a região (o endereço exato aparece depois de aceitar).
+  if (S.para) mandarMensagem(S.para.uid, { tipoArquivo: "cartao", cartao: { ...cartao, de: aproximar(S.origem).nome, para: aproximar(S.destino).nome, papel: "entregador", valor: S.valor } }, S.servico === "corrida" ? "Chamado de corrida para você" : "Chamado de entrega para você", sv).catch(() => {});
   acompanhar(ref.id);
 }
 
 // =====================================================
 // ACOMPANHAR
 // =====================================================
-let ultimoStatus = "", timerRaio = 0, papel = "";
+let ultimoStatus = "", timerRaio = 0, papel = "", enderecosPedido = null;
 function acompanhar(id) {
   vista = "acompanhar";
   clearInterval(timerPerto); timerPerto = 0;
   M?.tirarTodosMenos(["eu"]); M?.tirarRota(); M?.tirarRadar();
   try { history.replaceState(history.state, "", `entregas.html?id=${encodeURIComponent(id)}`); } catch {}
   pararPedido?.();
-  ultimoStatus = ""; pinPedido = ""; notaEnt = null; fotoEnt = ""; rotaViva = null; atual = null;
+  ultimoStatus = ""; pinPedido = ""; notaEnt = null; fotoEnt = ""; rotaViva = null; atual = null; enderecosPedido = null;
   painel().replaceChildren(h("p", "ent-sub", "Carregando o pedido..."));
   pararPedido = fb.onSnapshot(fb.doc(fb.db, "corridas", id), (snap) => {
     if (!snap.exists()) { painel().replaceChildren(h("p", "ent-vazio", "Pedido não encontrado."), botao("Fazer um pedido", "ent-btn", () => novoPedido())); return; }
     const antes = atual;
-    atual = { id: snap.id, ...snap.data() };
+    atual = comEnderecos({ id: snap.id, ...snap.data() }, enderecosPedido);
     papel = atual.clienteId === eu.uid ? "cliente" : atual.destinatarioId === eu.uid ? "destinatario" : atual.entregadorId === eu.uid ? "entregador" : atual.pagadorId === eu.uid ? "pagador" : "outro";
     if (papel === "entregador") { irPara("entregador.html"); return; }
+    // Endereço exato (privado/rota): quem pediu, quem recebe e quem paga.
+    if (!enderecosPedido && ["cliente", "destinatario", "pagador"].includes(papel)) lerEnderecos(fb, id).then((r) => { if (!r || atual?.id !== id) return; enderecosPedido = r; atual = comEnderecos(atual, r); if (M) M._enquadrado = false; desenharPedido(); });
     if (!pinPedido && (papel === "cliente" || papel === "destinatario")) fb.getDoc(fb.doc(fb.db, "corridas", id, "privado", "pin")).then((p) => { pinPedido = p.data()?.pin || ""; desenharPedido(); }).catch(() => {});
     if (atual.entregadorId && atual.entregadorId !== antes?.entregadorId) lerQuemLeva(atual.entregadorId);
     if (ultimoStatus && ultimoStatus !== atual.status) { avisarSom("status"); toast(textoStatus(atual)); }
@@ -1051,7 +1055,9 @@ async function ligarPara(uid, nome, corridaId = "") {
   } catch (e) { toast("Não foi possível ligar: " + erroAmigavel(e)); }
 }
 
-function pedirDeNovo(c, aumentar = false) {
+async function pedirDeNovo(c0, aumentar = false) {
+  // Pedir de novo com o endereço exato (o documento só guarda a região).
+  const c = c0._exato ? c0 : comEnderecos(c0, await lerEnderecos(fb, c0.id));
   pararPedido?.(); pararPedido = null; clearInterval(timerRaio);
   S.servico = c.servico; S.mod = c.modalidade;
   S.origem = { ...c.origem }; S.destino = { ...c.destino };
