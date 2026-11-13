@@ -17,9 +17,10 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
       autorId) ficam só para quem votou; enquetes de antes de 26/10 perdem o resultado para os outros. Texto antigo:
 - [ ] **Votos de enquete não anônima**: qualquer pessoa logada vê em quem cada um votou (deveria ser só o autor). A
       contagem de enquetes antigas (`enquetes.js`, sem os pedaços) usa essa leitura — trocar antes.
-- [ ] **Conteúdo escondido pela equipe** (Diário, negócios, Comunidade com `ocultoAte`/`ocultoPelaEquipe`) ainda abre
-      por link direto ou app modificado; só some das listas. Hoje o jeito definitivo é a moderação apagar.
-- [ ] **Publicação agendada** pode ser lida antes da hora por um app modificado.
+- [x] **FEITO em 13/11/2026 (parte):** escondido pela equipe (Diário, negócios, imóveis, Comunidade) e publicação agendada
+      não abrem mais por LINK DIRETO (`podeAbrir` nas regras: só o dono e a equipe). **Continua:** um app modificado ainda
+      consegue vê-los numa LISTA (as buscas não filtram por `ocultoAte`; filtrar exigiria gravar o campo em todos os
+      documentos antigos e mudar todas as buscas). O jeito definitivo continua sendo a moderação apagar.
 
 ## C. Dependem do servidor (Blaze / Cloud Functions)
 - [ ] **PIN da entrega/corrida** tem 4 números: um entregador mal-intencionado pode tentar todos. Conferir o PIN numa
@@ -39,7 +40,8 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - [ ] **E-mail do chamado** não é conferido com o do login.
 - [ ] Textos de **enquete/caixa/contagem do Flash** não conferem se são texto (pôr a conferência estoura o limite de
       1.000 do "flash com TUDO junto"); o pior caso é a figurinha aparecer quebrada.
-- [ ] **Corrida**: quem pede pode pôr qualquer pessoa como destinatário (ela passa a ver a corrida e o PIN).
+- [x] **FEITO em 13/11/2026:** corrida só aceita como destinatário quem já conversa com quem pede (conversa aceita, sem
+      bloqueio). Antes, além de ver a corrida e o PIN, a conversa "de serviço" furava o "quem pode me mandar mensagem".
 - [ ] **Endereço de busca** de uma corrida em aberto aparece para todos os entregadores ativos (é assim que eles acham
       a corrida; o contato e o PIN ficam escondidos).
 
@@ -58,5 +60,6 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
 - Moderação não sanciona a equipe nem apaga a própria sanção; não decide a própria verificação nem se dá o selo.
 - Banido de Entregas não aceita corrida, mesmo com o cadastro de entregador ativo.
 
-Depois do Flash privado e dos votos (13/11), quase todas as partes mudaram: colar as 21 de novo. Testes: 1074 passando.
+Depois do Flash privado, dos votos, do escondido por link e do destinatário (13/11), quase todas as partes mudaram: colar
+as 21 de novo. Testes: 1092 passando.
 Índices: agora 32 (5 novos do Flash) — `firebase deploy --only firestore:indexes`.

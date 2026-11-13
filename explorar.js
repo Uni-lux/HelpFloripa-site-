@@ -1138,5 +1138,9 @@ export async function abrirPublicacao(id, { daOrigem = false, sobreFlash = false
     if (escondido(post.autorId) || (oculta && post.autorId !== eu.uid)) { toast("Essa publicação não está disponível."); aoFechar?.(); return false; }
     await abrirVisor(post, { link: true, daOrigem, sobreFlash, aoFechar });
     return true;
-  } catch (e) { console.warn(e); toast("Não foi possível abrir a publicação."); return false; }
+  } catch (e) {
+    // Escondida pela equipe ou agendada: as regras não deixam abrir.
+    if (e?.code === "permission-denied") { toast("Essa publicação não está disponível."); aoFechar?.(); return false; }
+    console.warn(e); toast("Não foi possível abrir a publicação."); return false;
+  }
 }

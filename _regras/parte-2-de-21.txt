@@ -104,6 +104,19 @@
           && !(resource.data.get('ocultoPelaEquipe', false) == true && mudou().hasAny(['ocultoAte']));
     }
 
+    // Escondido agora (pela equipe ou com a conta do dono desativada: ocultoAte no futuro) ou agendado para depois.
+    function abertoAgora(d) {
+      return !(d.get('ocultoAte', null) is timestamp && d.ocultoAte > request.time)
+          && !(d.get('agendadoPara', null) is timestamp && d.agendadoPara > request.time);
+    }
+    // Abrir UM documento (link direto): escondido ou agendado, só o dono e a equipe. Documento que não existe
+    // continua respondendo "não existe" (o site mostra "não está mais disponível").
+    // As listas continuam abertas (as buscas não filtram por ocultoAte; o site esconde na tela).
+    function podeAbrir(campoDono) {
+      return resource == null || abertoAgora(resource.data)
+          || resource.data.get(campoDono, '') == request.auth.uid || admin();
+    }
+
     // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
     function moderacaoOk() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
@@ -211,27 +224,4 @@
         return !('emailConfirmado' in request.resource.data)
             || request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
       }
-      // E-mail gravado na conta = o do login (o painel mostra e busca por ele; antes dava para gravar o e-mail de outra
-      // pessoa). Maiúsculas não contam (o cadastro grava em minúsculas).
-      function emailDaContaOk() {
-        return !('email' in request.resource.data)
-            || request.resource.data.email == null || request.resource.data.email == ''
-            || request.resource.data.email.lower() == request.auth.token.email.lower();
-      }
-
-      // criadoEm não muda depois de gravado (cadastro antigo sem a data só pode gravar a data de agora).
-      allow update: if logado()
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == resource.data.uid
-                    && (!mudou().hasAny(['criadoEm'])
-                        || (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
-                    && (!mudou().hasAny(['emailConfirmado']) || emailConfirmadoOk())
-                    && (!mudou().hasAny(['email']) || emailDaContaOk())
-                    && naoTocaCamposProtegidosNoUpdate();
-
-      allow delete: if logado()
-                    && request.auth.uid == userId;
-    }
-
-
 // ===== FIM DA PARTE 2 DE 21 =====

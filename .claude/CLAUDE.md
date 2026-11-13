@@ -2487,6 +2487,18 @@ chat da equipe).
   o autor completa (`completarPrivacidade`, regra deixa só o valor certo). Votos: `enquete_votos.autorId` (opcional, conferido;
   `gravarVoto` cai sem ele com as regras de antes), leitura só de quem votou/autor/moderação; `votosDaEnquete` (rede.js) lista
   com `autorId == eu`. Votos de antes, sem autorId, só quem votou vê. Teste `t-flash-privado.mjs` (7).
+- **Escondido por link + destinatário da corrida (13/11/2026, PR depois do #205, MUDA REGRAS — não publicadas; 21 partes,
+  1092 testes):** itens B e D da `REGRAS-PENDENTES.md`. Regras: `abertoAgora(d)` (sem `ocultoAte` nem `agendadoPara` no
+  futuro) e `podeAbrir(campoDono)` = `resource == null` (não existe continua "não existe") || aberto || dono || `admin()`;
+  `diario`, `negocios`, `anuncios` e `comunidade` com `allow get` assim e `allow list: if logado()` (LISTA continua aberta:
+  as buscas não filtram por ocultoAte; um app modificado ainda vê pela lista). `corridas` create: `destinatarioOk` = '' ou
+  conversa `par(eu, dest)` existe, `pedido` nulo/aceito e sem bloqueio (antes qualquer pessoa: via a corrida e o PIN e a
+  conversa de serviço furava o "quem pode me mandar mensagem"). Site: leitura recusada = "não está disponível"
+  (explorar.js `abrirPublicacao`, usuarios-app.js link, cartão do Mensagens "Publicação indisponível"); entregas.js confere a
+  conversa antes de pôr o destinatário e explica a recusa. Abrir RECLAMAÇÃO nova contra negócio escondido dá "Negócio não
+  encontrado" (vai pelo suporte). Teste `t-escondido-link.mjs` (8). `t-solicitacoes` falha no "botão para esconder os atalhos"
+  também antes (o botão foi para o ⋯ no #201). Fotos de teste: `saida/fotos-pub/*.jpg` (qualquer JPEG); `t-comunidade-rede`
+  precisa de `saida/seed-ids.json` e os testes com firebase-admin de `FIRESTORE_EMULATOR_HOST=127.0.0.1:8085`.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

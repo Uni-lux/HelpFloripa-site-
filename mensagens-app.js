@@ -965,7 +965,7 @@ const refConversa = (id) => fb.doc(fb.db, "conversas", id);
 // (cópia do aparelho por 10 min). Publicação apagada: "Publicação indisponível".
 const postsLidos = new Map();
 function lerPublicacao(id) {
-  if (!postsLidos.has(id)) postsLidos.set(id, docComValidade(fb, ["diario", id], 10 * 60000).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch(() => undefined));
+  if (!postsLidos.has(id)) postsLidos.set(id, docComValidade(fb, ["diario", id], 10 * 60000).then((s) => (s.exists() ? { id, ...s.data() } : null)).catch((e) => (e?.code === "permission-denied" ? null : undefined)));
   return postsLidos.get(id);
 }
 // Resumo das estrelas da publicação (diario_notas), lido uma vez por publicação.

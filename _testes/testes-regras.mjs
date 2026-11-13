@@ -1456,6 +1456,11 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   const db0 = (fn) => semRegras(fn);
   await db0(async (db) => {
     for (const u of ["cli", "moto1", "moto2", "carro1", "semVerif", "dest"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: u !== "semVerif" });
+    // Quem recebe a entrega precisa já conversar com quem pede (conversa aceita, sem bloqueio).
+    await setDoc(doc(db, "conversas", "cli_dest"), { participantes: ["cli", "dest"], criadoEm: antigo });
+    await setDoc(doc(db, "conversas", "cli_pend"), { participantes: ["cli", "pend"], criadoEm: antigo, pedido: { de: "cli", status: "pendente", em: antigo } });
+    await setDoc(doc(db, "conversas", "bloq_cli"), { participantes: ["bloq", "cli"], criadoEm: antigo });
+    await setDoc(doc(db, "bloqueios", "bloq_cli"), { criadoEm: antigo });
     await setDoc(doc(db, "entregadores", "moto2"), { uid: "moto2", nome: "Moto 2", servicos: ["entrega", "corrida"], veiculo: "moto", modelo: "CG", cor: "Preta", placa: "ABC1D23", cnh: "A", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo });
     await setDoc(doc(db, "entregadores", "carro1"), { uid: "carro1", nome: "Carro 1", servicos: ["entrega"], veiculo: "carro", modelo: "Gol", cor: "Branco", placa: "XYZ9876", cnh: "B", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo });
   });
@@ -1491,6 +1496,9 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("pedido: corrida de carro (PIN no embarque)", () => assertSucceeds(criar(ctx("cli"), "pedidoCorrida01", { servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", pacote: null, pinEm: "embarque", destinatarioId: "" }, "4321")));
   await t("pedido: PIN no lugar errado (entrega com PIN no embarque)", () => assertFails(criar(ctx("cli"), "pedidoPinErr001", { pinEm: "embarque" })));
   await t("pedido: ponto fora do Brasil", () => assertFails(criar(ctx("cli"), "pedidoFora00001", { destino: ponto(48.8, 2.3, "Paris") })));
+  await t("destinatário: sem conversa com quem pede é recusado", () => assertFails(criar(ctx("cli"), "pedidoDest00001", { destinatarioId: "estranho" })));
+  await t("destinatário: solicitação de mensagem ainda pendente é recusada", () => assertFails(criar(ctx("cli"), "pedidoDest00002", { destinatarioId: "pend" })));
+  await t("destinatário: com bloqueio entre os dois é recusado", () => assertFails(criar(ctx("cli"), "pedidoDest00003", { destinatarioId: "bloq" })));
   await t("pedido: direcionado a quem não é entregador", () => assertFails(criar(ctx("cli"), "pedidoPara00001", { paraId: "dest" })));
   await t("pedido: direcionado a um entregador ativo", () => assertSucceeds(criar(ctx("cli"), "pedidoPara00002", { paraId: "moto2", raioKm: 40 })));
   await t("pedido: sem e-mail confirmado não pede", () => assertFails(criar(ctx("cli", false), "pedidoSemEmail1")));
@@ -1690,6 +1698,36 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("achado: publica animal encontrado", () => assertSucceeds(setDoc(doc(ctx("sc"), "pets_achados", "a1"), achado())));
   await t("achado: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sa"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
   await t("achado: quem achou marca devolvido", () => assertSucceeds(updateDoc(doc(ctx("sc"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
+}
+
+// ===================== Escondido pela equipe / agendado: não abre por link direto =====================
+{
+  const futuro = Timestamp.fromMillis(Date.now() + 9e9), passado = Timestamp.fromMillis(Date.now() - 9e6);
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "admins", "esc_mod"), { papel: "moderacao" });
+    await setDoc(doc(db, "negocios", "esc_dono_servicos"), { donoId: "esc_dono", tipo: "servicos", nome: "Escondido", ocultoAte: futuro, ocultoPelaEquipe: true });
+    await setDoc(doc(db, "negocios", "esc_dono_delivery"), { donoId: "esc_dono", tipo: "delivery", nome: "Voltou", ocultoAte: passado });
+    await setDoc(doc(db, "anuncios", "escAn1"), { donoId: "esc_dono", tipo: "imovel", titulo: "Casa", ocultoAte: futuro });
+    await setDoc(doc(db, "comunidade", "escCm1"), { donoId: "esc_dono", categoria: "doacao", titulo: "Sofá", status: "disponivel", ocultoAte: futuro, ocultoPelaEquipe: true });
+    await setDoc(doc(db, "diario", "escPost1"), { autorId: "esc_dono", texto: "oi", ocultoAte: futuro, criadoEm: antigo });
+    await setDoc(doc(db, "diario", "escAgend1"), { autorId: "esc_dono", texto: "depois", agendadoPara: futuro, criadoEm: antigo });
+    await setDoc(doc(db, "diario", "escAgend2"), { autorId: "esc_dono", texto: "já saiu", agendadoPara: passado, criadoEm: antigo });
+  });
+  await t("escondido: negócio escondido não abre por link", () => assertFails(getDoc(doc(ctx("esc_outro"), "negocios", "esc_dono_servicos"))));
+  await t("escondido: o dono abre o próprio negócio escondido", () => assertSucceeds(getDoc(doc(ctx("esc_dono"), "negocios", "esc_dono_servicos"))));
+  await t("escondido: a equipe abre o negócio escondido", () => assertSucceeds(getDoc(doc(ctx("esc_mod"), "negocios", "esc_dono_servicos"))));
+  await t("escondido: prazo vencido volta a abrir", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "negocios", "esc_dono_delivery"))));
+  await t("escondido: negócio que não existe continua respondendo (não existe)", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "negocios", "ninguem_servicos"))));
+  await t("escondido: a lista dos negócios continua abrindo", () => assertSucceeds(getDocs(query(collection(ctx("esc_outro"), "negocios"), where("tipo", "==", "servicos")))));
+  await t("escondido: anúncio de imóvel escondido não abre", () => assertFails(getDoc(doc(ctx("esc_outro"), "anuncios", "escAn1"))));
+  await t("escondido: anúncio da Comunidade escondido não abre", () => assertFails(getDoc(doc(ctx("esc_outro"), "comunidade", "escCm1"))));
+  await t("escondido: o dono abre o próprio anúncio da Comunidade", () => assertSucceeds(getDoc(doc(ctx("esc_dono"), "comunidade", "escCm1"))));
+  await t("escondido: publicação escondida não abre", () => assertFails(getDoc(doc(ctx("esc_outro"), "diario", "escPost1"))));
+  await t("escondido: a equipe abre a publicação escondida", () => assertSucceeds(getDoc(doc(ctx("esc_mod"), "diario", "escPost1"))));
+  await t("agendada: não abre antes da hora", () => assertFails(getDoc(doc(ctx("esc_outro"), "diario", "escAgend1"))));
+  await t("agendada: o autor abre antes da hora", () => assertSucceeds(getDoc(doc(ctx("esc_dono"), "diario", "escAgend1"))));
+  await t("agendada: depois da hora abre para todos", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "diario", "escAgend2"))));
+  await t("publicação apagada continua respondendo (não existe)", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "diario", "naoExiste1"))));
 }
 
 // ---------- resultado ----------
