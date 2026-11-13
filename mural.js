@@ -7,7 +7,7 @@
 // =====================================================
 import { ligarPuxar } from "./puxar-atualizar.js?v=6";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, abrirFolha, fecharFolha } from "./rede.js?v=158";
+import { $, el, icone, pintarAvatar, toast, fb, eu, dados, escondido, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, abrirFolha, fecharFolha } from "./rede.js?v=159";
 import { CAT_COM, comunidadeNoAr, iconeCom } from "./comunidade-cartao.js?v=4";
 import { lerPorLocal } from "./por-local.js?v=2";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
@@ -259,7 +259,7 @@ async function trocarLugar() {
 // em vez de trocar para a página comunidade.html. Os links antigos (comunidade.html?item=ID / ?novo=TIPO) continuam nos
 // cartões para "abrir em nova aba" e compartilhar, mas o toque é tratado aqui.
 let com = null;
-const carregarCom = () => (com ||= import("./comunidade.js?v=67").then(async (m) => {
+const carregarCom = () => (com ||= import("./comunidade.js?v=68").then(async (m) => {
   await m.prepararEmbutido({ fb, eu, perfil: dados, aoMudar: () => { buscarDeNovo(); carregar().then(pintarTudo).catch(() => {}); } });
   return m;
 }));

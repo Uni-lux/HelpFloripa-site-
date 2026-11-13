@@ -4062,3 +4062,12 @@ body.aba-explorar .topo .topo-exp-busca input { font-size: 15.5px; }
 .stories.so-meu .so-tx { display: grid; gap: 1px; min-width: 0; }
 .stories.so-meu .so-tx strong { font-size: 14px; font-weight: 700; color: var(--text); }
 .stories.so-meu .so-tx small { font-size: 12px; color: var(--muted); }
+
+/* Barra igual em todas as abas (13/11/2026, print do dono: no Mensagens ela ficava um pouco menor). Mesma largura (a tela
+   toda, sem recuo dos lados), 5 colunas iguais e nada da página pode empurrar a tela para o lado. */
+.barra-rede { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-left: 0; padding-right: 0; box-sizing: border-box; }
+.barra-rede a, .barra-rede button { min-width: 0; }
+html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
+/* Perfil no escuro: a capa encosta nas bordas usando o recuo de verdade da página (no celular é 10 px; com 16 px a página
+   vazava 6 px para o lado). */
+@media (max-width: 640px) { :root[data-theme="dark"] #meuPerfil > .pf2 { margin: -10px -10px 0; } }

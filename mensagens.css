@@ -1714,3 +1714,11 @@ html.embutido .sidebar > .conv-list { padding-bottom: 90px; }
 .search input { height: 40px; border-radius: 999px; }
 .modos { margin-top: 0; }
 :root[data-theme="dark"] .barra-rede { border: 0; border-top: 1px solid rgba(255, 255, 255, .14); }
+
+/* Barra igual em todas as abas (13/11/2026, print do dono: no Mensagens ela ficava um pouco menor). Mesma largura (a tela
+   toda, sem recuo dos lados), 5 colunas iguais e nada da página pode empurrar a tela para o lado. */
+.barra-rede { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-left: 0; padding-right: 0; box-sizing: border-box; }
+.barra-rede a, .barra-rede button { min-width: 0; }
+html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
+/* No celular a barra do Mensagens fica presa na tela (como nas outras abas), não dentro da lista, que tinha 1 px de borda. */
+@media (max-width: 820px) { .sidebar { border-right: 0; } .sidebar > .barra-rede { position: fixed; left: 0; right: 0; bottom: 0; } }

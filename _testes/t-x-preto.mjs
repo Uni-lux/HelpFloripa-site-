@@ -81,7 +81,7 @@ await p.evaluate(() => window.__hfShell.ir("mensagens")); await p.waitForTimeout
 const ms = quadro(/mensagens\.html/);
 ok(await ms.evaluate(() => getComputedStyle(document.body).backgroundColor) === "rgb(0, 0, 0)", "Mensagens: fundo preto");
 ok(await ms.evaluate(() => { const b = document.getElementById("barraRede"), l = document.getElementById("listaConversas");
-  return getComputedStyle(b).position === "absolute" && b.getBoundingClientRect().bottom >= innerHeight - 1 && l.getBoundingClientRect().bottom > b.getBoundingClientRect().top; }),
+  return ["absolute", "fixed"].includes(getComputedStyle(b).position) && b.getBoundingClientRect().bottom >= innerHeight - 1 && l.getBoundingClientRect().bottom > b.getBoundingClientRect().top; }),
   "Mensagens: a lista passa por baixo da barra (que vai até o fim da tela)");
 await p.screenshot({ path: "saida/xp-mensagens.png" });
 // Tema claro: barra e faixa do celular brancas (antes a faixa ficava preta)

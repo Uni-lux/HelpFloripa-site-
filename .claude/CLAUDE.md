@@ -2560,6 +2560,13 @@ chat da equipe).
   só com a linha de cima (a regra antiga `border: 1px solid` deixava uma caixa em volta). Topo: sem a logo e sem "Help
   Floripa"; "Mensagens" 22 px + número de não lidas numa bolinha (`#sideResumo.side-nl`, some sem não lidas), Suporte e
   Configurações só ícones, busca em pílula 40 px. Teste `t-mensagens-topo.mjs` (14).
+- **Barra de baixo igual em todas as abas (13/11/2026, PR depois do #211, sem regra nova):** print dele (no Mensagens a
+  barra "diminuía"). Causas: no Mensagens a barra ficava `position: absolute` dentro da `.sidebar` (1 px de borda à direita,
+  barra 1 px mais estreita) e as barras tinham 4 px de recuo dos lados; o Perfil no escuro vazava 6 px para o lado
+  (`#meuPerfil > .pf2` com margem −16 px numa página de 10 px). Agora: bloco "Barra igual em todas as abas" no fim do
+  rede.css, do CSS do barra-rede.js e do mensagens.css (5 colunas `minmax(0, 1fr)`, sem recuo, `overflow-x: clip` no
+  html/body com barra); no celular (≤820 px) a barra do Mensagens é `position: fixed` e a `.sidebar` sem borda; Perfil
+  com margem −10 px até 640 px. Teste `t-barra-igual.mjs` (24: 4 abas × 360/390 px); `t-x-preto` aceita fixed.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
