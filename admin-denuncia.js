@@ -6,7 +6,8 @@
 //   abrir uma mensagem por vez, sem listar a conversa): a equipe vê o que foi dito de verdade.
 // - publicação, comentário, perfil e negócio: o conteúdo completo, com foto.
 // =====================================================
-import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=29";
+import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=30";
+import { lerComGuardado, CAMPO_DONO } from "./guardar.js?v=1";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 
 const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado", comunidade: "Anúncio da Comunidade denunciado" };
@@ -114,7 +115,8 @@ function ficha(foto, titulo, sub, linhas = []) {
 
 async function conteudoOutro(d, corpo, acoes) {
   const { fb } = C;
-  const ler = (col, id) => fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null));
+  // Escondido de verdade (esqueleto): a equipe lê o conteúdo guardado (guardar.js).
+  const ler = (col, id) => (CAMPO_DONO[col] ? lerComGuardado(fb, col, id) : fb.getDoc(fb.doc(fb.db, col, id)).then((s) => (s.exists() ? s.data() : null)));
   if (d.tipo === "publicacao") {
     const p = await ler("diario", d.itemId);
     if (!p) { corpo.appendChild(h("div", "ad-den-vazio", "A publicação já foi apagada.")); return; }

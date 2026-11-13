@@ -3,11 +3,11 @@
 // Usado por configuracoes.js (pedidos) e conta.html (reativar / recuperar).
 //
 // DESATIVAR
-//   - perfil, publicações, negócios e anúncios ficam escondidos (ocultoAte);
+//   - perfil, publicações, negócios e anúncios ficam escondidos (guardados/: no lugar fica um esqueleto vazio);
 //   - ninguém consegue mandar mensagem (regra do Firestore: desativadaAte);
 //   - seguidores, conversas, avaliações e reclamações ficam guardados;
-//   - volta sozinha na data escolhida (ocultoAte vence) ou quando a pessoa
-//     entrar e tocar em "Reativar".
+//   - volta quando a pessoa entrar depois da data escolhida (reativação automática) ou
+//     tocar em "Reativar" (sem servidor, o conteúdo não volta sozinho com a pessoa fora do site).
 // EXCLUIR
 //   - a conta fica desativada na hora e pode ser recuperada por 30 dias;
 //   - depois disso, ao entrar, a exclusão é concluída; quem não voltar é
@@ -45,18 +45,21 @@ export function estadoConta(d = {}) {
 }
 
 // Esconde (ate = data) ou mostra (ate = null) tudo o que é público da pessoa.
+// Esconder = o conteúdo vai para guardados/ e no lugar fica um esqueleto vazio (guardar.js): nem numa lista dá para ler.
+// Mostrar = volta exatamente como era. O que a equipe escondeu continua escondido (motivo da equipe "manda mais").
 async function marcarConteudo(fb, uid, ate) {
-  const valor = ate ? fb.Timestamp.fromDate(ate) : null;
-  const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
-  const [neg, an, posts, com] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId"), buscar("comunidade", "donoId")]);
-  // O que a equipe escondeu por moderação continua escondido (o dono nem pode mexer).
-  const refs = [...neg.docs, ...an.docs, ...posts.docs, ...com.docs].filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => d.ref);
-  for (let i = 0; i < refs.length; i += 400) {
-    const lote = fb.writeBatch(fb.db);
-    refs.slice(i, i + 400).forEach((r) => lote.update(r, { ocultoAte: valor }));
-    await lote.commit();
+  const g = await import("./guardar.js?v=1");
+  if (!ate) {
+    await g.devolverDe(fb, uid, ["conta"]).catch((e) => console.warn("[Conta] devolver:", e));
+  } else {
+    const buscar = (col, campo) => fb.getDocs(fb.query(fb.collection(fb.db, col), fb.where(campo, "==", uid))).catch(() => ({ docs: [] }));
+    const [neg, an, posts, com] = await Promise.all([buscar("negocios", "donoId"), buscar("anuncios", "donoId"), buscar("diario", "autorId"), buscar("comunidade", "donoId")]);
+    const itens = [["negocios", neg], ["anuncios", an], ["diario", posts], ["comunidade", com]]
+      .flatMap(([col, s]) => s.docs.filter((d) => d.data().ocultoPelaEquipe !== true).map((d) => [col, d.id]));
+    const quando = ate.getTime() >= SEM_DATA.getTime() ? null : ate;
+    for (const [col, id] of itens) await g.guardarItem(fb, col, id, { motivo: "conta", ate: quando, por: uid }).catch((e) => console.warn("[Conta] guardar:", col, id, e?.code || e));
   }
-  await fb.setDoc(fb.doc(fb.db, "perfis_publicos", uid), { uid, desativadaAte: valor, ultimoAcesso: null }, { merge: true });
+  await fb.setDoc(fb.doc(fb.db, "perfis_publicos", uid), { uid, desativadaAte: ate ? fb.Timestamp.fromDate(ate) : null, ultimoAcesso: null }, { merge: true });
 }
 
 function esquecerSessao(uid) {
@@ -108,12 +111,16 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
     pegar("curtidas", "uid"), pegar("curtidas_comentarios", "uid"), pegar("republicacoes", "uid"),
     pegar("relacoes", "seguidorId"), pegar("relacoes", "alvoId"), pegar("bloqueios", "bloqueadorId"),
     pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"), pegar("comunidade", "donoId"),
-    pegar("stories", "autorId"), pegar("stories_restritos", "autorId"), pegar("destaques", "uid"), pegar("contagem_lembretes", "uid") // flashes, destaques e lembretes de contagem
+    pegar("stories", "autorId"), pegar("stories_restritos", "autorId"), pegar("destaques", "uid"), pegar("contagem_lembretes", "uid"), // flashes, destaques e lembretes de contagem
+    pegar("agendadas", "autorId"), pegar("guardados", "dono") // publicações agendadas e conteúdo escondido
   ]);
   const docs = [...new Map(lotes.flatMap((l) => l.docs).map((d) => [d.ref.path, d])).values()];
   // Estrelas dadas: saem junto do resumo da publicação (diario_notas); publicação que já não existe, só a nota.
   const ehNota = (d) => d.ref.path.startsWith("curtidas/");
-  await Promise.all(docs.filter((d) => !ehNota(d)).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+  // Guardados por último: só saem depois que o item (o esqueleto) já foi apagado.
+  const ehGuardado = (d) => d.ref.path.startsWith("guardados/");
+  await Promise.all(docs.filter((d) => !ehNota(d) && !ehGuardado(d)).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+  await Promise.all(docs.filter(ehGuardado).map((d) => fb.deleteDoc(d.ref).catch(() => {})));
   await Promise.all(docs.filter(ehNota).map(async (d) => {
     const { postId, nota } = d.data(); const n = Number(nota) || 0;
     try {

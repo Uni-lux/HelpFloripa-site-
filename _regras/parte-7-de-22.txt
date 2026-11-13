@@ -1,79 +1,3 @@
-      // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
-      // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
-      // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
-      // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
-      // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
-      // do serviço mostra que os dois fazem parte dele.
-      function servicoOk(sv, p) {
-        return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
-            && (sv.tipo == 'corrida'
-                  ? [get(/databases/$(database)/documents/corridas/$(sv.id)).data.clienteId,
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('entregadorId', ''),
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('destinatarioId', ''),
-                     get(/databases/$(database)/documents/corridas/$(sv.id)).data.get('pagadorId', '')].hasAll(p)
-              : sv.tipo == 'sos'
-                  ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
-                    && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
-              : sv.tipo == 'pet'
-                  ? get(/databases/$(database)/documents/pets/$(sv.id)).data.donoId in p
-                    && get(/databases/$(database)/documents/pets/$(sv.id)).data.status == 'perdido'
-              : sv.tipo == 'achado'
-                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.autorId in p
-                  && get(/databases/$(database)/documents/pets_achados/$(sv.id)).data.status == 'ativo');
-      }
-      function acessoNova() {
-        let d = request.resource.data;
-        let outro = d.participantes[0] == request.auth.uid ? d.participantes[1] : d.participantes[0];
-        let pr = /databases/$(database)/documents/pref_publicas/$(outro);
-        let ctx = d.get('contexto', null);
-        let neg = ctx != null && ctx.tipo != 'comunidade' && exists(/databases/$(database)/documents/negocios/$(outro + '_' + ctx.tipo));
-        let modo = exists(pr) ? get(pr).data.get(neg ? 'msgNegocios' : 'msgPessoal', neg ? 'todos' : 'seguindo') : (neg ? 'todos' : 'seguindo');
-        let vin = /databases/$(database)/documents/vinculos/$(conversaId);
-        let p = d.get('pedido', null);
-        return ('servico' in d)
-             ? (p == null && servicoOk(d.servico, d.participantes))
-             : p == null
-               ? (modo == 'todos'
-                  || exists(/databases/$(database)/documents/relacoes/$(outro + '_' + request.auth.uid))
-                  || (exists(vin) && get(vin).data.status == 'aceito'))
-               : (modo != 'fechado' && p is map && p.keys().hasOnly(['de', 'status', 'em'])
-                  && p.de == request.auth.uid && p.status == 'pendente' && p.em == request.time);
-      }
-      // Quem recebeu a solicitação decide (aceito ou recusado); quem pediu não mexe no pedido.
-      function pedidoMudaOk() {
-        let a = resource.data.get('pedido', null);
-        let n = request.resource.data.get('pedido', null);
-        return a != null && n is map && request.auth.uid != a.de
-            && n.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
-            && n.de == a.de && n.em == a.em
-            && n.status in ['aceito', 'recusado'];
-      }
-
-      // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
-      allow get: if logado()
-                 && ((resource == null && request.auth.uid in conversaId.split('_'))
-                     || (resource != null && request.auth.uid in resource.data.participantes));
-
-      allow list: if logado()
-                  && request.auth.uid in resource.data.participantes;
-      // A moderação vê quem conversa com quem (para a ficha e denúncias), mas não lista mensagens.
-      allow read: if podeModerar();
-
-      allow create: if logado()
-                    && request.resource.data.participantes is list
-                    && request.resource.data.participantes.size() == 2
-                    && request.auth.uid in request.resource.data.participantes
-                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
-                    && conversaId == request.resource.data.participantes[0]
-                                     + '_' + request.resource.data.participantes[1]
-                    && !bloqueioEntre(request.resource.data.participantes[0],
-                                      request.resource.data.participantes[1])
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm', 'pedido', 'servico'])
-                    && contextoOk()
-                    && acessoNova()
-                    && textoAte('ultimaMensagem', 200);
-
       // Com bloqueio entre os dois, ninguém mexe na conversa (evita "recado"
       // pelo resumo da última mensagem).
       allow update: if logado()
@@ -196,4 +120,69 @@
                       && textoAte('texto', 4000)
                       && mensagemOk();
 
-// ===== FIM DA PARTE 6 DE 21 =====
+        // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
+        // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
+        // Editar e apagar só até 10 minutos depois de enviar.
+        function noPrazoDeMexer() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
+
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
+                      && !('apagada' in resource.data)
+                      && resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+                      && mudou().hasOnly(['texto', 'editadaEm', 'edicoes'])
+                      && request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
+                      && (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
+                      && request.resource.data.editadaEm == request.time
+                      && request.resource.data.edicoes is list
+                      && request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
+                      && request.resource.data.edicoes.size() <= 20
+                      // as versões antigas ficam como estavam; a nova é o texto de antes, com a hora dele
+                      && request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
+                      && versaoOk(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
+
+        // Apagar para todos (só quem enviou): no lugar fica "apagou esta mensagem"; o conteúdo vai,
+        // na mesma gravação, para apagadas/{id}, que os dois ainda podem abrir por 24 horas.
+        allow update: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer()
+                      && !('apagada' in resource.data)
+                      && request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+                      && request.resource.data.remetenteId == resource.data.remetenteId
+                      && request.resource.data.criadoEm == resource.data.criadoEm
+                      && request.resource.data.apagada is map
+                      && request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+                      && request.resource.data.apagada.por == request.auth.uid
+                      && request.resource.data.apagada.em == request.time
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
+
+        // Reações (como no WhatsApp): cada um dos dois põe, troca ou tira só a própria (reacoes.{uid} = emoji),
+        // em qualquer mensagem que não foi apagada, sem prazo.
+        allow update: if logado()
+                      && participante()
+                      && !('apagada' in resource.data)
+                      && mudou().hasOnly(['reacoes'])
+                      && request.resource.data.reacoes is map
+                      && request.resource.data.reacoes.diff(resource.data.get('reacoes', {})).affectedKeys().hasOnly([request.auth.uid])
+                      && (!(request.auth.uid in request.resource.data.reacoes)
+                          || request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
+
+        allow delete: if logado()
+                      && request.auth.uid == resource.data.remetenteId
+                      && noPrazoDeMexer();
+      }
+
+      // ===================================================
+      // CONTEÚDO DE MENSAGEM APAGADA PARA TODOS: conversas/{c}/apagadas/{idDaMensagem}
+      // Os dois da conversa abrem por 24 horas ("Ver mensagem apagada", e dá para denunciar);
+      // depois as regras não deixam mais ler e qualquer um dos dois apaga de vez.
+      // A moderação abre enquanto existir (denúncias).
+      // ===================================================
+      match /apagadas/{mensagemId} {
+        function daConversa() {
+          return request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+        }
+        function original() {
+          return get(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data;
+        }
+// ===== FIM DA PARTE 7 DE 22 =====

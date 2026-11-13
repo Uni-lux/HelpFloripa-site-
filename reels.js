@@ -10,7 +10,7 @@ import { ligarPuxar } from "./puxar-atualizar.js?v=6";
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=154";
+} from "./rede.js?v=155";
 
 let aberto = null;
 let somLigado = false;

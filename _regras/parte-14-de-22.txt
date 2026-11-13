@@ -1,0 +1,200 @@
+    // Quadro de tarefas da equipe: quem faz o quê.
+    match /equipe_tarefas/{id} {
+      function tarefaOk() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
+            && d.titulo is string && d.titulo.size() >= 2 && d.titulo.size() <= 140
+            && valorTextoAte(d.get('descricao', null), 2000)
+            && d.status in ['a_fazer', 'fazendo', 'feito']
+            && d.prioridade in ['baixa', 'normal', 'alta', 'urgente']
+            && (d.get('responsavel', null) == null || (d.responsavel is string && exists(/databases/$(database)/documents/admins/$(d.responsavel))))
+            && valorTextoAte(d.get('responsavelNome', null), 80)
+            && (d.get('prazo', null) == null || d.prazo is timestamp)
+            && valorTextoAte(d.get('ligacao', null), 160)
+            && valorTextoAte(d.get('ligacaoNome', null), 120)
+            && valorTextoAte(d.get('criadoPorNome', null), 80)
+            && d.atualizadoEm == request.time;
+      }
+      allow read: if admin();
+      allow create: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == request.auth.uid
+                    && request.resource.data.criadoEm == request.time;
+      allow update: if admin() && tarefaOk()
+                    && request.resource.data.criadoPor == resource.data.criadoPor
+                    && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if admin() && (resource.data.criadoPor == request.auth.uid || papel() == 'dono');
+    }
+
+    // Notas internas da equipe sobre um usuário (só a equipe vê; ninguém edita).
+    match /notas_internas/{id} {
+      allow read: if admin();
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
+                    && request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
+                    && request.resource.data.autorId == request.auth.uid
+                    && valorTextoAte(request.resource.data.get('autorNome', null), 80)
+                    && request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+                    && request.resource.data.em == request.time;
+      allow update: if false;
+      allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
+    }
+
+    match /admin_log/{id} {
+      // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
+      allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
+      allow create: if admin()
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
+      allow update, delete: if false;
+    }
+
+    match /estatisticas/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+    match /relatorios/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+
+    // =====================================================
+    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
+    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
+    // 20 publicações, 200 comentários, 3 propostas e 50 flashes. Cada ação soma exatamente 1 no seu tipo.
+    // =====================================================
+    match /ritmo/{uid} {
+      function limite(t) {
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : 200)));
+      }
+      function janelaNova() {
+        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+      }
+      function contaOk(k, t) {
+        let v = request.resource.data.get(k, 0);
+        return v is int
+            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
+                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
+      }
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create, update: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
+                    && request.resource.data.ultimaEm == request.time
+                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
+                    && contaOk('msg', request.resource.data.ultimoTipo)
+                    && contaOk('pub', request.resource.data.ultimoTipo)
+                    && contaOk('com', request.resource.data.ultimoTipo)
+                    && contaOk('parc', request.resource.data.ultimoTipo)
+                    && contaOk('flash', request.resource.data.ultimoTipo)
+                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // PEDIDOS DE EXCLUSÃO DE CONTA: exclusoes/{uid}
+    // A pessoa pede a exclusão; durante 30 dias pode recuperar a conta (apaga este
+    // documento). Depois disso a limpeza automática (Admin SDK, fora das regras)
+    // apaga a conta e os dados e anonimiza avaliações e reclamações.
+    // =====================================================
+    match /exclusoes/{uid} {
+      allow get: if logado() && request.auth.uid == uid;
+      allow read: if admin();
+      allow create: if logado()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
+                    && request.resource.data.pedidaEm == request.time
+                    && valorTextoAte(request.resource.data.get('motivo', ''), 300);
+      allow update: if false;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+
+    // =====================================================
+    // ESTRELAS NAS PUBLICAÇÕES: curtidas/{postId}_{uid}
+    // Nota de 1 a 5, uma por pessoa em cada publicação. A pessoa pode
+    // trocar a nota ou tirar. Ninguém dá estrelas na própria publicação.
+    // =====================================================
+    match /curtidas/{id} {
+
+      allow read: if logado();
+
+      function notaOk(d) {
+        return d.nota is int && d.nota >= 1 && d.nota <= 5;
+      }
+      // Cada nota muda junto o resumo da publicação (diario_notas/{postId}); as regras do resumo conferem a conta.
+      function resumoJunto(postId) {
+        let r = /databases/$(database)/documents/diario_notas/$(postId);
+        return existsAfter(r)
+            && getAfter(r).data.get('soma', 0) != (exists(r) ? get(r).data.get('soma', 0) : 0);
+      }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+                    && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    // pode dar estrelas na própria publicação ("se curtir")
+                    && notaOk(request.resource.data)
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time
+                    && resumoJunto(request.resource.data.postId);
+
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['nota', 'atualizadoEm'])
+                    && notaOk(request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time
+                    && resumoJunto(resource.data.postId);
+
+      // Tirar a nota: tira junto do resumo. Publicação que já não existe: apaga sem resumo (limpeza de conta).
+      allow delete: if logado() && resource.data.uid == request.auth.uid
+                    && (resumoJunto(resource.data.postId)
+                        || !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+    }
+
+    // ===================================================
+    // SALVAMENTOS: salvamentos/{postId}_{uid} — só para o autor contar quantos salvaram (não vê quem).
+    // A lista de salvos de cada um continua em usuarios/{uid}.salvos (privada).
+    // ===================================================
+    match /salvamentos/{id} {
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && request.resource.data.criadoEm == request.time;
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // Republicar (como o repost do Instagram): republicacoes/{postId}_{uid}. A publicação original aparece para quem
+    // segue quem republicou, com "Fulano republicou". Não dá para republicar a própria nem com bloqueio entre os dois.
+    match /republicacoes/{id} {
+      allow read: if logado();
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.postId is string && request.resource.data.postId.size() <= 64
+                    && id == request.resource.data.postId + '_' + request.auth.uid
+                    && request.resource.data.postAutorId != request.auth.uid
+                    && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
+                    && get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+                    && !bloqueioEntre(request.auth.uid, request.resource.data.postAutorId)
+                    && request.resource.data.criadoEm == request.time;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+      allow update: if false;
+    }
+
+// ===== FIM DA PARTE 14 DE 22 =====

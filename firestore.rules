@@ -308,6 +308,35 @@ service cloud.firestore {
           || resource.data.get(campoDono, '') == request.auth.uid || admin();
     }
 
+    // ---------- conteúdo escondido de verdade (guardar.js, 13/11/2026) ----------
+    // Esconder = o conteúdo vai para guardados/{colecao}_{id} e no lugar fica um ESQUELETO vazio
+    // { dono, tipo?, ocultoAte, ocultoPelaEquipe, guardado: true }: nem numa lista dá para ler o que foi escondido.
+    // Quem pode esconder/devolver é conferido no guardados (create/delete); aqui só a forma do documento.
+    function guardadoRef(col, id) {
+      return /databases/$(database)/documents/guardados/$(col + '_' + id);
+    }
+    function ehEsqueleto() {
+      return resource.data.get('guardado', false) == true;
+    }
+    // Documento cheio -> esqueleto, com o guardado sendo criado na mesma gravação.
+    function viraEsqueleto(col, id, campo) {
+      let n = request.resource.data;
+      return n.get('guardado', false) == true
+          && !ehEsqueleto()
+          && n.keys().hasOnly([campo, 'tipo', 'ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+          && n[campo] == resource.data[campo]
+          && n.get('tipo', null) == resource.data.get('tipo', null)
+          && n.ocultoAte is timestamp && n.ocultoAte > request.time
+          && !exists(guardadoRef(col, id))
+          && n.ocultoPelaEquipe == getAfter(guardadoRef(col, id)).data.porEquipe;
+    }
+    // Esqueleto -> documento de volta, exatamente como estava guardado (o guardado sai na mesma gravação).
+    function voltaDoGuardado(col, id) {
+      return ehEsqueleto()
+          && !existsAfter(guardadoRef(col, id))
+          && request.resource.data == get(guardadoRef(col, id)).data.dados;
+    }
+
     // A equipe esconde/mostra: só ocultoAte e a marca ocultoPelaEquipe.
     function moderacaoOk() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
@@ -802,7 +831,7 @@ service cloud.firestore {
                     && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
 
-      allow update: if logado()
+      allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
@@ -811,6 +840,9 @@ service cloud.firestore {
                     && naoTocaCamposProtegidosNoUpdate()
                     && travaModeracao()
                     && negocioOk();
+
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('negocios', id, 'donoId') || voltaDoGuardado('negocios', id));
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
@@ -868,7 +900,7 @@ service cloud.firestore {
                     && contaVerificada()
                     && anuncioOk();
 
-      allow update: if logado()
+      allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
@@ -877,6 +909,9 @@ service cloud.firestore {
                     && naoTocaCamposProtegidosNoUpdate()
                     && travaModeracao()
                     && anuncioOk();
+
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('anuncios', id, 'donoId') || voltaDoGuardado('anuncios', id));
 
       allow delete: if logado()
                     && resource.data.donoId == request.auth.uid;
@@ -950,7 +985,7 @@ service cloud.firestore {
                     && !sancionado(request.auth.uid)
                     && request.resource.data.criadoEm == request.time
                     && comunidadeOk();
-      allow update: if logado() && emailOk()
+      allow update: if logado() && !ehEsqueleto() && emailOk()
                     && resource.data.donoId == request.auth.uid
                     && request.resource.data.donoId == resource.data.donoId
                     && request.resource.data.criadoEm == resource.data.criadoEm
@@ -958,9 +993,88 @@ service cloud.firestore {
                     && travaModeracao()
                     && !banidoDoPrograma(request.auth.uid, 'comunidade')
                     && comunidadeOk();
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('comunidade', id, 'donoId') || voltaDoGuardado('comunidade', id));
+
       allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
       // A equipe esconde (anúncio com venda, golpe, conta suspensa).
       allow update: if podeModerar() && moderacaoOk();
+    }
+
+    // =====================================================
+    // GUARDADOS: o conteúdo de um item escondido (guardar.js). Documento: guardados/{colecao}_{id}
+    // { colecao, docId, dono, dados (o documento como era), motivo, porEquipe, ate, por, em }.
+    // Só o dono e a equipe leem. Criado na MESMA gravação em que o item vira esqueleto; apagado na MESMA
+    // gravação em que o item volta (ou quando o item foi apagado).
+    // =====================================================
+    match /guardados/{gid} {
+      function itemRef(d) {
+        return /databases/$(database)/documents/$(d.colecao)/$(d.docId);
+      }
+      function campoDono(col) {
+        return col == 'diario' ? 'autorId' : 'donoId';
+      }
+      // dados = o documento como estava (sem as marcas de escondido) e o item vira esqueleto junto.
+      function guardaOk(d) {
+        let antes = get(itemRef(d)).data;
+        return antes.get('guardado', false) != true
+            && d.dono == antes.get(campoDono(d.colecao), '')
+            && d.dados is map
+            && !d.dados.keys().hasAny(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+            && d.dados.diff(antes).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+            && getAfter(itemRef(d)).data.get('guardado', false) == true;
+      }
+      // Quem pode: a própria pessoa (conta desativada) ou a moderação (qualquer motivo).
+      function quemGuardaOk(d) {
+        return (d.motivo == 'conta' && d.porEquipe == false && (d.dono == request.auth.uid || podeModerar()))
+            || (d.motivo in ['sancao', 'moderacao', 'sem_verif'] && d.porEquipe == true && podeModerar());
+      }
+      allow get, list: if logado() && (resource.data.dono == request.auth.uid || admin());
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['colecao', 'docId', 'dono', 'dados', 'motivo', 'porEquipe', 'ate', 'por', 'em'])
+                    && request.resource.data.colecao in ['negocios', 'anuncios', 'diario', 'comunidade']
+                    && request.resource.data.docId is string
+                    && gid == request.resource.data.colecao + '_' + request.resource.data.docId
+                    && (request.resource.data.ate == null || request.resource.data.ate is timestamp)
+                    && request.resource.data.por is string && request.resource.data.em == request.time
+                    && quemGuardaOk(request.resource.data)
+                    && guardaOk(request.resource.data);
+      // Trocar o motivo/prazo: a moderação (qualquer um); a pessoa só o prazo do que ela mesma escondeu.
+      allow update: if logado()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['motivo', 'porEquipe', 'ate', 'por', 'em'])
+                    && (request.resource.data.ate == null || request.resource.data.ate is timestamp)
+                    && request.resource.data.em == request.time
+                    && ((podeModerar() && request.resource.data.porEquipe == (request.resource.data.motivo != 'conta')
+                         && request.resource.data.motivo in ['conta', 'sancao', 'moderacao', 'sem_verif'])
+                        || (resource.data.dono == request.auth.uid && resource.data.motivo == 'conta'
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ate', 'em'])));
+      // Sai quando o item volta igual (equipe; a pessoa: o da conta, ou o da suspensão que já acabou) ou foi apagado.
+      allow delete: if logado()
+                    && ((!existsAfter(itemRef(resource.data)) && (resource.data.dono == request.auth.uid || admin()))
+                        || (getAfter(itemRef(resource.data)).data == resource.data.dados
+                            && (podeModerar()
+                                || (resource.data.dono == request.auth.uid
+                                    && (resource.data.motivo == 'conta'
+                                        || (resource.data.motivo == 'sancao' && resource.data.ate != null && resource.data.ate < request.time))))));
+    }
+
+    // =====================================================
+    // PUBLICAÇÕES AGENDADAS: agendadas/{id} { autorId, quando, dados, criadoEm, atualizadoEm? }.
+    // Só o autor lê e escreve. Na hora (ou depois), o aparelho do autor publica no Diário com o mesmo id
+    // (passando por todas as regras do Diário) e apaga daqui (agendadas.js).
+    // =====================================================
+    match /agendadas/{id} {
+      allow get, list: if logado() && resource.data.autorId == request.auth.uid;
+      allow create, update: if logado() && emailOk()
+                    && request.resource.data.autorId == request.auth.uid
+                    && (resource == null || resource.data.autorId == request.auth.uid)
+                    && request.resource.data.keys().hasOnly(['autorId', 'quando', 'dados', 'criadoEm', 'atualizadoEm'])
+                    && request.resource.data.quando is timestamp
+                    && request.resource.data.quando > request.time
+                    && request.resource.data.quando < request.time + duration.value(60, 'd')
+                    && request.resource.data.dados is map
+                    && request.resource.data.dados.get('autorId', '') == request.auth.uid;
+      allow delete: if logado() && resource.data.autorId == request.auth.uid;
     }
 
     // Banimento de um programa (um tipo de perfil de negócio ou a Comunidade). Só a moderação cria/apaga;
@@ -3243,18 +3357,15 @@ service cloud.firestore {
                     && localPubOk(request.resource.data) && publicoOk(request.resource.data)
                     && (!('caixa' in request.resource.data) || caixaOk(request.resource.data.caixa))
                     // enquete: até 7 dias a partir de quando aparece (agora ou a data agendada), com 10 min de folga
-                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete,
-                          'agendadoPara' in request.resource.data ? request.resource.data.agendadoPara : request.time, 10090))
+                    && (!('enquete' in request.resource.data) || enqueteOk(request.resource.data.enquete, request.time, 10090))
                     && ritmoOk('pub')
                     && publicacaoOk()
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada: aparece para os outros a partir de agendadoPara (até 60 dias)
-                    && (!('agendadoPara' in request.resource.data)
-                        || (request.resource.data.agendadoPara is timestamp
-                            && request.resource.data.agendadoPara > request.time
-                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')));
+                    // agendada: fica em agendadas/{id} (só o autor) e entra aqui na hora; o Diário não aceita mais data futura
+                    // (antes ficava aqui com agendadoPara e dava para ler numa lista antes da hora)
+                    && !('agendadoPara' in request.resource.data);
 
-      allow update: if logado()
+      allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.autorId == request.auth.uid
                     && request.resource.data.autorId == resource.data.autorId
@@ -3264,11 +3375,8 @@ service cloud.firestore {
                     && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
                     && localPubOk(request.resource.data) && publicoOk(request.resource.data)
                     && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
-                    && (!mudou().hasAny(['agendadoPara'])
-                        || (request.resource.data.agendadoPara is timestamp
-                            && request.resource.data.agendadoPara >= request.time
-                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
+                    // agendada antiga (de antes de agendadas/{id}): só "publicar agora" (agendadoPara = agora)
+                    && (!mudou().hasAny(['agendadoPara']) || request.resource.data.agendadoPara == request.time)
                     // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
                     && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
                     // comentário fixado no topo (id) ou nulo
@@ -3281,6 +3389,9 @@ service cloud.firestore {
                     && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
                     && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
                     && publicacaoOk();
+
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('diario', postId, 'autorId') || voltaDoGuardado('diario', postId));
 
       allow delete: if logado()
                     && resource.data.autorId == request.auth.uid;

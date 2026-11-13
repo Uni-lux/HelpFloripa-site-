@@ -156,29 +156,34 @@
 > (ou de conta desativada) e publicação agendada antes da hora NÃO abrem mais por link direto (só o dono e a equipe);
 > corrida/entrega só aceita como destinatário quem já conversa com quem pede (conversa aceita, sem bloqueio).
 > Continuam **21 partes**, 1092 testes (inclui o Flash privado e os votos só do autor).
+> **13/11/2026 (escondido de verdade + agendadas):** coleção nova `guardados/{colecao}_{id}` (o conteúdo de um item escondido;
+> só o dono e a equipe leem) e o item vira um esqueleto vazio; coleção nova `agendadas/{id}` (só o autor); o Diário não aceita
+> mais `agendadoPara` no futuro. Agora são **22 partes**, 1127 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **21 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **22 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (251.438 bytes, 3.896 linhas, sha256 começa com `57dde5ad04ab1839`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 21 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (258.894 bytes, 4.007 linhas, sha256 começa com `10af83ad5172364e`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 22 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 21 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1092 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 22 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1127 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.
 2. Clique dentro do editor, selecione tudo (Ctrl+A, ou "Selecionar tudo" no celular) e **apague**.
-3. Abra `parte-1-de-20.txt`, copie **tudo** e cole no editor.
-4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 20 =====`), abra a parte 2,
-   copie tudo e cole logo abaixo. Repita até a parte 20, **em ordem**.
+3. Abra `parte-1-de-22.txt`, copie **tudo** e cole no editor.
+4. Vá até o fim do que colou (depois da linha `// ===== FIM DA PARTE 1 DE 22 =====`), abra a parte 2,
+   copie tudo e cole logo abaixo. Repita até a parte 22, **em ordem**.
 5. Confira: a primeira linha do editor é `rules_version = '2';` e a última é
-   `// ===== FIM DA PARTE 20 DE 20 =====`, logo depois de uma linha só com `}`.
+   `// ===== FIM DA PARTE 22 DE 22 =====`, logo depois de uma linha só com `}`.
 6. Clique em **Publicar**. Se o console mostrar um erro (linha vermelha), **não publique**: provavelmente
-   uma parte ficou faltando ou repetida. Confira se as 20 linhas `FIM DA PARTE` aparecem, de 1 a 20, uma vez cada.
+   uma parte ficou faltando ou repetida. Confira se as 22 linhas `FIM DA PARTE` aparecem, de 1 a 22, uma vez cada.
 
 > As regras do ar continuam valendo até o clique em Publicar. A troca leva até 1 minuto para valer.
+> Depois de publicar: painel → Publicações → **"Guardar o que já está escondido"** (só os donos veem o botão) passa o que
+> já estava escondido do jeito antigo para a área guardada.
 
 ## O que passa a funcionar depois de publicar
 - **Diário: várias fotos numa publicação** (até 4, deslizando para o lado). Antes de publicar as regras, quem

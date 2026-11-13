@@ -514,7 +514,7 @@ async function publicar2(quem, dadosPub) {
 await t("diário: hashtags e pessoas marcadas", () => assertSucceeds(publicar2("edu", { tags: ["reforma", "floripa", "obra_2026", "decoração"], marcados: ["bia", "dono"] })));
 await t("diário: hashtag com maiúscula ou espaço é recusada", () => assertFails(publicar2("edu", { tags: ["Reforma"] })));
 await t("diário: mais de 10 marcados é recusado", () => assertFails(publicar2("edu", { marcados: Array.from({ length: 11 }, (_, i) => "usuario" + i) })));
-await t("diário: agendar para daqui a 2 dias", () => assertSucceeds(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 2 * 864e5) })));
+await t("diário: agendada não entra direto no Diário (vai para agendadas/)", () => assertFails(publicar2("edu", { agendadoPara: Timestamp.fromMillis(Date.now() + 2 * 864e5) })));
 // Público da publicação (direcionamento): idade, gênero, lugar e seguidores.
 const pubAlvo = { idadeMin: 18, idadeMax: 35, genero: "f", local: "estados", ufs: ["SC", "PR", "RS"], seguidores: "novos" };
 await t("público: idade, gênero, estados e quem não segue", () => assertSucceeds(publicar2("bia", { publico: pubAlvo })));
@@ -574,7 +574,7 @@ await t("tipo: não dá para trocar o tipo depois", () => assertFails(updateDoc(
 await t("tipo: publicação com TUDO junto (texto casado, local, marcados, hashtags, região, público e configurações) cabe", () => assertSucceeds(publicar2("edu", {
   tipo: "texto", estilo: "casada", titulo: "t".repeat(90), layout: "lado", texto: "x".repeat(500), mediaUrl: fP(10), mediaTipo: "image", quemComenta: "mutuos", ocultarNotas: true,
   tags: Array.from({ length: 10 }, (_, i) => "tag" + i), marcados: Array.from({ length: 10 }, (_, i) => "usuario" + i),
-  local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407, agendadoPara: Timestamp.fromMillis(Date.now() + 864e5),
+  local: { nome: "Jurerê, Florianópolis", lat: -27.44, lng: -48.5 }, autorUf: "SC", autorIbge: 4205407,
   publico: { idadeMin: 18, idadeMax: 65, genero: "m", local: "cidades", cidades: Array.from({ length: 10 }, (_, i) => String(4205400 + i)), seguidores: "todos" } })));
 await t("tipo: enquete com TUDO junto cabe", () => assertSucceeds(publicar2("edu", {
   tipo: "enquete", titulo: "Vote!", layout: "duelo", texto: "x".repeat(900), mediaUrl: fP(10), mediaTipo: "image", enquete: { pergunta: "Qual?", opcoes: ["A", "B", "C", "D"], fimEm: Timestamp.fromMillis(Date.now() + 864e5), anonima: true },
@@ -730,7 +730,7 @@ await t("enquete: fim em 7 dias (personalizado)", () => assertSucceeds(publicar2
 await t("enquete: fim depois de 7 dias é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(7 * 1440 + 60) } })));
 await t("enquete: fim no passado é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(-5) } })));
 await t("enquete: fim que não é data é recusado", () => assertFails(publicar2("bia", { enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: "amanhã" } })));
-await t("enquete agendada: o fim conta a partir da data agendada", () => assertSucceeds(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(3 * 1440 + 1440) } })));
+await t("enquete agendada direto no Diário é recusada (agendadas/ publica na hora)", () => assertFails(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(3 * 1440 + 1440) } })));
 await t("enquete agendada: fim antes de aparecer é recusado", () => assertFails(publicar2("bia", { agendadoPara: daqui(3 * 1440), enquete: { pergunta: "Vai?", opcoes: ["Sim", "Não"], fimEm: daqui(1440) } })));
 await t("flash: enquete com fim em 24 h", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "sEnq2"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], x: 0.5, y: 0.6, fimEm: daqui(1440) }, criadoEm: serverTimestamp() })));
 await t("flash: enquete passando de 24 h é recusada", () => assertFails(criarFlash(doc(ctx("ana"), "stories", "sEnq3"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, enquete: { pergunta: "Gostou?", opcoes: ["Sim", "Não"], fimEm: daqui(1440 + 60) }, criadoEm: serverTimestamp() })));
@@ -1728,6 +1728,92 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("agendada: o autor abre antes da hora", () => assertSucceeds(getDoc(doc(ctx("esc_dono"), "diario", "escAgend1"))));
   await t("agendada: depois da hora abre para todos", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "diario", "escAgend2"))));
   await t("publicação apagada continua respondendo (não existe)", () => assertSucceeds(getDoc(doc(ctx("esc_outro"), "diario", "naoExiste1"))));
+}
+
+// ===================== Escondido de verdade (guardados) e agendadas =====================
+{
+  const futuro = Timestamp.fromMillis(Date.now() + 9e9), SEM = Timestamp.fromDate(new Date("2999-12-31T00:00:00Z"));
+  const negG = { donoId: "gd_dono", tipo: "servicos", nome: "Oficina Guardada", descricao: "conteúdo secreto", cidade: "Florianópolis", criadoEm: antigo, atualizadoEm: antigo };
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "admins", "gd_mod"), { papel: "moderacao" });
+    await setDoc(doc(db, "negocios", "gd_dono_servicos"), negG);
+    await setDoc(doc(db, "negocios", "gd_dono_delivery"), { ...negG, tipo: "delivery", nome: "Lanche" });
+    await setDoc(doc(db, "diario", "gdPost1"), { autorId: "gd_dono", nome: "Dono", texto: "post", criadoEm: antigo });
+    await setDoc(doc(db, "comunidade", "gdCm1"), { donoId: "gd_dono", categoria: "doacao", titulo: "Sofá", status: "disponivel", criadoEm: antigo, atualizadoEm: antigo });
+    await setDoc(doc(db, "usuarios", "ag_eu"), { uid: "ag_eu", nome: "Ag", criadoEm: antigo, aceiteTermos: true });
+    await setDoc(doc(db, "ritmo", "ag_eu"), { inicio: Timestamp.now(), msg: 0, pub: 0, com: 0, parc: 0 });
+  });
+  // Esconder = guardados/{col}_{id} com o documento como era + esqueleto no lugar, na mesma gravação.
+  const esconder = (quem, col, id, campo, dados, motivo, extra = {}) => {
+    const db = ctx(quem), b = writeBatch(db);
+    const porEquipe = motivo !== "conta";
+    b.set(doc(db, "guardados", `${col}_${id}`), { colecao: col, docId: id, dono: dados[campo], dados, motivo, porEquipe, ate: null, por: quem, em: serverTimestamp(), ...extra });
+    b.set(doc(db, col, id), { [campo]: dados[campo], ...(dados.tipo ? { tipo: dados.tipo } : {}), ocultoAte: SEM, ocultoPelaEquipe: porEquipe, guardado: true });
+    return b.commit();
+  };
+  const devolver = (quem, col, id, dados) => { const db = ctx(quem), b = writeBatch(db); b.set(doc(db, col, id), dados); b.delete(doc(db, "guardados", `${col}_${id}`)); return b.commit(); };
+  await t("guardar: a pessoa não esconde com motivo da equipe", () => assertFails(esconder("gd_dono", "negocios", "gd_dono_servicos", "donoId", negG, "moderacao")));
+  await t("guardar: outra pessoa não esconde o negócio de alguém", () => assertFails(esconder("gd_outro", "negocios", "gd_dono_servicos", "donoId", negG, "conta")));
+  await t("guardar: guardado diferente do documento é recusado", () => assertFails(esconder("gd_mod", "negocios", "gd_dono_servicos", "donoId", { ...negG, nome: "Outro nome" }, "moderacao")));
+  await t("guardar: esqueleto sem o guardado é recusado", () => assertFails(updateDoc(doc(ctx("gd_mod"), "negocios", "gd_dono_servicos"), { nome: deleteField(), descricao: deleteField(), cidade: deleteField(), criadoEm: deleteField(), atualizadoEm: deleteField(), ocultoAte: SEM, ocultoPelaEquipe: true, guardado: true })));
+  await t("guardar: a moderação esconde de verdade (guardado + esqueleto)", () => assertSucceeds(esconder("gd_mod", "negocios", "gd_dono_servicos", "donoId", negG, "moderacao")));
+  await t("guardar: na lista só aparece o esqueleto (sem nome nem descrição)", async () => {
+    const s = await assertSucceeds(getDocs(query(collection(ctx("gd_outro"), "negocios"), where("donoId", "==", "gd_dono"))));
+    const d = s.docs.find((x) => x.id === "gd_dono_servicos")?.data() || {};
+    if (d.nome || d.descricao || d.guardado !== true) throw new Error("conteúdo vazou na lista: " + JSON.stringify(d));
+  });
+  await t("guardar: outra pessoa não lê o guardado", () => assertFails(getDoc(doc(ctx("gd_outro"), "guardados", "negocios_gd_dono_servicos"))));
+  await t("guardar: o dono lê o próprio guardado", () => assertSucceeds(getDoc(doc(ctx("gd_dono"), "guardados", "negocios_gd_dono_servicos"))));
+  await t("guardar: o dono lista os próprios guardados", () => assertSucceeds(getDocs(query(collection(ctx("gd_dono"), "guardados"), where("dono", "==", "gd_dono")))));
+  await t("guardar: ninguém lista os guardados de todos", () => assertFails(getDocs(collection(ctx("gd_outro"), "guardados"))));
+  await t("guardar: o dono não edita o esqueleto (não volta pela porta dos fundos)", () => assertFails(updateDoc(doc(ctx("gd_dono"), "negocios", "gd_dono_servicos"), { nome: "Voltei", atualizadoEm: serverTimestamp() })));
+  await t("guardar: o dono não devolve o que a equipe escondeu", () => assertFails(devolver("gd_dono", "negocios", "gd_dono_servicos", negG)));
+  await t("guardar: devolver diferente do guardado é recusado", () => assertFails(devolver("gd_mod", "negocios", "gd_dono_servicos", { ...negG, nome: "Trocado" })));
+  await t("guardar: a moderação devolve igual", () => assertSucceeds(devolver("gd_mod", "negocios", "gd_dono_servicos", negG)));
+  await t("guardar: depois de devolver o negócio abre de novo para todos", () => assertSucceeds(getDoc(doc(ctx("gd_outro"), "negocios", "gd_dono_servicos"))));
+  // Conta desativada (a própria pessoa).
+  const negD = { ...negG, tipo: "delivery", nome: "Lanche" };
+  await t("conta: a pessoa esconde o próprio negócio ao desativar", () => assertSucceeds(esconder("gd_dono", "negocios", "gd_dono_delivery", "donoId", negD, "conta")));
+  await t("conta: a pessoa muda o prazo do próprio guardado", () => assertSucceeds(updateDoc(doc(ctx("gd_dono"), "guardados", "negocios_gd_dono_delivery"), { ate: futuro, em: serverTimestamp() })));
+  await t("conta: a pessoa não troca o motivo", () => assertFails(updateDoc(doc(ctx("gd_dono"), "guardados", "negocios_gd_dono_delivery"), { motivo: "moderacao", porEquipe: true, em: serverTimestamp() })));
+  await t("conta: a pessoa devolve ao reativar", () => assertSucceeds(devolver("gd_dono", "negocios", "gd_dono_delivery", negD)));
+  // Suspensão: a pessoa só devolve depois que acabou.
+  const postG = { autorId: "gd_dono", nome: "Dono", texto: "post", criadoEm: antigo };
+  await t("sanção: a moderação guarda a publicação até o fim da suspensão", () => assertSucceeds(esconder("gd_mod", "diario", "gdPost1", "autorId", postG, "sancao", { ate: futuro })));
+  await t("sanção: a publicação escondida não aparece na lista ordenada (esqueleto sem data)", async () => {
+    const s = await assertSucceeds(getDocs(query(collection(ctx("gd_outro"), "diario"), where("autorId", "==", "gd_dono"), orderBy("criadoEm", "desc"))));
+    if (s.docs.some((x) => x.id === "gdPost1")) throw new Error("apareceu");
+  });
+  await t("sanção: a pessoa não devolve antes do fim", () => assertFails(devolver("gd_dono", "diario", "gdPost1", postG)));
+  await t("sanção: a moderação encurta o prazo", () => assertSucceeds(updateDoc(doc(ctx("gd_mod"), "guardados", "diario_gdPost1"), { ate: Timestamp.fromMillis(Date.now() - 1000), em: serverTimestamp(), motivo: "sancao", porEquipe: true, por: "gd_mod" })));
+  await t("sanção: acabou, a pessoa devolve", () => assertSucceeds(devolver("gd_dono", "diario", "gdPost1", postG)));
+  // Comunidade + apagar o item escondido.
+  const cmG = { donoId: "gd_dono", categoria: "doacao", titulo: "Sofá", status: "disponivel", criadoEm: antigo, atualizadoEm: antigo };
+  await t("comunidade: a moderação guarda o anúncio", () => assertSucceeds(esconder("gd_mod", "comunidade", "gdCm1", "donoId", cmG, "moderacao")));
+  await t("comunidade: o guardado não sai com o item ainda lá", () => assertFails(deleteDoc(doc(ctx("gd_dono"), "guardados", "comunidade_gdCm1"))));
+  await t("comunidade: o dono apaga o item escondido (esqueleto + guardado)", async () => { const db = ctx("gd_dono"), b = writeBatch(db); b.delete(doc(db, "comunidade", "gdCm1")); b.delete(doc(db, "guardados", "comunidade_gdCm1")); await assertSucceeds(b.commit()); });
+
+  // Agendadas: só o autor lê; na hora, o autor publica no Diário com o mesmo id e apaga a agendada.
+  const quando = Timestamp.fromMillis(Date.now() + 3 * 3600e3);
+  const pAg = { autorId: "ag_eu", nome: "Ag", fotoPerfil: "", texto: "Sai amanhã", mediaUrl: "", mediaTipo: "" };
+  await t("agendada: o autor guarda para depois", () => assertSucceeds(setDoc(doc(ctx("ag_eu"), "agendadas", "agP1"), { autorId: "ag_eu", quando, dados: pAg, criadoEm: serverTimestamp() })));
+  await t("agendada: outra pessoa não lê", () => assertFails(getDoc(doc(ctx("gd_outro"), "agendadas", "agP1"))));
+  await t("agendada: ninguém lista as agendadas de todos", () => assertFails(getDocs(collection(ctx("gd_outro"), "agendadas"))));
+  await t("agendada: o autor lista as suas", () => assertSucceeds(getDocs(query(collection(ctx("ag_eu"), "agendadas"), where("autorId", "==", "ag_eu")))));
+  await t("agendada: hora no passado é recusada", () => assertFails(setDoc(doc(ctx("ag_eu"), "agendadas", "agP2"), { autorId: "ag_eu", quando: Timestamp.fromMillis(Date.now() - 6e4), dados: pAg, criadoEm: serverTimestamp() })));
+  await t("agendada: em nome de outra pessoa é recusada", () => assertFails(setDoc(doc(ctx("gd_outro"), "agendadas", "agP3"), { autorId: "ag_eu", quando, dados: pAg, criadoEm: serverTimestamp() })));
+  await t("agendada: publicar = criar no Diário com o mesmo id e apagar a agendada", async () => {
+    const db = ctx("ag_eu"), b = writeBatch(db);
+    b.set(doc(db, "diario", "agP1"), { ...pAg, criadoEm: serverTimestamp() });
+    b.delete(doc(db, "agendadas", "agP1"));
+    b.set(doc(db, "ritmo", "ag_eu"), { pub: increment(1), ultimaEm: serverTimestamp(), ultimoTipo: "pub" }, { merge: true });
+    await assertSucceeds(b.commit());
+  });
+  await t("agendada antiga: o autor só publica agora (não muda para o futuro)", async () => {
+    await semRegras((db) => setDoc(doc(db, "diario", "agVelha"), { autorId: "ag_eu", nome: "Ag", texto: "velha", agendadoPara: futuro, criadoEm: antigo }));
+    await assertFails(updateDoc(doc(ctx("ag_eu"), "diario", "agVelha"), { agendadoPara: Timestamp.fromMillis(Date.now() + 864e5) }));
+    await assertSucceeds(updateDoc(doc(ctx("ag_eu"), "diario", "agVelha"), { agendadoPara: serverTimestamp() }));
+  });
 }
 
 // ---------- resultado ----------

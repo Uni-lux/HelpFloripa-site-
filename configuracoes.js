@@ -9,8 +9,8 @@ import {
   $, pintarAvatar, toast, erroAmigavel, abrirFolha, fecharFolha, abrirLista, config, salvarConfig, aplicarTema,
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF, abrirOpcoes
-} from "./rede.js?v=154";
-import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=8";
+} from "./rede.js?v=155";
+import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=9";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 
@@ -83,11 +83,11 @@ document.querySelectorAll("#cfgComenta [data-valor]").forEach((b) => b.addEventL
   try { await fb.setDoc(refUsuario, { diarioConfig: { quemComenta: v } }, { merge: true }); toast("Salvo: vale para as próximas publicações"); }
   catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }
 }));
-$("cfgFlash").addEventListener("click", () => import("./stories.js?v=126").then((m) => {
+$("cfgFlash").addEventListener("click", () => import("./stories.js?v=127").then((m) => {
   m.abrirConfigFlash();
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); setTimeout(pintarConfig, 60); }; f?.addEventListener("fechada", volta);
 }));
-$("cfgInsights").addEventListener("click", () => import("./insights.js?v=118").then((m) => m.abrirInsights()));
+$("cfgInsights").addEventListener("click", () => import("./insights.js?v=119").then((m) => m.abrirInsights()));
 $("cfgGosto").addEventListener("click", async () => {
   if (!await confirmarHF({ titulo: "Recomeçar o seu Principais?", texto: "O Diário esquece o que aprendeu sobre o seu gosto neste aparelho e volta a mostrar o que está em alta.", ok: "Recomeçar", icone: "alerta", cor: "normal" })) return;
   try { localStorage.removeItem("hf-gosto"); } catch {}
@@ -95,7 +95,7 @@ $("cfgGosto").addEventListener("click", async () => {
 });
 
 // Verificação: tela completa (verificacao.js) com situação, requisitos e o pedido em passos.
-function solicitarVerificacao() { import("./verificacao.js?v=111").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
+function solicitarVerificacao() { import("./verificacao.js?v=112").then((m) => m.abrirVerificacao({ aoMudar: pintarConfig })); }
 
 async function abrirContas(tipo) {
   const bloqueados = tipo === "bloqueados";
@@ -404,7 +404,7 @@ $("desConfirmar").addEventListener("click", async () => {
     toast("Desativando sua conta...");
     await desativarConta(fb, eu.uid, { motivo, detalhe: $("desDetalhe").value.trim(), reativarEm });
     await authFns.signOut(window.firebaseAuth).catch(() => {});
-    await avisoHF({ titulo: "Conta desativada", icone: "check", texto: auto ? `Sua conta foi desativada e volta sozinha em ${dataLonga(reativarEm)}. Se quiser voltar antes, é só entrar.` : "Sua conta foi desativada. Para reativar, é só entrar de novo." });
+    await avisoHF({ titulo: "Conta desativada", icone: "check", texto: auto ? `Sua conta foi desativada. A partir de ${dataLonga(reativarEm)}, ela volta assim que você entrar. Se quiser voltar antes, é só entrar e reativar.` : "Sua conta foi desativada. Para reativar, é só entrar de novo." });
     location.href = "login.html";
   } catch (e) { console.error(e); toast(erroSenha(e)); }
   finally { b.disabled = false; }
