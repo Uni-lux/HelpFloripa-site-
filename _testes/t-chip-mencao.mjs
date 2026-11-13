@@ -8,7 +8,7 @@ initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 let falhas = 0; const ok = (c, m) => { console.log((c ? "  ✔ " : "  ✘ ") + m); if (!c) falhas++; };
 const PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const neg = (await db.collection("negocios").limit(1).get()).docs[0];
-await db.doc("stories/chipM").set({ autorId: U.ana, nome: "Ana", tipo: "foto", midia: PX, mencoes: [U.bruno], criadoEm: Timestamp.now(),
+await db.doc("stories/chipM").set({ restrito: false, autorId: U.ana, nome: "Ana", tipo: "foto", midia: PX, mencoes: [U.bruno], criadoEm: Timestamp.now(),
   enquete: { pergunta: "Jk", opcoes: ["Sim", "Não"], x: 0.6, y: 0.62, fimEm: Timestamp.fromMillis(Date.now() + 8 * 3600e3) },
   ...(neg ? { link: { negocioId: neg.id, nome: "Relógios", tipo: neg.data().tipo || "lojinha", x: 0.25, y: 0.8 } } : {}) });
 const medir = (p) => p.evaluate(() => {

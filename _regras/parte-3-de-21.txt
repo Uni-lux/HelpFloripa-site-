@@ -1,3 +1,10 @@
+    // =====================================================
+    // PERFIL PÚBLICO
+    // Usado somente para busca e exibição pública.
+    // NÃO deve conter e-mail, telefone ou data de nascimento.
+    // =====================================================
+    match /perfis_publicos/{userId} {
+
       // O @ exibido no perfil precisa estar reservado em nicknames/ pelo
       // próprio usuário. getAfter enxerga a reserva feita na mesma transação
       // (cadastro) ou numa escrita anterior (edição do perfil).
@@ -22,7 +29,11 @@
             && textoAte('cidade', 80)
             && localOk()
             && listaAte('busca', 12)
-            && dataOuNulo('desativadaAte');
+            && dataOuNulo('desativadaAte')
+            // "online agora": só a hora de agora (ou nada); antes dava para gravar uma data no futuro e ficar sempre online
+            && (request.resource.data.get('ultimoAcesso', null) == null
+                || request.resource.data.ultimoAcesso == request.time
+                || (resource != null && request.resource.data.ultimoAcesso == resource.data.get('ultimoAcesso', null)));
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
@@ -163,6 +174,7 @@
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && request.resource.data.criadoEm == request.time
                     && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
 
       allow update: if false;
@@ -224,29 +236,5 @@
                   && (resource.data.status == 'aceito'
                       || request.auth.uid in resource.data.participantes);
       allow read: if admin();
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
-                    && request.resource.data.de == request.auth.uid
-                    && request.resource.data.para is string
-                    && request.resource.data.para != request.auth.uid
-                    && request.resource.data.participantes is list
-                    && request.resource.data.participantes.size() == 2
-                    && request.auth.uid in request.resource.data.participantes
-                    && request.resource.data.para in request.resource.data.participantes
-                    && request.resource.data.participantes[0] < request.resource.data.participantes[1]
-                    && id == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
-                    && request.resource.data.status == 'pendente'
-                    && request.resource.data.tipoDe in inversos()
-                    && request.resource.data.tipoPara == inversos()[request.resource.data.tipoDe]
-                    && !bloqueioEntre(request.auth.uid, request.resource.data.para);
-
-      // Só quem recebeu o pedido pode aceitar, e só muda o status.
-      allow update: if logado()
-                    && resource.data.status == 'pendente'
-                    && request.auth.uid == resource.data.para
-                    && request.resource.data.status == 'aceito'
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
 
 // ===== FIM DA PARTE 3 DE 21 =====

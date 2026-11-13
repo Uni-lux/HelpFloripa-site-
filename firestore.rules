@@ -194,7 +194,7 @@ service cloud.firestore {
     // tocáveis) estava no limite.
     function flashNovoOk(d) {
       let k = d.keys();
-      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo'])
+      return k.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo', 'restrito'])
           // caixa de perguntas, link para negócio, repost, perfis de negócio, figurinhas tocáveis e menção oculta
           // (+ contagem regressiva e público do flash, 02/11/2026)
           && (!k.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || extrasFlashOk(d))
@@ -205,6 +205,10 @@ service cloud.firestore {
           && d.get('publico', 'todos') in ['todos', 'amigos']
           && (!('lista' in k) || uidsOk(d.lista, 150))
           && (!('ocultoPara' in k) || uidsOk(d.ocultoPara, 100))
+          // Privacidade de verdade (13/11/2026): "restrito" = Amigos próximos ou com gente ocultada. Amigos próximos leva
+          // só a lista (quem foi ocultado já sai dela); para todos não leva lista. A leitura usa isso (match /stories).
+          && d.restrito == (d.get('publico', 'todos') == 'amigos' || d.get('ocultoPara', []).size() > 0)
+          && (d.get('publico', 'todos') == 'amigos' ? ('lista' in k && !('ocultoPara' in k)) : !('lista' in k))
           && d.autorId == request.auth.uid
           && d.criadoEm == request.time
           && d.tipo in ['imagem', 'video']
@@ -379,7 +383,7 @@ service cloud.firestore {
       // Dados pessoais (e-mail, telefone, nascimento): na equipe, só dono e moderação (LGPD: o mínimo necessário).
       allow read: if podeModerar();
       // A equipe aprova ou recusa o selo de verificado.
-      allow update: if podeModerar()
+      allow update: if podeModerar() && (userId != request.auth.uid || papel() == 'dono')
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
                     && seloLiberado(userId);
 
@@ -452,7 +456,11 @@ service cloud.firestore {
             && textoAte('cidade', 80)
             && localOk()
             && listaAte('busca', 12)
-            && dataOuNulo('desativadaAte');
+            && dataOuNulo('desativadaAte')
+            // "online agora": só a hora de agora (ou nada); antes dava para gravar uma data no futuro e ficar sempre online
+            && (request.resource.data.get('ultimoAcesso', null) == null
+                || request.resource.data.ultimoAcesso == request.time
+                || (resource != null && request.resource.data.ultimoAcesso == resource.data.get('ultimoAcesso', null)));
       }
 
       // Campos que o site grava no perfil público. Qualquer outro é recusado.
@@ -593,6 +601,7 @@ service cloud.firestore {
                     && request.resource.data.alvoId is string
                     && request.resource.data.alvoId != request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.alvoId
+                    && request.resource.data.criadoEm == request.time
                     && !bloqueioEntre(request.auth.uid, request.resource.data.alvoId);
 
       allow update: if false;
@@ -732,7 +741,7 @@ service cloud.firestore {
       // Só confere o que mudou: a gravação completa ficava perto do limite de 1.000 expressões.
       function extrasNegocioOk() {
         let d = request.resource.data;
-        let m = resource == null ? d.keys() : mudou();
+        let m = resource == null ? d.keys().toSet() : mudou();
         return (!m.hasAny(['instagram', 'site', 'cnpj'])
                 || [d.get('instagram', ''), d.get('site', ''), d.get('cnpj', '')].join('\n')
                      .matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
@@ -838,6 +847,7 @@ service cloud.firestore {
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid
                     && request.resource.data.tipo in ['imovel']
+                    && !banidoDoPrograma(request.auth.uid, 'imoveis')
                     && request.resource.data.keys().hasOnly(camposAnuncio())
                     && naoTocaCamposProtegidosNoCreate()
                     && contaVerificada()
@@ -1156,8 +1166,9 @@ service cloud.firestore {
                             && valorTextoAte(request.resource.data.mensagemFixada.get('texto', ''), 200)))
                     && textoAte('ultimaMensagem', 200);
 
-      allow delete: if logado()
-                    && request.auth.uid in resource.data.participantes;
+      // Ninguém apaga a conversa inteira pelo site (o "apagar" de cada um é ocultaPara). Antes, um dos dois apagava a
+      // conversa do outro também e, criando de novo, passava por cima de uma solicitação recusada.
+      allow delete: if podeModerar();
 
 
       // ===================================================
@@ -1789,7 +1800,9 @@ service cloud.firestore {
     match /sancoes/{uid} {
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
-      allow create, update: if podeModerar()
+      // Quem é da equipe só recebe (ou perde) sanção pelas mãos de um dono: um moderador não suspende o dono nem
+      // apaga a própria sanção.
+      allow create, update: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)))
                     && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
                     && request.resource.data.tipo in ['suspensao', 'banimento']
                     && valorTextoAte(request.resource.data.get('motivo', ''), 500)
@@ -1797,7 +1810,7 @@ service cloud.firestore {
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
                     && listaAte('historico', 50);
-      allow delete: if podeModerar();
+      allow delete: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)));
     }
 
     match /avisos/{id} {
@@ -1992,7 +2005,8 @@ service cloud.firestore {
                     && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
                     && request.resource.data.atualizadoEm == request.time;
       // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
-      allow update: if podeModerar()
+      // Ninguém da moderação decide o próprio pedido (só um dono).
+      allow update: if podeModerar() && (uid != request.auth.uid || papel() == 'dono')
                     && resource.data.status in ['pendente', 'em_analise']
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
@@ -2650,17 +2664,32 @@ service cloud.firestore {
     match /stories/{id} {
       // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
       // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
-      allow read: if logado() && (resource.data.autorId == request.auth.uid
-                    || resource.data.criadoEm > request.time - duration.value(26, 'h')
-                    || resource.data.get('destacado', false) == true
-                    || podeModerar());
+      // Quem pode ver (13/11/2026; antes qualquer pessoa logada lia, e só o app escondia): para todos (restrito false);
+      // Amigos próximos só quem está na lista; com gente ocultada, todos menos ela (esses a fileira acha pelo
+      // stories_restritos e abre um por um). Flash antigo, sem o campo, vale pelo publico/ocultoPara dele.
+      // ATENÇÃO: numa consulta (list) o campo que ela não filtra vale o padrão do .get(campo, padrão) — por isso a consulta
+      // só passa com "restrito == false" ou "lista array-contains eu"; a conferência de "ocultoPara" é só ao abrir (get).
+      allow get: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
+                         || resource.data.get('destacado', false) == true)
+                        && (resource.data.get('publico', 'todos') == 'amigos'
+                            ? request.auth.uid in resource.data.lista
+                            : !(request.auth.uid in resource.data.get('ocultoPara', [])))));
+      allow list: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || (resource.data.criadoEm > request.time - duration.value(26, 'h')
+                        && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
       // Anti-spam: até 50 flashes por dia (ritmo/{uid}, gravado junto na mesma operação).
       allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid) && ritmoOk('flash');
       allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
       // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
       allow update: if logado() && resource.data.autorId == request.auth.uid
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
-                    && request.resource.data.destacado is bool;
+                    && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
+                         && request.resource.data.destacado is bool)
+                        // Flash de antes do campo "restrito": o autor completa (só com o valor certo) e ele volta à fileira.
+                        || (!('restrito' in resource.data)
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
+                            && request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
+                                                                  || resource.data.get('ocultoPara', []).size() > 0)));
       match /vistos/{uid} {
         allow create: if logado() && uid == request.auth.uid
                       && request.resource.data.keys().hasOnly(['criadoEm'])
@@ -2689,6 +2718,22 @@ service cloud.firestore {
     // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
     // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
     // ===================================================
+    // Flash "para todos, menos quem foi ocultado": a consulta não consegue tirar quem foi ocultado, então a fileira acha
+    // esses flashes por aqui (só autor, hora e negócios, sem foto nem texto) e abre cada um; quem foi ocultado é recusado.
+    match /stories_restritos/{id} {
+      allow read: if logado();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(id)).data.criadoEm
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.restrito == true
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.get('publico', 'todos') != 'amigos'
+                    && request.resource.data.get('negocios', []) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('negocios', [])
+                    && request.resource.data.get('perfil', true) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('perfil', true);
+      allow update: if false;
+      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+    }
     match /destaques/{id} {
       function destaqueOk(d) {
         return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
@@ -2723,15 +2768,18 @@ service cloud.firestore {
           && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
     }
     match /enquete_votos/{id} {
-      allow read: if logado();
+      // Em quem cada um votou: só a pessoa e o autor da enquete (autorId no voto, conferido na criação) e a moderação.
+      // Voto antigo, sem autorId, só a própria pessoa vê.
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid || podeModerar());
       function votoOk() {
         let d = request.resource.data;
         let doc = d.tipo == 'd'
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId);
         let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm', 'autorId'])
             && d.uid == request.auth.uid
+            && d.get('autorId', get(doc).data.autorId) == get(doc).data.autorId
             && d.tipo in ['d', 'f']
             && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
             && d.alvo == d.tipo + '_' + d.itemId
@@ -3445,6 +3493,7 @@ service cloud.firestore {
         return (c().paraId == '' || c().paraId == request.auth.uid)
             && c().clienteId != request.auth.uid
             && e.get('status', '') == 'ativo'
+            && !banidoDoPrograma(request.auth.uid, 'entregas')
             && e.veiculo == c().veiculo && c().servico in e.servicos
             && !bloqueioEntre(request.auth.uid, c().clienteId)
             && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'atualizadoEm'])
@@ -3549,6 +3598,9 @@ service cloud.firestore {
                     && request.resource.data.uid == uid
                     && request.resource.data.lat is number && request.resource.data.lat >= -34 && request.resource.data.lat <= 6
                     && request.resource.data.lng is number && request.resource.data.lng >= -75 && request.resource.data.lng <= -28
+                    // posição arredondada (3 casas, ~100 m): todo mundo logado lê, então nunca o ponto exato de quem leva
+                    && math.abs(request.resource.data.lat * 1000 - math.round(request.resource.data.lat * 1000)) < 0.001
+                    && math.abs(request.resource.data.lng * 1000 - math.round(request.resource.data.lng * 1000)) < 0.001
                     && request.resource.data.geo4 is string && request.resource.data.geo4.matches('^[0-9a-z]{4}$')
                     && request.resource.data.geo5 is string && request.resource.data.geo5.matches('^' + request.resource.data.geo4 + '[0-9a-z]$')
                     && request.resource.data.veiculo == get(/databases/$(database)/documents/entregadores/$(uid)).data.veiculo
@@ -3677,7 +3729,8 @@ service cloud.firestore {
     match /sos/{id} {
       function d() { return request.resource.data; }
       function r() { return resource.data; }
-      allow get, list: if logado() && (resource.data.publico == true || resource.data.uid == request.auth.uid
+      // Quem está perto só lê enquanto o pedido está aberto (depois de resolvido, o lugar e o nome não ficam expostos).
+      allow get, list: if logado() && ((resource.data.publico == true && resource.data.status in ['aberto', 'atendido']) || resource.data.uid == request.auth.uid
                     || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
       allow create: if logado() && emailOk()
                     && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])

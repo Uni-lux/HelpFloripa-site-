@@ -17,7 +17,7 @@ const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-cs
 
 // Dados
 for (const s of (await db.collection("stories").where("autorId", "==", U.ana).get()).docs) await s.ref.delete();
-const flash = await db.collection("stories").add({ autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, criadoEm: Timestamp.now() });
+const flash = await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana", tipo: "imagem", midia: PX, criadoEm: Timestamp.now() });
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana, criadoEm: Timestamp.now() });
 await db.doc("diario/csLocal").set({ autorId: U.bruno, nome: "Bruno Reparos", texto: "Pôr do sol na obra", tipo: "texto", local: { nome: "Tapera da Base, Florianópolis, Santa Catarina", lat: -27.68, lng: -48.56 }, marcados: [U.ana, U.dani], criadoEm: T(1) });
 // Enquete antiga: sem prazo, de 10 dias atrás, com votos só em enquete_votos (antes da contagem em pedaços).

@@ -1458,10 +1458,11 @@ export function blocoEnquete(item, { tipo = "d", escura = false } = {}) {
       // Voto e contagem juntos, num pedaço sorteado (as regras conferem que a opção sobe exatamente 1 nele).
       const fatia = sortearFatia();
       const voto = { alvo, tipo, itemId: item.id, uid: eu.uid, opcao: i, fatia, ...(e.fimEm && !implicito ? { fimEm: e.fimEm } : {}), criadoEm: fb.serverTimestamp() };
-      const lote = fb.writeBatch(fb.db);
-      lote.set(ref, voto);
-      lote.set(fb.doc(fb.db, "enquete_contas", pedacoDaEnquete(alvo, fatia)), { ["n" + i]: fb.increment(1) }, { merge: true });
-      await lote.commit();
+      // autorId (13/11/2026): com ele só o autor da enquete (e quem votou) vê em quem cada um votou. As regras de antes
+      // não conhecem o campo: recusado, vai sem ele.
+      const gravarVoto = (v) => { const lote = fb.writeBatch(fb.db); lote.set(ref, v); lote.set(fb.doc(fb.db, "enquete_contas", pedacoDaEnquete(alvo, fatia)), { ["n" + i]: fb.increment(1) }, { merge: true }); return lote.commit(); };
+      if (!anon && item.autorId) await gravarVoto({ ...voto, autorId: item.autorId }).catch((er) => { if (er?.code !== "permission-denied") throw er; return gravarVoto(voto); });
+      else await gravarVoto(voto);
       if (precisaContas()) lerContas(true);
       if (teste) {
         const acertou = i === e.certa;
@@ -1605,7 +1606,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=125").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=126").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -1669,12 +1670,19 @@ export function abrirResultadoEnquete(x) {
   corpo.appendChild(acoes);
 }
 // Quem votou em cada opção (só o autor da enquete abre).
+// Votos de uma enquete sua: com as regras novas só dá para listar os que têm o seu autorId (em quem cada um votou fica
+// só com você); com as de antes, a consulta de sempre.
+export function votosDaEnquete(alvo) {
+  const col = fb.collection(fb.db, "enquete_votos");
+  return fb.getDocs(fb.query(col, fb.where("alvo", "==", alvo), fb.limit(300)))
+    .catch((e) => { if (e?.code !== "permission-denied") throw e; return fb.getDocs(fb.query(col, fb.where("alvo", "==", alvo), fb.where("autorId", "==", eu.uid), fb.limit(300))); });
+}
 async function verVotosEnquete(item, alvo, contas) {
   const e = item.enquete;
   const corpo = abrirLista("Votos da enquete");
   corpo.appendChild(el("div", "lista-vazia", "Carregando..."));
   try {
-    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "enquete_votos"), fb.where("alvo", "==", alvo), fb.limit(300)));
+    const s = await votosDaEnquete(alvo);
     const votos = s.docs.map((d) => d.data()).filter((v) => !escondido(v.uid)).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     const perfisV = await Promise.all(votos.map((v) => obterPerfil(v.uid).catch(() => ({}))));
     // Números pela contagem em pedaços (a lista mostra as 300 pessoas mais recentes).
@@ -2369,7 +2377,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=125").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=126").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2566,7 +2574,7 @@ export async function podeMarcar(uid) {
 export async function apagarFlashesDaPublicacao(postId) {
   try {
     const x = await fb.getDocs(fb.query(fb.collection(fb.db, "stories"), fb.where("autorId", "==", eu.uid), fb.where("postDe.postId", "==", postId), fb.limit(50)));
-    await Promise.all(x.docs.map((d) => fb.deleteDoc(d.ref).catch(() => {})));
+    await Promise.all(x.docs.map((d) => { fb.deleteDoc(fb.doc(fb.db, "stories_restritos", d.id)).catch(() => {}); return fb.deleteDoc(d.ref).catch(() => {}); }));
     return x.size;
   } catch { return 0; }
 }

@@ -16,12 +16,12 @@ for (const u of [U.bruno, U.ana]) for (const d of (await db.collection("stories"
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
 const base = { autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: JPEG, perfil: true };
 // enquete e caixa quase no mesmo lugar (o que aconteceu no print)
-await db.doc("stories/fc3Junto").set({ ...base, criadoEm: ts(agora - 3600e3), mencoes: [U.ana],
+await db.doc("stories/fc3Junto").set({ restrito: false, ...base, criadoEm: ts(agora - 3600e3), mencoes: [U.ana],
   enquete: { pergunta: "Jjj", opcoes: ["Sim", "Não"], x: 0.5, y: 0.5, fimEm: ts(agora + 20 * 3600e3) },
   caixa: { pergunta: "Me faça uma pergunta", anonima: false, x: 0.55, y: 0.58 },
   link: { negocioId: `${U.bruno}_servicos`, nome: "Bruno Reparos", tipo: "servicos", x: 0.5, y: 0.85 } });
 // menção oculta gravada com as regras antigas: a Ana não ficou em `mencoes`
-await db.doc("stories/fc3Oculta").set({ ...base, criadoEm: ts(agora - 1800e3) });
+await db.doc("stories/fc3Oculta").set({ restrito: false, ...base, criadoEm: ts(agora - 1800e3) });
 
 const { browser, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "feed.html");

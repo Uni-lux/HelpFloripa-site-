@@ -16,7 +16,7 @@ import { fotoSegura, conferirEmail, emailPendente, mostrarAvisoEmail, MSG_EMAIL 
 import { estrelas, pintarEstrelas, lerResumo, lerResumos, abrirDetalhamento, media, avaliarNegocio } from "./avaliacoes.js?v=19";
 import { abrirQueixa } from "./queixas.js?v=19";
 import { docComValidade, docsComValidade, docsPorIds, esquecer } from "./leituras.js?v=4";
-import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=22";
+import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { ligarPuxar } from "./puxar-atualizar.js?v=6";
 import { prepararAoTocar, escolherVitrine } from "./deslizar-flash.js?v=12";
 import { fundoSuave } from "./fotos-suaves.js?v=1"; // fotos dos cartões entram suaves (o brilho fica até a foto chegar)

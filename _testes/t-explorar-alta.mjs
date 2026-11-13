@@ -26,7 +26,7 @@ for (const [id, autor, nome, tags, local, f, m, [total, soma]] of pubs) {
 // flash de quem a Ana segue com # e lugar nas figurinhas
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: min(999) });
 for (const d of (await db.collection("stories").where("autorId", "==", U.bruno).get()).docs) await d.ref.delete();
-await db.doc("stories/eaFlash").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: foto("praia"), perfil: true, criadoEm: min(15),
+await db.doc("stories/eaFlash").set({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: foto("praia"), perfil: true, criadoEm: min(15),
   toques: ["h|festivalexp|0.5|0.3|0.3|0.06", `l|${LAGOA.nome}|${LAGOA.lat}|${LAGOA.lng}|0.5|0.6|0.4|0.06`] });
 
 const A = await navegador({ mobile: true });

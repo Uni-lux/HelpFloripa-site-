@@ -12,7 +12,7 @@ const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-ff
 for (const u of [U.ana, U.bruno]) for (const s of (await db.collection("stories").where("autorId", "==", u).get()).docs) await s.ref.delete();
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
 const fim = Timestamp.fromMillis(Date.now() + 20 * 3600e3);
-const f1 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX,
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX,
   enquete: { pergunta: "Qual serviço você precisa?", opcoes: ["Pintura", "Elétrica", "Hidráulica"], x: 0.5, y: 0.66, fimEm: fim, cor: "roxo" },
   caixa: { pergunta: "Me pergunte sobre reformas", anonima: false, x: 0.5, y: 0.28, cor: "laranja" }, criadoEm: Timestamp.now() })).id;
 await db.doc(`enquete_votos/f_${f1}_${U.ana}x`).set({ alvo: `f_${f1}`, tipo: "f", itemId: f1, uid: U.edu, opcao: 1, fatia: 2, fimEm: fim, criadoEm: Timestamp.now() });

@@ -72,7 +72,7 @@ await l2.scrollIntoViewIfNeeded(); await pa.screenshot({ path: "saida/cobrado.pn
 await D.browser.close();
 
 // 8) Cartões no chat: publicação e flash enviados por MIM (não pegam o azul do balão)
-await db.doc("stories/vtFlash").set({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 5 * 3600e3) });
+await db.doc("stories/vtFlash").set({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, criadoEm: Timestamp.fromMillis(Date.now() - 5 * 3600e3) });
 const msgs = [
   { remetenteId: U.ana, tipoArquivo: "cartao", cartao: { tipo: "publicacao", titulo: "Publicação de Bruno Reparos", sub: "Publicação de Bruno Reparos", link: "usuarios.html?post=vtPost" } },
   { remetenteId: U.ana, tipoArquivo: "cartao", cartao: { tipo: "flash", acao: "enviar", flashId: "vtFlash", autorId: U.bruno, nome: "Bruno Reparos" } },

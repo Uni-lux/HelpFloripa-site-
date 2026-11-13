@@ -21,7 +21,7 @@ await pb.waitForSelector(bolinha, { timeout: 30000 }); await pb.waitForTimeout(1
 ok(!(await pb.locator(bolinha).evaluate((e) => e.classList.contains("fn-anel"))), "sem flash: bolinha do negócio sem anel");
 
 // Flash novo no negócio, publicado "por outra página" (o Diário, na rede): aviso pelo localStorage de outra aba.
-await db.doc("stories/anelNeg1").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: [neg.id], perfil: true, criadoEm: Timestamp.now() });
+await db.doc("stories/anelNeg1").set({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: [neg.id], perfil: true, criadoEm: Timestamp.now() });
 const outra = await B.ctx.newPage(); await outra.goto(pb.url().replace(/usuarios\.html.*/, "ajuda.html"));
 await outra.evaluate((id) => localStorage.setItem("hf-flash-negocio-mudou", JSON.stringify({ ids: [id], em: Date.now() })), neg.id);
 await pb.waitForFunction((s) => document.querySelector(s)?.classList.contains("fn-anel"), bolinha, { timeout: 8000 }).catch(() => {});
@@ -52,7 +52,7 @@ ok(await pb.evaluate(() => !document.querySelector(".story-visor") && !!document
 await B.browser.close();
 
 // Visitante: vê o anel, o botão da vitrine e NÃO vê "Também em ...".
-await db.doc("stories/anelNeg2").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: negs.map((n) => n.id), perfil: true, criadoEm: Timestamp.now() });
+await db.doc("stories/anelNeg2").set({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: negs.map((n) => n.id), perfil: true, criadoEm: Timestamp.now() });
 const A = await navegador({ mobile: true });
 const pa = await entrar(A.ctx, "ana", `usuarios.html?perfil=${U.bruno}`);
 const bol2 = `.vinculo[data-cat="${neg.tipo}"] .avatar.fn-anel`;

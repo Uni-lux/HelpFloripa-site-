@@ -12,7 +12,7 @@ const FOTO = "data:image/jpeg;base64," + readFileSync(new URL("saida/fotos-carga
 const autores = [U.bruno, U.edu, U.dani];
 for (const u of autores) await db.doc(`relacoes/${U.ana}_${u}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: u, criadoEm: Timestamp.now() });
 let n = 0;
-for (const u of autores) for (let k = 0; k < 2; k++) await db.doc(`stories/rap_${u.slice(0, 5)}_${k}`).set({ autorId: u, nome: "Teste", tipo: "foto", midia: FOTO, criadoEm: Timestamp.fromMillis(Date.now() - (n++) * 60000) });
+for (const u of autores) for (let k = 0; k < 2; k++) await db.doc(`stories/rap_${u.slice(0, 5)}_${k}`).set({ restrito: false, autorId: u, nome: "Teste", tipo: "foto", midia: FOTO, criadoEm: Timestamp.fromMillis(Date.now() - (n++) * 60000) });
 const erros = [];
 const A = await navegador({ mobile: true, sw: true });
 const p = await entrar(A.ctx, "ana", "feed.html");

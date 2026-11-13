@@ -11,7 +11,7 @@ initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const PX = "data:image/png;base64," + readFileSync(garantirImagem("saida/foto-fresp.png", 900, 1600)).toString("base64");
 for (const u of [U.ana, U.bruno]) for (const s of (await db.collection("stories").where("autorId", "==", u).get()).docs) await s.ref.delete();
 await db.doc(`relacoes/${U.bruno}_${U.ana}`).set({ tipo: "seguir", seguidorId: U.bruno, alvoId: U.ana, criadoEm: Timestamp.now() });
-const f1 = (await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual lanche eu faço hoje?", anonima: false, x: 0.5, y: 0.4, cor: "roxo" },
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, caixa: { pergunta: "Qual lanche eu faço hoje?", anonima: false, x: 0.5, y: 0.4, cor: "roxo" },
   toques: [`m|${U.bruno}|0.5|0.75|0.4|0.06`], mencoes: [U.bruno], criadoEm: Timestamp.now() })).id;
 await db.collection("caixa_respostas").add({ alvo: `f_${f1}`, tipo: "f", itemId: f1, autorId: U.ana, uid: U.bruno, nome: "Bruno Reparos", texto: "Faz um X-salada!", anonima: false, criadoEm: Timestamp.now() });
 await db.doc(`stories/${f1}/vistos/${U.bruno}`).set({ criadoEm: Timestamp.now() });

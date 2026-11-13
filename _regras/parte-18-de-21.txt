@@ -1,3 +1,67 @@
+      allow update: if logado()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // texto com imagem casada continua até 500 letras ao editar
+                    && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada: publicar agora (agendadoPara = agora) ou mudar a data (até 60 dias)
+                    && (!mudou().hasAny(['agendadoPara'])
+                        || (request.resource.data.agendadoPara is timestamp
+                            && request.resource.data.agendadoPara >= request.time
+                            && request.resource.data.agendadoPara < request.time + duration.value(60, 'd')))
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+
+      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
+      match /vistas/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+                      && request.resource.data.criadoEm == request.time
+                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      // A equipe esconde ou remove publicações que violam os Termos.
+      allow update: if podeModerar()
+                    && moderacaoOk();
+      allow delete: if podeModerar();
+    }
+    // =====================================================
+    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
+    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
+    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
+    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
+    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
+    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
+    // =====================================================
+    function diaBR() {
+      let t = request.time - duration.value(3, 'h');
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    function horaBR() {
+      return (request.time.hours() + 21) % 24;
+    }
+    function caminhoStats(negocioId, dia) {
+      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
+    }
     function caminhoVisita(negocioId, dia) {
       return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
     }
@@ -118,69 +182,5 @@
         return p.para == request.auth.uid && p.status == 'aceito' && p.tipo == n().servico
             && n().pagadorId == p.de && n().valor <= p.valor && n().pagamento == 'presente'
             && getAfter(/databases/$(database)/documents/presentes/$(n().presenteId)).data.status == 'usado';
-      }
-      allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
-                    || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
-                    || podeModerar());
-      allow create: if logado() && emailOk() && !banidoDoPrograma(request.auth.uid, 'entregas')
-                    && n().keys().hasOnly(['servico', 'modalidade', 'veiculo', 'clienteId', 'clienteNome', 'origem', 'destino', 'km', 'min', 'valor', 'valorSugerido', 'pagamento', 'pacote', 'status', 'paraId', 'destinatarioId', 'geo4', 'geo5', 'raioKm', 'pinEm', 'presenteId', 'pagadorId', 'criadoEm', 'atualizadoEm'])
-                    && n().clienteId == request.auth.uid
-                    && (('presenteId' in n()) ? presenteCorridaOk() : (!('pagadorId' in n()) && n().pagamento != 'presente'))
-                    && n().status == 'procurando'
-                    && n().modalidade in ['entrega_bike', 'entrega_moto', 'entrega_carro', 'entrega_frete', 'corrida_moto', 'corrida_carro']
-                    && n().servico == n().modalidade.split('_')[0]
-                    && n().veiculo == {'entrega_bike': 'bike', 'entrega_moto': 'moto', 'entrega_carro': 'carro', 'entrega_frete': 'utilitario', 'corrida_moto': 'moto', 'corrida_carro': 'carro'}[n().modalidade]
-                    && pontoOk(n().origem) && pontoOk(n().destino)
-                    && n().km is number && n().km >= 0 && n().km <= 400
-                    && n().min is number && n().min >= 0 && n().min <= 900
-                    && n().valor is number && n().valor >= 3 && n().valor <= 3000
-                    && n().valorSugerido is number && n().valorSugerido >= 0 && n().valorSugerido <= 5000
-                    && n().pagamento in ['pix', 'dinheiro', 'cartao', 'presente']
-                    && (n().servico == 'corrida'
-                        ? n().get('pacote', null) == null
-                        : (n().pacote is map && n().pacote.keys().hasOnly(['tamanho', 'oque']) && n().pacote.tamanho in ['P', 'M', 'G', 'GG']
-                           && n().pacote.oque is string && n().pacote.oque.size() >= 2 && n().pacote.oque.size() <= 80))
-                    && n().paraId is string && (n().paraId == '' || (n().paraId != request.auth.uid && entregadorAtivo(n().paraId)))
-                    && n().destinatarioId is string && n().destinatarioId != request.auth.uid && n().destinatarioId.size() <= 128
-                    && n().geo4 is string && n().geo4.matches('^[0-9a-z]{4}$') && n().geo5 is string && n().geo5.matches('^' + n().geo4 + '[0-9a-z]$')
-                    && n().raioKm in [5, 10, 20, 40]
-                    && n().pinEm == (n().servico == 'corrida' ? 'embarque' : 'entrega')
-                    && valorTextoAte(n().get('clienteNome', ''), 80)
-                    && n().criadoEm == request.time && n().atualizadoEm == request.time
-                    // o PIN vai junto, na mesma gravação
-                    && existsAfter(/databases/$(database)/documents/corridas/$(id)/privado/pin);
-      // Atualizações: UMA regra que escolhe o caso pelo que mudou (várias regras separadas passavam do limite de
-      // 1.000 expressões, porque o Firestore testa todas).
-      allow update: if logado() && atualizacaoOk(mudou(), resource.data.status, request.resource.data.get('status', ''));
-      function atualizacaoOk(k, st, ns) {
-        return k.hasOnly(['pos']) ? posOkAqui(st)
-             : k.hasOnly(['avaliacao']) ? avaliacaoOk(st)
-             : k.hasOnly(['avaliacaoEntregador']) ? avaliacaoEntregadorOk(st)
-             : ns == 'cancelada' ? cancelarOk(k, st)
-             : (st == 'procurando' && ns == 'procurando') ? ofertaOk(k)
-             : (st == 'procurando' && ns == 'aceita') ? aceitarOk(k)
-             : ns == 'procurando' ? desistirOk(k, st)
-             : etapaOk(k, st, ns);
-      }
-      // Posição ao vivo de quem leva (só durante o pedido).
-      function posOkAqui(st) {
-        return souEu('entregadorId') && st in ['aceita', 'chegou', 'em_rota'] && posOk(n().pos);
-      }
-      // Quem pede: aumentar a oferta e o raio enquanto ninguém aceitou.
-      function ofertaOk(k) {
-        return souEu('clienteId') && k.hasOnly(['valor', 'raioKm', 'atualizadoEm'])
-            && n().valor is number && n().valor >= c().valor && n().valor <= 3000
-            && n().raioKm in [5, 10, 20, 40] && n().raioKm >= c().raioKm
-            && n().atualizadoEm == request.time;
-      }
-      // Cancelar: quem pede (antes de a encomenda sair / a viagem começar) ou quem leva, se chegou e esperou
-      // 5 minutos (passageiro/encomenda não apareceu).
-      function cancelarOk(k, st) {
-        return k.hasOnly(['status', 'canceladaEm', 'canceladaPor', 'motivo', 'atualizadoEm'])
-            && n().motivo is string && n().motivo.size() <= 120
-            && n().canceladaEm == request.time && n().atualizadoEm == request.time
-            && ((souEu('clienteId') && st in ['procurando', 'aceita', 'chegou'] && n().canceladaPor == 'cliente')
-                || (souEu('entregadorId') && st == 'chegou' && c().chegouEm < request.time - duration.value(5, 'm')
-                    && n().canceladaPor == 'entregador'));
       }
 // ===== FIM DA PARTE 18 DE 21 =====

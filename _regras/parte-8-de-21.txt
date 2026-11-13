@@ -1,3 +1,10 @@
+      allow create: if logado()
+                    && emailOk()
+                    && base()
+                    && ((request.resource.data.tipo == 'negocio' && doCliente())
+                        || (request.resource.data.tipo == 'cliente' && doVendedor())
+                        || (request.resource.data.tipo == 'publicacao' && daPublicacao()));
+
       // Edição de n_ / c_ pelo próprio autor: só nota, comentário e (uma vez) o pedido confirmado.
       allow update: if logado()
                     && emailOk()

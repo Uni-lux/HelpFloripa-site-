@@ -14,7 +14,7 @@ const CORES = { servicos: "#00adee", delivery: "#ff7a1a", lojinha: "#b066ff", im
 for (const d of (await db.collection("stories").where("autorId", "==", U.bruno).get()).docs) await d.ref.delete();
 const negs = (await db.collection("negocios").where("donoId", "==", U.bruno).get()).docs.map((d) => ({ id: d.id, ...d.data() }));
 ok(negs.length >= 2, `Bruno tem ${negs.length} negócios`);
-await db.doc("stories/anelCores1").set({ autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: negs.map((n) => n.id).slice(0, 4), perfil: true, criadoEm: Timestamp.now() });
+await db.doc("stories/anelCores1").set({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "foto", midia: PX, negocios: negs.map((n) => n.id).slice(0, 4), perfil: true, criadoEm: Timestamp.now() });
 const B = await navegador({ mobile: true });
 const pb = await entrar(B.ctx, "bruno", "usuarios.html");
 await pb.waitForSelector("#meuPerfil .vinculo .avatar.fn-anel", { timeout: 30000 }).catch(() => {});

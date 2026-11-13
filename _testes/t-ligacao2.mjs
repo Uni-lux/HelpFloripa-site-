@@ -94,9 +94,9 @@ const esperar = async (fn, ms = 15000) => { const t0 = Date.now(); while (Date.n
 // ---------- flashes do Bruno + cartão no chat da Ana ----------
 for (const s of (await db.collection("stories").where("autorId", "==", U.bruno).get()).docs) await s.ref.delete();
 const agora = Date.now();
-const f1 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Primeiro", criadoEm: Timestamp.fromMillis(agora - 3600e3) })).id;
-const f2 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Segundo", contagem: { titulo: "Inauguração", fim: Timestamp.fromMillis(agora + 86400e3), x: 0.5, y: 0.5 }, criadoEm: Timestamp.fromMillis(agora - 1800e3) })).id;
-const f3 = (await db.collection("stories").add({ autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Terceiro", criadoEm: Timestamp.fromMillis(agora - 600e3) })).id;
+const f1 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Primeiro", criadoEm: Timestamp.fromMillis(agora - 3600e3) })).id;
+const f2 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Segundo", contagem: { titulo: "Inauguração", fim: Timestamp.fromMillis(agora + 86400e3), x: 0.5, y: 0.5 }, criadoEm: Timestamp.fromMillis(agora - 1800e3) })).id;
+const f3 = (await db.collection("stories").add({ restrito: false, autorId: U.bruno, nome: "Bruno Reparos", tipo: "imagem", midia: PX, texto: "Terceiro", criadoEm: Timestamp.fromMillis(agora - 600e3) })).id;
 await db.collection(`conversas/${U.conv}/mensagens`).add({ remetenteId: U.bruno, texto: "", tipoArquivo: "cartao", cartao: { tipo: "flash", acao: "mencao", flashId: f2, autorId: U.bruno, nome: "Bruno Reparos" }, criadoEm: Timestamp.now() });
 await db.doc(`conversas/${U.conv}`).set({ atualizadoEm: Timestamp.now() }, { merge: true });
 

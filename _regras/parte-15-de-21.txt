@@ -1,4 +1,42 @@
     // ===================================================
+    // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
+    // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
+    // muda e apaga (a moderação também apaga). capaMini = miniatura JPEG da capa (para o perfil não baixar os flashes).
+    // ===================================================
+    // Flash "para todos, menos quem foi ocultado": a consulta não consegue tirar quem foi ocultado, então a fileira acha
+    // esses flashes por aqui (só autor, hora e negócios, sem foto nem texto) e abre cada um; quem foi ocultado é recusado.
+    match /stories_restritos/{id} {
+      allow read: if logado();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
+                    && request.resource.data.autorId == request.auth.uid
+                    && request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(id)).data.criadoEm
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.restrito == true
+                    && getAfter(/databases/$(database)/documents/stories/$(id)).data.get('publico', 'todos') != 'amigos'
+                    && request.resource.data.get('negocios', []) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('negocios', [])
+                    && request.resource.data.get('perfil', true) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('perfil', true);
+      allow update: if false;
+      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+    }
+    match /destaques/{id} {
+      function destaqueOk(d) {
+        return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+          && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
+          && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          && d.atualizadoEm == request.time
+          && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
+          && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+      }
+      allow read: if logado();
+      allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+      allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+    }
+
+    // ===================================================
     // RASCUNHOS: rascunhos/{uid}/itens/{id} — só a própria pessoa (texto e fotos ainda não publicados).
     // ===================================================
     // ===================================================
@@ -15,15 +53,18 @@
           && getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
     }
     match /enquete_votos/{id} {
-      allow read: if logado();
+      // Em quem cada um votou: só a pessoa e o autor da enquete (autorId no voto, conferido na criação) e a moderação.
+      // Voto antigo, sem autorId, só a própria pessoa vê.
+      allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid || podeModerar());
       function votoOk() {
         let d = request.resource.data;
         let doc = d.tipo == 'd'
           ? /databases/$(database)/documents/diario/$(d.itemId)
           : /databases/$(database)/documents/stories/$(d.itemId);
         let e = get(doc).data.enquete;
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm', 'autorId'])
             && d.uid == request.auth.uid
+            && d.get('autorId', get(doc).data.autorId) == get(doc).data.autorId
             && d.tipo in ['d', 'f']
             && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
             && d.alvo == d.tipo + '_' + d.itemId
@@ -140,51 +181,6 @@
                     && request.resource.data.criadoEm == request.time
                     && existsAfter(/databases/$(database)/documents/caixa_respostas/$(id));
       allow update: if false;
-    }
-
-    // ===================================================
-    // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
-    // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
-    // ===================================================
-    match /pref_publicas/{uid} {
-      allow read: if logado();
-      allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil'])
-                    // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
-                    && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
-                    && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
-                    && request.resource.data.get('negociosNoPerfil', true) is bool
-                    // o que aparece no perfil para quem visita (12/11/2026): cidade, avaliação e destaques do Flash
-                    && (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
-                        && request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
-                        && request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
-                        && request.resource.data.perfil.get('destaques', true) is bool))
-                    && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
-                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
-                    && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
-      allow delete: if logado() && uid == request.auth.uid;
-    }
-
-    // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
-    match /notas/{uid}/itens/{id} {
-      allow read, delete: if logado() && uid == request.auth.uid;
-      allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
-                    && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
-                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
-                    && request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
-                    && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
-                    && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
-                    && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
-                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
-    }
-
-    match /rascunhos/{uid}/itens/{id} {
-      allow read, delete: if logado() && uid == request.auth.uid;
-      allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
-                    && valorTextoAte(request.resource.data.get('texto', ''), 1000)
-                    && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
     }
 
 // ===== FIM DA PARTE 15 DE 21 =====

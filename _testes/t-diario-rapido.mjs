@@ -8,7 +8,7 @@ import { navegador, entrar, USUARIOS as U } from "./nav.mjs";
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 for (let k = 0; k < 6; k++) await db.doc(`diario/rap${k}`).set({ autorId: k % 2 ? U.bruno : U.edu, nome: "Teste", texto: `Publicação rápida ${k}`, tipo: "texto", autorUf: "SC", autorIbge: 4205407, criadoEm: Timestamp.fromMillis(Date.now() - k * 600000) });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ tipo: "seguir", seguidorId: U.ana, alvoId: U.bruno, criadoEm: Timestamp.now() });
-await db.doc("stories/rapFlash").set({ autorId: U.bruno, nome: "Bruno", tipo: "texto", mediaUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", criadoEm: Timestamp.now() });
+await db.doc("stories/rapFlash").set({ restrito: false, autorId: U.bruno, nome: "Bruno", tipo: "texto", mediaUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", criadoEm: Timestamp.now() });
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 const erros = [];
 const A = await navegador({ mobile: true });

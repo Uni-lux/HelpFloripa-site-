@@ -54,7 +54,7 @@ ok((await b.locator(".story-enq .enq-rod-tx").textContent()).includes("a certa e
 await b.screenshot({ path: "saida/qz-visor.png" });
 
 // ---------- 3) topo: nome fixo na altura da foto ----------
-await db.collection("stories").add({ autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`], perfil: true, repostDe: { storyId: doc.id, autorId: U.bruno, nome: "Bruno" }, criadoEm: Timestamp.now() });
+await db.collection("stories").add({ restrito: false, autorId: U.ana, nome: "Ana Souza", tipo: "imagem", midia: PX, negocios: [`${U.ana}_servicos`], perfil: true, repostDe: { storyId: doc.id, autorId: U.bruno, nome: "Bruno" }, criadoEm: Timestamp.now() });
 await b.keyboard.press("Escape"); await b.waitForTimeout(500);
 const id2 = (await db.collection("stories").where("autorId", "==", U.ana).get()).docs.find((d) => d.data().repostDe)?.id;
 await b.goto(b.url().split("?")[0] + `?flash=${id2}`); await b.waitForSelector(".story-visor", { timeout: 15000 }); await b.waitForTimeout(1200);
