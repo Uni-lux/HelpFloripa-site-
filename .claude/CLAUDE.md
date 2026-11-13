@@ -2578,6 +2578,13 @@ chat da equipe).
   ficava sem os ícones) e os topos trocam um de cada vez (o de quem sai some até 45%, o de quem entra fica embaixo com o
   fundo e o conteúdo aparece de 45% a 85%). Teste `t-rede-igual.mjs` (25, dentro da casca); `t-x-preto` desconta o corte.
   `t-rede` (toque na barra escondida pela rolagem) e `t-rede-cubo` (fundinho do item) já falhavam no main.
+- **Topo e barra que somem no Mensagens (13/11/2026, PR depois do #213, sem regra nova):** pedido dele. mensagens-app.js
+  `topoQueSomeNaLista` (fim do arquivo): no celular (≤820 px, fora da gaveta `embutido`) o título, a busca, as abas e os
+  filtros vão para `.side-cabeca` (absoluta por cima da lista; a lista ganha `padding-top` da altura dela, ResizeObserver);
+  ao rolar `#listaConversas` (conversas e chamadas) a cabeça sobe e a barra de baixo e o "+" descem acompanhando o dedo, como
+  o `ligarTopoQueSome` do barra-rede.js; volta ao subir, ao trocar de aba (`__hfMostrarTopoLista` no `trocarModo`), ao focar a
+  busca, na seleção e quando a aba aparece na rede. No computador a cabeça é `display: contents` (nada muda). Seletores
+  `.sidebar > .side-top` viraram `.sidebar .side-top` (rede-app.js `topoDe`, t-rede-igual). Teste `t-mensagens-topo-some.mjs` (8).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

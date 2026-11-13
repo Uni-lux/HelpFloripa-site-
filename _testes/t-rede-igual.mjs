@@ -19,7 +19,7 @@ for (const [k, re] of ABAS) {
   const f = quadro(re);
   med[k] = await f.evaluate(() => {
     const b = document.getElementById("barraRede"), rb = b.getBoundingClientRect();
-    const t = document.querySelector("header.topo") || document.querySelector(".sidebar > .side-top"), rt = t.getBoundingClientRect();
+    const t = document.querySelector("header.topo") || document.querySelector(".sidebar .side-top"), rt = t.getBoundingClientRect();
     const fab = [...document.querySelectorAll(".fab-hf, .fab-nova")].find((e) => e.getBoundingClientRect().width);
     return { esq: Math.round(rb.left), dir: Math.round(rb.right), alt: Math.round(rb.height), topoAlt: Math.round(rt.height),
       icones: [...b.querySelectorAll("a")].map((a) => { const s = (a.querySelector(".mini-av") || a.querySelector("svg")).getBoundingClientRect(); return Math.round(s.left + s.width / 2); }),
