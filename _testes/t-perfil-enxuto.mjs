@@ -16,10 +16,10 @@ const info = await p.evaluate(() => {
     ins: !!r.querySelector('[data-stat="insights"]:not([hidden]) use[href="#i-graf"]'), novoNeg: !!r.querySelector(".vinculo.novo"), visib: !!r.querySelector(".neg-visib"),
     capaTx: r.querySelector(".pf-editar-capa")?.textContent.trim(), sw: document.documentElement.scrollWidth, vw: innerWidth };
 });
-ok(info.ordem[0] === "pf-stats", "números logo depois da bio (" + info.ordem.join(" > ") + ")");
+ok(info.ordem[0] === "pf-acoes", "ações logo depois do cabeçalho (números ao lado da foto) (" + info.ordem.join(" > ") + ")");
 ok(info.acoes.length === 3 && /Editar perfil/.test(info.acoes[0]) && /Compartilhar/.test(info.acoes[1]), "ações: Editar perfil · Compartilhar · ⋯ (" + info.acoes.join(" | ") + ")");
 ok(!info.painel && !info.chip && !info.social, "sem o cartão de estatísticas, o pedido de selo e o botão Social soltos");
-ok(info.ins, "ícone das estatísticas ao lado dos números");
+ok(!info.ins, "estatísticas no ⋯ (sem ícone solto)");
 ok(!info.novoNeg && !info.visib, "negócios sem o 'Novo' tracejado e sem a pílula de visibilidade");
 ok(info.capaTx === "", "trocar a capa é só um ícone");
 ok(info.sw <= info.vw, "sem passar da largura");

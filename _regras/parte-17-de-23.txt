@@ -5,7 +5,10 @@
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao'])
+                    // pronomes e profissão/ramo (13/11/2026, opcionais, aparecem no perfil)
+                    && request.resource.data.get('pronomes', '') is string && request.resource.data.get('pronomes', '').size() <= 24
+                    && request.resource.data.get('profissao', '') is string && request.resource.data.get('profissao', '').size() <= 40
                     // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
                     && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
                     && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
@@ -21,7 +24,7 @@
       allow delete: if logado() && uid == request.auth.uid;
     }
 
-    // LINKS DO PERFIL (13/11/2026): contatos_perfil/{uid}_{instagram|whatsapp} {uid, tipo, valor, ver, em}.
+    // LINKS DO PERFIL (13/11/2026): contatos_perfil/{uid}_{instagram|whatsapp|tiktok|x|youtube} {uid, tipo, valor, ver, em}.
     // Quem vê: todos (com login), só quem segue a pessoa ou ninguém; o dono e a moderação sempre. Bloqueio esconde.
     match /contatos_perfil/{id} {
       allow get: if logado() && resource != null
@@ -38,7 +41,10 @@
                     && request.resource.data.ver in ['todos', 'seguidores', 'ninguem']
                     && request.resource.data.valor is string
                     && ((request.resource.data.tipo == 'instagram' && request.resource.data.valor.matches('^[A-Za-z0-9._]{1,30}$'))
-                        || (request.resource.data.tipo == 'whatsapp' && request.resource.data.valor.matches('^[0-9]{10,13}$')))
+                        || (request.resource.data.tipo == 'whatsapp' && request.resource.data.valor.matches('^[0-9]{10,13}$'))
+                        || (request.resource.data.tipo == 'tiktok' && request.resource.data.valor.matches('^[A-Za-z0-9._]{2,24}$'))
+                        || (request.resource.data.tipo == 'x' && request.resource.data.valor.matches('^[A-Za-z0-9_]{1,15}$'))
+                        || (request.resource.data.tipo == 'youtube' && request.resource.data.valor.matches('^[A-Za-z0-9._-]{3,30}$')))
                     && request.resource.data.em == request.time;
       allow delete: if logado() && (resource.data.uid == request.auth.uid || admin());
     }

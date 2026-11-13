@@ -4129,3 +4129,59 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .ed-link-linha input { flex: 1; min-width: 0; }
 .ed-link-linha select { flex: 0 0 auto; width: auto; max-width: 46%; }
 .ed-link-pre { color: var(--muted); font-weight: 600; margin-right: -4px; }
+
+/* =====================================================================================================
+   Perfil como nas redes (13/11/2026, prints dele: Instagram/TikTok): números AO LADO da foto, nome com pronomes, profissão
+   em cinza, cidade, bio e redes; sem convites vazios. Perfil de outra pessoa com topo de app: voltar · @nome · compartilhar.
+   ===================================================================================================== */
+.pf2 .pf-topo { margin-top: -44px; }
+.pf2 .pf-linha-av { display: flex; align-items: flex-end; gap: 14px; }
+.pf2 .pf-linha-av .pf-avatar-wrap { flex: none; }
+.pf2 .pf-linha-av .pf-stats { flex: 1; min-width: 0; margin: 0; padding: 0 0 4px; display: flex; gap: 0; border: 0; background: none; }
+.pf2 .pf-linha-av .pf-stat { flex: 1 1 0; min-width: 0; padding: 4px 2px; border-radius: 10px; text-align: center; background: none; }
+.pf2 .pf-linha-av .pf-stat::before { display: none; }
+.pf2 .pf-linha-av .pf-stat .num { display: block; font-size: 17px; font-weight: 800; line-height: 1.2; color: var(--text); }
+.pf2 .pf-linha-av .pf-stat .rot { display: block; font-size: 12.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; text-transform: none; }
+@media (hover: hover) { .pf2 .pf-linha-av .pf-stat:hover { background: var(--hover); } }
+.pf2 .pf-ident { padding-top: 10px; }
+.pf2 .pf-nome-linha { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+.pf2 .pf-pron { color: var(--muted); font-size: 13.5px; font-weight: 500; }
+.pf2 .pf-pron[hidden], .pf2 .pf-prof[hidden] { display: none; }
+.pf2 .pf-prof { margin-top: 1px; color: var(--muted); font-size: 13.5px; font-weight: 500; }
+.pf2 .pf-handle { margin-top: 2px; }
+.pf2 .pf-handle:empty { display: none; }
+.pf2 .pf-bio { margin-top: 6px; }
+.pf2 .pf-bio[hidden] { display: none; }
+.pf2 .pf-links { gap: 8px; margin-top: 10px; }
+.pf-link { width: 34px; }
+.pf2 .pf-corpo { padding-top: 14px; }
+@media (max-width: 360px) { .pf2 .pf-linha-av .pf-stat .num { font-size: 15.5px; } .pf2 .pf-linha-av .pf-stat .rot { font-size: 11.5px; } .pf2 .pf-anel { width: 80px; height: 80px; } }
+/* abas do perfil: só ícones, iguais */
+.abas-perfil button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* topo do perfil de outra pessoa */
+.folha-perfil .folha-topo.pp-topo { position: sticky; top: 0; z-index: 6; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center;
+  gap: 4px; min-height: 54px; padding: 4px 6px; pointer-events: auto; background: var(--bg); border-bottom: 1px solid var(--line); }
+.folha-perfil .folha-topo.pp-topo .icone-btn { pointer-events: auto; background: transparent; color: var(--text); }
+.folha-perfil .folha-topo.pp-topo h2 { visibility: visible; margin: 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  font-family: "HF Marca", system-ui, sans-serif; font-weight: 600; font-size: 16.5px; }
+.folha-perfil .pp-topo .tn-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folha-perfil .pp-topo .tn-nome i { font-style: normal; font-weight: 500; color: var(--muted); }
+.folha-perfil .pp-topo .tn-selo { flex: none; width: 16px; height: 16px; color: var(--accent); }
+.folha-perfil .pf2 .pf-capa { border-radius: 0; }
+/* editor: pronomes/profissão e redes */
+.ed-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+@media (max-width: 480px) { .ed-dupla { grid-template-columns: 1fr; } }
+.ed-dupla small { color: var(--muted); font-weight: 500; }
+.ed-dupla input[hidden] { display: none; }
+.ed-dupla #edPronomesOutro { margin-top: 8px; }
+.ed-redes { display: grid; gap: 8px; }
+.ed-rede { display: flex; align-items: center; gap: 8px; }
+.ed-rede-ic { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); color: var(--text); }
+.ed-rede-ic .pl-ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ed-rede input { flex: 1; min-width: 0; }
+.ed-rede select { flex: 0 0 auto; width: auto; max-width: 40%; }
+.pf-link.tiktok:hover { color: #ff0050; } .pf-link.x:hover { color: var(--text); } .pf-link.youtube:hover { color: #ff0000; }
+.pf2 .pf-linha-av .pf-stats { margin-bottom: -10px; }
+.pf2 .pf-ident { padding-top: 16px; }
+.folha-perfil .pp-topo .icone-btn:focus { outline: none; box-shadow: none; }
+.folha-perfil .pp-topo .icone-btn:focus-visible { background: var(--hover); }

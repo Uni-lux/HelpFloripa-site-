@@ -29,7 +29,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
-  <link rel="stylesheet" href="rede.css?v=109" />
+  <link rel="stylesheet" href="rede.css?v=110" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -80,14 +80,23 @@
       <div class="pf-hero">
         <div class="pf-capa sem-foto" data-el="capa"></div>
         <div class="pf-topo">
-          <div class="pf-avatar-wrap">
-            <div class="pf-anel"><div class="avatar" data-el="avatar"></div></div>
+          <div class="pf-linha-av">
+            <div class="pf-avatar-wrap">
+              <div class="pf-anel"><div class="avatar" data-el="avatar"></div></div>
+            </div>
+            <div class="pf-stats">
+              <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">publicações</span></button>
+              <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">seguidores</span></button>
+              <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">seguindo</span></button>
+            </div>
           </div>
           <div class="pf-ident">
             <div class="pf-nome-linha">
               <h1 class="pf-nome" data-el="nome"></h1>
               <span class="selo" data-el="selo" title="Perfil verificado" hidden><svg class="i"><use href="#i-selo"/></svg></span>
+              <span class="pf-pron" data-el="pron" hidden></span>
             </div>
+            <div class="pf-prof" data-el="prof" hidden></div>
             <div class="pf-handle" data-el="handle"></div>
             <p class="pf-bio" data-el="bio"></p>
             <div class="pf-links" data-el="links" hidden></div>
@@ -95,12 +104,6 @@
         </div>
       </div>
       <div class="pf-corpo">
-        <div class="pf-stats">
-          <button type="button" class="pf-stat" data-stat="posts"><span class="num">0</span><span class="rot">Publicações</span></button>
-          <button type="button" class="pf-stat" data-stat="seguidores"><span class="num">0</span><span class="rot">Seguidores</span></button>
-          <button type="button" class="pf-stat" data-stat="seguindo"><span class="num">0</span><span class="rot">Seguindo</span></button>
-          <button type="button" class="pf-stat pf-stat-mais" data-stat="insights" aria-label="Ver as estatísticas do perfil" hidden><svg class="i s"><use href="#i-avancar"/></svg></button>
-        </div>
         <div class="pf-acoes" data-el="acoes"></div>
         <div class="social" data-el="negocios" hidden></div>
         <div data-el="extra"></div>
@@ -140,6 +143,20 @@
           <textarea id="edBio" maxlength="280" placeholder="Conte o que você faz, seus serviços e onde atende"></textarea>
           <div class="ajuda"><span>Aparece no seu perfil público</span><span id="edBioCont">0/280</span></div>
         </div>
+        <div class="ed-dupla">
+          <div class="campo">
+            <label for="edPronomes">Pronomes <small>(opcional)</small></label>
+            <select id="edPronomes">
+              <option value="">Não mostrar</option><option>ele/dele</option><option>ela/dela</option><option>elu/delu</option><option>ele/ela</option><option value="outro">Outro…</option>
+            </select>
+            <input id="edPronomesOutro" maxlength="24" placeholder="Escreva os seus pronomes" hidden />
+          </div>
+          <div class="campo">
+            <label for="edProfissao">Profissão ou ramo <small>(opcional)</small></label>
+            <input id="edProfissao" maxlength="40" list="edProfissoes" autocomplete="off" placeholder="Ex.: Engenheiro, Artista, CEO" />
+            <datalist id="edProfissoes"><option value="Artista"></option><option value="Advogado(a)"></option><option value="Arquiteto(a)"></option><option value="Atleta"></option><option value="Autônomo(a)"></option><option value="CEO"></option><option value="Criador(a) de conteúdo"></option><option value="Designer"></option><option value="Desenvolvedor(a)"></option><option value="Empreendedor(a)"></option><option value="Engenheiro(a)"></option><option value="Estudante"></option><option value="Fotógrafo(a)"></option><option value="Influenciador(a) digital"></option><option value="Médico(a)"></option><option value="Músico(a)"></option><option value="Professor(a)"></option><option value="Vendedor(a)"></option></datalist>
+          </div>
+        </div>
         <div id="edLocal"></div>
         <div class="campo">
           <label for="edTelefone">Telefone</label>
@@ -148,17 +165,9 @@
         </div>
         <div class="campo"><label for="edEmail">E-mail</label><input id="edEmail" disabled /></div>
         <div class="ed-links" id="edLinks">
-          <h3 class="ed-sec">Links no perfil</h3>
-          <p class="ed-sec-sub">Aparecem como ícones embaixo da bio. Escolha quem pode ver cada um.</p>
-          <div class="campo">
-            <label for="edInsta">Instagram</label>
-            <div class="ed-link-linha"><span class="ed-link-pre">@</span><input id="edInsta" maxlength="80" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="seunome ou o link do perfil" /><select id="edInstaVer" aria-label="Quem pode ver"><option value="todos" selected>Todos</option><option value="seguidores">Quem me segue</option><option value="ninguem">Só eu</option></select></div>
-          </div>
-          <div class="campo">
-            <label for="edWhats">WhatsApp</label>
-            <div class="ed-link-linha"><input id="edWhats" type="tel" maxlength="20" placeholder="(48) 90000-0000" /><select id="edWhatsVer" aria-label="Quem pode ver"><option value="todos">Todos</option><option value="seguidores" selected>Quem me segue</option><option value="ninguem">Só eu</option></select></div>
-            <div class="ajuda"><span>Só o número: o botão abre a conversa no WhatsApp</span></div>
-          </div>
+          <h3 class="ed-sec">Redes e contatos</h3>
+          <p class="ed-sec-sub">Aparecem como ícones embaixo da bio. Escolha quem pode ver cada um; em branco, não aparece.</p>
+          <div id="edLinksLista" class="ed-redes"></div>
         </div>
       </div>
       <div class="folha-rodape">
@@ -232,7 +241,11 @@
 
   <div class="folha larga folha-perfil cheia" id="folhaPerfil" role="dialog" aria-modal="true" aria-labelledby="tPerfilPublico">
     <div class="folha-caixa">
-      <div class="folha-topo"><h2 id="tPerfilPublico">Perfil</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-topo pp-topo">
+        <button type="button" class="icone-btn" data-fechar aria-label="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
+        <h2 id="tPerfilPublico" class="pp-nick">Perfil</h2>
+        <button type="button" class="icone-btn" id="ppCompartilhar" aria-label="Compartilhar perfil" title="Compartilhar perfil"><svg class="i"><use href="#i-compartilhar"/></svg></button>
+      </div>
       <div class="folha-corpo">
         <div id="ppCabecalho"></div>
         <div class="pp-conteudo"><div class="grade" id="ppGrade"></div></div>
@@ -240,6 +253,6 @@
     </div>
   </div>
 
-  <script type="module" src="usuarios-app.js?v=60"></script>
+  <script type="module" src="usuarios-app.js?v=61"></script>
 </body>
 </html>

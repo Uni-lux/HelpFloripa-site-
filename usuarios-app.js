@@ -13,7 +13,7 @@ import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas } from "./avaliacoes.js?v=20";
-import { lerLinks, pintarLinks, gravarLinks, esquecerLinks, limparInstagram, limparWhatsapp, formatarWhatsapp, VER_LINK } from "./links-perfil.js?v=1";
+import { lerLinks, pintarLinks, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=2";
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
@@ -63,6 +63,12 @@ async function salvarPref(campos) {
 function aplicarPref(h, pref) {
   h.raiz.querySelectorAll(".pf-handle .pf-cidade").forEach((x) => { x.hidden = !mostraNoPerfil(pref, "cidade"); });
   h.raiz.querySelector(".pf-corpo")?.classList.toggle("sem-destaques", !mostraNoPerfil(pref, "destaques"));
+  // Pronomes e profissão (opcionais). No seu perfil vale também a cópia da conta (antes das regras novas).
+  const meu = h === meuCab;
+  const pron = String(pref?.pronomes || (meu ? dados.pronomes : "") || "").trim(), prof = String(pref?.profissao || (meu ? dados.profissao : "") || "").trim();
+  const ep = h.el("pron"), ef = h.el("prof");
+  if (ep) { ep.textContent = pron; ep.hidden = !pron; }
+  if (ef) { ef.textContent = prof; ef.hidden = !prof; }
 }
 
 function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = {}) {
@@ -75,8 +81,8 @@ function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = 
   selo.onclick = (e) => { e.stopPropagation(); explicarSelo(p.nome || ""); };
   const handle = h.el("handle");
   handle.replaceChildren();
-  // No seu perfil o @ já está no topo (topoNick): embaixo do nome fica só a cidade (antes aparecia duas vezes).
-  if (p.nickname && h !== meuCab) {
+  // O @ fica no topo (o seu e o de quem você visita): embaixo do nome só a cidade. Sem topo (outros lugares), mostra.
+  if (p.nickname && h !== meuCab && h !== ppCab) {
     const s = document.createElement("span");
     s.textContent = "@" + p.nickname;
     handle.appendChild(s);
@@ -101,7 +107,7 @@ function pintarLinksPerfil(h, uid, { proprio = false } = {}) {
   const alvo = h?.el("links");
   if (!alvo) return;
   lerLinks(fb, uid, { proprio, dados: proprio ? dados : null })
-    .then((l) => { if (h.el("links") === alvo) pintarLinks(alvo, l, { proprio, aoEditar: proprio ? () => abrirEditar("links") : null }); })
+    .then((l) => { if (h.el("links") === alvo) pintarLinks(alvo, l, { proprio }); })
     .catch(() => {});
 }
 
@@ -146,26 +152,11 @@ function renderizarMeuPerfil() {
     meuCab.stat("posts").addEventListener("click", () => $("painelPosts").scrollIntoView({ behavior: "smooth", block: "start" }));
     meuCab.stat("seguidores").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguidores"));
     meuCab.stat("seguindo").addEventListener("click", () => abrirListaRelacoes(eu.uid, "seguindo"));
-    const bIns = meuCab.stat("insights");
-    bIns.hidden = false;
-    bIns.replaceChildren(icone("graf", "i s"));
-    bIns.title = "Estatísticas do perfil";
-    bIns.addEventListener("click", abrirInsightsPerfil);
   }
   pintarMeuSocial();
   preencherCabecalho(meuCab, dados, { posts: meusPosts.length, seguidores: contagem.seguidores, seguindo: contagem.seguindo });
   pintarLinksPerfil(meuCab, eu.uid, { proprio: true });
-  // Bio vazia vira convite
-  const bio = meuCab.el("bio");
-  if (!dados.bio) {
-    bio.hidden = false;
-    bio.classList.add("vazia");
-    bio.replaceChildren();
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "pf-bio-add"; b.textContent = "+ Adicionar uma bio";
-    b.addEventListener("click", () => { abrirEditar(); setTimeout(() => $("edBio").focus(), 120); });
-    bio.appendChild(b);
-  }
+  // Sem bio ou sem links o perfil fica limpo, como nas outras redes (adiciona-se em Editar perfil).
   // Estatísticas, selo e o resto ficam no ⋯ e no ícone ao lado dos números (antes eram cartões grandes aqui).
   meuCab.el("extra").replaceChildren();
   prefPublicas(eu.uid).then((pref) => aplicarPref(meuCab, pref));
@@ -190,7 +181,7 @@ function renderizarMeuPerfil() {
 function menuMeuPerfil() {
   const ops = [
     { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e destaques", icone: "olho", fn: personalizarPerfil },
-    { rotulo: "Links: Instagram e WhatsApp", sub: "E quem pode ver cada um", icone: "link", fn: () => abrirEditar("links") },
+    { rotulo: "Redes e contatos", sub: "Instagram, WhatsApp, TikTok, X e YouTube", icone: "link", fn: () => abrirEditar("links") },
     { rotulo: "Estatísticas do perfil", sub: "Alcance, interações, seguidores e público", icone: "graf", fn: abrirInsightsPerfil },
     { rotulo: "Social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
     { rotulo: "Novo destaque", sub: "Junte flashes num destaque do perfil", icone: "estrela", fn: () => novoDestaque() },
@@ -325,43 +316,44 @@ async function buscarPosts(uid) {
   return lista.filter((x) => uid === eu.uid || ((x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())).sort((a, b) => (ms(b.criadoEm) || Date.now()) - (ms(a.criadoEm) || Date.now()));
 }
 
-// Publicações em que a pessoa foi marcada ou mencionada (de outras contas): aba Marcados.
-const marcacoesCache = new Map();
-async function buscarMarcacoes(uid) {
-  const s = await fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("marcados", "array-contains", uid), fb.limit(60))).catch(() => ({ docs: [] }));
-  return s.docs.map((d) => ({ id: d.id, ...d.data() }))
-    .filter((x) => x.autorId !== uid && !escondido(x.autorId) && (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now())
-    .sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+// Republicados (13/11/2026, pedido dele): as publicações de outras pessoas que a pessoa republicou (republicacoes/{post}_{uid}),
+// da mais nova para a mais antiga. Lidas só quando a aba abre.
+const repubCache = new Map();
+async function buscarRepublicados(uid) {
+  const col = fb.collection(fb.db, "republicacoes");
+  const snap = await lerOrdenado(
+    fb.query(col, fb.where("uid", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(60)),
+    fb.query(col, fb.where("uid", "==", uid), fb.limit(60))).catch(() => ({ docs: [] }));
+  const reps = snap.docs.map((d) => d.data()).filter((r) => r.postId).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+  const posts = await Promise.all(reps.map((r) => fb.getDoc(fb.doc(fb.db, "diario", r.postId)).then((d) => (d.exists() ? { id: d.id, ...d.data(), _repubEm: r.criadoEm } : null)).catch(() => null)));
+  return posts.filter((x) => x && x.autorId !== uid && !escondido(x.autorId) && (x.ocultoAte?.toMillis?.() ?? 0) <= Date.now() && (x.agendadoPara?.toMillis?.() ?? 0) <= Date.now());
 }
 const temMidia = (p) => !!urlSegura(p.mediaUrl);
-// Abas do perfil (sublinhadas, como Instagram e TikTok):
-//   Publicações (fotos e vídeos em grade) · Reels (vídeos) · Textos (lista, como Threads/X) · Salvos (só você) · Marcados
-const ABAS_PERFIL = [["posts", "Publicações", "grade"], ["reels", "Vídeos", "reels"], ["textos", "Textos", "doc"], ["salvos", "Salvos", "salvo"], ["marcados", "Marcados", "pessoa-mais"]];
+// Abas do perfil (13/11/2026, pedido dele): Publicações (fotos, textos e enquetes juntos, na ordem) · Vídeos ·
+// Republicados · Salvos (só você). Textos e Marcados saíram (os textos vão na grade, como cartão).
+const ABAS_PERFIL = [["posts", "Publicações", "grade"], ["reels", "Vídeos", "reels"], ["repub", "Republicados", "republicar"], ["salvos", "Salvos", "salvo"]];
 const abaDaGrade = new WeakMap();
 function renderizarGrade(container, posts, opcoes) {
   const { uid, proprio } = opcoes;
   if (!uid) { desenharGrade(container, posts, opcoes); return; }
-  // barra de abas e lista de textos (criadas uma vez, junto da grade)
   let barra = opcoes.barra || container.previousElementSibling;
   if (!barra?.classList.contains("abas-perfil")) { barra = el("div", "abas-perfil"); barra.setAttribute("role", "tablist"); barra.setAttribute("aria-label", "Conteúdo do perfil"); container.before(barra); }
-  let listaT = container.parentElement.querySelector(":scope > .lista-textos");
-  if (!listaT) { listaT = el("div", "lista-textos"); container.after(listaT); }
-  if (!marcacoesCache.has(uid)) {
-    marcacoesCache.set(uid, null);
-    buscarMarcacoes(uid).then((l) => { marcacoesCache.set(uid, l); if (container.isConnected && abaDaGrade.get(container) === "marcados") renderizarGrade(container, posts, opcoes); });
+  let atual = abaDaGrade.get(container) || "posts";
+  if (!ABAS_PERFIL.some(([k]) => k === atual) || (atual === "salvos" && !proprio)) atual = "posts";
+  if (atual === "repub" && !repubCache.has(uid)) {
+    repubCache.set(uid, null);
+    buscarRepublicados(uid).then((l) => { repubCache.set(uid, l); if (container.isConnected && abaDaGrade.get(container) === "repub") renderizarGrade(container, posts, opcoes); })
+      .catch(() => repubCache.set(uid, []));
   }
   const grupos = {
-    // Texto com imagem casada é um texto: fica na aba Textos (com a imagem), não na grade de fotos.
-    posts: posts.filter((p) => temMidia(p) && p.estilo !== "casada"),
+    posts,
     reels: posts.filter((p) => temMidia(p) && p.mediaTipo === "video"),
-    textos: posts.filter((p) => !temMidia(p) || p.estilo === "casada"),
-    marcados: (marcacoesCache.get(uid) || []).map((p) => ({ ...p, _marcacao: true }))
+    repub: (repubCache.get(uid) || []).map((p) => ({ ...p, _marcacao: true, _repub: true }))
   };
-  let atual = abaDaGrade.get(container) || (grupos.posts.length || !grupos.textos.length ? "posts" : "textos");
-  if (atual === "salvos" && !proprio) atual = "posts";
   ultimaGrade = { container, posts, opcoes }; if (!abaInicial) abaInicial = atual;
   barra.replaceChildren(...ABAS_PERFIL.filter(([k]) => k !== "salvos" || proprio).map(([k, rot, ic]) => {
     const b = el("button"); b.type = "button"; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(k === atual)); b.dataset.aba = k;
+    b.setAttribute("aria-label", rot); b.title = rot;
     if (k === "salvos") b.id = "abaSalvos";
     b.append(icone(ic, "i s"), el("span", null, rot));
     b.addEventListener("click", () => {
@@ -375,13 +367,15 @@ function renderizarGrade(container, posts, opcoes) {
   }));
   // Salvos (só você): grade própria
   const salvosEl = $("gradeSalvos"), notaS = $("notaSalvos");
-  if (proprio) { salvosEl.hidden = atual !== "salvos"; notaS.hidden = atual !== "salvos"; $("btnCompor").hidden = atual === "salvos" || atual === "marcados"; }
-  container.hidden = atual === "salvos" || atual === "textos";
-  listaT.hidden = atual !== "textos";
+  if (proprio) { salvosEl.hidden = atual !== "salvos"; notaS.hidden = atual !== "salvos"; $("btnCompor").hidden = atual !== "posts"; }
+  container.hidden = atual === "salvos";
   if (atual === "salvos") { mostrarSalvos(); return; }
-  if (atual === "textos") { desenharTextos(listaT, grupos.textos, opcoes); return; }
-  const vazios = { posts: proprio ? "Suas fotos e vídeos aparecem aqui." : "Nenhuma foto ou vídeo ainda.", reels: "Os vídeos publicados aparecem aqui.", marcados: proprio ? "Quando alguém marcar ou mencionar você numa publicação, ela aparece aqui." : "Nenhuma publicação com marcação ainda." };
-  if (atual === "marcados" && marcacoesCache.get(uid) === null) { container.replaceChildren(el("div", "vazio-grade", "Carregando...")); return; }
+  const vazios = {
+    posts: proprio ? "Fotos, textos e enquetes que você publicar aparecem aqui." : "Quando essa pessoa publicar, aparece aqui.",
+    reels: proprio ? "Os vídeos que você publicar aparecem aqui." : "Nenhum vídeo ainda.",
+    repub: proprio ? "Toque em Republicar numa publicação do Diário para mostrar aqui." : "Nenhuma publicação republicada ainda."
+  };
+  if (atual === "repub" && repubCache.get(uid) === null) { container.replaceChildren(el("div", "vazio-grade", "Carregando...")); return; }
   desenharGrade(container, grupos[atual], { ...opcoes, vazio: vazios[atual] });
 }
 let ultimaGrade = null, abaInicial = "";
@@ -390,43 +384,6 @@ addEventListener("popstate", () => {
   const k = history.state?.hfAbaPerfil || abaInicial;
   if (k && abaDaGrade.get(ultimaGrade.container) !== k) { abaDaGrade.set(ultimaGrade.container, k); renderizarGrade(ultimaGrade.container, ultimaGrade.posts, ultimaGrade.opcoes); }
 });
-// Textos: lista como no Threads/X — foto, nome, @ e hora, o texto inteiro (até 8 linhas) e os números.
-function desenharTextos(box, lista, { autor }) {
-  box.replaceChildren();
-  if (!lista.length) { box.appendChild(el("div", "vazio-grade", "Nenhum texto publicado ainda.")); return; }
-  lerResumosEstrelas(lista.map((p) => p.id)).catch(() => new Map()).then((res) => {
-    lista.forEach((post, i) => {
-      const it = el("article", "texto-item"); it.tabIndex = 0; it.setAttribute("role", "button");
-      const av = el("div", "avatar"); pintarAvatar(av, autor?.fotoPerfil || post.fotoPerfil, autor?.nome || post.nome);
-      const corpoT = el("div", "ti-corpo");
-      const cab = el("div", "ti-cab");
-      cab.append(el("strong", null, autor?.nome || post.nome || "Usuário"));
-      if (autor?.verificado) { const s = el("span", "selo"); s.appendChild(icone("selo", "i")); cab.appendChild(s); }
-      cab.appendChild(el("span", "ti-meta", [autor?.nickname ? "@" + autor.nickname : "", tempoRelativo(paraData(post.criadoEm))].filter(Boolean).join(" · ")));
-      const tx = post.estilo === "casada" && temMidia(post) ? blocoCasado(post.texto, urlSegura(post.mediaUrl), { curto: true }) : comMencoes(el("p", "ti-texto"), post.texto || "");
-      const rod = el("div", "ti-rodape");
-      const r = res.get(post.id);
-      const est = el("span", "ti-num"); est.append(icone("estrela", "i"), document.createTextNode(r?.total ? `${(r.soma / r.total).toFixed(1).replace(".", ",")} · ${numero(r.total)}` : "0"));
-      const com = el("span", "ti-num"); com.append(icone("chat", "i"), document.createTextNode("…"));
-      contarComentarios(post.id).then((n) => { com.lastChild.textContent = numero(n); }).catch(() => { com.lastChild.textContent = "0"; });
-      rod.append(est, com);
-      if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) rod.appendChild(el("span", "selo-agendada", "Agendada"));
-      corpoT.append(cab);
-      if (post.titulo) corpoT.appendChild(el("strong", "ti-titulo", post.titulo));
-      corpoT.appendChild(tx);
-      const enq = blocoEnquete(post);
-      if (enq) corpoT.appendChild(enq);
-      const cx = blocoCaixa(post);
-      if (cx) corpoT.appendChild(cx);
-      corpoT.appendChild(rod);
-      it.append(av, corpoT);
-      const abrir = (e) => { if (e.target.closest("a, .enquete")) return; abrirPost(lista, i, { proprio: !!autor && autor === dados, autor }); };
-      it.addEventListener("click", abrir);
-      it.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(e); });
-      box.appendChild(it);
-    });
-  });
-}
 // Quadradinho no modelo do cartão (Salvos): selo + pergunta + opções/campo, ou citação; quem publicou embaixo.
 function miniModelo(post, autor) {
   const box = el("span", "mm");
@@ -480,7 +437,7 @@ function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
       img.src = url; img.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; img.loading = "lazy";
       tile.appendChild(img);
       if (fotosDoPost(post).length > 1) { tile.appendChild(icone("fotos", "i s marca-fotos")); tile.setAttribute("data-fotos", String(fotosDoPost(post).length)); }
-    } else if (salvo) {
+    } else if (salvo || post.enquete?.pergunta || post.caixa?.pergunta) {
       // Salvos: o mesmo modelo do Diário e do Flash — enquete, caixa de perguntas ou citação.
       tile.appendChild(miniModelo(post, autor));
     } else {
@@ -508,10 +465,10 @@ function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
       tile.appendChild(l);
     }
     if (post._marcacao) {
-      // Marcação: a foto de quem publicou no canto ("em conjunto").
+      // Republicada: a foto de quem publicou no canto.
       tile.classList.add("marcacao");
       const s = el("span", "selo-marcado"); const av = el("span", "avatar"); pintarAvatar(av, post.fotoPerfil, post.nome);
-      s.append(av, icone("pessoa-mais", "i xs")); s.title = `Publicação de ${post.nome || "outra pessoa"} com você`;
+      s.append(av, icone(post._repub ? "republicar" : "pessoa-mais", "i xs")); s.title = post._repub ? `Republicada de ${post.nome || "outra pessoa"}` : `Publicação de ${post.nome || "outra pessoa"} com você`;
       tile.appendChild(s);
       obterPerfil(post.autorId).then((pp) => { if (pp.fotoPerfil || pp.nome) pintarAvatar(av, pp.fotoPerfil, pp.nome); }).catch(() => {});
     }
@@ -540,7 +497,7 @@ function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
       tile.appendChild(mk);
     }
     if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) { tile.classList.add("agendada"); tile.appendChild(el("span", "selo-agendada", "Agendada")); }
-    tile.setAttribute("aria-label", post._marcacao ? `Publicação de ${post.nome || "outra pessoa"} com marcação` : "Abrir publicação");
+    tile.setAttribute("aria-label", post._repub ? `Publicação republicada de ${post.nome || "outra pessoa"}` : post._marcacao ? `Publicação de ${post.nome || "outra pessoa"} com marcação` : "Abrir publicação");
     tile.addEventListener("click", () => abrirPost(posts, i, { proprio, autor }));
     container.appendChild(tile);
   });
@@ -903,17 +860,20 @@ function abrirEditar(foco) {
   mostrarStatusNick("3 a 20 caracteres: letras minúsculas, números, ponto e _");
   pintarEditor();
   // Links: o que está guardado (contatos_perfil ou a cópia na conta).
-  const l0 = dados.linksPerfil || {};
-  $("edInsta").value = l0.instagram?.valor || ""; $("edInstaVer").value = l0.instagram?.ver || "todos";
-  $("edWhats").value = formatarWhatsapp(l0.whatsapp?.valor || ""); $("edWhatsVer").value = l0.whatsapp?.ver || "seguidores";
-  lerLinks(fb, eu.uid, { proprio: true, dados }).then((l) => {
-    if (!$("edInsta").value && l.instagram) { $("edInsta").value = l.instagram.valor; $("edInstaVer").value = l.instagram.ver; }
-    if (!$("edWhats").value && l.whatsapp) { $("edWhats").value = formatarWhatsapp(l.whatsapp.valor); $("edWhatsVer").value = l.whatsapp.ver; }
-  }).catch(() => {});
+  edLinks = montarEditorLinks($("edLinksLista"), dados.linksPerfil || {});
+  if (!dados.linksPerfil) lerLinks(fb, eu.uid, { proprio: true, dados }).then((l) => { if (Object.keys(l).length && $("folhaEditar").classList.contains("aberta")) edLinks = montarEditorLinks($("edLinksLista"), l); }).catch(() => {});
+  // Pronomes e profissão (opcionais)
+  const pron = dados.pronomes || "";
+  const conhecido = ["", "ele/dele", "ela/dela", "elu/delu", "ele/ela"].includes(pron);
+  $("edPronomes").value = conhecido ? pron : "outro";
+  $("edPronomesOutro").value = conhecido ? "" : pron; $("edPronomesOutro").hidden = conhecido;
+  $("edProfissao").value = dados.profissao || "";
   fecharFolha("folhaConfig");
   abrirFolha("folhaEditar");
-  if (foco === "links") setTimeout(() => { $("edLinks").scrollIntoView({ behavior: "smooth", block: "start" }); $("edInsta").focus({ preventScroll: true }); }, 160);
+  if (foco === "links") setTimeout(() => { $("edLinks").scrollIntoView({ behavior: "smooth", block: "start" }); edLinks.focar(); }, 160);
 }
+let edLinks = null;
+$("edPronomes").addEventListener("change", () => { const o = $("edPronomes").value === "outro"; $("edPronomesOutro").hidden = !o; if (o) $("edPronomesOutro").focus(); });
 function pintarEditor() {
   pintarAvatar($("edAvatar"), edRascunho.fotoPerfil, $("edNome").value || dados.nome);
   const capa = $("edCapa");
@@ -959,18 +919,19 @@ $("edSalvar").addEventListener("click", async () => {
   const { uf, cidade, cidadeIbge } = edLocal ? edLocal.ler() : { uf: dados.uf || "", cidade: dados.cidade || "", cidadeIbge: dados.cidadeIbge || null };
   const telefone = $("edTelefone").value.trim();
   if (nome.length < 2) { toast("Informe seu nome."); $("edNome").focus(); return; }
-  const insta = limparInstagram($("edInsta").value);
-  const whats = limparWhatsapp($("edWhats").value);
-  if (whats === null) { toast("WhatsApp: informe o número com DDD."); $("edWhats").focus(); return; }
-  const linksNovos = { instagram: { valor: insta, ver: $("edInstaVer").value }, whatsapp: { valor: whats, ver: $("edWhatsVer").value } };
+  let linksNovos;
+  try { linksNovos = edLinks.ler(); } catch (e) { toast(e.message); return; }
   const l0 = dados.linksPerfil || {};
-  const linksMudaram = ["instagram", "whatsapp"].some((t) => (l0[t]?.valor || "") !== linksNovos[t].valor || (linksNovos[t].valor && (l0[t]?.ver || "") !== linksNovos[t].ver));
+  const linksMudaram = TIPOS_LINK.some((t) => (l0[t]?.valor || "") !== linksNovos[t].valor || (linksNovos[t].valor && (l0[t]?.ver || "") !== linksNovos[t].ver));
+  const pronomes = ($("edPronomes").value === "outro" ? $("edPronomesOutro").value : $("edPronomes").value).replace(/\s+/g, " ").trim().slice(0, 24);
+  const profissao = $("edProfissao").value.replace(/\s+/g, " ").trim().slice(0, 40);
+  const extrasMudaram = pronomes !== (dados.pronomes || "") || profissao !== (dados.profissao || "");
   if (nick && (!NICK_RE.test(nick) || !nickDisponivel)) { toast("Escolha um nome de usuário disponível."); $("edUsuario").focus(); return; }
   const btn = $("edSalvar");
   btn.disabled = true; btn.textContent = "Salvando...";
   try {
     const publico = { uid: eu.uid, nome, bio, cidade, uf, cidadeIbge };
-    const privado = { nome, bio, cidade, uf, cidadeIbge, telefone };
+    const privado = { nome, bio, cidade, uf, cidadeIbge, telefone, pronomes, profissao };
     // Fotos novas
     for (const [campo, pasta] of [["fotoPerfil", "fotosPerfil"], ["fotoCapa", "fotosCapa"]]) {
       const novo = edRascunho[campo] || "";
@@ -1002,7 +963,12 @@ $("edSalvar").addEventListener("click", async () => {
     if (linksMudaram) {
       const r = await gravarLinks(fb, eu.uid, linksNovos);
       dados.linksPerfil = Object.fromEntries(Object.entries(linksNovos).filter(([, v]) => v.valor));
-      if (r === "sem-regras") avisoLinks = " · os links aparecem para os outros depois da publicação das regras";
+      if (r === "sem-regras") avisoLinks = " · as redes aparecem para os outros depois da publicação das regras";
+    }
+    // Pronomes e profissão ficam em pref_publicas (todos com conta leem); sem as regras novas, só você vê.
+    if (extrasMudaram) {
+      try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { pronomes, profissao, atualizadoEm: fb.serverTimestamp() }, { merge: true }); cachePref.delete(eu.uid); }
+      catch (e) { if (e?.code === "permission-denied") avisoLinks = " · pronomes, profissão e redes aparecem para os outros depois da publicação das regras"; else throw e; }
     }
     Object.assign(dados, privado);
     perfis.delete(eu.uid);
@@ -1160,7 +1126,14 @@ async function abrirPerfilPublico(uid) {
   voltarAoFlash();
   destaquesNoPerfil(ppCab.raiz.querySelector(".pf-corpo"), uid);
   segurarFoto(ppCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid, p, proprio: false }));
-  $("tPerfilPublico").textContent = p.nome || "Perfil";
+  // Topo do perfil de outra pessoa (como nos apps): voltar · @nome (e o selo) · compartilhar.
+  const tp = $("tPerfilPublico"); tp.replaceChildren();
+  const tn = el("span", "tn-nome");
+  if (p.nickname) { const ar = el("i", null, "@"); tn.append(ar, document.createTextNode(p.nickname)); } else tn.textContent = p.nome || "Perfil";
+  tp.appendChild(tn);
+  if (p.verificado) tp.appendChild(icone("selo", "i tn-selo"));
+  tp.title = p.nickname ? "@" + p.nickname : p.nome || "Perfil";
+  $("ppCompartilhar").onclick = () => compartilharPerfil(uid, p.nome);
   abrirFolha("folhaPerfil");
 
   const acoesTopo = ppCab.el("acoes");
@@ -1616,7 +1589,7 @@ async function iniciar() {
   atualizarContagens();
   carregarMeusPosts();
   // Puxar para atualizar (como no Instagram): números, negócios (com o anel do flash) e publicações de novo do servidor.
-  ligarPuxar({ aoAtualizar: () => { esquecerFlashesNegocio(); return Promise.all([carregarMeusNegocios(), atualizarContagens(), carregarMeusPosts()]); } });
+  ligarPuxar({ aoAtualizar: () => { esquecerFlashesNegocio(); repubCache.clear(); esquecerLinks(eu.uid); return Promise.all([carregarMeusNegocios(), atualizarContagens(), carregarMeusPosts()]); } });
 
   const params = new URLSearchParams(location.search);
   // Links antigos de negócio agora vão para a página Meus negócios.
