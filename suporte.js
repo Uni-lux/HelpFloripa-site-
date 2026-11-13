@@ -17,7 +17,7 @@
 // Avisos da equipe (avisos/{id}); ?aviso=ID abre um aviso e ?chamado=ID um chamado
 // (links das notificações). Abrir marca como lido (avisos.lidoEm / usuarios.suporteLido).
 // =====================================================
-import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=157";
+import { $, el, icone, toast, erroAmigavel, abrirFolha, fecharFolha, abrirOpcoes, linhaPessoa, fb, eu, dados, iniciarRede, montarBarraRede, pintarBarraRede } from "./rede.js?v=158";
 import { SUPORTE, seloOficial, fotoSuporte, marcarChamadoLido } from "./avisos-equipe.js?v=1";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
@@ -26,7 +26,7 @@ import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suport
 import { PRIORIDADES, prioridadeDe, prioridadeChamado, textoPrevisao, MAX_ABERTOS } from "./suporte-fila.js?v=2";
 import { palavrasDe } from "./busca.js?v=1";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
-import { comRitmo } from "./ritmo.js?v=3";
+import { comRitmo } from "./ritmo.js?v=4";
 // O voltar fecha as janelas desta página (também dentro das Mensagens), sem depender da cópia do firebase.js no aparelho.
 ligarVoltar();
 
@@ -78,7 +78,33 @@ async function carregar() {
   chamados = s.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(b.atualizadoEm) - ms(a.atualizadoEm));
   avisos = sa.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).sort((a, b) => ms(b.em) - ms(a.em));
   pintarLista();
+  await arrumarAbertos();
 }
+// ---------- chamados em andamento (no máximo 3; as regras conferem pela lista suporte_abertos/{uid}) ----------
+// null = lista não disponível (regras de antes): vale só a conferência da tela.
+let abertosIds = null;
+const refAbertos = () => fb.doc(fb.db, "suporte_abertos", eu.uid);
+const contaNoLimite = (c) => c.categoria !== "sos" && !c.abertoPor;
+async function arrumarAbertos() {
+  try { const a = await fb.getDoc(refAbertos()); abertosIds = a.exists() && Array.isArray(a.data().ids) ? a.data().ids : []; }
+  catch { abertosIds = null; return; }
+  // Tira os encerrados (a equipe encerra sem mexer na lista) e põe os que estão em andamento e faltam (chamados de antes).
+  const porId = new Map(chamados.map((c) => [c.id, c]));
+  // (um id que não está entre os chamados lidos pode ter sido apagado; se ainda estiver aberto, as regras recusam e fica)
+  const sair = abertosIds.filter((id) => !porId.has(id) || porId.get(id).status === "fechado");
+  const entrar = chamados.filter((c) => c.status !== "fechado" && contaNoLimite(c) && !abertosIds.includes(c.id)).map((c) => c.id);
+  for (const id of sair) await mexerAbertos(id, "saiu").catch(() => {});
+  for (const id of entrar) await mexerAbertos(id, "entrou").catch(() => {});
+}
+function gravarAbertos(lote, id, acao) {
+  const ids = acao === "entrou" ? [...abertosIds.filter((x) => x !== id), id] : abertosIds.filter((x) => x !== id);
+  lote.set(refAbertos(), { ids, ultimo: id, acao, atualizadoEm: fb.serverTimestamp() });
+  return ids;
+}
+async function mexerAbertos(id, acao) {
+  const lote = fb.writeBatch(fb.db); const ids = gravarAbertos(lote, id, acao); await lote.commit(); abertosIds = ids;
+}
+const emAndamento = () => abertosIds ? abertosIds.length : chamados.filter((c) => c.status !== "fechado" && contaNoLimite(c)).length;
 function pintarLista() {
   const lista = $("supLista");
   $("supCarregando").hidden = true; lista.hidden = false;
@@ -215,7 +241,7 @@ $("supEnviar").addEventListener("click", async () => {
   if (assunto.length < 3) { toast("Escreva um resumo do assunto."); $("supAssunto").focus(); return; }
   if (texto.length < 10) { toast("Conte um pouco mais (mínimo de 10 caracteres)."); $("supTexto").focus(); return; }
   // Até 3 chamados em andamento por pessoa (a fila nacional fica justa para todo mundo).
-  if (chamados.filter((c) => c.status !== "fechado" && !c.abertoPor).length >= MAX_ABERTOS) { toast(`Você já tem ${MAX_ABERTOS} chamados em andamento. Continue por um deles ou espere a equipe responder.`); return; }
+  if (catEscolhida !== "sos" && emAndamento() >= MAX_ABERTOS) { toast(`Você já tem ${MAX_ABERTOS} chamados em andamento. Continue por um deles ou espere a equipe responder.`); return; }
   const b = $("supEnviar"); b.disabled = true;
   try {
     const id = await criarChamado({ assunto, categoria, texto });
@@ -264,14 +290,21 @@ async function criarChamado({ assunto, categoria, texto }) {
 }
 // Até 5 chamados novos por dia (ritmo.js "sup", as regras conferem); com as regras de antes, vai sem o contador.
 async function gravarChamado(c) {
-  try { return await comRitmo(fb, eu.uid, "sup", (lote) => montarChamado(lote, c)).then((r) => r); }
-  catch (e) {
+  let novos = null;
+  try {
+    const id = await comRitmo(fb, eu.uid, "sup", (lote) => {
+      const ref = fb.doc(fb.collection(fb.db, "suporte"));
+      if (abertosIds && c.categoria !== "sos") novos = gravarAbertos(lote, ref.id, "entrou");
+      return montarChamado(lote, c, ref);
+    });
+    if (novos) abertosIds = novos;
+    return id;
+  } catch (e) {
     if (e?.code !== "permission-denied") throw e;
     const lote = fb.writeBatch(fb.db); const id = montarChamado(lote, c); await lote.commit(); return id;
   }
 }
-function montarChamado(lote, { assunto, categoria, texto, prioridade }) {
-  const ref = fb.doc(fb.collection(fb.db, "suporte"));
+function montarChamado(lote, { assunto, categoria, texto, prioridade }, ref = fb.doc(fb.collection(fb.db, "suporte"))) {
   lote.set(ref, { ...(prioridade ? { prioridade } : {}), uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: assunto.slice(0, 120), categoria, status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
   lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: texto.slice(0, 2000), em: fb.serverTimestamp() });
   return ref.id;
@@ -385,8 +418,24 @@ $("chEnviar").addEventListener("click", async () => {
 });
 async function mudarStatus(novo) {
   if (!atual) return;
+  // Reabrir conta de novo no limite de 3 chamados em andamento (SOS fora).
+  const reabrindo = novo !== "fechado" && atual.status === "fechado" && atual.categoria !== "sos";
+  if (reabrindo && emAndamento() >= MAX_ABERTOS) { toast(`Você já tem ${MAX_ABERTOS} chamados em andamento. Encerre um deles para reabrir este.`); return; }
   try {
-    await fb.updateDoc(fb.doc(fb.db, "suporte", atual.id), { status: novo, atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
+    const mudanca = { status: novo, atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" };
+    const lista = abertosIds && (reabrindo ? "entrou" : novo === "fechado" && abertosIds.includes(atual.id) ? "saiu" : null);
+    let novos = null;
+    try {
+      const lote = fb.writeBatch(fb.db);
+      lote.update(fb.doc(fb.db, "suporte", atual.id), mudanca);
+      if (lista) novos = gravarAbertos(lote, atual.id, lista);
+      await lote.commit();
+      if (novos) abertosIds = novos;
+    } catch (e) {
+      // Regras de antes (sem a lista): muda só o chamado.
+      if (e?.code !== "permission-denied" || !lista) throw e;
+      await fb.updateDoc(fb.doc(fb.db, "suporte", atual.id), mudanca);
+    }
     atual.status = novo; toast(novo === "fechado" ? "Chamado encerrado" : "Chamado reaberto");
     await abrir(atual);
   } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }

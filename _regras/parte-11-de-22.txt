@@ -1,3 +1,76 @@
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow read: if admin();
+      // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(camposChamado())
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    // o e-mail do chamado é o do login (a equipe responde para ele)
+                    && (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
+                    // até 5 chamados novos por dia (ritmo/{uid}, na mesma gravação); SOS não tem limite
+                    && (request.resource.data.categoria == 'sos' || (ritmoOk('sup') && abertosOk()))
+                    && request.resource.data.status == 'aberto'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'usuario'
+                    && prioridadeOk(request.resource.data)
+                    && !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'escalonadoPara', 'primeiraRespostaEm']);
+      // A equipe abre uma conversa de suporte com qualquer pessoa ("Suporte Help Floripa"):
+      // o chamado já nasce respondido, com a primeira mensagem da equipe gravada junto.
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(camposChamado().concat(['abertoPor']))
+                    && request.resource.data.uid is string
+                    && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
+                    && request.resource.data.abertoPor == request.auth.uid
+                    && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+                    && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    && request.resource.data.status == 'respondido'
+                    && request.resource.data.criadoEm == request.time
+                    && request.resource.data.atualizadoEm == request.time
+                    && request.resource.data.ultimaDe == 'equipe'
+                    // quem abre pode já ficar como responsável pelo chamado
+                    && (!('responsavel' in request.resource.data)
+                        || (request.resource.data.responsavel == request.auth.uid
+                            && request.resource.data.get('assumidoEm', null) == request.time
+                            && valorTextoAte(request.resource.data.get('responsavelNome', ''), 80)))
+                    && existsAfter(/databases/$(database)/documents/suporte/$(id)/mensagens/inicio);
+      allow update: if logado()
+                    && ((resource.data.uid == request.auth.uid
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
+                         && request.resource.data.status in ['aberto', 'fechado']
+                         && request.resource.data.ultimaDe == 'usuario'
+                         // reabrir um encerrado conta de novo no limite de 3
+                         && (resource.data.status != 'fechado' || request.resource.data.status == 'fechado'
+                             || resource.data.categoria == 'sos' || abertosOk()))
+                        || (admin()
+                         && mudou().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
+                         && request.resource.data.status in ['aberto', 'respondido', 'fechado']
+                         && responsavelOk() && filaEquipeOk(request.resource.data)))
+                    && request.resource.data.atualizadoEm == request.time;
+      // A equipe assume ou passa o chamado, troca a prioridade, transfere de setor ou escala (sem mexer na data da conversa).
+      allow update: if admin()
+                    && mudou().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
+                    && responsavelOk() && filaEquipeOk(request.resource.data);
+      allow delete: if false;
+
+      match /mensagens/{msgId} {
+        function chamado() { return get(/databases/$(database)/documents/suporte/$(id)).data; }
+        // getAfter: o chamado e a primeira mensagem são gravados juntos (tudo ou nada).
+        function chamadoDepois() { return getAfter(/databases/$(database)/documents/suporte/$(id)).data; }
+        // Anexo: foto (JPEG) ou PDF dentro da mensagem, ou um arquivo do Storage do Firebase (foto, vídeo ou PDF).
+        function anexoOk(x) {
+          return x is map
+              && x.keys().hasOnly(['tipo', 'url', 'nome'])
+              && x.tipo in ['imagem', 'video', 'arquivo']
+              && valorTextoAte(x.get('nome', ''), 120)
+              && x.url is string && x.url.size() <= 750000
+              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+        }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
                       && (chamadoDepois().uid == request.auth.uid || admin())
@@ -83,65 +156,4 @@
       allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
     }
 
-    // Reporte de atendimento do suporte (só a moderação e os donos leem; o suporte não).
-    //   atendimento_{chamado}_{uid}: quem abriu o chamado reporta como foi atendido (demora, grosseria...).
-    //   usuario_{chamado}_{uid}: alguém da equipe reporta a pessoa do chamado (ofensas, ameaça, golpe...).
-    match /reportes/{id} {
-      function chamadoDe(c) { return get(/databases/$(database)/documents/suporte/$(c)).data; }
-      allow get: if logado() && resource.data.autorId == request.auth.uid;
-      allow read: if podeModerar();
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['tipo', 'chamadoId', 'assunto', 'autorId', 'alvoId', 'alvoNome', 'motivo', 'detalhe', 'status', 'criadoEm'])
-                    && request.resource.data.autorId == request.auth.uid
-                    && request.resource.data.chamadoId is string
-                    && id == request.resource.data.tipo + '_' + request.resource.data.chamadoId + '_' + request.auth.uid
-                    && request.resource.data.motivo.matches('^(demora|grosseria|nao_resolveu|errado|dados|ofensa|ameaca|golpe|spam|outro)$')
-                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000)
-                    && valorTextoAte(request.resource.data.get('assunto', ''), 120)
-                    && valorTextoAte(request.resource.data.get('alvoNome', ''), 80)
-                    && request.resource.data.status == 'novo'
-                    && request.resource.data.criadoEm == request.time
-                    && ((request.resource.data.tipo == 'atendimento'
-                         && chamadoDe(request.resource.data.chamadoId).uid == request.auth.uid
-                         && (!('alvoId' in request.resource.data) || request.resource.data.alvoId is string))
-                        || (request.resource.data.tipo == 'usuario'
-                         && admin()
-                         && request.resource.data.alvoId == chamadoDe(request.resource.data.chamadoId).uid));
-      allow update: if podeModerar()
-                    && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
-                    && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
-                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
-                    && responsavelOk()
-                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
-      allow delete: if false;
-    }
-
-    // Nota do atendimento (1 a 5) dada por quem abriu o chamado, uma vez; a equipe lê.
-    match /suporte_notas/{chamadoId} {
-      allow read: if admin() || (logado() && resource.data.uid == request.auth.uid);
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
-                    && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
-                    && valorTextoAte(request.resource.data.get('comentario', ''), 500)
-                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
-                    && request.resource.data.criadoEm == request.time;
-      allow update, delete: if false;
-    }
-
-    // Planos dos negócios (Grátis + Plus, Pro e Premium, Pix manual). A pessoa cria o pedido (pendente) e pode
-    // cancelar; só os donos do site conferem o pagamento, marcam pago/recusado e ativam planos/{uid}.
-    match /planos_pedidos/{id} {
-      allow read: if (logado() && resource.data.uid == request.auth.uid) || donoDoSite();
-      // Pagamento de uma negociação aprovada (negociacaoId = uid): plano, meses e valor iguais aos que o dono do site
-      // combinou, e só enquanto ela está esperando o pagamento.
-      function negociacaoPagavel(d) {
-        let n = get(/databases/$(database)/documents/planos_negociacoes/$(request.auth.uid)).data;
-        return d.negociacaoId == request.auth.uid
-            && n.status == 'aguardando_pagamento'
-            && d.plano == n.planoConcedido
-            && d.meses == n.meses
-            && d.valor == n.valorAcordado;
-      }
 // ===== FIM DA PARTE 11 DE 22 =====

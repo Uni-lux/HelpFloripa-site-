@@ -128,6 +128,7 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
       await col("perfis_publicos").doc(uid).delete();
       await col("usuarios").doc(uid).delete();
       await col("cotas").doc(uid).delete();
+      await col("suporte_abertos").doc(uid).delete();
       try { await auth.deleteUser(uid); r.login = "apagado"; }
       catch (e) { r.login = e.code === "auth/user-not-found" ? "já não existia" : "erro: " + e.code; if (r.login.startsWith("erro")) throw e; }
       await col("exclusoes").doc(uid).delete();

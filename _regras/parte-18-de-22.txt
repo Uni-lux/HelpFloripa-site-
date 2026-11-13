@@ -1,3 +1,96 @@
+    // =====================================================
+    // VOTOS NA ENQUETE DE UM COMENTÁRIO: comentario_votos/{comentarioId}_{uid}
+    // Um voto por pessoa (não muda); a opção tem que existir na enquete do comentário. Todos contam.
+    // =====================================================
+    match /comentario_votos/{id} {
+      allow read: if logado();
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && request.resource.data.opcao is int && request.resource.data.opcao >= 0
+                    && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
+                    && request.resource.data.criadoEm == request.time;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
+    // =====================================================
+    match /curtidas_comentarios/{id} {
+
+      allow read: if logado();
+
+      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
+      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+                    // quem escreveu o comentário (para avisar da reação)
+                    && (!('comentarioAutorId' in request.resource.data)
+                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+                    && request.resource.data.uid == request.auth.uid
+                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
+                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+                    && reacaoOk(request.resource.data)
+                    && request.resource.data.criadoEm == request.time;
+
+      // Trocar a reação (só o emoji).
+      allow update: if logado()
+                    && resource.data.uid == request.auth.uid
+                    && mudou().hasOnly(['reacao'])
+                    && reacaoOk(request.resource.data);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+
+
+    // =====================================================
+    // DIÁRIO / PUBLICAÇÕES
+    // =====================================================
+    match /diario/{postId} {
+
+      allow get: if logado() && podeAbrir('autorId');
+      allow list: if logado();
+
+      function publicacaoOk() {
+        let d = request.resource.data;
+        return textoAte('texto', 1000)
+            // título em cima (opcional) e o modelo escolhido (como a publicação é desenhada)
+            && (!('titulo' in d) || (d.titulo is string && d.titulo.size() >= 1 && d.titulo.size() <= 90))
+            && (!('layout' in d) || (d.layout is string && d.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
+            && textoAte('nome', 80)
+            && campoFotoOk('fotoPerfil')
+            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
+            && (!('mediaUrl' in d) || d.mediaUrl == ''
+                || (d.mediaUrl is string
+                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
+            && (!('midias' in d)
+                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
+                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
+                    && fotoPubOk(d.midias[1])
+                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
+                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+      }
+      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
+      function tagsOk(d) {
+        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
+            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+      }
+      function marcadosOk(d) {
+        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
+            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+      }
+      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
+      function localPubOk(d) {
+        return !('local' in d) || d.local == null
+            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
+                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
+                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
+                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
+      }
       // Público da publicação (direcionamento no Diário, Explorar e Reels): idade, gênero, lugar e seguidores.
       function publicoOk(d) {
         let p = d.get('publico', null);
@@ -59,114 +152,5 @@
                     // agendada: fica em agendadas/{id} (só o autor) e entra aqui na hora; o Diário não aceita mais data futura
                     // (antes ficava aqui com agendadoPara e dava para ler numa lista antes da hora)
                     && !('agendadoPara' in request.resource.data);
-
-      allow update: if logado() && !ehEsqueleto()
-                    && emailOk()
-                    && resource.data.autorId == request.auth.uid
-                    && request.resource.data.autorId == resource.data.autorId
-                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
-                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
-                    // texto com imagem casada continua até 500 letras ao editar
-                    && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
-                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
-                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
-                    // agendada antiga (de antes de agendadas/{id}): só "publicar agora" (agendadoPara = agora)
-                    && (!mudou().hasAny(['agendadoPara']) || request.resource.data.agendadoPara == request.time)
-                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
-                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
-                    // comentário fixado no topo (id) ou nulo
-                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
-                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
-                    && dataOuNulo('ocultoAte')
-                    && travaModeracao()
-                    // texto editado: marca a data da edição
-                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
-                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
-                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
-                    && publicacaoOk();
-
-      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
-      allow update: if logado() && (viraEsqueleto('diario', postId, 'autorId') || voltaDoGuardado('diario', postId));
-
-      allow delete: if logado()
-                    && resource.data.autorId == request.auth.uid;
-
-      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
-      match /vistas/{uid} {
-        allow create: if logado() && uid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
-                      && request.resource.data.criadoEm == request.time
-                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
-        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
-        allow update, delete: if false;
-      }
-
-      // A equipe esconde ou remove publicações que violam os Termos.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-      allow delete: if podeModerar();
-    }
-    // =====================================================
-    // ESTATÍSTICAS DOS NEGÓCIOS (como o Google Meu Negócio e o painel profissional do Instagram)
-    // neg_visitas/{negocio}_{uid}_{dia}: uma por pessoa, por negócio, por dia (horário de Brasília).
-    //   Só a própria pessoa lê. Guarda a origem, a hora e o que ela fez (WhatsApp, rota, site...).
-    // neg_stats/{negocio}_{dia}: os números do dia, que só o dono do negócio lê.
-    //   Cada número só sobe +1 na MESMA gravação em que a visita nasce ou ganha uma ação nova:
-    //   ninguém infla as contas, e o dono não vê QUEM visitou (só quantos).
-    // =====================================================
-    function diaBR() {
-      let t = request.time - duration.value(3, 'h');
-      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
-    }
-    function horaBR() {
-      return (request.time.hours() + 21) % 24;
-    }
-    function caminhoStats(negocioId, dia) {
-      return /databases/$(database)/documents/neg_stats/$(negocioId + '_' + dia);
-    }
-    function caminhoVisita(negocioId, dia) {
-      return /databases/$(database)/documents/neg_visitas/$(negocioId + '_' + request.auth.uid + '_' + dia);
-    }
-
-    match /neg_visitas/{id} {
-      function visitaNova() {
-        let d = request.resource.data;
-        let st = caminhoStats(d.negocioId, d.dia);
-        return d.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
-            && d.uid == request.auth.uid
-            && d.negocioId is string && d.negocioId.size() <= 60
-            && d.dia == diaBR() && d.hora == horaBR()
-            && id == d.negocioId + '_' + request.auth.uid + '_' + d.dia
-            && d.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
-            && d.acoes == [] && d.itens == []
-            && get(/databases/$(database)/documents/negocios/$(d.negocioId)).data.donoId != request.auth.uid
-            && getAfter(st).data.v == (exists(st) ? get(st).data.v : 0) + 1;
-      }
-      // Uma ação nova (cada uma conta uma vez por pessoa no dia) ou um item visto (prato, produto, imóvel).
-      function novoNaLista(campo, max) {
-        let d = request.resource.data;
-        let x = d[campo][d[campo].size() - 1];
-        let st = caminhoStats(resource.data.negocioId, resource.data.dia);
-        let mapa = campo == 'acoes' ? 'a' : 'it';
-        return d.diff(resource.data).affectedKeys().hasOnly([campo])
-            && d[campo].size() <= max
-            && d[campo] == resource.data[campo].concat([x])
-            && !(x in resource.data[campo])
-            && (campo == 'acoes' ? acaoValida(x) : itemValido(x))
-            && getAfter(st).data[mapa].get(x, 0) == get(st).data[mapa].get(x, 0) + 1;
-      }
-      function acaoValida(x) {
-        return x in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
-      }
-      function itemValido(x) {
-        return x is string && x.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
-      }
-      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
-      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
-      allow create: if logado() && visitaNova();
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
-      allow delete: if false;
-    }
 
 // ===== FIM DA PARTE 18 DE 22 =====

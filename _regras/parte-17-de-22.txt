@@ -1,3 +1,83 @@
+    // ===================================================
+    // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
+    // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
+    // ===================================================
+    match /pref_publicas/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil'])
+                    // quem pode mandar mensagem (pessoal e negócios) e se os atalhos dos negócios aparecem no perfil
+                    && request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
+                    && request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
+                    && request.resource.data.get('negociosNoPerfil', true) is bool
+                    // o que aparece no perfil para quem visita (12/11/2026): cidade, avaliação e destaques do Flash
+                    && (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
+                        && request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
+                        && request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
+                        && request.resource.data.perfil.get('destaques', true) is bool))
+                    && (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
+                    && (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
+                    && (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
+      allow delete: if logado() && uid == request.auth.uid;
+    }
+
+    // NOTAS (12/11/2026): notas/{uid}/itens/{id} — anotações pessoais, só a própria pessoa lê e grava.
+    match /notas/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
+                    && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
+                    && request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
+                    && request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
+                    && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
+                    && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
+                    && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+    }
+
+    match /rascunhos/{uid}/itens/{id} {
+      allow read, delete: if logado() && uid == request.auth.uid;
+      allow create, update: if logado() && uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
+                    && valorTextoAte(request.resource.data.get('texto', ''), 1000)
+                    && (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
+    }
+
+    // ===================================================
+    // Ranking do Diário (Etapa A, com o plano Blaze): ranking_diario/br e ranking_diario/uf_XX, montados a cada 15 min
+    // pela Cloud Function montarRankingDiario (functions/diario-ranking.js). Só o servidor grava; quem está logado lê.
+    // servidor_atendimento/{conversa} (espera do tempo de resposta) é só do servidor: sem regra, ninguém lê nem grava.
+    // ===================================================
+    match /ranking_diario/{id} {
+      allow read: if logado();
+      allow write: if false;
+    }
+
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
       allow create, update: if logado() && contaCerta();
       // Recalcular (moderação): números inteiros, sem campo estranho.
       allow create, update: if podeModerar()
@@ -100,97 +180,4 @@
       allow delete: if podeModerar();
     }
 
-    // =====================================================
-    // VOTOS NA ENQUETE DE UM COMENTÁRIO: comentario_votos/{comentarioId}_{uid}
-    // Um voto por pessoa (não muda); a opção tem que existir na enquete do comentário. Todos contam.
-    // =====================================================
-    match /comentario_votos/{id} {
-      allow read: if logado();
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
-                    && request.resource.data.opcao is int && request.resource.data.opcao >= 0
-                    && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
-                    && request.resource.data.criadoEm == request.time;
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
-    // =====================================================
-    match /curtidas_comentarios/{id} {
-
-      allow read: if logado();
-
-      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
-      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
-
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
-                    // quem escreveu o comentário (para avisar da reação)
-                    && (!('comentarioAutorId' in request.resource.data)
-                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
-                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
-                    && reacaoOk(request.resource.data)
-                    && request.resource.data.criadoEm == request.time;
-
-      // Trocar a reação (só o emoji).
-      allow update: if logado()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['reacao'])
-                    && reacaoOk(request.resource.data);
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-    }
-
-
-    // =====================================================
-    // DIÁRIO / PUBLICAÇÕES
-    // =====================================================
-    match /diario/{postId} {
-
-      allow get: if logado() && podeAbrir('autorId');
-      allow list: if logado();
-
-      function publicacaoOk() {
-        let d = request.resource.data;
-        return textoAte('texto', 1000)
-            // título em cima (opcional) e o modelo escolhido (como a publicação é desenhada)
-            && (!('titulo' in d) || (d.titulo is string && d.titulo.size() >= 1 && d.titulo.size() <= 90))
-            && (!('layout' in d) || (d.layout is string && d.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
-            && textoAte('nome', 80)
-            && campoFotoOk('fotoPerfil')
-            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
-            && (!('mediaUrl' in d) || d.mediaUrl == ''
-                || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
-            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
-            && (!('midias' in d)
-                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
-                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
-                    && fotoPubOk(d.midias[1])
-                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
-                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
-      }
-      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
-      function tagsOk(d) {
-        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
-            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
-      }
-      function marcadosOk(d) {
-        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
-            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
-      }
-      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
-      function localPubOk(d) {
-        return !('local' in d) || d.local == null
-            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
-                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
-                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
-                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
-      }
 // ===== FIM DA PARTE 17 DE 22 =====

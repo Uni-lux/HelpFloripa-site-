@@ -89,9 +89,17 @@ await pb.waitForSelector(`[data-pedido="${pedidoId}"]`, { timeout: 15000 });
 ok(true, "o pedido apareceu na lista do Bruno");
 ok(/Documentos do cartório/.test(await pb.textContent(`[data-pedido="${pedidoId}"]`)), "cartão do pedido com o que vai e o valor");
 await pb.screenshot({ path: "saida/entregador-pedido.png" });
+// Antes de aceitar, o entregador vê só a região (uns 500 m); o endereço exato fica em privado/rota.
+const docPed = (await db.doc(`corridas/${pedidoId}`).get()).data();
+const rotaPriv = (await db.doc(`corridas/${pedidoId}/privado/rota`).get()).data();
+ok(Math.abs(docPed.origem.lat * 100 - Math.round(docPed.origem.lat * 100)) < 1e-6 && /^Região/.test(docPed.origem.nome), "pedido à vista só com a região: " + docPed.origem.nome);
+ok(rotaPriv && /Felipe Schmidt/.test(rotaPriv.origem.nome), "endereço exato guardado em privado/rota: " + rotaPriv?.origem?.nome);
+ok(!/Felipe Schmidt/.test(await pb.textContent(`[data-pedido="${pedidoId}"]`)), "cartão do entregador sem o nome da rua antes de aceitar");
 await pb.click(`[data-aceitar="${pedidoId}"]`);
 await pb.waitForSelector("#egAvancar", { timeout: 15000 });
 ok(/Cheguei na coleta/.test(await pb.textContent("#egAvancar")), "trabalho: Cheguei na coleta");
+await pb.waitForFunction(() => /Felipe Schmidt/.test(document.querySelector("#painel")?.textContent || ""), null, { timeout: 15000 }).catch(() => {});
+ok(/Felipe Schmidt/.test(await pb.textContent("#painel")), "depois de aceitar, o entregador vê o endereço exato da coleta");
 ok(/Rua Lauro Linhares|Documentos/.test(await pb.textContent("#painel")) && /Apto|recebe|Valor/.test(await pb.textContent("#painel")), "trabalho mostra o destino e os detalhes");
 
 // ---------- Ana: acompanha ----------

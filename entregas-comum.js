@@ -103,3 +103,18 @@ export function abrirTela(titulo, { busca = false, placeholder = "" } = {}) {
   setTimeout(() => (campo || x).focus({ preventScroll: true }), 50);
   return { folha: f, corpo, campo, fechar };
 }
+
+// ---------- endereço exato só para quem faz parte (13/11/2026) ----------
+// Enquanto a corrida procura alguém, todos os entregadores ativos perto a veem: no documento vai só a REGIÃO
+// (ponto arredondado em 2 casas, uns 500 m, e o bairro). O endereço exato vai em corridas/{id}/privado/rota, que só
+// quem pediu, quem recebe, quem paga (presente) e quem aceitou leem (as regras conferem).
+const r2 = (v) => Math.round(Number(v) * 100) / 100;
+export function aproximar(p) {
+  const partes = String(p?.sub || "").split("·").map((s) => s.trim()).filter(Boolean);
+  return { lat: r2(p.lat), lng: r2(p.lng), nome: partes[0] ? `Região de ${partes[0]}`.slice(0, 120) : "Região aproximada", sub: partes.slice(1).join(" · ").slice(0, 160) };
+}
+export const pontoExato = (p) => ({ lat: p.lat, lng: p.lng, nome: String(p.nome || "").slice(0, 120), sub: String(p.sub || "").slice(0, 160) });
+export async function lerEnderecos(fb, id) {
+  try { const s = await fb.getDoc(fb.doc(fb.db, "corridas", id, "privado", "rota")); return s.exists() ? s.data() : null; } catch { return null; }
+}
+export const comEnderecos = (c, r) => (c && r?.origem && r?.destino ? { ...c, origem: { ...r.origem }, destino: { ...r.destino }, _exato: true } : c);
