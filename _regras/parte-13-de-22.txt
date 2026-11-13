@@ -1,3 +1,18 @@
+    // Presença da equipe no painel (quem está online) e chat interno da equipe.
+    match /equipe_presenca/{uid} {
+      allow read: if admin();
+      allow create, update: if admin()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome', 'status'])
+                    && request.resource.data.get('status', 'disponivel') in ['disponivel', 'pausa', 'fora']
+                    && valorTextoAte(request.resource.data.get('nome', ''), 80)
+                    && valorTextoAte(request.resource.data.get('secao', ''), 40)
+                    && valorTextoAte(request.resource.data.get('item', null), 160)
+                    && valorTextoAte(request.resource.data.get('itemNome', null), 120)
+                    && request.resource.data.em == request.time;
+      allow delete: if admin() && request.auth.uid == uid;
+    }
+
     // Mensagem do chat da equipe (todos ou individual): texto e/ou um anexo
     // (foto, áudio ou arquivo). O conteúdo do anexo fica em equipe_anexos/{id},
     // gravado junto, da mesma pessoa e da mesma conversa.
@@ -174,19 +189,6 @@
                     && request.resource.data.dados.size() <= 950000
                     && request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
       allow update, delete: if false;
-    }
-
-    // Foto do grupo "Equipe" no chat da equipe: equipe_info/grupo. Qualquer pessoa da equipe troca.
-    match /equipe_info/{id} {
-      allow read: if admin();
-      allow create, update: if admin()
-                    && id == 'grupo'
-                    && request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
-                    && (request.resource.data.foto == null
-                        || (request.resource.data.foto is string && request.resource.data.foto.size() <= 250000 && fotoOk(request.resource.data.foto)))
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time;
-      allow delete: if false;
     }
 
 // ===== FIM DA PARTE 13 DE 22 =====

@@ -159,16 +159,19 @@
 > **13/11/2026 (escondido de verdade + agendadas):** coleção nova `guardados/{colecao}_{id}` (o conteúdo de um item escondido;
 > só o dono e a equipe leem) e o item vira um esqueleto vazio; coleção nova `agendadas/{id}` (só o autor); o Diário não aceita
 > mais `agendadoPara` no futuro. Agora são **22 partes**, 1127 testes.
+> **13/11/2026 (risco baixo):** avaliação com o nome/foto do perfil público; apagar o perfil público libera o @; apagar
+> mensagem de vez guarda a cópia em `apagadas/`; chamado com o e-mail do login e até 5 por dia (`ritmo.sup`, SOS fora);
+> verificação recusada só pede de novo depois de 30 dias. Continuam **22 partes**, 1139 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **22 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (258.894 bytes, 4.007 linhas, sha256 começa com `10af83ad5172364e`).
+- Arquivo de origem: `firestore.rules` (260.964 bytes, 4.029 linhas, sha256 começa com `1214429c8cbe55b8`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 22 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 22 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1127 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1139 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

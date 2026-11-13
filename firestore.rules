@@ -599,8 +599,11 @@ service cloud.firestore {
                     && opcoesOk()
                     && fotosOk();
 
+      // Apagar o perfil público libera o @ na mesma gravação (antes o @ ficava preso para sempre).
       allow delete: if logado()
-                    && request.auth.uid == userId;
+                    && request.auth.uid == userId
+                    && (resource.data.get('nickname', '') == ''
+                        || !existsAfter(/databases/$(database)/documents/nicknames/$(resource.data.nickname)));
     }
 
 
@@ -1431,9 +1434,12 @@ service cloud.firestore {
                       && (!(request.auth.uid in request.resource.data.reacoes)
                           || request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
 
+        // Apagar de vez (até 10 min): o conteúdo vai para apagadas/{id} na mesma gravação (a moderação ainda abre por
+        // 24 h se houver denúncia); antes sumia sem cópia.
         allow delete: if logado()
                       && request.auth.uid == resource.data.remetenteId
-                      && noPrazoDeMexer();
+                      && noPrazoDeMexer()
+                      && existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/apagadas/$(mensagemId));
       }
 
       // ===================================================
@@ -1456,7 +1462,8 @@ service cloud.firestore {
                       && request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
                       && request.resource.data.remetenteId == request.auth.uid
                       && original().remetenteId == request.auth.uid
-                      && getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid
+                      && (!existsAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId))
+                          || getAfter(/databases/$(database)/documents/conversas/$(conversaId)/mensagens/$(mensagemId)).data.apagada.por == request.auth.uid)
                       && request.resource.data.apagadaEm == request.time
                       && request.resource.data.conteudo is map
                       && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
@@ -1535,7 +1542,14 @@ service cloud.firestore {
             && valorTextoAte(d.get('comentario', ''), 500)
             && valorTextoAte(d.get('autorNome', ''), 80)
             && fotoOk(d.get('autorFoto', ''))
+            // nome e foto de quem avalia = os do perfil público dele (antes vinham do celular e dava para mostrar outro nome)
+            && autorConfere(d, /databases/$(database)/documents/perfis_publicos/$(request.auth.uid))
             && d.criadoEm == request.time;
+      }
+      function autorConfere(d, pp) {
+        return (d.get('autorNome', '') == '' && d.get('autorFoto', '') == '')
+            || (exists(pp) && d.get('autorNome', '') in ['', get(pp).data.get('nome', '')]
+                && d.get('autorFoto', '') in ['', get(pp).data.get('fotoPerfil', '')]);
       }
 
       function resumoAtualizado(chave) {
@@ -2008,6 +2022,10 @@ service cloud.firestore {
                     && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
                     && valorTextoAte(request.resource.data.get('nome', ''), 80)
                     && valorTextoAte(request.resource.data.get('email', ''), 120)
+                    // o e-mail do chamado é o do login (a equipe responde para ele)
+                    && (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
+                    // até 5 chamados novos por dia (ritmo/{uid}, na mesma gravação); SOS não tem limite
+                    && (request.resource.data.categoria == 'sos' || ritmoOk('sup'))
                     && request.resource.data.status == 'aberto'
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.atualizadoEm == request.time
@@ -2126,6 +2144,9 @@ service cloud.firestore {
       allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
       allow update: if logado() && request.auth.uid == uid
                     && resource.data.status in ['recusada', 'cancelada']
+                    // recusado: pedir de novo só 30 dias depois da decisão (cancelado pela pessoa: na hora)
+                    && (resource.data.status == 'cancelada'
+                        || request.time > resource.data.get('analisadaEm', resource.data.atualizadoEm) + duration.value(30, 'd'))
                     && pedidoOk(request.resource.data);
       // Cancelar o próprio pedido (a foto do documento sai junto).
       allow update: if logado() && request.auth.uid == uid
@@ -2642,7 +2663,7 @@ service cloud.firestore {
     // =====================================================
     match /ritmo/{uid} {
       function limite(t) {
-        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : 200)));
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : (t == 'sup' ? 5 : 200))));
       }
       function janelaNova() {
         return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
@@ -2657,8 +2678,8 @@ service cloud.firestore {
       allow read: if admin();
       allow create, update: if logado()
                     && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash']
+                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'sup', 'ultimaEm', 'ultimoTipo'])
+                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash', 'sup']
                     && request.resource.data.ultimaEm == request.time
                     && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
                     && contaOk('msg', request.resource.data.ultimoTipo)
@@ -2666,6 +2687,7 @@ service cloud.firestore {
                     && contaOk('com', request.resource.data.ultimoTipo)
                     && contaOk('parc', request.resource.data.ultimoTipo)
                     && contaOk('flash', request.resource.data.ultimoTipo)
+                    && contaOk('sup', request.resource.data.ultimoTipo)
                     && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
       allow delete: if false;
     }

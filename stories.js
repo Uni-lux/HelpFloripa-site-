@@ -14,13 +14,13 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
-} from "./rede.js?v=156";
+} from "./rede.js?v=157";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
 import { escolherPublico } from "./publico-tela.js?v=7";
 import { lerLocal } from "./local-escolhido.js?v=3";
-import { comRitmo } from "./ritmo.js?v=3";
+import { comRitmo } from "./ritmo.js?v=4";
 import { lerFlashesVisiveis, privacidadeDoFlash } from "./flash-privado.js?v=1";
 import { flashesDoNegocio, avisarFlashNegocio } from "./flash-negocio.js?v=23";
 import { minhaPosicao } from "./perto.js?v=3";

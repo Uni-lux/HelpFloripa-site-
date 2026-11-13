@@ -99,7 +99,11 @@ export async function notaDoPerfil(fbx, uid) {
 // é uma EDIÇÃO — troca a nota antiga pela nova no resumo, sem contar de novo.
 export async function avaliar(fbx, euX, id, dados, chaves, autor = {}) {
   const nota = Math.max(1, Math.min(5, Math.round(Number(dados.nota) || 0)));
-  const foto = String(autor.foto || "");
+  // Nome e foto de quem avalia vêm do perfil público (as regras conferem: antes vinham do aparelho).
+  let perfil = null;
+  try { const p = await fbx.getDoc(fbx.doc(fbx.db, "perfis_publicos", euX.uid)); if (p.exists()) perfil = p.data(); } catch {}
+  const foto = String(perfil ? perfil.fotoPerfil || "" : autor.foto || "");
+  const nomeAutor = String(perfil ? perfil.nome || "" : autor.nome || "");
   const fotoOk = /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/|https:\/\/lh3\.googleusercontent\.com\/)/i.test(foto) && foto.length < 200000;
   const editavel = /^[nc]_/.test(id);
   await fbx.runTransaction(fbx.db, async (tx) => {
@@ -123,7 +127,7 @@ export async function avaliar(fbx, euX, id, dados, chaves, autor = {}) {
     }
     tx.set(refAval, {
       ...dados, nota, comentario,
-      autorId: euX.uid, autorNome: String(autor.nome || "").slice(0, 80), autorFoto: fotoOk ? foto : "",
+      autorId: euX.uid, autorNome: nomeAutor.length <= 80 ? nomeAutor : "", autorFoto: fotoOk ? foto : "",
       chaves, criadoEm: fbx.serverTimestamp()
     });
     refs.forEach((r, i) => {

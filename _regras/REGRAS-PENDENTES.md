@@ -39,12 +39,13 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
       falso. O site já avisa nos casos de golpe; a correção de verdade é validar no servidor.
 
 ## D. Risco baixo (anotado; corrigir se sobrar tempo)
-- [ ] Nome/foto do autor de uma **avaliação** vêm do celular (dá para exibir outro nome; a conta que avaliou é a real).
-      Corrigir: regra comparar com `perfis_publicos/{uid}.nome` ou o site mostrar o nome do perfil.
-- [ ] **@ reservado para sempre**: quem apaga o perfil público e cria outro deixa o @ antigo preso.
-- [ ] **Mensagem apagada nos 10 primeiros minutos** some sem cópia para a moderação (igual ao WhatsApp).
-- [ ] **Máximo de 3 chamados abertos** e **30 dias depois de uma verificação recusada** só no site, não na regra.
-- [ ] **E-mail do chamado** não é conferido com o do login.
+- [x] **FEITO em 13/11/2026:** nome/foto do autor da **avaliação** têm que ser os do perfil público (ou vazios).
+- [x] **FEITO em 13/11/2026:** apagar o perfil público só junto com o @ (o @ não fica preso).
+- [x] **FEITO em 13/11/2026:** mensagem apagada de vez (10 min) só com a cópia em `apagadas/` na mesma gravação.
+- [x] **FEITO em 13/11/2026 (parte):** 30 dias depois da verificação recusada agora vale na regra. Chamados: a regra não
+      consegue contar os abertos (a equipe muda a situação em vários lugares), então vale um limite de **5 chamados novos
+      por dia** (`ritmo.sup`, SOS fora); o "3 em andamento" continua só no site.
+- [x] **FEITO em 13/11/2026:** e-mail do chamado = o do login (ou vazio).
 - [ ] Textos de **enquete/caixa/contagem do Flash** não conferem se são texto (pôr a conferência estoura o limite de
       1.000 do "flash com TUDO junto"); o pior caso é a figurinha aparecer quebrada.
 - [x] **FEITO em 13/11/2026:** corrida só aceita como destinatário quem já conversa com quem pede (conversa aceita, sem

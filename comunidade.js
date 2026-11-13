@@ -17,7 +17,7 @@ import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } 
 import { lerPorLocal } from "./por-local.js?v=2";
 import { completarGuardados, lerComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=17";
-import { prepararConversa } from "./vitrine.js?v=99";
+import { prepararConversa } from "./vitrine.js?v=100";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },

@@ -16,19 +16,19 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=8";
-import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=19";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=9";
+import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=20";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=16";
-import { comRitmo } from "./ritmo.js?v=3";
+import { comRitmo } from "./ritmo.js?v=4";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 import { lerConversa, guardarConversa, juntar, maisRecente, FOLGA_MS, CHEIO_MS } from "./cache-msgs.js?v=1";
 import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
-import { abrirQueixa } from "./queixas.js?v=19";
+import { abrirQueixa } from "./queixas.js?v=20";
 import { corrigirTexto, carregarLexico } from "./corretor.js?v=6";
 import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=1";
 import { MIMOS } from "./presentes-base.js?v=2";
@@ -2979,7 +2979,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=99"));
+  return (vitrineMod ||= import("./vitrine.js?v=100"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3264,9 +3264,17 @@ async function apagarParaTodos(m) {
   } catch (e) {
     if (e?.code !== "permission-denied") { console.error(e); toast("Não foi possível apagar a mensagem."); return; }
     if (!podeMexer(m.criadoEm)) { toast("Passaram 10 minutos do envio: agora só dá para apagar para você."); return; }
-    // Regras novas ainda não publicadas: o jeito antigo (some de vez, sem o aviso).
-    try { await fb.deleteDoc(fb.doc(fb.db, "conversas", conv, "mensagens", m.id)); toast("Mensagem apagada"); }
-    catch (e2) { console.error(e2); toast("Não foi possível apagar a mensagem."); return; }
+    // Regras antigas: apaga de vez, mas o conteúdo vai junto para apagadas/{id} (a moderação ainda abre se houver
+    // denúncia); se nem isso for aceito, o jeito mais antigo (some de vez, sem cópia).
+    try {
+      const lote = fb.writeBatch(fb.db);
+      lote.delete(fb.doc(fb.db, "conversas", conv, "mensagens", m.id));
+      lote.set(fb.doc(fb.db, "conversas", conv, "apagadas", m.id), { remetenteId: eu.uid, conteudo, apagadaEm: fb.serverTimestamp() });
+      await lote.commit(); toast("Mensagem apagada");
+    } catch {
+      try { await fb.deleteDoc(fb.doc(fb.db, "conversas", conv, "mensagens", m.id)); toast("Mensagem apagada"); }
+      catch (e2) { console.error(e2); toast("Não foi possível apagar a mensagem."); return; }
+    }
   }
   const extra = {};
   if (ultima) extra.ultimaMensagem = "Mensagem apagada";
@@ -4370,7 +4378,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=8");
+  const { ligar } = await import("./chamadas.js?v=9");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

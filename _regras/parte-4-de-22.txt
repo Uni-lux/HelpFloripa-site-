@@ -1,3 +1,14 @@
+    // =====================================================
+    // BLOQUEIOS
+    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
+    // =====================================================
+    match /bloqueios/{id} {
+
+      allow get: if logado()
+                 && (id.split('_')[0] == request.auth.uid
+                     || id.split('_')[1] == request.auth.uid);
+      allow read: if admin();
+
       allow list: if logado()
                   && (resource.data.bloqueadorId == request.auth.uid
                       || resource.data.bloqueadoId == request.auth.uid);
@@ -201,25 +212,5 @@
                 'busca',                   // palavras para a busca nacional (busca.js), até 100
                 'ocultoAte'];
       }
-
-      function anuncioOk() {
-        return textoAte('titulo', 100)
-            && textoAte('descricao', 1000)
-            && textoAte('cidade', 60)
-            && localOk()
-            && enderecoOk()
-            && textoAte('andar', 12)
-            && textoAte('disponivel', 20)
-            && textoAte('categoriaPersonalizada', 30)
-            && geoOk(request.resource.data.get('geo', null))
-            && listaAte('fotos', 5)
-            && listaAte('busca', 100)
-            && listaAte('caracteristicas', 20)
-            && listaAte('condicoes', 12)
-            && dataOuNulo('ocultoAte');
-      }
-
-      allow get: if logado() && podeAbrir('donoId');
-      allow list: if logado();
 
 // ===== FIM DA PARTE 4 DE 22 =====

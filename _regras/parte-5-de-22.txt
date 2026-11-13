@@ -1,3 +1,23 @@
+      function anuncioOk() {
+        return textoAte('titulo', 100)
+            && textoAte('descricao', 1000)
+            && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
+            && textoAte('andar', 12)
+            && textoAte('disponivel', 20)
+            && textoAte('categoriaPersonalizada', 30)
+            && geoOk(request.resource.data.get('geo', null))
+            && listaAte('fotos', 5)
+            && listaAte('busca', 100)
+            && listaAte('caracteristicas', 20)
+            && listaAte('condicoes', 12)
+            && dataOuNulo('ocultoAte');
+      }
+
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.donoId == request.auth.uid

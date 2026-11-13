@@ -177,8 +177,11 @@
                     && opcoesOk()
                     && fotosOk();
 
+      // Apagar o perfil público libera o @ na mesma gravação (antes o @ ficava preso para sempre).
       allow delete: if logado()
-                    && request.auth.uid == userId;
+                    && request.auth.uid == userId
+                    && (resource.data.get('nickname', '') == ''
+                        || !existsAfter(/databases/$(database)/documents/nicknames/$(resource.data.nickname)));
     }
 
 
@@ -232,16 +235,5 @@
                         || resource.data.alvoId == request.auth.uid);
     }
 
-
-    // =====================================================
-    // BLOQUEIOS
-    // Documento: bloqueios/{bloqueadorId}_{bloqueadoId}
-    // =====================================================
-    match /bloqueios/{id} {
-
-      allow get: if logado()
-                 && (id.split('_')[0] == request.auth.uid
-                     || id.split('_')[1] == request.auth.uid);
-      allow read: if admin();
 
 // ===== FIM DA PARTE 3 DE 22 =====

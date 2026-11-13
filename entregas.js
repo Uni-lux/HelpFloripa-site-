@@ -7,9 +7,9 @@
 // Parâmetros: ?modo=entrega|corrida, ?id=PEDIDO (acompanhar), ?para=UID (quem recebe, do Mensagens),
 // ?conversa=ID, ?entregador=UID (chamar uma pessoa específica).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=156";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=157";
 import { confirmarHF } from "./confirmar.js?v=6";
-import { ligar } from "./chamadas.js?v=8";
+import { ligar } from "./chamadas.js?v=9";
 import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
 import {
   SERVICOS, VEICULOS, MODALIDADES, TAMANHOS, PAGAMENTOS, ATIVAS, NOMES_ETAPA, ELOGIOS, MOTIVOS_CANCELAR, RAIOS, VALOR_MIN, VALOR_MAX,

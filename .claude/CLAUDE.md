@@ -2533,6 +2533,14 @@ chat da equipe).
   mostra "Não deu para carregar" + Tentar de novo ou explica que os anúncios passaram de 60 dias/estão reservados.
   Testes: `t-comunidade-inicio` precisa de `saida/fotos-previa.json` (fotos lisas servem); se um teste falhar com
   permission-denied estranho, `node trocar-regras.mjs main` (algum teste deixou outras regras no emulador).
+- **Regras de risco baixo (13/11/2026, PR depois do #208, MUDA REGRAS — não publicadas; 22 partes, 1139 testes):** seção D
+  da `REGRAS-PENDENTES.md`. Avaliação: `autorConfere` (nome/foto = `perfis_publicos/{uid}` ou vazios; avaliacoes.js lê o perfil
+  público antes). Perfil público só se apaga junto com o @ (`nicknames/{nick}` some na mesma gravação). Mensagem apagada de vez
+  (10 min) exige a cópia em `conversas/{c}/apagadas/{id}` na mesma gravação (o create da cópia aceita a mensagem apagada).
+  Suporte: e-mail do chamado = `request.auth.token.email` (sem diferenciar maiúsculas) e `ritmoOk('sup')` (até 5 novos por dia,
+  `ritmo.sup`, SOS fora; suporte.js `comRitmo(..., "sup")` com reserva sem o contador). Verificação recusada: pedir de novo só
+  30 dias depois de `analisadaEm`. Ficaram de fora (explicado): texto das figurinhas do Flash (limite de 1.000) e endereço de
+  busca da corrida (é como os entregadores acham). Testes de regras: `comRitmoSup` abre a janela do ritmo e apaga depois.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
