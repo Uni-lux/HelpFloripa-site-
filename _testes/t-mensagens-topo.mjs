@@ -15,8 +15,18 @@ await A.ctx.addInitScript(() => { try { localStorage.setItem("hf-chat-config", J
 const p = await entrar(A.ctx, "ana", "mensagens.html");
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector('.modos [data-modo="negocios"]'); await p.waitForTimeout(2500);
-ok(await p.locator(".side-top .side-logo").isVisible() && (await p.locator(".side-tit h1").textContent()) === "Mensagens", "topo com a logo e “Mensagens”");
-ok((await p.locator("#sideResumo").textContent()).startsWith("Help Floripa"), `linha de baixo: ${await p.locator("#sideResumo").textContent()}`);
+ok(await p.locator(".side-top .side-logo").count() === 0 && (await p.locator(".side-tit h1").textContent()) === "Mensagens", "topo sem a logo, só “Mensagens”");
+ok(!/Help Floripa/.test(await p.locator(".side-top").textContent()), "topo sem a marca “Help Floripa”");
+const nl = p.locator("#sideResumo");
+ok(await nl.isHidden() || /^\d+\+?$/.test(await nl.textContent()), `não lidas só como número ao lado do título (${await nl.textContent()})`);
+const [appH, winH, bordaBarra] = await p.evaluate(() => [document.querySelector(".app").getBoundingClientRect().height, innerHeight, getComputedStyle(document.querySelector(".barra-rede")).borderLeftWidth]);
+ok(Math.abs(appH - winH) <= 1, `página ocupa a janela inteira (${appH} de ${winH})`);
+ok(bordaBarra === "0px", `barra de baixo sem a borda em volta (${bordaBarra})`);
+// Android de ponta a ponta: a parte visível é menor que a janela (faixa de gestos). A página não pode encolher.
+const encolhe = await p.evaluate(() => { Object.defineProperty(visualViewport, "height", { get: () => innerHeight - 48, configurable: true }); window.__hfMedirTela(); return document.querySelector(".app").getBoundingClientRect().height; });
+ok(Math.abs(encolhe - winH) <= 1, `com a faixa de gestos fora da parte visível, continua do tamanho da janela (${encolhe})`);
+const comTeclado = await p.evaluate(() => { Object.defineProperty(visualViewport, "height", { get: () => innerHeight - 300, configurable: true }); window.__hfMedirTela(); const h = document.querySelector(".app").getBoundingClientRect().height; delete visualViewport.height; Object.defineProperty(visualViewport, "height", { get: () => innerHeight, configurable: true }); window.__hfMedirTela(); return h; });
+ok(Math.abs(comTeclado - (winH - 300)) <= 1, `com o teclado aberto, encolhe até o teclado (${comTeclado})`);
 const ordem = await p.evaluate(() => { const b = document.querySelector("#buscaConversas").getBoundingClientRect().top, m = document.querySelector(".modos").getBoundingClientRect().top; return b < m; });
 ok(ordem, "busca antes das abas");
 ok(await p.locator('.modos [aria-selected="true"]').evaluate((e) => getComputedStyle(e, "::after").height) === "3px", "aba atual sublinhada");

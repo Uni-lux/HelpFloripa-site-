@@ -2553,6 +2553,13 @@ chat da equipe).
   exigem `abertosOk()` (lista ≤3 com ele, na mesma gravação). suporte.js: `arrumarAbertos` (ao carregar: tira encerrados/
   inexistentes, põe os em andamento que faltam, 1 gravação cada), `gravarAbertos`, `emAndamento`, reserva sem a lista com as
   regras de antes. Conta apagada: limpeza-conta apaga a lista. Teste `t-suporte-limite.mjs`.
+- **Mensagens: tamanho e topo (13/11/2026, PR depois do #210, sem regra nova):** print dele ("parece que encurta"). Causa:
+  `--vv` era sempre `min(innerHeight, visualViewport.height)`; no Android de ponta a ponta a parte visível deixa de fora a
+  faixa de gestos e a página ficava mais curta que as outras abas. Agora (mensagens-app.js `acompanhar`): sem teclado =
+  `innerHeight`, com teclado = `vv.height` (o rodapé da conversa confere contra o mesmo limite). Barra de baixo no escuro
+  só com a linha de cima (a regra antiga `border: 1px solid` deixava uma caixa em volta). Topo: sem a logo e sem "Help
+  Floripa"; "Mensagens" 22 px + número de não lidas numa bolinha (`#sideResumo.side-nl`, some sem não lidas), Suporte e
+  Configurações só ícones, busca em pílula 40 px. Teste `t-mensagens-topo.mjs` (14).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

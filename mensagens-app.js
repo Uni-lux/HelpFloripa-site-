@@ -1563,8 +1563,10 @@ function renderizarLista() {
   const resumo = $("sideResumo");
   if (resumo) {
     const nl = conversas.filter((c) => c.naoLida && !conversaOculta(c) && !conversaArquivada(c) && !restritos.has(c.outroId)).length;
-    resumo.replaceChildren(document.createTextNode("Help Floripa"));
-    if (nl) { const b = document.createElement("b"); b.textContent = ` · ${nl > 99 ? "99+" : nl} não ${nl === 1 ? "lida" : "lidas"}`; resumo.appendChild(b); }
+    // Só o número de não lidas ao lado do título (sem a marca: o topo fica limpo).
+    resumo.textContent = nl > 99 ? "99+" : String(nl);
+    resumo.hidden = !nl;
+    resumo.title = nl ? `${nl} ${nl === 1 ? "conversa não lida" : "conversas não lidas"}` : "";
   }
   lista.replaceChildren();
   const vivosLista = config.mostrarOnline === false ? new Set() : onlineSet();
@@ -4151,14 +4153,17 @@ if (window.visualViewport) {
   const acompanhar = () => {
     if (vv.scale > 1.05) return; // com zoom de pinça, não mexe
     const teclado = innerHeight - vv.height > 120;
-    const alt = Math.round(Math.min(innerHeight, vv.height));
+    // Sem teclado, a página ocupa a janela inteira (igual às outras páginas, que vão até embaixo, por baixo da
+    // faixa de gestos). Antes usava sempre a parte visível, que no Android "de ponta a ponta" deixa de fora a
+    // faixa de gestos: o Mensagens ficava mais curto que as outras abas.
+    const alt = Math.round(teclado ? vv.height : innerHeight);
     raiz.setProperty("--vv", alt + "px");
     if (teclado && (scrollY || vv.offsetTop)) scrollTo(0, 0);
     if (teclado && document.activeElement?.id === "texto" && pertoDoFim()) irParaFim();
     requestAnimationFrame(() => {
       const rod = $("rodapeConversa");
       if (!rod || rod.hidden || !document.body.classList.contains("chat-aberto")) return;
-      const fora = rod.getBoundingClientRect().bottom - (vv.height + vv.offsetTop);
+      const fora = rod.getBoundingClientRect().bottom - (teclado ? vv.height + vv.offsetTop : innerHeight);
       if (fora > 1) raiz.setProperty("--vv", Math.max(320, alt - Math.ceil(fora)) + "px");
     });
   };

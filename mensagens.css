@@ -1696,3 +1696,21 @@ body.selecionando .conv-item .conv-tipo-ic { display: none; }
 :root[data-theme="dark"] .fab-nova .tc-ic { background: rgba(0, 0, 0, .85); border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 8px 22px rgba(0, 0, 0, .7); }
 .sidebar > .conv-list { padding-bottom: calc(150px + var(--sab, env(safe-area-inset-bottom, 0px))); }
 html.embutido .sidebar > .conv-list { padding-bottom: 90px; }
+
+/* =====================================================================================================
+   13/11/2026 (print do dono): topo sem a logo e sem "Help Floripa"; título com o número de não lidas ao
+   lado, Suporte e Configurações só como ícones, busca em pílula. Barra de baixo só com a linha de cima
+   (no tema escuro sobrava a borda em volta, que deixava a página com cara de "encurtada").
+   ===================================================================================================== */
+.side-top { gap: 2px; padding: 10px 8px 8px 18px; padding-top: max(10px, var(--sat, env(safe-area-inset-top, 0px))); min-height: 56px; }
+.side-tit { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.side-tit h1 { flex: none; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.3px; line-height: 1.15; white-space: nowrap; }
+.side-nl { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--accent); color: #fff; font-size: 12px; font-weight: 800; line-height: 1; }
+.side-nl[hidden] { display: none; }
+.side-top .icon-btn { width: 42px; height: 42px; background: none; color: var(--text); }
+.side-top .icon-btn:hover { background: var(--hover); }
+.side-top .icon-btn svg { width: 22px; height: 22px; }
+.search { margin: 0 14px 4px; }
+.search input { height: 40px; border-radius: 999px; }
+.modos { margin-top: 0; }
+:root[data-theme="dark"] .barra-rede { border: 0; border-top: 1px solid rgba(255, 255, 255, .14); }
