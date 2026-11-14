@@ -2677,6 +2677,16 @@ chat da equipe).
   **#hashtags no rodapé (pedido dele):** pequenas (12 px), sem pílula, num tom discreto, no fim da publicação (`.post-tags`
   no Diário; no perfil `rodapeTags` em usuarios-app.js usa `partesDoTexto`: o texto com imagem e o texto da lista ficam sem as #).
   Opções da enquete na grade do perfil sumiam no tema claro (`.mm-op` com `color: var(--text)`).
+- **Hashtags no rodapé, duo no lugar da rosinha e Social em coração (14/11/2026, PR depois do #224, sem regra nova):**
+  pedido dele. `texto-pub.js`: `MAX_TAGS = 5` e `MAX_TAG_LEN = 24` (a hashtag mais longa é cortada; o formulário avisa) e
+  `rodapeHashtags(tags, {classe})` = rodapé único (`.hf-tags n1..n5`: "#" num quadradinho + etiquetas pequenas com pontinho;
+  até 3 numa linha, 4 = 2+2, 5 = 3+2, "…" se não couber) usado no Diário (`etiquetasTags`), no perfil (`rodapeTags`) e na
+  prévia ao segurar (texto e legenda sem as # misturadas). `tagsDoTexto` (rede.js) usa `hashtagsDe`. Bolinha do duo abre
+  EXATAMENTE no lugar da rosinha (a rosinha some por baixo), nome numa etiqueta pequena embaixo. **Social: o sistema solar
+  saiu ("brega")** → painel romântico: a pessoa no centro de um coração pontilhado, conexões no contorno (duo na curvinha de
+  cima, fio vermelho), fios finos na cor do grupo com uma gotinha de luz correndo, todos flutuando de leve (rAF), halo do
+  centro batendo como coração, estrelas + coraçõezinhos subindo no fundo. Cartões dos grupos 4 por linha (`.retrato`
+  `calc((100% - 24px)/4)`, máx. 140 px). Teste `t-perfil-social` (21).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

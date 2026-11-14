@@ -31,9 +31,9 @@
   </script>
   <style>
     /* =====================================================================================================
-       Social — "Constelação" (14/11/2026, pedido dele: mudar o design por completo). Um céu escuro com a pessoa no centro
-       e as conexões em órbita (a cor do anel diz o grupo), o duo ligado pelo fio vermelho do Akai Ito, filtros com
-       contagem e cada grupo em cartões-retrato que deslizam para o lado. O céu fica escuro também no tema claro.
+       Social (14/11/2026, pedido dele): um céu escuro com a pessoa no centro de um coração, as conexões no contorno ligadas a
+       ela por fios finos (a cor diz o grupo), o duo no alto pelo fio vermelho do Akai Ito, filtros com contagem e cada grupo
+       em cartões pequenos, 4 por linha, que deslizam para o lado. O céu fica escuro também no tema claro.
        ===================================================================================================== */
     :root {
       --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
@@ -87,29 +87,31 @@
         radial-gradient(55% 45% at 50% 40%, rgba(255, 190, 90, .10), transparent 70%),
         linear-gradient(180deg, #03050b, #070b18 55%, #04060c); }
     .ceu-estrelas { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
-    .orbita { position: relative; width: min(100%, 460px); margin: 0 auto; touch-action: pan-y; }
-    .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-    .orbita > svg.orb-tras { z-index: 1; }
-    .orbita > svg.orb-frente { z-index: 30; }
-    .orbita .anel { fill: none; stroke-linecap: round; }
-    .orbita .anel.tras { stroke-width: 1; opacity: .22; stroke-dasharray: 2 5; }
-    .orbita .anel.frente { stroke-width: 1.4; opacity: .55; filter: drop-shadow(0 0 3px currentColor); }
-    .astro { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 3px; width: 64px; padding: 0; border: 0; background: none; color: #fff;
-      cursor: pointer; opacity: var(--longe, 1); will-change: transform; transition: opacity .25s; }
+    /* Painel das conexões (14/11, pedido dele: romântico e elegante): a pessoa no centro, as conexões pousadas no contorno de
+       um coração e ligadas a ela por fios finos (o duo no alto, pelo fio vermelho). Nada gira: só flutuam de leve. */
+    .orbita { position: relative; width: min(100%, 440px); margin: 0 auto; touch-action: pan-y; }
+    .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+    .orbita .coracao { fill: none; stroke: #ff7a93; stroke-width: 1; stroke-dasharray: 1 6; stroke-linecap: round; opacity: .38; }
+    .orbita .coracao-luz { fill: url(#luzCoracao); stroke: none; }
+    .orbita .fio { fill: none; stroke-width: 1; stroke-linecap: round; opacity: .42; transition: opacity .25s; }
+    .orbita .fio.duo { stroke-width: 1.6; opacity: .9; filter: drop-shadow(0 0 3px rgba(255, 77, 109, .9)); }
+    .orbita .fio.pend { stroke-dasharray: 3 4; opacity: .28; }
+    .orbita .fio.apagado, .orbita .gota.apagado { opacity: .06; }
+    .orbita .gota { opacity: .95; }
+    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 3px; width: 64px; padding: 0; border: 0; background: none; color: #fff;
+      cursor: pointer; will-change: transform; transition: opacity .25s; }
     .astro[disabled] { cursor: default; }
-    .astro .avatar { width: 36px; height: 36px; font-size: 12px; box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3px var(--cor), 0 0 14px color-mix(in srgb, var(--cor) 70%, transparent); }
-    .astro span { max-width: 64px; font-size: 10.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .9); text-shadow: 0 1px 5px #000; }
-    .astro.duo .avatar { width: 40px; height: 40px; box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3.5px var(--duo), 0 0 20px rgba(255, 77, 109, .75); }
-    .astro.pend { --longe: .55; }
-    .astro.pend .avatar { filter: grayscale(.5); box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3px color-mix(in srgb, var(--cor) 55%, transparent); }
+    .astro .avatar { width: 38px; height: 38px; font-size: 12px; box-shadow: 0 0 0 2px #070912, 0 0 0 3.2px var(--cor), 0 4px 14px rgba(0, 0, 0, .5); }
+    .astro span { max-width: 64px; font-size: 10.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 5px #000; }
+    .astro.duo .avatar { width: 44px; height: 44px; box-shadow: 0 0 0 2px #070912, 0 0 0 3.6px var(--duo), 0 0 22px rgba(255, 77, 109, .7); }
+    .astro.duo span { color: #ffb3c1; font-weight: 750; }
+    .astro.pend { opacity: .6; }
+    .astro.pend .avatar { filter: grayscale(.5); box-shadow: 0 0 0 2px #070912, 0 0 0 3px color-mix(in srgb, var(--cor) 50%, transparent); }
     .astro.apagado { opacity: .1 !important; pointer-events: none; }
-    .astro.centro { width: 100px; cursor: default; z-index: 20; transform: translate(-50%, -50%); }
-    .astro.centro .avatar { position: relative; width: 62px; height: 62px; font-size: 20px; box-shadow: 0 0 0 2.5px #ffe29a, 0 0 0 5px rgba(255, 176, 59, .38), 0 0 34px rgba(255, 176, 59, .85); }
-    .sol .coroa { position: absolute; left: 50%; top: 50%; width: 170px; height: 170px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
-      background: radial-gradient(circle, rgba(255, 226, 150, .62) 0%, rgba(255, 170, 50, .30) 22%, rgba(255, 120, 30, .10) 42%, transparent 64%); }
-    .sol .raios { position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; opacity: .5;
-      background: repeating-conic-gradient(from 0deg, rgba(255, 214, 120, .55) 0deg 2deg, transparent 2deg 22deg);
-      -webkit-mask: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%); mask: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%); }
+    .astro.centro { width: 110px; cursor: default; z-index: 20; }
+    .astro.centro .avatar { position: relative; width: 70px; height: 70px; font-size: 22px; box-shadow: 0 0 0 3px #070912, 0 0 0 4.5px rgba(255, 179, 193, .9), 0 0 30px rgba(255, 77, 109, .55); }
+    .centro .halo { position: absolute; left: 50%; top: 35px; width: 150px; height: 150px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
+      background: radial-gradient(circle, rgba(255, 120, 150, .34) 0%, rgba(255, 77, 109, .14) 32%, transparent 66%); }
     .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
     .ceu-id h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
     .ceu-id p { margin: 3px 0 0; font-size: 13.5px; color: rgba(255, 255, 255, .62); }
@@ -152,16 +154,16 @@
     .grupo-cab h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
     .grupo-cab small { color: var(--muted); font-size: 13px; font-weight: 600; }
     .grupo-cab i { align-self: center; width: 10px; height: 10px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 8px var(--cor); }
-    .trilho { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x proximity; scroll-padding: 16px; scrollbar-width: none; }
+    .trilho { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x proximity; scroll-padding: 16px; scrollbar-width: none; }
     .trilho::-webkit-scrollbar { display: none; }
-    .retrato { position: relative; flex: none; width: 100px; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 14px 8px 12px; border: 1px solid var(--line);
+    .retrato { position: relative; flex: none; width: calc((100% - 24px) / 4); min-width: 0; max-width: 140px; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 11px 4px 9px; border: 1px solid var(--line);
       border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--cor) 9%, var(--panel)), var(--panel) 70%); color: var(--text); cursor: pointer;
       scroll-snap-align: start; text-align: center; overflow: hidden; transition: transform .15s; }
     .retrato[disabled] { cursor: default; }
     .retrato::before { content: ""; position: absolute; left: 22%; right: 22%; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--cor); box-shadow: 0 0 10px var(--cor); }
-    .retrato .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--cor), 0 6px 16px color-mix(in srgb, var(--cor) 30%, transparent); }
-    .retrato strong { max-width: 100%; margin-top: 4px; font-size: 13px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .retrato small { max-width: 100%; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: color-mix(in srgb, var(--cor) 80%, var(--text));
+    .retrato .avatar { width: 46px; height: 46px; font-size: 15px; box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--cor), 0 6px 16px color-mix(in srgb, var(--cor) 30%, transparent); }
+    .retrato strong { max-width: 100%; margin-top: 3px; font-size: 12px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .retrato small { max-width: 100%; padding: 1px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 700; color: color-mix(in srgb, var(--cor) 80%, var(--text));
       background: color-mix(in srgb, var(--cor) 14%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .retrato.pend { opacity: .8; }
     .retrato.pend .avatar { box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--cor) 45%, transparent); filter: grayscale(.4); }
@@ -171,8 +173,8 @@
     .retrato:not([disabled]):active { transform: scale(.97); }
     .retrato.add { text-decoration: none; background: transparent; border-style: dashed; color: var(--muted); }
     .retrato.add::before { display: none; }
-    .retrato.add span.mais { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; border: 1.5px dashed var(--cor); color: var(--cor); }
-    .retrato.add strong { font-size: 12.5px; color: var(--text); }
+    .retrato.add span.mais { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; border: 1.5px dashed var(--cor); color: var(--cor); }
+    .retrato.add strong { font-size: 12px; color: var(--text); }
     .retrato.add small { color: var(--muted); background: none; padding: 0; }
     .nota { margin: 0 16px; text-align: center; color: var(--muted); font-size: 13px; }
 
@@ -203,14 +205,14 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 38px; height: 38px; } .astro.duo .avatar { width: 46px; height: 46px; } .astro.centro .avatar { width: 80px; height: 80px; }  }
-    @media (prefers-reduced-motion: reduce) { .sol .coroa, .akai-cor, .akai-fio path.brilho { animation: none; } }
+    @media (max-width: 380px) { .astro { width: 58px; } .astro .avatar { width: 34px; height: 34px; } .astro.duo .avatar { width: 40px; height: 40px; } .astro.centro .avatar { width: 62px; height: 62px; } .centro .halo { top: 31px; } }
+    @media (prefers-reduced-motion: reduce) { .akai-cor, .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=161";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=162";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -237,10 +239,10 @@
   <main class="pg">
     <div class="estado" id="estado">Carregando...</div>
     <div id="conteudo" hidden>
-      <section class="ceu" aria-label="Constelação de conexões">
+      <section class="ceu" aria-label="Suas conexões">
         <div class="ceu-fundo" id="ceuFundo"></div>
         <canvas class="ceu-estrelas" id="ceuEstrelas" aria-hidden="true"></canvas>
-        <div class="orbita" id="orbita"><svg id="orbitaSvg" class="orb-tras" aria-hidden="true"></svg><svg id="orbitaFrente" class="orb-frente" aria-hidden="true"></svg></div>
+        <div class="orbita" id="orbita"><svg id="orbitaSvg" aria-hidden="true"></svg></div>
         <div class="ceu-id"><h2 id="heroNome"></h2><p id="heroNick"></p></div>
         <button type="button" class="ceu-total" id="ceuTotal"></button>
       </section>
@@ -405,64 +407,83 @@
       const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? " conexão" : " conexões"));
       t.onclick = listaDeNomes;
     }
-    // Sistema solar (14/11, pedido dele): a pessoa é o Sol e cada grupo tem a sua órbita (Amor mais perto, depois Família,
-    // Amizades, Trabalho), todas com a mesma inclinação. A metade de trás da órbita passa atrás do Sol e a da frente na
-    // frente; todos giram juntos e espaçados (ninguém fica em cima de ninguém); estrelas piscando no fundo.
-    const giro = { planetas: [], angulos: new Map(), quadro: 0, ultimo: 0, pausaAte: 0, raios: null, estrelas: null };
-    const INCL = 0.36, TILT = (-9 * Math.PI) / 180, VEL = (Math.PI * 2) / 70;
+    // Painel romântico (14/11, pedido dele): a pessoa no centro de um coração; as conexões pousam no contorno (o duo na
+    // curvinha de cima, pelo fio vermelho) e cada uma fica ligada à pessoa por um fio fino na cor do grupo, com uma
+    // gotinha de luz que corre de vez em quando. Nada gira: cada um flutua de leve no seu ritmo; o centro "bate" devagar.
+    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0 };
+    // ponto do coração (u = 0 na curvinha de cima, volta toda em 2π); y para baixo
+    const noCoracao = (u) => ({ x: 16 * Math.sin(u) ** 3, y: -(13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u)) });
+    function amostrasCoracao(esc, ox, oy) {
+      const pts = []; let tot = 0;
+      for (let k = 0; k <= 480; k++) {
+        const q = noCoracao((k / 480) * Math.PI * 2), p = { x: ox + q.x * esc, y: oy + q.y * esc };
+        if (pts.length) tot += Math.hypot(p.x - pts[pts.length - 1].x, p.y - pts[pts.length - 1].y);
+        p.l = tot; pts.push(p);
+      }
+      return { pts, tot };
+    }
+    const pontoNa = (a, l) => { const pts = a.pts; let k = 1; while (k < pts.length - 1 && pts[k].l < l) k++; return pts[k]; };
     function desenharCeu() {
-      const box = $("orbita"), tras = $("orbitaSvg"), frente = $("orbitaFrente");
+      const box = $("orbita"), svg = $("orbitaSvg");
       box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
-      tras.replaceChildren(); frente.replaceChildren();
+      svg.replaceChildren();
       giro.planetas = [];
       const W = box.clientWidth; if (!W) return;
       const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
-      const grupos = GRUPOS.map((g) => lista.filter((c) => c.cat === g.cat)).filter((l) => l.length);
-      const n = grupos.length;
-      const maxR = Math.min(190, W / 2 - 30), minR = Math.min(maxR, 100);
-      const meia = (rx) => Math.sqrt((rx * Math.sin(TILT)) ** 2 + (rx * INCL * Math.cos(TILT)) ** 2);
-      const ext = Math.max(meia(maxR), 44);
-      const H = Math.round(ext * 2 + 78);
+      const esc = Math.min(10.5, (W / 2 - 34) / 16);
+      const H = Math.round(30 * esc + 70);
       box.style.height = H + "px";
-      const cx = W / 2, cy = ext + 34;
-      for (const s of [tras, frente]) s.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const ox = W / 2, oy = 13 * esc + 22;
+      const cx = ox, cy = oy + 4.5 * esc;
+      giro.cx = cx; giro.cy = cy;
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const defs = svgEl("defs", {});
+      const rg = svgEl("radialGradient", { id: "luzCoracao", cx: "50%", cy: "48%", r: "60%" });
+      rg.append(svgEl("stop", { offset: "0%", "stop-color": "#ff4d6d", "stop-opacity": ".16" }), svgEl("stop", { offset: "100%", "stop-color": "#ff4d6d", "stop-opacity": "0" }));
+      defs.appendChild(rg); svg.appendChild(defs);
+      const fora = amostrasCoracao(esc, ox, oy);
+      const d = "M " + fora.pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ") + " Z";
+      svg.append(svgEl("path", { class: "coracao-luz", d }), svgEl("path", { class: "coracao", d }));
       const raiz = getComputedStyle(document.documentElement);
-      const graus = (TILT * 180) / Math.PI;
-      let idx = 0; const total = lista.length;
-      grupos.forEach((doGrupo, k) => {
-        const rx = n === 1 ? (minR + maxR) / 2 : minR + ((maxR - minR) * k) / (n - 1), ry = rx * INCL;
-        const cat = doGrupo[0].cat, cor = raiz.getPropertyValue(`--${cat}`).trim() || "#00adee";
-        const ap = filtro !== "todos" && filtro !== cat;
-        const arco = (lado) => {
-          const g = svgEl("g", { transform: `rotate(${graus} ${cx} ${cy})` });
-          g.appendChild(svgEl("path", { class: "anel " + lado, d: `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 ${lado === "tras" ? 1 : 0} ${cx + rx} ${cy}`, stroke: cor }));
-          if (ap) g.style.opacity = ".12";
-          return g;
-        };
-        tras.appendChild(arco("tras")); frente.appendChild(arco("frente"));
-        doGrupo.forEach((c) => {
-          const chave = c.id || c.outro;
-          if (!giro.angulos.has(chave)) giro.angulos.set(chave, Math.PI / 2 - 0.5 + (idx * Math.PI * 2) / Math.max(total, 1));
-          idx++;
-          const b = el("button", "astro" + (c.cat === "duo" && !c.pendente ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
-          b.type = "button"; b.dataset.cat = c.cat;
-          b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
-          b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
-          const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
-          box.appendChild(b);
-          giro.planetas.push({ b, chave, rx, ry, cx, cy });
-        });
+      // lugares: o duo na curvinha de cima; os outros espalhados pelo contorno (e num coração menor, se não couberem)
+      const duo = lista.find((c) => c.cat === "duo" && !c.pendente);
+      const resto = lista.filter((c) => c !== duo);
+      const lugares = [];
+      if (duo) lugares.push({ c: duo, p: { x: ox, y: oy - 5 * esc - 4 } });
+      const folga = duo ? 0.07 : 0.035, passo = 60;
+      const cabe = Math.max(1, Math.floor((fora.tot * (1 - 2 * folga)) / passo) + 1);
+      const dentro = amostrasCoracao(esc * 0.6, ox, oy + 1.5 * esc);
+      const nFora = Math.min(resto.length, cabe), nDentro = resto.length - nFora;
+      const espalhar = (a, n, f, de) => { for (let k = 0; k < n; k++) { const l = a.tot * (f + (1 - 2 * f) * (k + 0.5) / n); lugares.push({ c: resto[de + k], p: pontoNa(a, l) }); } };
+      espalhar(fora, nFora, folga, 0);
+      if (nDentro > 0) espalhar(dentro, Math.min(nDentro, 12), 0.12, nFora);
+      lugares.forEach(({ c, p }, idx) => {
+        const ap = filtro !== "todos" && filtro !== c.cat;
+        const cor = c.cat === "duo" ? "#ff4d6d" : raiz.getPropertyValue(`--${c.cat}`).trim() || "#00adee";
+        const extra = (ap ? " apagado" : "") + (c.pendente ? " pend" : "");
+        const fio = svgEl("path", { class: "fio" + (c === duo ? " duo" : "") + extra, stroke: cor });
+        const gota = svgEl("circle", { class: "gota" + extra, r: c === duo ? "2.4" : "1.8", fill: cor });
+        svg.append(fio, gota);
+        const b = el("button", "astro" + (c === duo ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
+        b.type = "button"; b.dataset.cat = c.cat;
+        b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
+        b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
+        const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
+        box.appendChild(b);
+        // a curva do fio vai para o lado de fora (como um fio de seda caindo)
+        const lado = p.x >= cx ? 1 : -1;
+        giro.planetas.push({ b, fio, gota, x: p.x, y: p.y, fase: idx * 1.7, lado, atraso: (idx * 0.73) % 4 });
       });
-      const sol = el("div", "astro centro sol"); sol.style.left = cx + "px"; sol.style.top = cy + "px";
-      const raios = el("i", "raios"); giro.raios = raios;
-      sol.append(el("i", "coroa"), raios, novoAvatar(dono.fotoPerfil, dono.nome));
-      box.appendChild(sol);
-      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu sistema ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      const centro = el("div", "astro centro");
+      centro.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -35px)`;
+      centro.append(el("i", "halo"), novoAvatar(dono.fotoPerfil, dono.nome));
+      box.appendChild(centro); giro.centro = centro;
+      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu coração ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
       prepararEstrelas();
-      posicionar(0);
+      posicionar(performance.now());
       if (!giro.quadro) giro.quadro = requestAnimationFrame(girar);
     }
-    // estrelas: um canvas atrás de tudo, cada estrela pisca no seu ritmo; de vez em quando passa uma estrela cadente
+    // estrelas piscando no fundo e, de vez em quando, um coraçãozinho que sobe devagar
     function prepararEstrelas() {
       const cv = $("ceuEstrelas"), ceu = cv.parentElement;
       const w = ceu.clientWidth, h = ceu.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
@@ -470,8 +491,15 @@
       cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px";
       let semente = 7; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
       const lista = Array.from({ length: Math.round((w * h) / 2600) }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() < 0.85 ? 0.4 + rnd() * 0.7 : 1.1 + rnd() * 0.8,
-        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, cor: rnd() < 0.15 ? "170,215,255" : rnd() < 0.1 ? "255,224,170" : "255,255,255" }));
-      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, cadente: null, proxima: performance.now() + 2500 };
+        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, cor: rnd() < 0.18 ? "255,190,205" : rnd() < 0.1 ? "255,224,170" : "255,255,255" }));
+      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, subindo: [], proxima: performance.now() + 1200 };
+    }
+    function coracaozinho(ctx, x, y, r) {
+      ctx.beginPath(); ctx.moveTo(x, y + r * 0.35);
+      ctx.bezierCurveTo(x, y - r * 0.3, x - r, y - r * 0.3, x - r, y + r * 0.25);
+      ctx.bezierCurveTo(x - r, y + r * 0.75, x - r * 0.2, y + r * 1.05, x, y + r * 1.4);
+      ctx.bezierCurveTo(x + r * 0.2, y + r * 1.05, x + r, y + r * 0.75, x + r, y + r * 0.25);
+      ctx.bezierCurveTo(x + r, y - r * 0.3, x, y - r * 0.3, x, y + r * 0.35); ctx.fill();
     }
     function pintarEstrelas(t) {
       const e = giro.estrelas; if (!e) return;
@@ -480,51 +508,48 @@
       ctx.clearRect(0, 0, w, h);
       const s = t / 1000;
       for (const p of e.lista) {
-        const a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
+        const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
         ctx.fillStyle = `rgba(${p.cor},${a.toFixed(3)})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
-        if (p.r > 1.3) { const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4); g.addColorStop(0, `rgba(${p.cor},${(a * 0.35).toFixed(3)})`); g.addColorStop(1, `rgba(${p.cor},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, 6.283); ctx.fill(); }
       }
-      if (!e.cadente && t > e.proxima) e.cadente = { x: w * (0.2 + Math.random() * 0.7), y: h * Math.random() * 0.35, t0: t, d: 900 };
-      if (e.cadente) {
-        const c = e.cadente, k = (t - c.t0) / c.d;
-        if (k >= 1) { e.cadente = null; e.proxima = t + 5000 + Math.random() * 7000; }
-        else {
-          const x = c.x - k * 160, y = c.y + k * 70, g = ctx.createLinearGradient(x, y, x + 70, y - 30);
-          g.addColorStop(0, `rgba(255,255,255,${(1 - k).toFixed(2)})`); g.addColorStop(1, "rgba(255,255,255,0)");
-          ctx.strokeStyle = g; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 70, y - 30); ctx.stroke();
-        }
-      }
+      if (e.subindo.length < 5 && t > e.proxima) { e.subindo.push({ x: w * (0.06 + Math.random() * 0.88), t0: t, d: 9000 + Math.random() * 5000, r: 3 + Math.random() * 3, o: Math.random() * 6 }); e.proxima = t + 1800 + Math.random() * 2600; }
+      e.subindo = e.subindo.filter((c) => {
+        const k = (t - c.t0) / c.d; if (k >= 1) return false;
+        const y = h + 10 - k * (h + 30), x = c.x + Math.sin(k * 6 + c.o) * 8;
+        ctx.fillStyle = `rgba(255,110,140,${(Math.sin(k * Math.PI) * 0.32).toFixed(3)})`;
+        coracaozinho(ctx, x, y, c.r);
+        return true;
+      });
     }
-    function posicionar(dt) {
-      const ct = Math.cos(TILT), st = Math.sin(TILT);
+    function posicionar(t) {
+      const s = t / 1000, cx = giro.cx, cy = giro.cy;
       for (const p of giro.planetas) {
-        const a = giro.angulos.get(p.chave) + VEL * dt;
-        giro.angulos.set(p.chave, a);
-        const ox = p.rx * Math.cos(a), oy = p.ry * Math.sin(a), frente = Math.sin(a);
-        const x = p.cx + ox * ct - oy * st, y = p.cy + ox * st + oy * ct;
-        const s = 0.74 + 0.3 * (frente + 1) / 2;
-        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${s.toFixed(3)})`;
-        p.b.style.zIndex = frente < 0 ? "5" : "40";
-        p.b.style.setProperty("--longe", frente < 0 ? (0.55 + 0.45 * (1 + frente)).toFixed(2) : "1");
+        const x = p.x + Math.sin(s * 0.7 + p.fase) * 2, y = p.y + Math.sin(s * 0.9 + p.fase * 1.3) * 3.2;
+        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -22px)`;
+        const mx = (cx + x) / 2, my = (cy + y) / 2, dx = x - cx, dy = y - cy, len = Math.hypot(dx, dy) || 1;
+        const qx = mx + (-dy / len) * len * 0.12 * p.lado, qy = my + (dx / len) * len * 0.12 * p.lado + len * 0.05;
+        p.fio.setAttribute("d", `M ${cx.toFixed(1)} ${cy.toFixed(1)} Q ${qx.toFixed(1)} ${qy.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`);
+        // gotinha de luz: corre do centro até a pessoa em 1,6 s, a cada 4 s
+        const k = ((s + p.atraso) % 4) / 1.6;
+        if (k <= 1) {
+          const a = 1 - k, gx = a * a * cx + 2 * a * k * qx + k * k * x, gy = a * a * cy + 2 * a * k * qy + k * k * y;
+          p.gota.setAttribute("cx", gx.toFixed(1)); p.gota.setAttribute("cy", gy.toFixed(1)); p.gota.style.display = "";
+          p.gota.style.opacity = (Math.sin(k * Math.PI) * 0.95).toFixed(2);
+        } else p.gota.style.display = "none";
+      }
+      if (giro.centro) {
+        // batida: duas pulsadas curtas a cada 1,8 s
+        const f = (s % 1.8) / 1.8, bate = Math.exp(-((f - 0.06) ** 2) / 0.0012) + 0.6 * Math.exp(-((f - 0.2) ** 2) / 0.0012);
+        const halo = giro.centro.querySelector(".halo");
+        if (halo) { halo.style.transform = `translate(-50%, -50%) scale(${(1 + bate * 0.12).toFixed(3)})`; halo.style.opacity = (0.75 + bate * 0.25).toFixed(2); }
       }
     }
     function girar(t) {
       if (!document.body.contains($("orbita"))) { giro.quadro = 0; return; }
-      const dt = giro.ultimo ? Math.min(0.05, (t - giro.ultimo) / 1000) : 0;
-      giro.ultimo = t;
-      const parado = performance.now() < giro.pausaAte || document.querySelector(".folha-fundo");
-      if (!parado) posicionar(dt);
-      if (giro.raios) giro.raios.style.transform = `translate(-50%, -50%) rotate(${((t / 1000) * 6) % 360}deg)`;
+      if (!document.querySelector(".folha-fundo")) posicionar(t);
       pintarEstrelas(t);
       giro.quadro = requestAnimationFrame(girar);
     }
-    document.addEventListener("visibilitychange", () => { giro.ultimo = 0; });
-    // Encostar o dedo segura o giro (fica fácil tocar em alguém); volta a girar 1,5 s depois de soltar.
-    document.addEventListener("pointerdown", (e) => { if (e.target.closest?.("#orbita")) giro.pausaAte = Infinity; }, true);
-    const soltarGiro = () => { if (giro.pausaAte === Infinity) giro.pausaAte = performance.now() + 1500; };
-    document.addEventListener("pointerup", soltarGiro, true);
-    document.addEventListener("pointercancel", soltarGiro, true);
 
     // ---------- filtros com contagem ----------
     function desenharFiltros() {

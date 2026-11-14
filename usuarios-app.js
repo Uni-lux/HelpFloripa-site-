@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=161";
+} from "./rede.js?v=162";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -17,10 +17,10 @@ import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, mon
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=133";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=118";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=134";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=119";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
-import { partesDoTexto } from "./texto-pub.js?v=1";
+import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=2";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -230,7 +230,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=125").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=126").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -565,7 +565,9 @@ function miolo(post) {
     c.append(el("span", "ppv-selo", "Caixa de perguntas"), el("strong", null, post.caixa.pergunta), el("span", "ppv-op campo", "Escreva sua resposta…"));
   } else {
     if (post.titulo) c.appendChild(el("strong", "ppv-tit", post.titulo));
-    c.append(el("b", "ppv-aspas", "“"), el("p", null, String(post.texto || "").slice(0, 600)));
+    const { corpo, tags } = partesDoTexto(post.texto);
+    c.append(el("b", "ppv-aspas", "“"), el("p", null, corpo.slice(0, 600)));
+    if (tags.length) c.appendChild(rodapeHashtags(tags, { classe: "na-previa" }));
   }
   return c;
 }
@@ -582,7 +584,11 @@ function abrirPreviaPub(post, { autor, abrir }) {
   const midia = el("div", "ppv-midia"); midia.appendChild(miolo(post));
   const n = fotosDoPost(post).length; if (urlSegura(post.mediaUrl) && n > 1) midia.appendChild(el("span", "ppv-n", `1/${n}`));
   cartao.append(cab, midia);
-  if (urlSegura(post.mediaUrl) && post.texto) cartao.appendChild(el("p", "ppv-legenda", post.texto));
+  if (urlSegura(post.mediaUrl) && post.texto) {
+    const { corpo, tags } = partesDoTexto(post.texto);
+    if (corpo) cartao.appendChild(el("p", "ppv-legenda", corpo));
+    if (tags.length) cartao.appendChild(rodapeHashtags(tags, { classe: "na-previa" }));
+  }
   const fechar = () => { tela.classList.add("saindo"); document.removeEventListener("keydown", tecla); setTimeout(() => tela.remove(), 180); };
   const tecla = (e) => { if (e.key === "Escape") fechar(); };
   const salvo = () => idsSalvos().includes(post.id);
@@ -684,7 +690,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=128").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=129").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -793,7 +799,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=128").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=129").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1827,13 +1833,4 @@ async function iniciar() {
 iniciar().catch((e) => { console.error(e); mostrarErro("Não foi possível carregar a página. Tente novamente."); });
 
 // #hashtags no rodapé da publicação: pequenas e discretas, cada uma abre a página da hashtag.
-function rodapeTags(tags) {
-  const w = el("div", "post-tags");
-  tags.forEach((t) => {
-    const a = document.createElement("a"); a.className = "tag-chip"; a.href = `feed.html?tag=${encodeURIComponent(t.toLowerCase())}`;
-    a.textContent = "#" + t;
-    a.addEventListener("click", (e) => e.stopPropagation());
-    w.appendChild(a);
-  });
-  return w;
-}
+function rodapeTags(tags) { return rodapeHashtags(tags); }
