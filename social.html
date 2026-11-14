@@ -71,12 +71,12 @@
     .topo-tit small:empty { display: none; }
 
     .pg { width: min(760px, 100%); margin: 0 auto; padding: 0 0 calc(40px + env(safe-area-inset-bottom)); }
-    #conteudo { display: grid; gap: 22px; }
+    #conteudo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
     .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
     .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
 
     /* ---------- o céu ---------- */
-    .ceu { position: relative; overflow: hidden; color: #fff; background: var(--ceu); padding: 6px 0 22px; isolation: isolate; }
+    .ceu { position: relative; overflow: hidden; color: #fff; background: var(--ceu); padding: 10px 0 22px; isolation: isolate; }
     @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 28px; } }
     .ceu-fundo { position: absolute; inset: -40px; z-index: -2; background: #06202c url("ponte-help.webp") center / cover; filter: blur(34px) saturate(1.3); opacity: .38; transform: scale(1.1); }
     .ceu::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -87,28 +87,24 @@
         radial-gradient(1px 1px at 8% 46%, rgba(255,255,255,.7), transparent 60%), radial-gradient(1px 1px at 54% 8%, rgba(255,255,255,.6), transparent 60%),
         radial-gradient(60% 50% at 50% 45%, rgba(0, 173, 238, .16), transparent 70%),
         linear-gradient(180deg, rgba(4,7,11,.2), rgba(4,7,11,.75) 85%); }
-    .orbita { position: relative; width: min(100%, 420px); aspect-ratio: 1; margin: 0 auto; }
+    .orbita { position: relative; width: min(100%, 460px); margin: 0 auto; touch-action: pan-y; }
     .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-    .orbita .anel { fill: none; stroke: rgba(255, 255, 255, .09); stroke-width: 1; }
-    .orbita .anel.tr { stroke-dasharray: 2 6; }
-    .orbita .raio { fill: none; stroke-width: 1.4; stroke-linecap: round; opacity: .55; }
-    .orbita .raio.duo { stroke-width: 2.2; opacity: .95; filter: drop-shadow(0 0 4px rgba(255, 77, 109, .8)); }
-    .orbita .raio.pend { stroke-dasharray: 3 5; opacity: .35; }
-    .astro { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 5px; width: 74px; padding: 0; border: 0; background: none; color: #fff;
-      cursor: pointer; transition: opacity .25s, transform .25s; }
+    .orbita .anel { fill: none; stroke-width: 1.2; opacity: .32; }
+    .astro { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 4px; width: 70px; padding: 0; border: 0; background: none; color: #fff;
+      cursor: pointer; opacity: var(--longe, 1); will-change: transform; transition: opacity .25s; }
     .astro[disabled] { cursor: default; }
-    .astro .avatar { width: 46px; height: 46px; font-size: 14px; box-shadow: 0 0 0 2px var(--ceu), 0 0 0 3.5px var(--cor), 0 0 18px color-mix(in srgb, var(--cor) 55%, transparent); }
-    .astro span { max-width: 74px; font-size: 11px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .86); text-shadow: 0 1px 6px #000; }
-    .astro.duo .avatar { width: 56px; height: 56px; box-shadow: 0 0 0 2.5px var(--ceu), 0 0 0 4.5px var(--duo), 0 0 26px rgba(255, 77, 109, .65); }
-    .astro.pend { opacity: .55; }
-    .astro.apagado { opacity: .14; transform: translate(-50%, -50%) scale(.86); }
-    @media (hover: hover) { .astro:not([disabled]):hover { transform: translate(-50%, -50%) scale(1.07); } }
-    .astro.centro { width: 120px; cursor: default; }
-    .astro.centro .avatar { width: 96px; height: 96px; font-size: 30px; box-shadow: 0 0 0 3px var(--ceu), 0 0 0 5px rgba(255, 255, 255, .9), 0 0 50px rgba(0, 173, 238, .55); }
-    .astro.centro::before { content: ""; position: absolute; left: 50%; top: 48px; width: 150px; height: 150px; border-radius: 50%; transform: translate(-50%, -50%);
-      background: radial-gradient(circle, rgba(0, 173, 238, .28), transparent 65%); animation: halo 4s ease-in-out infinite; z-index: -1; }
-    @keyframes halo { 50% { transform: translate(-50%, -50%) scale(1.12); opacity: .7; } }
-    .ceu-id { text-align: center; margin-top: -6px; padding: 0 16px; }
+    .astro .avatar { width: 44px; height: 44px; font-size: 14px; box-shadow: 0 0 0 2px var(--ceu), 0 0 0 3.5px var(--cor), 0 0 18px color-mix(in srgb, var(--cor) 55%, transparent); }
+    .astro span { max-width: 70px; font-size: 11px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px #000; }
+    .astro.duo .avatar { width: 52px; height: 52px; box-shadow: 0 0 0 2.5px var(--ceu), 0 0 0 4.5px var(--duo), 0 0 26px rgba(255, 77, 109, .65); }
+    .astro.pend { --longe: .55; }
+    .astro.pend .avatar { filter: grayscale(.5); }
+    .astro.apagado { opacity: .12 !important; pointer-events: none; }
+    .astro.centro { width: 120px; cursor: default; z-index: 20; transform: translate(-50%, -50%); }
+    .astro.centro .avatar { position: relative; width: 84px; height: 84px; font-size: 26px; box-shadow: 0 0 0 3px #ffd36b, 0 0 0 6px rgba(255, 170, 60, .35), 0 0 46px rgba(255, 176, 59, .75); }
+    .sol .coroa { position: absolute; left: 50%; top: 50%; width: 210px; height: 210px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
+      background: radial-gradient(circle, rgba(255, 214, 120, .55) 0%, rgba(255, 166, 48, .28) 26%, rgba(255, 120, 30, .1) 45%, transparent 66%); animation: coroa 5s ease-in-out infinite; }
+    @keyframes coroa { 50% { transform: translate(-50%, -50%) scale(1.08); opacity: .8; } }
+    .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
     .ceu-id h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
     .ceu-id p { margin: 3px 0 0; font-size: 13.5px; color: rgba(255, 255, 255, .62); }
     .ceu-total { display: flex; align-items: center; gap: 8px; margin: 14px auto 0; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16);
@@ -117,8 +113,7 @@
     .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 14%; margin: 0; text-align: center; color: rgba(255, 255, 255, .7); font-size: 13.5px; }
 
     /* ---------- filtros ---------- */
-    .filtros { position: sticky; top: calc(54px + env(safe-area-inset-top)); z-index: 30; display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px; margin-top: -22px;
-      background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); scrollbar-width: none; }
+    .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 14px; scrollbar-width: none; }
     .filtros::-webkit-scrollbar { display: none; }
     .filtros button { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
       font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
@@ -201,8 +196,8 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 64px; } .astro .avatar { width: 40px; height: 40px; } .astro.duo .avatar { width: 48px; height: 48px; } .astro.centro .avatar { width: 84px; height: 84px; } .retrato { width: 112px; } }
-    @media (prefers-reduced-motion: reduce) { .astro.centro::before, .akai-cor, .akai-fio path.brilho { animation: none; } }
+    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 38px; height: 38px; } .astro.duo .avatar { width: 46px; height: 46px; } .astro.centro .avatar { width: 80px; height: 80px; } .retrato { width: 112px; } }
+    @media (prefers-reduced-motion: reduce) { .sol .coroa, .akai-cor, .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
@@ -402,41 +397,76 @@
       const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? " conexão" : " conexões"));
       t.onclick = listaDeNomes;
     }
+    // Sistema solar (14/11, pedido dele): a pessoa é o Sol e cada grupo gira na sua órbita inclinada (Amor mais perto,
+    // depois Família, Amizades, Trabalho). Quem passa atrás do Sol fica menor e mais apagado; tocar segura o giro.
+    const giro = { planetas: [], angulos: new Map(), quadro: 0, ultimo: 0, pausaAte: 0, w: 0, h: 0 };
     function desenharCeu() {
       const box = $("orbita"), svg = $("orbitaSvg");
       box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
       svg.replaceChildren();
+      giro.planetas = [];
       const W = box.clientWidth; if (!W) return;
-      const cx = W / 2, cy = W / 2, R = W / 2 - (W < 360 ? 40 : 46);
-      svg.setAttribute("viewBox", `0 0 ${W} ${W}`);
-      svg.append(svgEl("circle", { class: "anel", cx, cy, r: R }), svgEl("circle", { class: "anel tr", cx, cy, r: R * 0.62 }));
       const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
-      // O duo fica no alto; os outros se espalham pelo círculo na ordem dos grupos.
-      const duo = lista.find((c) => c.cat === "duo" && !c.pendente);
-      const resto = lista.filter((c) => c !== duo);
-      const pontos = [];
-      if (duo) pontos.push([duo, -90, R]);
-      const n = resto.length, inicio = duo ? -90 + 360 / (n + 1) : -90, passo = duo ? 360 / (n + 1) : 360 / Math.max(n, 1);
-      resto.forEach((c, i) => pontos.push([c, inicio + i * passo, n > 8 && i % 2 ? R * 0.66 : R]));
-      for (const [c, g, r] of pontos) {
-        const a = (g * Math.PI) / 180, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-        const cor = getComputedStyle(document.documentElement).getPropertyValue(`--${c.cat}`).trim() || "#00adee";
-        const ap = filtro !== "todos" && filtro !== c.cat;
-        const raio = svgEl("line", { class: "raio" + (c === duo ? " duo" : "") + (c.pendente ? " pend" : ""), x1: cx, y1: cy, x2: x, y2: y, stroke: cor });
-        if (ap) raio.style.opacity = ".06";
-        svg.appendChild(raio);
-        const b = el("button", "astro" + (c === duo ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
-        b.type = "button"; b.dataset.cat = c.cat; b.style.left = x + "px"; b.style.top = y + "px";
-        b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
-        b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
-        const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
-        box.appendChild(b);
-      }
-      const centro = el("div", "astro centro"); centro.style.left = cx + "px"; centro.style.top = cy + "px";
-      centro.appendChild(novoAvatar(dono.fotoPerfil, dono.nome));
-      box.appendChild(centro);
-      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu céu ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      const grupos = GRUPOS.map((g) => lista.filter((c) => c.cat === g.cat)).filter((l) => l.length);
+      const n = grupos.length;
+      const maxR = W / 2 - (W < 360 ? 30 : 36), minR = Math.min(maxR, W < 360 ? 92 : 104), INCL = 0.5;
+      const H = Math.round(Math.max(170, maxR * INCL * 2 + 92));
+      box.style.height = H + "px";
+      const cx = W / 2, cy = maxR * INCL + 36;
+      giro.w = W; giro.h = H;
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const raiz = getComputedStyle(document.documentElement);
+      grupos.forEach((doGrupo, k) => {
+        const rx = n === 1 ? (minR + maxR) / 2 : minR + ((maxR - minR) * k) / (n - 1), ry = rx * INCL;
+        const cat = doGrupo[0].cat, cor = raiz.getPropertyValue(`--${cat}`).trim() || "#00adee";
+        const ap = filtro !== "todos" && filtro !== cat;
+        const orb = svgEl("ellipse", { class: "anel", cx, cy, rx, ry, stroke: cor });
+        if (ap) orb.style.opacity = ".05";
+        svg.appendChild(orb);
+        const vel = (Math.PI * 2) / (38 + k * 16) * (k % 2 ? -1 : 1);
+        doGrupo.forEach((c, i) => {
+          const chave = c.id || c.outro;
+          if (!giro.angulos.has(chave)) giro.angulos.set(chave, -Math.PI / 2 + (i * Math.PI * 2) / doGrupo.length + k * 2.3);
+          const b = el("button", "astro" + (c.cat === "duo" && !c.pendente ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
+          b.type = "button"; b.dataset.cat = c.cat;
+          b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
+          b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
+          const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
+          box.appendChild(b);
+          giro.planetas.push({ b, chave, rx, ry, cx, cy, vel, ap });
+        });
+      });
+      const sol = el("div", "astro centro sol"); sol.style.left = cx + "px"; sol.style.top = cy + "px";
+      sol.append(el("i", "coroa"), novoAvatar(dono.fotoPerfil, dono.nome));
+      box.appendChild(sol);
+      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu sistema ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      posicionar(0);
+      if (!giro.quadro && giro.planetas.length) giro.quadro = requestAnimationFrame(girar);
     }
+    function posicionar(dt) {
+      for (const p of giro.planetas) {
+        let a = giro.angulos.get(p.chave) + p.vel * dt;
+        giro.angulos.set(p.chave, a);
+        const x = p.cx + p.rx * Math.cos(a), y = p.cy + p.ry * Math.sin(a), frente = Math.sin(a);
+        const s = 0.82 + 0.22 * (frente + 1) / 2;
+        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${s.toFixed(3)})`;
+        p.b.style.zIndex = frente < 0 ? "5" : "40";
+        p.b.style.setProperty("--longe", frente < 0 ? (0.62 + 0.38 * (1 + frente)).toFixed(2) : "1");
+      }
+    }
+    function girar(t) {
+      if (!giro.planetas.length || !document.body.contains($("orbita"))) { giro.quadro = 0; return; }
+      const dt = giro.ultimo ? Math.min(0.05, (t - giro.ultimo) / 1000) : 0;
+      giro.ultimo = t;
+      if (performance.now() >= giro.pausaAte && !document.querySelector(".folha-fundo")) posicionar(dt);
+      giro.quadro = requestAnimationFrame(girar);
+    }
+    document.addEventListener("visibilitychange", () => { giro.ultimo = 0; });
+    // Encostar o dedo segura o giro (fica fácil tocar em alguém); volta a girar 1,5 s depois de soltar.
+    document.addEventListener("pointerdown", (e) => { if (e.target.closest?.("#orbita")) giro.pausaAte = Infinity; }, true);
+    const soltarGiro = () => { if (giro.pausaAte === Infinity) giro.pausaAte = performance.now() + 1500; };
+    document.addEventListener("pointerup", soltarGiro, true);
+    document.addEventListener("pointercancel", soltarGiro, true);
 
     // ---------- filtros com contagem ----------
     function desenharFiltros() {
@@ -584,7 +614,8 @@
           }
           desenharTudo();
           let t = null;
-          new ResizeObserver(() => { clearTimeout(t); t = setTimeout(desenharCeu, 100); }).observe($("orbita"));
+          let largura = $("orbita").clientWidth;
+          new ResizeObserver(() => { const w = $("orbita").clientWidth; if (w === largura) return; largura = w; clearTimeout(t); t = setTimeout(desenharCeu, 100); }).observe($("orbita"));
         } catch (e) {
           console.error(e);
           estado("Não foi possível carregar", "Tente novamente em instantes.");
