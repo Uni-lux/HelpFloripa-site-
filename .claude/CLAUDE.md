@@ -2668,6 +2668,14 @@ chat da equipe).
   numa órbita elíptica inclinada (Amor mais perto → Trabalho), pessoas girando por requestAnimationFrame (vale com animações
   desligadas), atrás do Sol ficam menores/apagadas (`--longe`, z-index), encostar o dedo segura o giro (1,5 s depois volta);
   filtros não grudam mais no topo e `#conteudo` com `minmax(0, 1fr)` (o cartão Akai Ito passava da tela).
+  **2ª versão (mesmo PR #223):** Sol menor (62 px) com raios girando (`.sol .raios`), órbitas com a mesma inclinação (`INCL` 0,36,
+  `TILT` −9°) desenhadas em 2 SVGs (metade de trás tracejada atrás do Sol `#orbitaSvg`, metade da frente com brilho
+  `#orbitaFrente`), todos giram juntos e espaçados (`VEL`, ângulo inicial por posição na lista: nunca um em cima do outro),
+  canvas `#ceuEstrelas` com estrelas piscando e estrela cadente (`prepararEstrelas`/`pintarEstrelas`), fundo de espaço com
+  nebulosas. Cartões dos grupos pequenos (`.retrato` 100 px: foto redonda com anel da cor, 1º nome, papel em pílula;
+  "Adicionar · N vagas" em 2 linhas). Prévia ao segurar: foto com cantos de 18 px e respiro dos lados.
+  **#hashtags no rodapé (pedido dele):** pequenas (12 px), sem pílula, num tom discreto, no fim da publicação (`.post-tags`
+  no Diário; no perfil `rodapeTags` em usuarios-app.js usa `partesDoTexto`: o texto com imagem e o texto da lista ficam sem as #).
   Opções da enquete na grade do perfil sumiam no tema claro (`.mm-op` com `color: var(--text)`).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos

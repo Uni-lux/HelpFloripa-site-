@@ -20,6 +20,7 @@ import { semPausados } from "./planos-base.js?v=16";
 import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=133";
 import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=118";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
+import { partesDoTexto } from "./texto-pub.js?v=1";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -641,13 +642,15 @@ function itemFeed(post, i) {
   let barra = null;
   const darCinco = async (alvo) => { if (!barra?.estrelas?.darNota) return; await contadorEstrelas(alvo, (nota) => barra.estrelas.darNota(nota)); };
   if (post.titulo) art.appendChild(el("h3", "pfd-titulo", post.titulo));
-  if (casada) { const m = el("div", "pfd-casada"); m.appendChild(blocoCasado(post.texto, url, { verMais: true })); art.appendChild(m); }
+  // As #hashtags saem do texto e ficam pequenas no rodapé da publicação (como no Diário).
+  const { corpo, tags } = partesDoTexto(post.texto || "");
+  if (casada) { const m = el("div", "pfd-casada"); m.appendChild(blocoCasado(corpo, url, { verMais: true })); art.appendChild(m); }
   else if (url && post.mediaTipo === "video") { const m = el("div", "post-midia pfd-midia"); const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); art.appendChild(m); }
   else if (url) { const m = el("div", "post-midia pfd-midia"); m.appendChild(carrosselFotos(fotosDoPost(post), { alt: "Imagem da publicação", aoToqueDuplo: () => darCinco(m) })); art.appendChild(m); }
   const repete = post.texto && [post.enquete?.pergunta, post.caixa?.pergunta].includes(post.texto.trim());
-  if (post.texto && !casada && !repete) {
+  if (corpo && !casada && !repete) {
     const t = el("p", "pfd-texto" + (url ? "" : " so-texto"));
-    comMencoes(t, post.texto);
+    comMencoes(t, corpo);
     if (!url) { let ult = 0; t.addEventListener("click", (e) => { if (e.target.closest("a, button")) return; const ag = Date.now(); if (ag - ult < 320) { ult = 0; barra?.estrelas?.pular?.(); barra?.estrelas?.darNota?.(5); } else ult = ag; }); }
     art.appendChild(t);
   }
@@ -656,6 +659,7 @@ function itemFeed(post, i) {
   const cx = blocoCaixa(post); if (cx) extra.appendChild(cx);
   if (Array.isArray(post.marcados) && post.marcados.length) extra.appendChild(pessoasEmPilha(post.marcados, { classe: "post-com", aoPerfil: () => fecharFolha("folhaFeed") }));
   if (extra.children.length) art.appendChild(extra);
+  if (tags.length) art.appendChild(rodapeTags(tags));
   const social = el("div", "pfd-social"); art.appendChild(social);
   let ligado = false;
   art._ligar = () => {
@@ -755,7 +759,9 @@ function mostrarPost() {
   const casada = post.estilo === "casada" && url && post.mediaTipo !== "video";
   if (casada) {
     // Texto com imagem casada: o cartão inteiro no lugar da foto + texto.
-    midia.appendChild(blocoCasado(post.texto, url, { verMais: true }));
+    const { corpo: cp, tags: tg } = partesDoTexto(post.texto || "");
+    midia.appendChild(blocoCasado(cp, url, { verMais: true }));
+    if (tg.length) midia.appendChild(rodapeTags(tg));
   } else if (url && post.mediaTipo === "video") {
     const v = document.createElement("video");
     v.src = url; v.controls = true; v.playsInline = true;
@@ -1819,3 +1825,15 @@ async function iniciar() {
 }
 
 iniciar().catch((e) => { console.error(e); mostrarErro("Não foi possível carregar a página. Tente novamente."); });
+
+// #hashtags no rodapé da publicação: pequenas e discretas, cada uma abre a página da hashtag.
+function rodapeTags(tags) {
+  const w = el("div", "post-tags");
+  tags.forEach((t) => {
+    const a = document.createElement("a"); a.className = "tag-chip"; a.href = `feed.html?tag=${encodeURIComponent(t.toLowerCase())}`;
+    a.textContent = "#" + t;
+    a.addEventListener("click", (e) => e.stopPropagation());
+    w.appendChild(a);
+  });
+  return w;
+}

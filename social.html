@@ -78,32 +78,38 @@
     /* ---------- o céu ---------- */
     .ceu { position: relative; overflow: hidden; color: #fff; background: var(--ceu); padding: 10px 0 22px; isolation: isolate; }
     @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 28px; } }
-    .ceu-fundo { position: absolute; inset: -40px; z-index: -2; background: #06202c url("ponte-help.webp") center / cover; filter: blur(34px) saturate(1.3); opacity: .38; transform: scale(1.1); }
-    .ceu::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    .ceu-fundo { position: absolute; inset: -40px; z-index: -3; background: #06202c url("ponte-help.webp") center / cover; filter: blur(40px) saturate(1.2); opacity: .12; transform: scale(1.1); }
+    .ceu::before { content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
       background:
-        radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,.9), transparent 60%), radial-gradient(1px 1px at 82% 12%, rgba(255,255,255,.7), transparent 60%),
-        radial-gradient(1.5px 1.5px at 66% 34%, rgba(255,255,255,.8), transparent 60%), radial-gradient(1px 1px at 22% 72%, rgba(255,255,255,.6), transparent 60%),
-        radial-gradient(1px 1px at 90% 64%, rgba(255,255,255,.8), transparent 60%), radial-gradient(1.5px 1.5px at 40% 90%, rgba(255,255,255,.6), transparent 60%),
-        radial-gradient(1px 1px at 8% 46%, rgba(255,255,255,.7), transparent 60%), radial-gradient(1px 1px at 54% 8%, rgba(255,255,255,.6), transparent 60%),
-        radial-gradient(60% 50% at 50% 45%, rgba(0, 173, 238, .16), transparent 70%),
-        linear-gradient(180deg, rgba(4,7,11,.2), rgba(4,7,11,.75) 85%); }
+        radial-gradient(42% 38% at 18% 22%, rgba(88, 60, 200, .22), transparent 70%),
+        radial-gradient(40% 34% at 86% 30%, rgba(0, 173, 238, .16), transparent 70%),
+        radial-gradient(50% 40% at 70% 92%, rgba(255, 77, 109, .12), transparent 70%),
+        radial-gradient(55% 45% at 50% 40%, rgba(255, 190, 90, .10), transparent 70%),
+        linear-gradient(180deg, #03050b, #070b18 55%, #04060c); }
+    .ceu-estrelas { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
     .orbita { position: relative; width: min(100%, 460px); margin: 0 auto; touch-action: pan-y; }
     .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-    .orbita .anel { fill: none; stroke-width: 1.2; opacity: .32; }
-    .astro { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 4px; width: 70px; padding: 0; border: 0; background: none; color: #fff;
+    .orbita > svg.orb-tras { z-index: 1; }
+    .orbita > svg.orb-frente { z-index: 30; }
+    .orbita .anel { fill: none; stroke-linecap: round; }
+    .orbita .anel.tras { stroke-width: 1; opacity: .22; stroke-dasharray: 2 5; }
+    .orbita .anel.frente { stroke-width: 1.4; opacity: .55; filter: drop-shadow(0 0 3px currentColor); }
+    .astro { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 3px; width: 64px; padding: 0; border: 0; background: none; color: #fff;
       cursor: pointer; opacity: var(--longe, 1); will-change: transform; transition: opacity .25s; }
     .astro[disabled] { cursor: default; }
-    .astro .avatar { width: 44px; height: 44px; font-size: 14px; box-shadow: 0 0 0 2px var(--ceu), 0 0 0 3.5px var(--cor), 0 0 18px color-mix(in srgb, var(--cor) 55%, transparent); }
-    .astro span { max-width: 70px; font-size: 11px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px #000; }
-    .astro.duo .avatar { width: 52px; height: 52px; box-shadow: 0 0 0 2.5px var(--ceu), 0 0 0 4.5px var(--duo), 0 0 26px rgba(255, 77, 109, .65); }
+    .astro .avatar { width: 36px; height: 36px; font-size: 12px; box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3px var(--cor), 0 0 14px color-mix(in srgb, var(--cor) 70%, transparent); }
+    .astro span { max-width: 64px; font-size: 10.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .9); text-shadow: 0 1px 5px #000; }
+    .astro.duo .avatar { width: 40px; height: 40px; box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3.5px var(--duo), 0 0 20px rgba(255, 77, 109, .75); }
     .astro.pend { --longe: .55; }
-    .astro.pend .avatar { filter: grayscale(.5); }
-    .astro.apagado { opacity: .12 !important; pointer-events: none; }
-    .astro.centro { width: 120px; cursor: default; z-index: 20; transform: translate(-50%, -50%); }
-    .astro.centro .avatar { position: relative; width: 84px; height: 84px; font-size: 26px; box-shadow: 0 0 0 3px #ffd36b, 0 0 0 6px rgba(255, 170, 60, .35), 0 0 46px rgba(255, 176, 59, .75); }
-    .sol .coroa { position: absolute; left: 50%; top: 50%; width: 210px; height: 210px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
-      background: radial-gradient(circle, rgba(255, 214, 120, .55) 0%, rgba(255, 166, 48, .28) 26%, rgba(255, 120, 30, .1) 45%, transparent 66%); animation: coroa 5s ease-in-out infinite; }
-    @keyframes coroa { 50% { transform: translate(-50%, -50%) scale(1.08); opacity: .8; } }
+    .astro.pend .avatar { filter: grayscale(.5); box-shadow: 0 0 0 1.5px #05070d, 0 0 0 3px color-mix(in srgb, var(--cor) 55%, transparent); }
+    .astro.apagado { opacity: .1 !important; pointer-events: none; }
+    .astro.centro { width: 100px; cursor: default; z-index: 20; transform: translate(-50%, -50%); }
+    .astro.centro .avatar { position: relative; width: 62px; height: 62px; font-size: 20px; box-shadow: 0 0 0 2.5px #ffe29a, 0 0 0 5px rgba(255, 176, 59, .38), 0 0 34px rgba(255, 176, 59, .85); }
+    .sol .coroa { position: absolute; left: 50%; top: 50%; width: 170px; height: 170px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
+      background: radial-gradient(circle, rgba(255, 226, 150, .62) 0%, rgba(255, 170, 50, .30) 22%, rgba(255, 120, 30, .10) 42%, transparent 64%); }
+    .sol .raios { position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; opacity: .5;
+      background: repeating-conic-gradient(from 0deg, rgba(255, 214, 120, .55) 0deg 2deg, transparent 2deg 22deg);
+      -webkit-mask: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%); mask: radial-gradient(circle, transparent 30%, #000 36%, transparent 70%); }
     .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
     .ceu-id h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
     .ceu-id p { margin: 3px 0 0; font-size: 13.5px; color: rgba(255, 255, 255, .62); }
@@ -135,7 +141,7 @@
     @keyframes bater { 0%, 60%, 100% { transform: translateX(-50%) scale(1); } 20% { transform: translateX(-50%) scale(1.18); } }
     .akai-pessoa { position: relative; z-index: 2; display: grid; justify-items: center; gap: 6px; width: 96px; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
     .akai-pessoa[disabled] { cursor: default; }
-    .akai-pessoa .avatar { width: 64px; height: 64px; font-size: 20px; box-shadow: 0 0 0 2.5px #1a050b, 0 0 0 4.5px #ff4d6d, 0 10px 26px rgba(255, 77, 109, .35); }
+    .akai-pessoa .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px #1a050b, 0 0 0 4.5px #ff4d6d, 0 10px 26px rgba(255, 77, 109, .35); }
     .akai-pessoa strong { max-width: 96px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .akai-pessoa em { margin-top: -4px; font-style: normal; font-size: 11.5px; color: #ff9aae; font-weight: 700; }
     .akai-desde { margin: 0; text-align: center; font-size: 12.5px; color: rgba(255, 255, 255, .7); }
@@ -148,25 +154,26 @@
     .grupo-cab i { align-self: center; width: 10px; height: 10px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 8px var(--cor); }
     .trilho { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x proximity; scroll-padding: 16px; scrollbar-width: none; }
     .trilho::-webkit-scrollbar { display: none; }
-    .retrato { position: relative; flex: none; width: 124px; aspect-ratio: 3 / 4; border: 0; padding: 0; border-radius: 18px; overflow: hidden; cursor: pointer; scroll-snap-align: start;
-      background: linear-gradient(160deg, color-mix(in srgb, var(--cor) 55%, #0b1a22), #071016); color: #fff; text-align: left; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+    .retrato { position: relative; flex: none; width: 100px; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 14px 8px 12px; border: 1px solid var(--line);
+      border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--cor) 9%, var(--panel)), var(--panel) 70%); color: var(--text); cursor: pointer;
+      scroll-snap-align: start; text-align: center; overflow: hidden; transition: transform .15s; }
     .retrato[disabled] { cursor: default; }
-    .retrato img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .retrato .ini { position: absolute; inset: 0 0 30%; display: grid; place-items: center; font-size: 34px; font-weight: 800; opacity: .9; }
-    .retrato::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .78)); }
-    .retrato .rt-tx { position: absolute; left: 10px; right: 10px; bottom: 9px; z-index: 2; display: grid; gap: 2px; }
-    .retrato strong { font-size: 13.5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .retrato small { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: color-mix(in srgb, var(--cor) 70%, #fff); }
-    .retrato small::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 6px var(--cor); }
-    .retrato .rt-barra { position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 2; background: var(--cor); }
-    .retrato.pend { opacity: .7; }
-    .retrato.pend .rt-barra { background: repeating-linear-gradient(90deg, var(--cor) 0 8px, transparent 8px 14px); }
+    .retrato::before { content: ""; position: absolute; left: 22%; right: 22%; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--cor); box-shadow: 0 0 10px var(--cor); }
+    .retrato .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--cor), 0 6px 16px color-mix(in srgb, var(--cor) 30%, transparent); }
+    .retrato strong { max-width: 100%; margin-top: 4px; font-size: 13px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .retrato small { max-width: 100%; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: color-mix(in srgb, var(--cor) 80%, var(--text));
+      background: color-mix(in srgb, var(--cor) 14%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .retrato.pend { opacity: .8; }
+    .retrato.pend .avatar { box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--cor) 45%, transparent); filter: grayscale(.4); }
+    .retrato.pend small { color: var(--muted); background: var(--panel-2); }
+    .retrato.pend::before { background: repeating-linear-gradient(90deg, var(--cor) 0 5px, transparent 5px 9px); box-shadow: none; }
     @media (hover: hover) { .retrato:not([disabled]):hover { transform: translateY(-2px); } }
-    .retrato:not([disabled]):active { transform: scale(.98); }
-    .retrato.add { text-decoration: none; display: grid; place-items: center; align-content: center; gap: 8px; background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
-    .retrato.add::after { display: none; }
-    .retrato.add span.mais { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; border: 1.5px dashed var(--cor); color: var(--cor); }
-    .retrato.add strong { font-size: 12.5px; color: var(--muted); }
+    .retrato:not([disabled]):active { transform: scale(.97); }
+    .retrato.add { text-decoration: none; background: transparent; border-style: dashed; color: var(--muted); }
+    .retrato.add::before { display: none; }
+    .retrato.add span.mais { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; border: 1.5px dashed var(--cor); color: var(--cor); }
+    .retrato.add strong { font-size: 12.5px; color: var(--text); }
+    .retrato.add small { color: var(--muted); background: none; padding: 0; }
     .nota { margin: 0 16px; text-align: center; color: var(--muted); font-size: 13px; }
 
     /* ---------- painel do dono ---------- */
@@ -196,7 +203,7 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 38px; height: 38px; } .astro.duo .avatar { width: 46px; height: 46px; } .astro.centro .avatar { width: 80px; height: 80px; } .retrato { width: 112px; } }
+    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 38px; height: 38px; } .astro.duo .avatar { width: 46px; height: 46px; } .astro.centro .avatar { width: 80px; height: 80px; }  }
     @media (prefers-reduced-motion: reduce) { .sol .coroa, .akai-cor, .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
@@ -232,7 +239,8 @@
     <div id="conteudo" hidden>
       <section class="ceu" aria-label="Constelação de conexões">
         <div class="ceu-fundo" id="ceuFundo"></div>
-        <div class="orbita" id="orbita"><svg id="orbitaSvg" aria-hidden="true"></svg></div>
+        <canvas class="ceu-estrelas" id="ceuEstrelas" aria-hidden="true"></canvas>
+        <div class="orbita" id="orbita"><svg id="orbitaSvg" class="orb-tras" aria-hidden="true"></svg><svg id="orbitaFrente" class="orb-frente" aria-hidden="true"></svg></div>
         <div class="ceu-id"><h2 id="heroNome"></h2><p id="heroNick"></p></div>
         <button type="button" class="ceu-total" id="ceuTotal"></button>
       </section>
@@ -397,68 +405,118 @@
       const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? " conexão" : " conexões"));
       t.onclick = listaDeNomes;
     }
-    // Sistema solar (14/11, pedido dele): a pessoa é o Sol e cada grupo gira na sua órbita inclinada (Amor mais perto,
-    // depois Família, Amizades, Trabalho). Quem passa atrás do Sol fica menor e mais apagado; tocar segura o giro.
-    const giro = { planetas: [], angulos: new Map(), quadro: 0, ultimo: 0, pausaAte: 0, w: 0, h: 0 };
+    // Sistema solar (14/11, pedido dele): a pessoa é o Sol e cada grupo tem a sua órbita (Amor mais perto, depois Família,
+    // Amizades, Trabalho), todas com a mesma inclinação. A metade de trás da órbita passa atrás do Sol e a da frente na
+    // frente; todos giram juntos e espaçados (ninguém fica em cima de ninguém); estrelas piscando no fundo.
+    const giro = { planetas: [], angulos: new Map(), quadro: 0, ultimo: 0, pausaAte: 0, raios: null, estrelas: null };
+    const INCL = 0.36, TILT = (-9 * Math.PI) / 180, VEL = (Math.PI * 2) / 70;
     function desenharCeu() {
-      const box = $("orbita"), svg = $("orbitaSvg");
+      const box = $("orbita"), tras = $("orbitaSvg"), frente = $("orbitaFrente");
       box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
-      svg.replaceChildren();
+      tras.replaceChildren(); frente.replaceChildren();
       giro.planetas = [];
       const W = box.clientWidth; if (!W) return;
       const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
       const grupos = GRUPOS.map((g) => lista.filter((c) => c.cat === g.cat)).filter((l) => l.length);
       const n = grupos.length;
-      const maxR = W / 2 - (W < 360 ? 30 : 36), minR = Math.min(maxR, W < 360 ? 92 : 104), INCL = 0.5;
-      const H = Math.round(Math.max(170, maxR * INCL * 2 + 92));
+      const maxR = Math.min(190, W / 2 - 30), minR = Math.min(maxR, 100);
+      const meia = (rx) => Math.sqrt((rx * Math.sin(TILT)) ** 2 + (rx * INCL * Math.cos(TILT)) ** 2);
+      const ext = Math.max(meia(maxR), 44);
+      const H = Math.round(ext * 2 + 78);
       box.style.height = H + "px";
-      const cx = W / 2, cy = maxR * INCL + 36;
-      giro.w = W; giro.h = H;
-      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      const cx = W / 2, cy = ext + 34;
+      for (const s of [tras, frente]) s.setAttribute("viewBox", `0 0 ${W} ${H}`);
       const raiz = getComputedStyle(document.documentElement);
+      const graus = (TILT * 180) / Math.PI;
+      let idx = 0; const total = lista.length;
       grupos.forEach((doGrupo, k) => {
         const rx = n === 1 ? (minR + maxR) / 2 : minR + ((maxR - minR) * k) / (n - 1), ry = rx * INCL;
         const cat = doGrupo[0].cat, cor = raiz.getPropertyValue(`--${cat}`).trim() || "#00adee";
         const ap = filtro !== "todos" && filtro !== cat;
-        const orb = svgEl("ellipse", { class: "anel", cx, cy, rx, ry, stroke: cor });
-        if (ap) orb.style.opacity = ".05";
-        svg.appendChild(orb);
-        const vel = (Math.PI * 2) / (38 + k * 16) * (k % 2 ? -1 : 1);
-        doGrupo.forEach((c, i) => {
+        const arco = (lado) => {
+          const g = svgEl("g", { transform: `rotate(${graus} ${cx} ${cy})` });
+          g.appendChild(svgEl("path", { class: "anel " + lado, d: `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 ${lado === "tras" ? 1 : 0} ${cx + rx} ${cy}`, stroke: cor }));
+          if (ap) g.style.opacity = ".12";
+          return g;
+        };
+        tras.appendChild(arco("tras")); frente.appendChild(arco("frente"));
+        doGrupo.forEach((c) => {
           const chave = c.id || c.outro;
-          if (!giro.angulos.has(chave)) giro.angulos.set(chave, -Math.PI / 2 + (i * Math.PI * 2) / doGrupo.length + k * 2.3);
+          if (!giro.angulos.has(chave)) giro.angulos.set(chave, Math.PI / 2 - 0.5 + (idx * Math.PI * 2) / Math.max(total, 1));
+          idx++;
           const b = el("button", "astro" + (c.cat === "duo" && !c.pendente ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
           b.type = "button"; b.dataset.cat = c.cat;
           b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
           b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
           const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
           box.appendChild(b);
-          giro.planetas.push({ b, chave, rx, ry, cx, cy, vel, ap });
+          giro.planetas.push({ b, chave, rx, ry, cx, cy });
         });
       });
       const sol = el("div", "astro centro sol"); sol.style.left = cx + "px"; sol.style.top = cy + "px";
-      sol.append(el("i", "coroa"), novoAvatar(dono.fotoPerfil, dono.nome));
+      const raios = el("i", "raios"); giro.raios = raios;
+      sol.append(el("i", "coroa"), raios, novoAvatar(dono.fotoPerfil, dono.nome));
       box.appendChild(sol);
       if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu sistema ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      prepararEstrelas();
       posicionar(0);
-      if (!giro.quadro && giro.planetas.length) giro.quadro = requestAnimationFrame(girar);
+      if (!giro.quadro) giro.quadro = requestAnimationFrame(girar);
+    }
+    // estrelas: um canvas atrás de tudo, cada estrela pisca no seu ritmo; de vez em quando passa uma estrela cadente
+    function prepararEstrelas() {
+      const cv = $("ceuEstrelas"), ceu = cv.parentElement;
+      const w = ceu.clientWidth, h = ceu.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+      if (!w || !h) return;
+      cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px";
+      let semente = 7; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
+      const lista = Array.from({ length: Math.round((w * h) / 2600) }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() < 0.85 ? 0.4 + rnd() * 0.7 : 1.1 + rnd() * 0.8,
+        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, cor: rnd() < 0.15 ? "170,215,255" : rnd() < 0.1 ? "255,224,170" : "255,255,255" }));
+      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, cadente: null, proxima: performance.now() + 2500 };
+    }
+    function pintarEstrelas(t) {
+      const e = giro.estrelas; if (!e) return;
+      const { ctx, w, h, dpr } = e;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const s = t / 1000;
+      for (const p of e.lista) {
+        const a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
+        ctx.fillStyle = `rgba(${p.cor},${a.toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+        if (p.r > 1.3) { const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4); g.addColorStop(0, `rgba(${p.cor},${(a * 0.35).toFixed(3)})`); g.addColorStop(1, `rgba(${p.cor},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, 6.283); ctx.fill(); }
+      }
+      if (!e.cadente && t > e.proxima) e.cadente = { x: w * (0.2 + Math.random() * 0.7), y: h * Math.random() * 0.35, t0: t, d: 900 };
+      if (e.cadente) {
+        const c = e.cadente, k = (t - c.t0) / c.d;
+        if (k >= 1) { e.cadente = null; e.proxima = t + 5000 + Math.random() * 7000; }
+        else {
+          const x = c.x - k * 160, y = c.y + k * 70, g = ctx.createLinearGradient(x, y, x + 70, y - 30);
+          g.addColorStop(0, `rgba(255,255,255,${(1 - k).toFixed(2)})`); g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.strokeStyle = g; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 70, y - 30); ctx.stroke();
+        }
+      }
     }
     function posicionar(dt) {
+      const ct = Math.cos(TILT), st = Math.sin(TILT);
       for (const p of giro.planetas) {
-        let a = giro.angulos.get(p.chave) + p.vel * dt;
+        const a = giro.angulos.get(p.chave) + VEL * dt;
         giro.angulos.set(p.chave, a);
-        const x = p.cx + p.rx * Math.cos(a), y = p.cy + p.ry * Math.sin(a), frente = Math.sin(a);
-        const s = 0.82 + 0.22 * (frente + 1) / 2;
+        const ox = p.rx * Math.cos(a), oy = p.ry * Math.sin(a), frente = Math.sin(a);
+        const x = p.cx + ox * ct - oy * st, y = p.cy + ox * st + oy * ct;
+        const s = 0.74 + 0.3 * (frente + 1) / 2;
         p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${s.toFixed(3)})`;
         p.b.style.zIndex = frente < 0 ? "5" : "40";
-        p.b.style.setProperty("--longe", frente < 0 ? (0.62 + 0.38 * (1 + frente)).toFixed(2) : "1");
+        p.b.style.setProperty("--longe", frente < 0 ? (0.55 + 0.45 * (1 + frente)).toFixed(2) : "1");
       }
     }
     function girar(t) {
-      if (!giro.planetas.length || !document.body.contains($("orbita"))) { giro.quadro = 0; return; }
+      if (!document.body.contains($("orbita"))) { giro.quadro = 0; return; }
       const dt = giro.ultimo ? Math.min(0.05, (t - giro.ultimo) / 1000) : 0;
       giro.ultimo = t;
-      if (performance.now() >= giro.pausaAte && !document.querySelector(".folha-fundo")) posicionar(dt);
+      const parado = performance.now() < giro.pausaAte || document.querySelector(".folha-fundo");
+      if (!parado) posicionar(dt);
+      if (giro.raios) giro.raios.style.transform = `translate(-50%, -50%) rotate(${((t / 1000) * 6) % 360}deg)`;
+      pintarEstrelas(t);
       giro.quadro = requestAnimationFrame(girar);
     }
     document.addEventListener("visibilitychange", () => { giro.ultimo = 0; });
@@ -522,19 +580,16 @@
         const tr = el("div", "trilho");
         lista.forEach((c) => {
           const b = el("button", "retrato" + (c.pendente ? " pend" : "")); b.type = "button"; b.dataset.cat = c.cat;
-          const u = urlSegura(c.perfil.fotoPerfil);
-          if (u) { const i = document.createElement("img"); i.src = u; i.alt = ""; i.loading = "lazy"; b.appendChild(i); }
-          else b.appendChild(el("span", "ini", iniciais(c.perfil.nome)));
-          const tx = el("span", "rt-tx");
-          tx.append(el("strong", null, c.perfil.nome || "Usuário"), el("small", null, c.pendente ? (c.de === eu.uid ? "Aguardando" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || "")));
-          b.append(el("span", "rt-barra"), tx);
+          b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("strong", null, primeiroNome(c.perfil.nome) || "Usuário"),
+            el("small", null, c.pendente ? (c.de === eu.uid ? "Aguardando" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || "")));
+          b.title = c.perfil.nome || "Usuário";
           const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
           tr.appendChild(b);
         });
         if (proprio && vagas > 0) {
           const a = el("a", "retrato add"); a.href = "usuarios.html?acao=social"; a.dataset.cat = g.cat;
           const m = el("span", "mais"); m.appendChild(icone("mais", "i"));
-          a.append(m, el("strong", null, `Adicionar · ${vagas} ${vagas === 1 ? "vaga" : "vagas"}`));
+          a.append(m, el("strong", null, "Adicionar"), el("small", null, `${vagas} ${vagas === 1 ? "vaga" : "vagas"}`));
           tr.appendChild(a);
         }
         sec.append(cab, tr);
