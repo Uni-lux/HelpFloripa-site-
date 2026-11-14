@@ -20,6 +20,9 @@
   <link rel="icon" href="favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <title>Social | Help Floripa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap" />
   <script>
     (function () {
       var c = {};
@@ -31,9 +34,9 @@
   </script>
   <style>
     /* =====================================================================================================
-       Social (14/11/2026, 3ª versão, pedido dele: "tira o romântico, algo futurista que impressione"): um radar escuro com a
-       pessoa no núcleo, as conexões em órbitas, filtros com contagem, o link do duo (Akai Ito), os grupos em cartões e, para o
-       dono, a escolha de como o duo aparece no perfil com a prévia de cada modelo. O radar fica escuro também no tema claro.
+       Social (14/11/2026, 4ª versão, pedido dele: "elegante, clássico, estilo gótico/vampiro"): uma galeria de veludo vinho sob
+       um arco dourado com a pessoa num medalhão, as conexões em volta, filtros com contagem, o link do duo (Akai Ito: NÃO mexer,
+       ele aprovou), os grupos em cartões e, para o dono, a escolha de como o duo aparece no perfil com a prévia de cada modelo.
        ===================================================================================================== */
     :root {
       --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
@@ -75,82 +78,94 @@
     .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
     .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
 
-    /* ---------- o radar (14/11/2026, pedido dele: tirar o romântico, algo futurista que impressione) ----------
-       A pessoa é o núcleo de um radar: anéis de HUD girando em volta da foto, uma varredura que passa e "acende" cada conexão,
-       as conexões em 3 órbitas (amor perto, família e amizades no meio, colegas por fora) ligadas ao núcleo por linhas de dados
-       com pacotes de luz, grade em perspectiva embaixo e leituras reais (hora, contagens). Fica escuro também no tema claro. */
-    .ceu { position: relative; overflow: hidden; color: #e8f7ff; background: var(--ceu); padding: 34px 0 22px; isolation: isolate; }
-    @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 22px; } }
-    .ceu-fundo { position: absolute; inset: -40px; z-index: -4; background: center / cover no-repeat; filter: blur(46px) saturate(1.1) hue-rotate(-10deg); opacity: .1; transform: scale(1.1); }
+    /* ---------- a galeria gótica (14/11/2026, 4ª versão, pedido dele: "elegante, clássico, estilo gótico/vampiro, chique") ----
+       Um salão de veludo vinho sob um arco ogival dourado; atrás da pessoa, uma rosácea de catedral girando bem devagar; a pessoa
+       num medalhão de moldura dupla dourada; as conexões em medalhões menores em volta, ligadas por correntinhas de ouro com uma
+       brasa que corre; brasas subindo e, de vez em quando, uma pétala de rosa caindo. Letras Cinzel e Cormorant (Google Fonts,
+       com Georgia de reserva). Escuro também no tema claro. */
+    .ceu { padding-bottom: 46px !important; --ouro: #c9a45c; --ouro-claro: #f1dca2; --ouro-escuro: #8a6a2e; --vinho: #6e0f22; --sangue: #b3122e;
+      --serif: "Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif; --italico: "Cormorant Garamond", Georgia, serif;
+      position: relative; overflow: hidden; color: #f3e6c8; background: #070103; padding: 40px 0 26px; isolation: isolate; }
+    @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 6px; } }
+    .ceu-fundo { position: absolute; inset: -40px; z-index: -4; background: center / cover no-repeat; filter: blur(48px) saturate(.7) sepia(.5) hue-rotate(-25deg); opacity: .12; transform: scale(1.1); }
+    /* veludo: brilho vinho no meio, treliça bem fina em losangos e vinheta escura */
     .ceu::before { content: ""; position: absolute; inset: 0; z-index: -3; pointer-events: none;
       background:
-        radial-gradient(46% 34% at 50% 38%, rgba(0, 173, 238, .2), transparent 70%),
-        radial-gradient(40% 30% at 12% 8%, rgba(70, 90, 255, .13), transparent 70%),
-        radial-gradient(40% 30% at 92% 70%, rgba(0, 220, 200, .08), transparent 70%),
-        linear-gradient(180deg, #01040a, #020a12 60%, #01050a); }
-    /* linhas de varredura bem finas por cima de tudo */
-    .ceu::after { content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: .35;
-      background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px); }
-    .ceu-chao { position: absolute; left: -30%; right: -30%; bottom: -8%; height: 44%; z-index: -2; pointer-events: none; transform: perspective(260px) rotateX(62deg); transform-origin: 50% 100%;
-      background-image: linear-gradient(rgba(0, 173, 238, .45) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 173, 238, .45) 1px, transparent 1px); background-size: 34px 34px;
-      -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 92%); mask-image: linear-gradient(to top, #000 10%, transparent 92%); opacity: .4; animation: chao 3.2s linear infinite; }
-    @keyframes chao { to { background-position: 0 34px; } }
+        radial-gradient(60% 42% at 50% 36%, rgba(150, 18, 44, .42), transparent 72%),
+        radial-gradient(40% 30% at 50% 92%, rgba(201, 164, 92, .10), transparent 70%),
+        repeating-linear-gradient(45deg, rgba(201, 164, 92, .035) 0 1px, transparent 1px 26px),
+        repeating-linear-gradient(-45deg, rgba(201, 164, 92, .035) 0 1px, transparent 1px 26px),
+        linear-gradient(180deg, #0d0206, #1a040b 50%, #080104); }
+    .ceu::after { content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none;
+      background: radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(0, 0, 0, .7)); }
     .ceu-estrelas { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
-    /* cantoneiras e leituras do HUD */
-    .hud-canto { position: absolute; width: 16px; height: 16px; z-index: 6; border: 0 solid rgba(79, 210, 255, .7); pointer-events: none; }
-    .hud-canto.a { left: 10px; top: 10px; border-width: 1.5px 0 0 1.5px; } .hud-canto.b { right: 10px; top: 10px; border-width: 1.5px 1.5px 0 0; }
-    .hud-canto.c { left: 10px; bottom: 10px; border-width: 0 0 1.5px 1.5px; } .hud-canto.d { right: 10px; bottom: 10px; border-width: 0 1.5px 1.5px 0; }
-    .hud-txt { position: absolute; top: 12px; z-index: 6; font: 700 9.5px/1 var(--mono); letter-spacing: 1.6px; text-transform: uppercase; color: rgba(140, 220, 255, .75); pointer-events: none; white-space: nowrap; }
-    .hud-txt.esq { left: 32px; } .hud-txt.dir { right: 32px; display: flex; align-items: center; gap: 6px; }
-    .hud-txt.dir i { width: 6px; height: 6px; border-radius: 50%; background: #3dffa8; box-shadow: 0 0 8px #3dffa8; animation: piscar 1.6s steps(2, jump-none) infinite; }
-    @keyframes piscar { 50% { opacity: .25; } }
+    /* arabescos dourados nos 4 cantos */
+    .orn { position: absolute; z-index: 6; width: 46px; height: 46px; color: var(--ouro); opacity: .85; pointer-events: none; }
+    .orn.a { left: 8px; top: 8px; } .orn.b { right: 8px; top: 8px; transform: scaleX(-1); }
+    .orn.c { left: 8px; bottom: 8px; transform: scaleY(-1); } .orn.d { right: 8px; bottom: 8px; transform: scale(-1, -1); }
+    .orn path { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+    .orn circle { fill: currentColor; }
+    .hud-txt { position: absolute; top: 16px; z-index: 6; font: 600 9.5px/1 var(--serif); letter-spacing: 2.4px; text-transform: uppercase; color: rgba(241, 220, 162, .7); pointer-events: none; white-space: nowrap; }
+    .hud-txt.esq { left: 0; right: 0; text-align: center; }
+    .hud-txt.dir { top: auto; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 9px; letter-spacing: 2.6px; color: rgba(241, 220, 162, .5); }
+    @media (max-width: 380px) { .hud-txt { font-size: 8.5px; letter-spacing: 1.8px; } }
     .orbita { position: relative; width: min(100%, 440px); margin: 0 auto; touch-action: pan-y; }
     .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-    .orbita .guia { fill: none; stroke: rgba(79, 210, 255, .2); stroke-width: 1; stroke-dasharray: 2 5; }
-    .orbita .guia.fora { stroke: rgba(79, 210, 255, .32); stroke-dasharray: none; }
-    .orbita .marca { stroke: rgba(79, 210, 255, .35); stroke-width: 1; }
-    .orbita .marca.g { stroke: rgba(79, 210, 255, .75); stroke-width: 1.4; }
-    .orbita .hud-a { fill: none; stroke: #4fd2ff; stroke-width: 1.4; stroke-dasharray: 3 7; opacity: .75; }
-    .orbita .hud-b { fill: none; stroke: #4fd2ff; stroke-width: 2.4; stroke-linecap: round; opacity: .9; filter: drop-shadow(0 0 4px rgba(79, 210, 255, .9)); }
-    .orbita .hud-c { fill: none; stroke: rgba(79, 210, 255, .45); stroke-width: 1; }
-    .orbita .fio { stroke-width: 1.1; stroke-linecap: round; transition: opacity .25s; }
-    .orbita .fio.duo { stroke-width: 1.6; filter: drop-shadow(0 0 3px rgba(255, 77, 109, .9)); }
-    .orbita .fio.pend { stroke-dasharray: 3 4; opacity: .4; }
+    .orbita .arco { fill: none; stroke: var(--ouro); stroke-width: 1.3; opacity: .75; }
+    .orbita .arco.dentro { stroke-width: .7; opacity: .4; }
+    .orbita .rosacea { fill: none; stroke: var(--ouro); stroke-width: .9; opacity: .32; }
+    .orbita .rosacea .vitral { fill: rgba(150, 18, 44, .16); stroke: none; }
+    .orbita .rosacea .vitral.b { fill: rgba(201, 164, 92, .07); }
+    .orbita .moldura { fill: none; stroke: var(--ouro); }
+    .orbita .moldura.a { stroke-width: 1.6; opacity: .9; }
+    .orbita .moldura.b { stroke-width: .8; opacity: .55; stroke-dasharray: 1 4; stroke-linecap: round; }
+    .orbita .joia { fill: var(--ouro-claro); }
+    .orbita .fio { stroke-width: 1.1; stroke-linecap: round; stroke-dasharray: .5 5; transition: opacity .25s; }
+    .orbita .fio.duo { stroke-width: 1.7; stroke-dasharray: none; filter: drop-shadow(0 0 3px rgba(220, 30, 60, .9)); }
+    .orbita .fio.pend { opacity: .4; }
     .orbita .fio.apagado, .orbita .pacote.apagado { opacity: .06; }
-    .orbita .pacote { filter: drop-shadow(0 0 4px currentColor); }
-    .radar { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 50%; pointer-events: none; will-change: transform;
-      background: conic-gradient(from 0deg, transparent 0 290deg, rgba(0, 173, 238, .05) 300deg, rgba(0, 173, 238, .3) 356deg, rgba(160, 235, 255, .85) 359.4deg, transparent 360deg);
-      -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%); mask-image: radial-gradient(circle, #000 58%, transparent 71%); }
-    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 4px; width: 66px; padding: 0; border: 0; background: none; color: #fff;
+    .orbita .pacote { filter: drop-shadow(0 0 5px #ffcf7a); }
+    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 5px; width: 70px; padding: 0; border: 0; background: none; color: #fff;
       cursor: pointer; will-change: transform; transition: opacity .25s; }
     .astro[disabled] { cursor: default; }
     .astro .no { position: relative; display: block; }
-    .astro .avatar { width: 40px; height: 40px; font-size: 12px; box-shadow: 0 0 0 2px #020810, 0 0 0 3.2px var(--cor), 0 0 14px color-mix(in srgb, var(--cor) 60%, transparent); }
-    .astro .ping { position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--cor); opacity: 0; pointer-events: none; }
-    .astro .rot { max-width: 66px; padding: 2px 5px; border-radius: 3px; font: 700 9px/1.1 var(--mono); letter-spacing: .8px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      color: color-mix(in srgb, var(--cor) 55%, #fff); background: rgba(2, 10, 18, .72); border: 1px solid color-mix(in srgb, var(--cor) 40%, transparent); }
-    .astro.duo .avatar { width: 46px; height: 46px; box-shadow: 0 0 0 2px #020810, 0 0 0 3.6px var(--duo), 0 0 22px rgba(255, 77, 109, .75); }
-    .astro.duo .rosinha { position: absolute; right: -4px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #e0243b; box-shadow: 0 0 8px rgba(255, 77, 109, .8); }
+    .astro .avatar { width: 42px; height: 42px; font: 600 13px/1 var(--serif); background: linear-gradient(135deg, #3a0a16, #7a1428); color: var(--ouro-claro);
+      box-shadow: 0 0 0 2px #120207, 0 0 0 3.4px var(--ouro), 0 0 0 5.6px #120207, 0 0 0 6.4px rgba(201, 164, 92, .45), 0 6px 18px rgba(0, 0, 0, .7); }
+    .astro .gema { position: absolute; left: 50%; bottom: -6px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); background: var(--cor); box-shadow: 0 0 0 1.5px #120207, 0 0 6px var(--cor); }
+    .astro .rot { max-width: 70px; padding: 2px 7px 1px; font: 600 8.5px/1.4 var(--serif); letter-spacing: 1.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--ouro-claro); background: linear-gradient(180deg, rgba(40, 6, 14, .92), rgba(18, 3, 7, .92)); border-top: 1px solid rgba(201, 164, 92, .55); border-bottom: 1px solid rgba(201, 164, 92, .55); }
+    .astro.duo .avatar { width: 48px; height: 48px; box-shadow: 0 0 0 2px #120207, 0 0 0 3.6px var(--sangue), 0 0 0 5.8px #120207, 0 0 0 6.8px rgba(201, 164, 92, .7), 0 0 24px rgba(179, 18, 46, .75); }
+    .astro.duo .rot { color: #ffb8c4; border-color: rgba(179, 18, 46, .7); }
+    .astro.duo .rosinha { position: absolute; right: -5px; bottom: -4px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #e0243b; box-shadow: 0 0 0 1.5px var(--ouro), 0 0 10px rgba(179, 18, 46, .9); }
     .astro.duo .rosinha svg { width: 12px; height: 12px; }
-    .astro.pend { opacity: .55; }
-    .astro.pend .avatar { filter: grayscale(.6); box-shadow: 0 0 0 2px #020810, 0 0 0 3px color-mix(in srgb, var(--cor) 45%, transparent); }
+    .astro.pend { opacity: .5; }
+    .astro.pend .avatar { filter: grayscale(.7) sepia(.3); }
     .astro.apagado { opacity: .1 !important; pointer-events: none; }
-    .astro.centro { width: 96px; cursor: default; z-index: 20; }
-    .astro.centro .avatar { position: relative; width: 74px; height: 74px; font-size: 22px; box-shadow: 0 0 0 3px #020810, 0 0 0 4.5px rgba(160, 235, 255, .95), 0 0 34px rgba(0, 173, 238, .65); }
-    .ceu-id { text-align: center; margin-top: 2px; padding: 0 16px; }
-    .ceu-id h2 { margin: 0; font-size: 25px; font-weight: 850; letter-spacing: -.3px; text-shadow: 0 0 18px rgba(0, 173, 238, .45); }
-    .ceu-id p { margin: 5px 0 0; font: 600 12.5px/1 var(--mono); letter-spacing: .6px; color: #4fd2ff; }
-    .leituras { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 14px 16px 0; }
-    .leituras span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid rgba(79, 210, 255, .2); border-radius: 4px; background: rgba(0, 173, 238, .05);
-      font: 700 10px/1 var(--mono); letter-spacing: .8px; text-transform: uppercase; color: rgba(200, 236, 255, .72); }
-    .leituras span i { width: 6px; height: 6px; border-radius: 1px; background: var(--cor); box-shadow: 0 0 6px var(--cor); }
-    .leituras span b { color: #fff; }
-    .ceu-total { display: flex; align-items: center; gap: 8px; margin: 14px auto 0; padding: 10px 20px; border: 1px solid rgba(79, 210, 255, .55); border-radius: 0; color: #e8f7ff;
-      background: linear-gradient(180deg, rgba(0, 173, 238, .16), rgba(0, 173, 238, .04)); font-size: 13.5px; font-weight: 700; cursor: pointer;
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); box-shadow: inset 0 0 18px rgba(0, 173, 238, .18); }
-    .ceu-total b { font: 800 15px/1 var(--mono); color: #4fd2ff; }
-    @media (hover: hover) { .ceu-total:hover { background: rgba(0, 173, 238, .22); } }
-    .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 6%; margin: 0; text-align: center; color: rgba(200, 236, 255, .7); font: 600 11.5px/1.4 var(--mono); letter-spacing: .4px; padding: 0 20px; z-index: 6; }
+    .astro.centro { width: 100px; cursor: default; z-index: 20; }
+    .astro.centro .avatar { position: relative; width: 78px; height: 78px; font-size: 24px;
+      box-shadow: 0 0 0 3px #120207, 0 0 0 5px var(--ouro), 0 0 0 8px #120207, 0 0 0 9px rgba(201, 164, 92, .5), 0 0 40px rgba(179, 18, 46, .6); }
+    .vela { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; z-index: 0; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(255, 190, 110, .2), rgba(179, 18, 46, .12) 40%, transparent 68%); }
+    .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
+    .ceu-id h2 { margin: 0; font: 700 27px/1.15 var(--serif); letter-spacing: 1.2px;
+      background: linear-gradient(180deg, #fff3cf 0%, var(--ouro-claro) 35%, var(--ouro) 70%, var(--ouro-escuro)); -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .8)); }
+    .ceu-id p { margin: 4px 0 0; font: italic 500 17px/1.2 var(--italico); letter-spacing: .3px; color: #d8b9a0; }
+    .divisor { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px auto 0; width: min(70%, 260px); color: var(--ouro); }
+    .divisor::before, .divisor::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--ouro)); }
+    .divisor::after { background: linear-gradient(90deg, var(--ouro), transparent); }
+    .divisor svg { width: 16px; height: 16px; color: #e0243b; }
+    .leituras { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 14px; margin: 12px 16px 0; }
+    .leituras span { display: inline-flex; align-items: center; gap: 6px; font: 600 10px/1 var(--serif); letter-spacing: 1.6px; text-transform: uppercase; color: rgba(241, 220, 162, .72); }
+    .leituras span i { width: 6px; height: 6px; transform: rotate(45deg); background: var(--cor); box-shadow: 0 0 6px var(--cor); }
+    .leituras span b { color: #fff3cf; font-weight: 700; }
+    .ceu-total { position: relative; display: flex; align-items: center; gap: 9px; margin: 18px auto 0; padding: 11px 26px; border: 1px solid rgba(201, 164, 92, .7); border-radius: 2px; color: #fff3cf;
+      background: linear-gradient(180deg, rgba(110, 15, 34, .55), rgba(30, 4, 10, .85)); font: 600 12px/1 var(--serif); letter-spacing: 2.2px; text-transform: uppercase; cursor: pointer;
+      box-shadow: inset 0 0 0 3px rgba(18, 2, 7, .9), inset 0 0 0 4px rgba(201, 164, 92, .35), 0 8px 26px rgba(0, 0, 0, .6); }
+    .ceu-total svg { color: var(--ouro); }
+    .ceu-total b { font: 700 16px/1 var(--serif); color: var(--ouro-claro); letter-spacing: 0; }
+    @media (hover: hover) { .ceu-total:hover { background: linear-gradient(180deg, rgba(150, 18, 44, .6), rgba(40, 6, 14, .9)); } }
+    .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 4%; margin: 0; text-align: center; color: #d8b9a0; font: italic 500 16px/1.4 var(--italico); padding: 0 24px; z-index: 6; }
 
     /* ---------- filtros ---------- */
     .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 14px; scrollbar-width: none; }
@@ -301,14 +316,14 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 58px; } .astro .avatar { width: 34px; height: 34px; } .astro.duo .avatar { width: 40px; height: 40px; } .astro.centro .avatar { width: 64px; height: 64px; } }
-    @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho, .ceu-chao, .hud-txt.dir i { animation: none; } }
+    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 36px; height: 36px; } .astro.duo .avatar { width: 42px; height: 42px; } .astro.centro .avatar { width: 66px; height: 66px; } }
+    @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=163";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=164";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -337,13 +352,13 @@
     <div id="conteudo" hidden>
       <section class="ceu" aria-label="Suas conexões">
         <div class="ceu-fundo" id="ceuFundo"></div>
-        <div class="ceu-chao" aria-hidden="true"></div>
         <canvas class="ceu-estrelas" id="ceuEstrelas" aria-hidden="true"></canvas>
-        <i class="hud-canto a"></i><i class="hud-canto b"></i><i class="hud-canto c"></i><i class="hud-canto d"></i>
+        <svg class="orn a" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn b" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn c" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn d" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg>
         <span class="hud-txt esq" aria-hidden="true">Help Floripa · Social</span>
-        <span class="hud-txt dir" aria-hidden="true"><i></i><span id="hudHora">--:--:--</span></span>
-        <div class="orbita" id="orbita"><div class="radar" id="radar" aria-hidden="true"></div><svg id="orbitaSvg" aria-hidden="true"></svg></div>
+        <span class="hud-txt dir" id="hudData" aria-hidden="true"></span>
+        <div class="orbita" id="orbita"><i class="vela" id="vela" aria-hidden="true"></i><svg id="orbitaSvg" aria-hidden="true"></svg></div>
         <div class="ceu-id"><h2 id="heroNome"></h2><p id="heroNick"></p></div>
+        <div class="divisor" aria-hidden="true"><svg class="i s"><use href="#i-rosa"/></svg></div>
         <div class="leituras" id="leituras" aria-hidden="true"></div>
         <button type="button" class="ceu-total" id="ceuTotal"></button>
       </section>
@@ -513,108 +528,114 @@
       $("heroNome").textContent = dono.nome || "Usuário";
       $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
       const n = aceitas().length;
-      const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n).padStart(2, "0")), document.createTextNode(n === 1 ? " conexão" : " conexões"));
+      const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? "conexão" : "conexões"));
       t.onclick = listaDeNomes;
       const lei = $("leituras"); lei.replaceChildren();
       GRUPOS.forEach((g) => {
         const q = aceitas().filter((c) => c.cat === g.cat).length;
         const sp = el("span"); sp.dataset.cat = g.cat;
-        sp.append(el("i"), document.createTextNode(g.nome + " "), el("b", null, String(q).padStart(2, "0")));
+        sp.append(el("i"), document.createTextNode(g.nome), el("b", null, String(q)));
         lei.appendChild(sp);
       });
     }
-    // Radar (14/11/2026): a pessoa no núcleo, as conexões em 3 órbitas (amor perto, família e amizades no meio, colegas por
-    // fora) que giram devagar, linhas de dados até o núcleo com pacotes de luz, uma varredura que acende ("ping") cada
-    // conexão quando passa e anéis de HUD girando em volta da foto. Tudo por requestAnimationFrame (vale com "remover
-    // animações"); encostar o dedo segura o giro.
-    const ANEL = { duo: 0, familia: 1, amizade: 1, trabalho: 2 };
-    const RAIO = [0.5, 0, 0.97];
-    const VEL = [0, 0.045, -0.03];
-    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0, R: 0, hud: [], radar: null, varre: 0, pausa: 0, t0: 0, rot: [0, 0, 0], ultimo: 0, hora: "" };
+    // Galeria gótica (14/11/2026): a pessoa num medalhão sob um arco ogival, com a rosácea girando devagar atrás; as conexões
+    // em medalhões em volta (o duo no alto), ligadas por correntinhas de ouro com uma brasa que corre; flutuam de leve.
+    // Tudo por requestAnimationFrame (vale com "remover animações").
     const TAU = Math.PI * 2;
+    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0, rosacea: null, vela: null };
+    const ROMANOS = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+    const romano = (n) => ROMANOS.reduce((t, [v, l]) => { while (n >= v) { t += l; n -= v; } return t; }, "");
     function desenharCeu() {
       const box = $("orbita"), svg = $("orbitaSvg");
       box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
       svg.replaceChildren();
-      giro.planetas = []; giro.hud = [];
+      giro.planetas = [];
       const W = box.clientWidth; if (!W) return;
+      const hoje = new Date();
+      $("hudData").textContent = `${romano(hoje.getDate())} · ${romano(hoje.getMonth() + 1)} · ${romano(hoje.getFullYear())}`;
       const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
-      const H = Math.round(W * 0.98);
+      const H = Math.round(W * 1.04);
       box.style.height = H + "px";
-      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 34;
-      Object.assign(giro, { cx, cy, R });
+      const cx = W / 2, cy = H * 0.53;
+      Object.assign(giro, { cx, cy });
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      // varredura do radar
-      const radar = $("radar");
-      const rr = R + 24;
-      Object.assign(radar.style, { width: rr * 2 + "px", height: rr * 2 + "px", left: cx - rr + "px", top: cy - rr + "px" });
-      giro.radar = radar;
-      // órbitas (a de dentro sempre longe dos anéis da foto) e régua em volta
-      const rc = W < 381 ? 32 : 37;
-      const r0 = Math.max(R * RAIO[0], rc + 58), r2 = R * RAIO[2];
-      const raios = [r0, (r0 + r2) / 2, r2];
-      raios.forEach((r, i) => svg.appendChild(svgEl("circle", { class: "guia" + (i === 2 ? " fora" : ""), cx, cy, r: r.toFixed(1) })));
-      for (let g = 0; g < 360; g += 6) {
-        const a = (g * Math.PI) / 180, grande = g % 30 === 0, r1 = R + 10, r2 = R + (grande ? 18 : 14);
-        svg.appendChild(svgEl("line", { class: "marca" + (grande ? " g" : ""), x1: (cx + Math.cos(a) * r1).toFixed(1), y1: (cy + Math.sin(a) * r1).toFixed(1), x2: (cx + Math.cos(a) * r2).toFixed(1), y2: (cy + Math.sin(a) * r2).toFixed(1) }));
+      const vela = $("vela"); vela.style.left = cx + "px"; vela.style.top = cy + "px"; giro.vela = vela;
+      // arco ogival (dois arcos que se encontram na ponta), duas linhas
+      const arco = (m, cls) => {
+        const L = 10 + m, R = W - 10 - m, span = R - L, r = span * 0.62, topo = 6 + m * 1.6;
+        const sobe = Math.sqrt(r * r - (span / 2 - r) ** 2), mola = topo + sobe;
+        svg.appendChild(svgEl("path", { class: "arco" + cls, d: `M ${L} ${H} L ${L} ${mola.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${cx} ${topo} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${R} ${mola.toFixed(1)} L ${R} ${H}` }));
+      };
+      arco(0, ""); arco(7, " dentro");
+      // rosácea de catedral atrás da pessoa
+      const RW = Math.min(W, H) * 0.33;
+      const ros = svgEl("g", { class: "rosacea" });
+      [1, 0.82, 0.42, 0.3].forEach((f) => ros.appendChild(svgEl("circle", { cx, cy, r: (RW * f).toFixed(1) })));
+      for (let k = 0; k < 12; k++) {
+        const a1 = (k / 12) * TAU, a2 = ((k + 0.5) / 12) * TAU;
+        const p = (r, a) => `${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)}`;
+        // pétala (lanceta) do miolo até a borda
+        const ri = RW * 0.42, re = RW * 0.8, lado = 0.2;
+        ros.appendChild(svgEl("path", { class: "vitral" + (k % 2 ? " b" : ""), d: `M ${p(ri, a1 - lado)} Q ${p(re * 1.05, a1 - lado * 0.6)} ${p(re, a1)} Q ${p(re * 1.05, a1 + lado * 0.6)} ${p(ri, a1 + lado)} Z` }));
+        ros.appendChild(svgEl("path", { d: `M ${p(ri, a1 - lado)} Q ${p(re * 1.05, a1 - lado * 0.6)} ${p(re, a1)} Q ${p(re * 1.05, a1 + lado * 0.6)} ${p(ri, a1 + lado)}` }));
+        ros.appendChild(svgEl("circle", { cx: (cx + Math.cos(a2) * RW * 0.91).toFixed(1), cy: (cy + Math.sin(a2) * RW * 0.91).toFixed(1), r: (RW * 0.075).toFixed(1) }));
       }
-      // anéis do HUD em volta da foto (giram em sentidos opostos)
-      const arco = (r, de, ate) => { const p = (g) => [cx + Math.cos((g * Math.PI) / 180) * r, cy + Math.sin((g * Math.PI) / 180) * r]; const [x1, y1] = p(de), [x2, y2] = p(ate); return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`; };
-      const ga = svgEl("g", {}); ga.appendChild(svgEl("circle", { class: "hud-a", cx, cy, r: rc + 9 }));
-      const gb = svgEl("g", {}); [0, 120, 240].forEach((g) => gb.appendChild(svgEl("path", { class: "hud-b", d: arco(rc + 15, g, g + 62) })));
-      const gc = svgEl("g", {}); gc.appendChild(svgEl("circle", { class: "hud-c", cx, cy, r: rc + 21 })); [45, 135, 225, 315].forEach((g) => { const a = (g * Math.PI) / 180; gc.appendChild(svgEl("circle", { cx: (cx + Math.cos(a) * (rc + 21)).toFixed(1), cy: (cy + Math.sin(a) * (rc + 21)).toFixed(1), r: 2, fill: "#4fd2ff" })); });
-      svg.append(ga, gb, gc);
-      giro.hud = [[ga, 18], [gb, -32], [gc, 9]];
-      // lugares: cada grupo na sua órbita; se a órbita encher, o resto vai para a de fora
-      const cabe = raios.map((r) => Math.max(1, Math.floor((TAU * r) / 60)));
-      const porAnel = [[], [], []];
-      lista.forEach((c) => { let k = ANEL[c.cat] ?? 1; while (k < 2 && porAnel[k].length >= cabe[k]) k++; if (porAnel[k].length < cabe[k]) porAnel[k].push(c); });
+      svg.appendChild(ros); giro.rosacea = ros;
+      // moldura do medalhão do meio, com 8 joias
+      const rc = W < 381 ? 40 : 46;
+      svg.appendChild(svgEl("circle", { class: "moldura a", cx, cy, r: rc + 8 }));
+      svg.appendChild(svgEl("circle", { class: "moldura b", cx, cy, r: rc + 15 }));
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU - Math.PI / 2; svg.appendChild(svgEl("circle", { class: "joia", cx: (cx + Math.cos(a) * (rc + 8)).toFixed(1), cy: (cy + Math.sin(a) * (rc + 8)).toFixed(1), r: k % 2 ? 1.4 : 2.4 })); }
+      // lugares: o duo no alto; os outros espalhados em volta (e num círculo menor se não couberem)
+      const RX = W * 0.37, RY = H * 0.36;
+      const duo = lista.find((c) => c.cat === "duo" && !c.pendente);
+      const resto = lista.filter((c) => c !== duo);
+      const cabe = Math.max(1, Math.floor((TAU * Math.min(RX, RY)) / 66));
+      const fora = resto.slice(0, cabe - (duo ? 1 : 0)), dentro = resto.slice(fora.length, fora.length + 8);
+      const lugares = [];
+      const total = fora.length + (duo ? 1 : 0);
+      if (duo) lugares.push({ c: duo, a: -Math.PI / 2, f: 1 });
+      fora.forEach((c, i) => lugares.push({ c, a: -Math.PI / 2 + ((i + (duo ? 1 : 0.5)) / Math.max(total, 1)) * TAU, f: 1 }));
+      dentro.forEach((c, i) => lugares.push({ c, a: -Math.PI / 2 + ((i + 0.5) / dentro.length) * TAU, f: 0.62 }));
       const raiz = getComputedStyle(document.documentElement);
-      porAnel.forEach((itens, k) => itens.forEach((c, i) => {
-        const base = -Math.PI / 2 + (k === 0 ? 0 : k * 0.55) + (TAU * i) / itens.length;
+      lugares.forEach(({ c, a, f }, idx) => {
+        const x = cx + Math.cos(a) * RX * f, y = cy + Math.sin(a) * RY * f;
         const ap = filtro !== "todos" && filtro !== c.cat;
-        const cor = c.cat === "duo" ? "#ff4d6d" : raiz.getPropertyValue(`--${c.cat}`).trim() || "#00adee";
+        const cor = c.cat === "duo" ? "#e0243b" : raiz.getPropertyValue(`--${c.cat}`).trim() || "#00adee";
         const extra = (ap ? " apagado" : "") + (c.pendente ? " pend" : "");
-        const grad = svgEl("linearGradient", { id: "fio" + k + "_" + i, gradientUnits: "userSpaceOnUse" });
-        grad.append(svgEl("stop", { offset: "0%", "stop-color": cor, "stop-opacity": "0.05" }), svgEl("stop", { offset: "100%", "stop-color": cor, "stop-opacity": c.cat === "duo" ? "0.95" : "0.6" }));
-        svg.appendChild(grad);
-        const fio = svgEl("line", { class: "fio" + (c.cat === "duo" ? " duo" : "") + extra, stroke: `url(#fio${k}_${i})` });
-        const pacote = svgEl("circle", { class: "pacote" + extra, r: c.cat === "duo" ? "2.6" : "2", fill: cor, color: cor });
+        const ehDuo = c === duo;
+        const fio = svgEl("line", { class: "fio" + (ehDuo ? " duo" : "") + extra, stroke: ehDuo ? "#c4183a" : "#c9a45c" });
+        const pacote = svgEl("circle", { class: "pacote" + extra, r: ehDuo ? "2.4" : "1.9", fill: ehDuo ? "#ff6b83" : "#ffd98a" });
         svg.append(fio, pacote);
-        const b = el("button", "astro" + (c.cat === "duo" && !c.pendente ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
+        const b = el("button", "astro" + (ehDuo ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
         b.type = "button"; b.dataset.cat = c.cat;
-        const no = el("span", "no"); const ping = el("i", "ping");
-        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), ping);
-        if (c.cat === "duo" && !c.pendente) { const r = el("i", "rosinha"); r.appendChild(icone("rosa", "")); no.appendChild(r); }
+        const no = el("span", "no");
+        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome));
+        if (ehDuo) { const r = el("i", "rosinha"); r.appendChild(icone("rosa", "")); no.appendChild(r); } else no.appendChild(el("i", "gema"));
         b.append(no, el("span", "rot", primeiroNome(c.perfil.nome)));
         b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
-        const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
+        const fn = acaoPessoa(c); if (fn) b.addEventListener("click", fn); else b.disabled = true;
         box.appendChild(b);
-        giro.planetas.push({ b, fio, grad, pacote, ping, anel: k, base, r: raios[k], atraso: (i * 0.9 + k * 0.4) % 3, ultimoPing: 0 });
-      }));
+        giro.planetas.push({ b, fio, pacote, x, y, fase: idx * 1.9, atraso: (idx * 0.83) % 4.5 });
+      });
       const centro = el("div", "astro centro");
       centro.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
       centro.append(novoAvatar(dono.fotoPerfil, dono.nome));
       box.appendChild(centro); giro.centro = centro;
-      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Radar vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
-      if (!box.dataset.ligado) {
-        box.dataset.ligado = "1";
-        box.addEventListener("pointerdown", () => { giro.pausa = performance.now() + 1800; });
-      }
+      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "O salão ainda está vazio: convide quem é importante para você." : "Ainda sem conexões por aqui."));
       prepararEstrelas();
       posicionar(performance.now());
       if (!giro.quadro) giro.quadro = requestAnimationFrame(girar);
     }
-    // poeira de dados no fundo: pontinhos que sobem devagar e piscam, e de vez em quando um risco de luz
+    // brasas douradas subindo e, de vez em quando, uma pétala de rosa caindo
     function prepararEstrelas() {
       const cv = $("ceuEstrelas"), ceu = cv.parentElement;
       const w = ceu.clientWidth, h = ceu.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
       if (!w || !h) return;
       cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px";
-      let semente = 11; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-      const lista = Array.from({ length: Math.round((w * h) / 3200) }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() < 0.85 ? 0.4 + rnd() * 0.6 : 1 + rnd() * 0.7,
-        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, v: 3 + rnd() * 9, cor: rnd() < 0.55 ? "79,210,255" : rnd() < 0.2 ? "61,255,168" : "220,240,255" }));
-      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, riscos: [], proximo: performance.now() + 900 };
+      let semente = 13; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
+      const lista = Array.from({ length: Math.round((w * h) / 5200) }, () => ({ x: rnd() * w, y: rnd() * h, r: 0.5 + rnd() * 1.1, v: 4 + rnd() * 10, f: 0.8 + rnd() * 2, o: rnd() * 6.3, d: 6 + rnd() * 14 }));
+      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, petalas: [], proxima: performance.now() + 1500 };
     }
     function pintarEstrelas(t) {
       const e = giro.estrelas; if (!e) return;
@@ -623,53 +644,39 @@
       ctx.clearRect(0, 0, w, h);
       const s = t / 1000;
       for (const p of e.lista) {
-        const a = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
-        const y = (((p.y - s * p.v) % h) + h) % h;
-        ctx.fillStyle = `rgba(${p.cor},${(a * 0.8).toFixed(3)})`;
-        ctx.fillRect(p.x, y, p.r * 1.6, p.r * 1.6);
+        const y = (((p.y - s * p.v) % h) + h) % h, x = p.x + Math.sin(s * 0.6 + p.o) * p.d * 0.3;
+        const a = 0.25 + 0.6 * (0.5 + 0.5 * Math.sin(s * p.f + p.o)) * Math.min(1, y / (h * 0.25));
+        const g = ctx.createRadialGradient(x, y, 0, x, y, p.r * 3);
+        g.addColorStop(0, `rgba(255,214,140,${a.toFixed(3)})`); g.addColorStop(1, "rgba(255,150,60,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, p.r * 3, 0, TAU); ctx.fill();
       }
-      if (e.riscos.length < 2 && t > e.proximo) { e.riscos.push({ y: h * (0.08 + Math.random() * 0.84), t0: t, d: 900 + Math.random() * 700, dir: Math.random() < 0.5 ? 1 : -1, l: 40 + Math.random() * 70 }); e.proximo = t + 2200 + Math.random() * 3000; }
-      e.riscos = e.riscos.filter((r) => {
-        const k = (t - r.t0) / r.d; if (k >= 1) return false;
-        const x = r.dir > 0 ? -r.l + k * (w + r.l * 2) : w + r.l - k * (w + r.l * 2);
-        const g = ctx.createLinearGradient(x, 0, x + r.l * r.dir, 0);
-        g.addColorStop(0, "rgba(79,210,255,0)"); g.addColorStop(1, `rgba(160,235,255,${(Math.sin(k * Math.PI) * 0.6).toFixed(3)})`);
-        ctx.strokeStyle = g; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, r.y); ctx.lineTo(x + r.l * r.dir, r.y); ctx.stroke();
+      if (e.petalas.length < 3 && t > e.proxima) { e.petalas.push({ x: w * (0.08 + Math.random() * 0.84), t0: t, d: 11000 + Math.random() * 6000, r: 4 + Math.random() * 3, o: Math.random() * 6, giro: (Math.random() - 0.5) * 3 }); e.proxima = t + 3500 + Math.random() * 4000; }
+      e.petalas = e.petalas.filter((c) => {
+        const k = (t - c.t0) / c.d; if (k >= 1) return false;
+        const y = -12 + k * (h + 24), x = c.x + Math.sin(k * 7 + c.o) * 18;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(c.o + k * c.giro * 6); ctx.scale(1, 0.55 + 0.45 * Math.abs(Math.sin(k * 9 + c.o)));
+        const g = ctx.createLinearGradient(-c.r, 0, c.r, 0);
+        g.addColorStop(0, "rgba(120,6,24,.0)"); g.addColorStop(0.5, `rgba(196,24,58,${(Math.sin(k * Math.PI) * 0.75).toFixed(3)})`); g.addColorStop(1, "rgba(120,6,24,.0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, c.r, c.r * 0.6, 0, 0, TAU); ctx.fill(); ctx.restore();
         return true;
       });
     }
     function posicionar(t) {
-      const dt = giro.ultimo ? Math.min(0.1, (t - giro.ultimo) / 1000) : 0; giro.ultimo = t;
-      const parado = t < giro.pausa || !!document.querySelector(".folha-fundo");
-      if (!parado) { for (let k = 0; k < 3; k++) giro.rot[k] += VEL[k] * dt; }
       const s = t / 1000, cx = giro.cx, cy = giro.cy;
-      // varredura: uma volta a cada 5 s; acende quem ela alcança
-      const antes = giro.varre;
-      giro.varre = (giro.varre + dt * (TAU / 5)) % TAU;
-      if (giro.radar) giro.radar.style.transform = `rotate(${((giro.varre + Math.PI / 2) * 180) / Math.PI}deg)`;
       for (const p of giro.planetas) {
-        const ang = p.base + giro.rot[p.anel];
-        const x = cx + Math.cos(ang) * p.r, y = cy + Math.sin(ang) * p.r;
-        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -24px)`;
+        const x = p.x + Math.sin(s * 0.5 + p.fase) * 2.2, y = p.y + Math.sin(s * 0.7 + p.fase * 1.3) * 3;
+        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -26px)`;
         p.fio.setAttribute("x1", cx.toFixed(1)); p.fio.setAttribute("y1", cy.toFixed(1)); p.fio.setAttribute("x2", x.toFixed(1)); p.fio.setAttribute("y2", y.toFixed(1));
-        p.grad.setAttribute("x1", cx.toFixed(1)); p.grad.setAttribute("y1", cy.toFixed(1)); p.grad.setAttribute("x2", x.toFixed(1)); p.grad.setAttribute("y2", y.toFixed(1));
-        // pacote de dados: sai do núcleo e chega na pessoa em 1,2 s, a cada 3 s
-        const k = ((s + p.atraso) % 3) / 1.2;
+        // brasa: sai da pessoa e chega na conexão em 1,8 s, a cada 4,5 s
+        const k = ((s + p.atraso) % 4.5) / 1.8;
         if (k <= 1) {
           p.pacote.setAttribute("cx", (cx + (x - cx) * k).toFixed(1)); p.pacote.setAttribute("cy", (cy + (y - cy) * k).toFixed(1));
           p.pacote.style.display = ""; p.pacote.style.opacity = (Math.sin(k * Math.PI) * 0.95).toFixed(2);
         } else p.pacote.style.display = "none";
-        // ping quando a varredura passa por cima
-        const a = ((Math.atan2(y - cy, x - cx) % TAU) + TAU) % TAU;
-        const passou = antes <= giro.varre ? a > antes && a <= giro.varre : a > antes || a <= giro.varre;
-        if (passou && dt > 0 && t - p.ultimoPing > 1500) {
-          p.ultimoPing = t;
-          p.ping.animate?.([{ opacity: 0.95, transform: "scale(1)" }, { opacity: 0, transform: "scale(1.9)" }], { duration: 900, easing: "ease-out" });
-        }
       }
-      for (const [g, v] of giro.hud) g.setAttribute("transform", `rotate(${((s * v) % 360).toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})`);
-      const hora = new Date().toLocaleTimeString("pt-BR", { hour12: false });
-      if (hora !== giro.hora) { giro.hora = hora; const h = $("hudHora"); if (h) h.textContent = hora; }
+      if (giro.rosacea) giro.rosacea.setAttribute("transform", `rotate(${((s * 2.4) % 360).toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})`);
+      // luz de vela: tremula de leve
+      if (giro.vela) { const v = 0.82 + 0.1 * Math.sin(s * 7.3) + 0.06 * Math.sin(s * 13.1 + 1) + 0.04 * Math.sin(s * 23.7); giro.vela.style.opacity = v.toFixed(3); }
     }
     function girar(t) {
       if (!document.body.contains($("orbita"))) { giro.quadro = 0; return; }

@@ -11,6 +11,10 @@ initializeApp({ projectId: "demo-hf" });
 const db = getFirestore();
 await db.doc(`usuarios/${ids.ana}`).set({ duoCapa: null }, { merge: true });
 await db.doc(`perfis_publicos/${ids.ana}`).set({ duoCapa: null }, { merge: true });
+const { Timestamp } = await import("firebase-admin/firestore");
+const fotoTeste = (cor) => "data:image/svg+xml;base64," + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><rect width="600" height="600" fill="${cor}"/><circle cx="300" cy="300" r="160" fill="#fff" opacity=".4"/></svg>`).toString("base64");
+for (const [i, cor] of ["#7a1428", "#0b7cb3", "#c9a45c"].entries())
+  await db.doc(`diario/duo_foto_${i}`).set({ autorId: ids.bruno, nome: "Bruno Reparos", texto: "Foto do Bruno #ponte #floripa #sol", tags: ["ponte", "floripa", "sol"], mediaUrl: fotoTeste(cor), mediaTipo: "imagem", criadoEm: Timestamp.fromMillis(Date.now() - (i + 1) * 3600e3) });
 const erros = [];
 const A = await navegador({ mobile: true });
 const p = await entrar(A.ctx, "ana", "usuarios.html");
@@ -27,6 +31,8 @@ ok((await g.locator(".dg-nome").textContent()).includes("Bruno") && (await g.loc
 const caixa = await g.boundingBox(), rosa = await p.locator("#meuPerfil .pf-rosa").boundingBox(), larg = await p.evaluate(() => innerWidth);
 ok(caixa.x <= rosa.x + rosa.width && caixa.x + caixa.width <= larg && caixa.width > 180, "gaveta sai da rosinha e cabe na tela (" + Math.round(caixa.x) + "–" + Math.round(caixa.x + caixa.width) + " de " + larg + ")");
 ok(await g.locator(".dg-ir").count() === 1, "gaveta com \"Ver perfil\"");
+await p.waitForSelector("#meuPerfil .pf-duo-gaveta .dg-ft img", { timeout: 8000 }).catch(() => {});
+ok(await g.locator(".dg-ft img").count() >= 1, "gaveta com fotos do duo (" + await g.locator(".dg-ft img").count() + ")");
 await p.screenshot({ path: "saida/duo-gaveta.png" });
 await p.locator("#meuPerfil .pf-nome").tap(); await p.waitForTimeout(500);
 ok(await p.locator("#meuPerfil .pf-duo-gaveta.aberta").count() === 0, "tocar fora fecha a gaveta");
@@ -37,16 +43,16 @@ ok((await p.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "
 
 // 2) Social: radar e os modelos
 await p.goto(BASE + "social.html#duoModos"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(2500);
-ok(await p.locator(".orbita .coracao").count() === 0 && await p.locator("#radar").count() === 1 && await p.locator(".orbita .hud-b").count() === 3, "Social: radar com anéis de HUD (sem o coração)");
+ok(await p.locator(".orbita .coracao").count() === 0 && await p.locator(".orbita .arco").count() === 2 && await p.locator(".orbita .rosacea").count() === 1, "Social: galeria gótica (arco ogival e rosácea)");
 ok(await p.locator(".orbita .astro:not(.centro)").count() >= 2 && await p.locator(".orbita .astro.duo .rosinha").count() === 1, "conexões no radar, o duo com a rosinha");
 const pos1 = await p.locator(".orbita .astro:not(.centro):not(.duo)").first().evaluate((e) => e.style.transform);
 await p.waitForTimeout(1500);
 const pos2 = await p.locator(".orbita .astro:not(.centro):not(.duo)").first().evaluate((e) => e.style.transform);
-ok(pos1 !== pos2, "as órbitas giram");
-ok(/\d\d:\d\d:\d\d/.test(await p.locator("#hudHora").textContent()), "relógio do HUD");
+ok(pos1 !== pos2, "as conexões flutuam");
+ok(/^[IVXLCDM]+ · [IVXLCDM]+ · [IVXLCDM]+$/.test(await p.locator("#hudData").textContent()), "data em algarismos romanos (" + await p.locator("#hudData").textContent() + ")");
 const larguraOk = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 ok(larguraOk, "Social sem rolagem para o lado");
-await p.locator(".ceu").screenshot({ path: "saida/social-radar.png" });
+await p.locator(".ceu").screenshot({ path: "saida/social-gotico.png" });
 ok(await p.locator("#dmGrade .dm-op").count() === 4 && await p.locator("#dmGrade .dm-op.on[data-estilo=gaveta]").count() === 1, "4 modelos com prévia, gaveta marcada");
 ok(await p.locator("#dmGrade .dm-op[data-estilo=gaveta] .dm-gav").count() === 1 && await p.locator("#dmGrade .dm-op[data-estilo=bolinha] .dm-bol").count() === 1, "prévias da gaveta e da bolinha");
 await p.locator("#duoModos").screenshot({ path: "saida/duo-modelos.png" });
@@ -71,6 +77,15 @@ ok((await db.doc(`usuarios/${ids.ana}`).get()).data().duoCapa === "gaveta", "vol
 // Configurações
 await p.goto(BASE + "configuracoes.html"); await p.waitForTimeout(3000);
 ok(await p.locator("#cfgDuoCapa button").count() === 4 && await p.locator("#cfgDuoCapa button.on[data-valor=gaveta]").count() === 1 && await p.locator("#cfgDuoClique").isChecked(), "Configurações: os 4 modelos e o toque");
+// #hashtags num símbolo só
+await p.goto(BASE + "feed.html"); await p.waitForSelector(".hf-tags-btn", { timeout: 25000 }).catch(() => {}); await p.waitForTimeout(4000);
+const tg = p.locator(".post-tags.hf-tags").filter({ has: p.locator(".hf-tags-btn") }).first();
+ok(await tg.locator(".hf-tags-btn").count() === 1 && !(await tg.locator(".hf-tags-pop").isVisible()), "hashtags guardadas no símbolo \"#\" com o número (" + (await tg.locator(".hf-tags-n").textContent().catch(() => "")) + ")");
+await tg.locator(".hf-tags-btn").scrollIntoViewIfNeeded(); await tg.locator(".hf-tags-btn").tap(); await p.waitForTimeout(400);
+ok(await tg.locator(".hf-tags-pop").isVisible() && await tg.locator(".hf-tags-pop .tag-chip").count() >= 1, "tocar no # mostra as hashtags");
+await tg.screenshot({ path: "saida/hashtags-abertas.png" });
+await tg.locator(".hf-tags-btn").tap(); await p.waitForTimeout(300);
+ok(!(await tg.locator(".hf-tags-pop").isVisible()), "tocar de novo fecha");
 // tema escuro, computador
 const B = await navegador({ mobile: false });
 await B.ctx.addInitScript(() => localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })));

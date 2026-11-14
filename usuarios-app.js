@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=163";
+} from "./rede.js?v=164";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -17,10 +17,10 @@ import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, mon
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=135";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=120";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=136";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=121";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
-import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=2";
+import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=3";
 import { lerModoDuo } from "./duo-modo.js?v=1";
 
 // ======================================================
@@ -231,7 +231,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=127").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=128").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -691,7 +691,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=130").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=131").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -800,7 +800,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=130").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=131").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1570,7 +1570,28 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
     if (podeAbrir) corpo.type = "button";
     corpo.append(av, tx);
     if (podeAbrir) { const ir = el("span", "dg-ir"); ir.append(document.createTextNode("Ver perfil"), icone("avancar", "i")); tx.appendChild(ir); }
-    caixa.append(el("i", "dg-luz"), topo, fechar, corpo);
+    // fotos recentes do duo (lidas só na 1ª vez que a gaveta abre)
+    const fotos = el("div", "dg-fotos");
+    caixa.append(el("i", "dg-luz"), topo, fechar, corpo, fotos);
+    caixa._fotos = () => {
+      if (caixa._lidas) return; caixa._lidas = true;
+      fotos.classList.add("lendo");
+      fotos.replaceChildren(...Array.from({ length: 4 }, () => el("i", "dg-ft vazio")));
+      fotosDoDuo(duo.outro).then((lista) => {
+        fotos.classList.remove("lendo");
+        if (!lista.length) { fotos.replaceChildren(el("span", "dg-sem", "Ainda sem fotos publicadas")); return; }
+        fotos.className = "dg-fotos q" + Math.min(lista.length, 4);
+        fotos.replaceChildren(...lista.slice(0, 4).map((p) => {
+          const b = el(podeAbrir ? "button" : "span", "dg-ft");
+          if (podeAbrir) { b.type = "button"; b.setAttribute("aria-label", "Abrir a publicação"); }
+          const img = document.createElement("img"); img.src = p.foto; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+          b.appendChild(img);
+          if (p.varias) b.appendChild(el("i", "dg-mais"));
+          if (podeAbrir) b.addEventListener("click", (e) => { e.stopPropagation(); esconder(); abrirPostPorLink(p.id); });
+          return b;
+        }));
+      }).catch(() => { fotos.classList.remove("lendo"); fotos.replaceChildren(); caixa._lidas = false; });
+    };
     faixa.appendChild(caixa);
     obterPerfil(duo.outro).then((o) => {
       pintarAvatar(av, o.fotoPerfil, o.nome);
@@ -1624,12 +1645,27 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
       const r = btn.getBoundingClientRect(), f = faixa.getBoundingClientRect();
       caixa.style.setProperty("--dg-x", Math.round(r.left + r.width / 2 - f.left) + "px");
     }
+    caixa._fotos?.();
     caixa.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => caixa.classList.add("aberta")));
     btn.setAttribute("aria-expanded", "true"); btn.classList.add("ativa");
     navigator.vibrate?.(6);
     document.addEventListener("pointerdown", fora, true); document.addEventListener("keydown", tecla);
     clearTimeout(tempo); if (estilo === "bolinha") tempo = setTimeout(esconder, 5000);
   });
+}
+
+// Fotos recentes do duo para a gaveta: só publicações com foto, para todos (sem público escolhido), já no ar.
+const fotosDuoCache = new Map();
+function fotosDoDuo(uid) {
+  if (!fotosDuoCache.has(uid)) {
+    fotosDuoCache.set(uid, fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(12)))
+      .then((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .filter((p) => !p.publico && !p.guardado && !((p.ocultoAte?.toMillis?.() ?? 0) > Date.now()) && !((p.agendadoPara?.toMillis?.() ?? 0) > Date.now()))
+        .map((p) => { const f = fotosDoPost(p); return f.length ? { id: p.id, foto: f[0], varias: f.length > 1 } : null; })
+        .filter(Boolean))
+      .catch((e) => { fotosDuoCache.delete(uid); throw e; }));
+  }
+  return fotosDuoCache.get(uid);
 }
 
 // ======================================================
