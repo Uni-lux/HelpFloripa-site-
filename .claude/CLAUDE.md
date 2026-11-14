@@ -2652,7 +2652,10 @@ chat da equipe).
   tracejados), nome + "N conexões" (abre a lista), filtros fixos com contagem (`desenharFiltros`, apagam o resto no céu),
   cartão **Akai Ito** com o fio vermelho animado e o coração (`desenharDuo`), grupos em **cartões-retrato** que deslizam
   (`desenharGrupos`, "Adicionar · N vagas" para o dono) e o painel de privacidade. Mapa antigo (`desenharMapa`, vagas) saiu.
-  `t-perfil-social.mjs` (21).
+  `t-perfil-social.mjs` (21). **3ª volta (pedido dele):** o FORMATO do painel e a capa voltaram ao de antes (no claro o perfil
+  fica no cartão arredondado com margem; capa `clamp(140px, 36vw, 220px)`, sem o 3:1) — só a organização de dentro é nova.
+  Lista de publicações: fotos/vídeos no `.post-midia` do Diário e texto com imagem em `.pfd-casada` (antes o cartão casado
+  ficava com a foto encolhida e faixas pretas); `.post-midia:has(> .casada)` sem fundo preto na folha da publicação.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

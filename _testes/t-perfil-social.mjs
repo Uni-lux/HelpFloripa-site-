@@ -10,8 +10,8 @@ const A = await navegador({ mobile: true });
 const p = await entrar(A.ctx, "ana", "usuarios.html");
 p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector("#meuPerfil .pf-nome", { timeout: 25000 }); await p.waitForTimeout(3000);
-const capa = await p.evaluate(() => { const r = document.querySelector("#meuPerfil .pf-capa").getBoundingClientRect(); return r.width / r.height; });
-ok(Math.abs(capa - 3) < 0.05, "capa 3:1 no seu perfil (" + capa.toFixed(2) + ")");
+const painel = await p.evaluate(() => ({ raio: parseFloat(getComputedStyle(document.querySelector("#meuPerfil > .pf2")).borderTopLeftRadius), capa: document.querySelector("#meuPerfil .pf-capa").getBoundingClientRect().height }));
+ok(painel.raio >= 20 && painel.capa >= 140, "tema claro: perfil no painel de antes, com a capa alta (" + JSON.stringify(painel) + ")");
 ok(await p.locator("#meuPerfil .pf-rosa").count() === 1, "rosinha do duo no seu perfil");
 // segurar uma publicação
 await p.evaluate(() => document.querySelector("#gradePosts .tile").scrollIntoView({ block: "center" })); await p.waitForTimeout(300);
@@ -29,7 +29,7 @@ const f = await p.evaluate(() => {
   const r = it[2]?.getBoundingClientRect(), cr = c.getBoundingClientRect();
   return { n: it.length, terceira: r && Math.abs(r.top - cr.top) < 4, barra: !!it[2]?.querySelector(".interacoes") };
 });
-ok(f.n === 4, "lista com as 4 publicações (" + f.n + ")");
+ok(f.n === 5, "lista com as 5 publicações (" + f.n + ")");
 ok(f.terceira, "a lista abre na publicação tocada");
 ok(f.barra, "a publicação aberta tem estrelas e ações");
 await p.locator("#feedLista .pfd-item").nth(2).locator(".pfd-mais").click(); await p.waitForTimeout(400);
@@ -42,9 +42,9 @@ await p.goto(`http://127.0.0.1:5057/usuarios.html?perfil=${ids.bruno}`); await p
 const v = await p.evaluate(() => {
   const r = document.querySelector("#ppCabecalho .pf-capa").getBoundingClientRect();
   const neg = [...document.querySelectorAll("#ppCabecalho [data-el=negocios] .vinculo")].map((x) => { const s = getComputedStyle(x.querySelector(".nome")); return { tipo: x.querySelector(".papel").textContent, nome: s.display !== "none" }; });
-  return { capa: r.width / r.height, neg, sw: document.documentElement.scrollWidth, vw: innerWidth };
+  return { capa: r.height, neg, sw: document.documentElement.scrollWidth, vw: innerWidth };
 });
-ok(Math.abs(v.capa - 3) < 0.05, "capa 3:1 no perfil de quem visita (" + v.capa.toFixed(2) + ")");
+ok(v.capa >= 140, "capa alta no perfil de quem visita (" + Math.round(v.capa) + " px)");
 ok(v.neg.length >= 1 && v.neg.every((n) => n.nome && n.tipo), "negócios em bolinhas com nome e tipo (" + v.neg.map((n) => n.tipo).join(", ") + ")");
 ok(v.sw <= v.vw, "sem passar da largura");
 // Social, Configurações e Notificações: topo de app, sem a marca antiga
