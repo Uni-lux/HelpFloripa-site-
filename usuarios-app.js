@@ -13,7 +13,7 @@ import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas } from "./avaliacoes.js?v=20";
-import { lerLinks, pintarLinks, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=2";
+import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=3";
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
@@ -68,7 +68,8 @@ function aplicarPref(h, pref) {
   const pron = String(pref?.pronomes || (meu ? dados.pronomes : "") || "").trim(), prof = String(pref?.profissao || (meu ? dados.profissao : "") || "").trim();
   const ep = h.el("pron"), ef = h.el("prof");
   if (ep) { ep.textContent = pron; ep.hidden = !pron; }
-  if (ef) { ef.textContent = prof; ef.hidden = !prof; }
+  h._prof = prof;
+  if (ef) pintarProfissao(ef, prof, h._linkedin, { proprio: meu });
 }
 
 function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = {}) {
@@ -106,8 +107,15 @@ function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = 
 function pintarLinksPerfil(h, uid, { proprio = false } = {}) {
   const alvo = h?.el("links");
   if (!alvo) return;
-  lerLinks(fb, uid, { proprio, dados: proprio ? dados : null })
-    .then((l) => { if (h.el("links") === alvo) pintarLinks(alvo, l, { proprio }); })
+  h._linkedin = null;
+  // pref_publicas.redes diz quais redes a pessoa tem: lê só essas (sem o campo, tenta todas).
+  prefPublicas(uid).then((pref) => lerLinks(fb, uid, { proprio, dados: proprio ? dados : null, redes: pref?.redes }))
+    .then((l) => {
+      if (h.el("links") !== alvo) return;
+      pintarLinks(alvo, l, { proprio });
+      h._linkedin = l.linkedin || null;
+      pintarProfissao(h.el("prof"), h._prof || "", h._linkedin, { proprio });
+    })
     .catch(() => {});
 }
 
@@ -860,8 +868,8 @@ function abrirEditar(foco) {
   mostrarStatusNick("3 a 20 caracteres: letras minúsculas, números, ponto e _");
   pintarEditor();
   // Links: o que está guardado (contatos_perfil ou a cópia na conta).
-  edLinks = montarEditorLinks($("edLinksLista"), dados.linksPerfil || {});
-  if (!dados.linksPerfil) lerLinks(fb, eu.uid, { proprio: true, dados }).then((l) => { if (Object.keys(l).length && $("folhaEditar").classList.contains("aberta")) edLinks = montarEditorLinks($("edLinksLista"), l); }).catch(() => {});
+  edLinks = montarEditorLinks($("edLinksLista"), dados.linksPerfil || {}, { boxLinkedin: $("edLinkedin") });
+  if (!dados.linksPerfil) lerLinks(fb, eu.uid, { proprio: true, dados }).then((l) => { if (Object.keys(l).length && $("folhaEditar").classList.contains("aberta")) edLinks = montarEditorLinks($("edLinksLista"), l, { boxLinkedin: $("edLinkedin") }); }).catch(() => {});
   // Pronomes e profissão (opcionais)
   const pron = dados.pronomes || "";
   const conhecido = ["", "ele/dele", "ela/dela", "elu/delu", "ele/ela"].includes(pron);

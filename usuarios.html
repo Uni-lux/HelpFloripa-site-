@@ -29,7 +29,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
-  <link rel="stylesheet" href="rede.css?v=110" />
+  <link rel="stylesheet" href="rede.css?v=111" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -157,6 +157,11 @@
             <datalist id="edProfissoes"><option value="Artista"></option><option value="Advogado(a)"></option><option value="Arquiteto(a)"></option><option value="Atleta"></option><option value="Autônomo(a)"></option><option value="CEO"></option><option value="Criador(a) de conteúdo"></option><option value="Designer"></option><option value="Desenvolvedor(a)"></option><option value="Empreendedor(a)"></option><option value="Engenheiro(a)"></option><option value="Estudante"></option><option value="Fotógrafo(a)"></option><option value="Influenciador(a) digital"></option><option value="Médico(a)"></option><option value="Músico(a)"></option><option value="Professor(a)"></option><option value="Vendedor(a)"></option></datalist>
           </div>
         </div>
+        <div class="campo ed-campo-in">
+          <span class="ed-rot">LinkedIn <small>(opcional)</small></span>
+          <div id="edLinkedin" class="ed-linkedin"></div>
+          <div class="ajuda"><span>Aparece junto da profissão: tocar nela abre o seu perfil do LinkedIn</span></div>
+        </div>
         <div id="edLocal"></div>
         <div class="campo">
           <label for="edTelefone">Telefone</label>
@@ -166,7 +171,7 @@
         <div class="campo"><label for="edEmail">E-mail</label><input id="edEmail" disabled /></div>
         <div class="ed-links" id="edLinks">
           <h3 class="ed-sec">Redes e contatos</h3>
-          <p class="ed-sec-sub">Aparecem como ícones embaixo da bio. Escolha quem pode ver cada um; em branco, não aparece.</p>
+          <p class="ed-sec-sub">Aparecem como ícones embaixo da bio. Em cada uma, escolha quem vê: Todos, Seguidores ou Amigos (vocês se seguem). Em branco, não aparece.</p>
           <div id="edLinksLista" class="ed-redes"></div>
         </div>
       </div>
@@ -253,6 +258,6 @@
     </div>
   </div>
 
-  <script type="module" src="usuarios-app.js?v=61"></script>
+  <script type="module" src="usuarios-app.js?v=62"></script>
 </body>
 </html>

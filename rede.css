@@ -4185,3 +4185,76 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .pf2 .pf-ident { padding-top: 16px; }
 .folha-perfil .pp-topo .icone-btn:focus { outline: none; box-shadow: none; }
 .folha-perfil .pp-topo .icone-btn:focus-visible { background: var(--hover); }
+
+/* =====================================================================================================
+   Perfil: redes organizadas (14/11/2026, prints dele). Números sem corte ("publicações" inteiro), redes em cartões que cabem
+   na tela (rede · nome + campo · quem vê), LinkedIn na profissão, "+N" quando passam de 5 ícones.
+   ===================================================================================================== */
+.pf2 .pf-linha-av { gap: 10px; }
+.pf2 .pf-linha-av .pf-stat { flex: 1 1 auto; padding: 4px 1px; }
+.pf2 .pf-linha-av .pf-stat .rot { font-size: 12px; white-space: nowrap; letter-spacing: -.1px; }
+@media (max-width: 380px) { .pf2 .pf-linha-av .pf-stat .rot { font-size: 11.5px; letter-spacing: -.2px; } }
+@media (max-width: 340px) { .pf2 .pf-linha-av .pf-stat .rot { font-size: 10.5px; } }
+/* profissão com LinkedIn */
+.pf2 .pf-prof { display: block; }
+.pf2 .pf-prof[hidden] { display: none; }
+.pf-prof-in { position: relative; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; color: var(--muted); text-decoration: none; font-weight: 500; }
+.pf-prof-in .pl-ic { flex: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; color: var(--text); }
+.pf-prof-in .pf-prof-tx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-prof-in .pl-seta { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.pf-prof-in .pf-link-priv { position: static; width: 14px; height: 14px; border: 0; }
+@media (hover: hover) { .pf-prof-in:hover { color: #0a66c2; } .pf-prof-in:hover .pl-ic { color: #0a66c2; } }
+/* "+N" e cores no hover das redes novas */
+.pf-link.pf-link-n { width: auto; min-width: 34px; padding: 0 10px; font: 700 13px/1 inherit; font-family: inherit; color: var(--muted); }
+@media (hover: hover) {
+  .pf-link.telegram:hover { color: #229ed9; } .pf-link.kwai:hover { color: #ff7a00; } .pf-link.facebook:hover { color: #1877f2; }
+}
+/* lista de todas as redes */
+.plr-fundo { position: fixed; inset: 0; z-index: 6000; background: rgba(0, 0, 0, .5); display: flex; align-items: flex-end; justify-content: center; }
+.plr { width: min(480px, 100%); max-height: 80vh; overflow: auto; background: var(--panel); color: var(--text); border-radius: 22px 22px 0 0;
+  padding: 6px 12px calc(14px + var(--sab, env(safe-area-inset-bottom, 0px))); box-shadow: 0 -10px 40px rgba(0, 0, 0, .3); }
+@media (min-width: 700px) { .plr-fundo { align-items: center; } .plr { border-radius: 22px; } }
+.plr-topo { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 6px; font-size: 17px; }
+.plr-x { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--panel-2); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.plr-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.plr-lista { display: grid; gap: 2px; }
+.plr-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 14px; color: var(--text); text-decoration: none; }
+.plr-item > .pl-ic { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.plr-tx { flex: 1; min-width: 0; display: grid; }
+.plr-tx b { font-size: 15px; font-weight: 700; }
+.plr-tx small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plr-item .pl-seta { flex: none; width: 15px; height: 15px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.plr-item .pf-link-priv { position: static; flex: none; }
+@media (hover: hover) { .plr-item:hover { background: var(--hover); } }
+/* editor: cada rede num cartão (ícone · nome + campo · quem vê), sem passar da tela */
+.ed-redes { display: grid; gap: 10px; min-width: 0; }
+.ed-redes-lista, .ed-linkedin { display: grid; gap: 8px; min-width: 0; }
+.ed-rede { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0;
+  padding: 7px 8px 7px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.ed-rede:focus-within { border-color: var(--accent); }
+.ed-rede-ic { width: 36px; height: 36px; border: 0; background: var(--panel-2); }
+.ed-rede-ic .pl-ic { width: 19px; height: 19px; }
+.ed-rede-campo { display: grid; min-width: 0; margin: 0; cursor: text; }
+.ed-rede-nome { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.2; }
+.campo .ed-rede input, .ed-rede input { width: 100%; min-width: 0; height: auto; padding: 2px 0 0; margin: 0; border: 0; border-radius: 0; background: transparent;
+  color: var(--text); font: inherit; font-size: 15px; outline: none; box-shadow: none; }
+.ed-rede input::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+.ed-rede-ver { position: relative; display: block; margin: 0; }
+.campo .ed-rede select, .ed-rede select { -webkit-appearance: none; appearance: none; width: 104px; max-width: none; height: 32px; margin: 0;
+  padding: 0 24px 0 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ed-rede-seta { position: absolute; right: 8px; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); pointer-events: none;
+  fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 360px) { .campo .ed-rede select, .ed-rede select { width: 96px; padding-left: 9px; font-size: 12.5px; } .ed-rede { gap: 8px; padding-left: 8px; } }
+.ed-redes-mais { display: flex; flex-wrap: wrap; gap: 8px; }
+.ed-redes-mais[hidden] { display: none; }
+.ed-rede-add { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 9px; border-radius: 999px; border: 1px dashed var(--line);
+  background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ed-rede-add svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ed-rede-add .ed-rede-mais { width: 13px; height: 13px; stroke-width: 2.4; color: var(--muted); }
+@media (hover: hover) { .ed-rede-add:hover { border-color: var(--accent); color: var(--accent); } }
+.ed-campo-in .ed-rot { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.ed-campo-in .ed-rot small { color: var(--muted); font-weight: 500; }
+.ed-linkedin .ed-rede-nome { display: none; }
+.ed-links, #folhaEditar .folha-corpo { min-width: 0; overflow-x: hidden; }
+.ed-campo-in { margin-bottom: 16px; }

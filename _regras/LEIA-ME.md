@@ -173,16 +173,20 @@
 >
 > **Perfil como nas redes (13/11/2026):** `contatos_perfil` aceita também `tiktok`, `x` e `youtube`; `pref_publicas` ganhou
 > `pronomes` (≤24) e `profissao` (≤40), opcionais, mostrados no perfil. Continuam **23 partes**, 1180 testes.
+>
+> **Redes do perfil (14/11/2026):** `contatos_perfil` aceita também `telegram`, `kwai`, `facebook` e `linkedin` (tipo + valor
+> num regex só); quem vê agora é `todos`, `seguidores` ou `amigos` (vocês se seguem: as duas `relacoes` existem); `ninguem`
+> antigo só o dono vê. `pref_publicas.redes` = lista dos tipos que a pessoa tem (sem os valores). Continuam **23 partes**, 1188 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (266.693 bytes, 4.101 linhas, sha256 começa com `0bf41ef8c38a4978`).
+- Arquivo de origem: `firestore.rules` (267.205 bytes. 4.103 linhas. sha256 começa com `3c81e4980a86a77d`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 23 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 23 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1180 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1188 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

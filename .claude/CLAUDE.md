@@ -2619,6 +2619,17 @@ chat da equipe).
   manifest (`background_color` nas versões antigas, `theme_color` nas novas), que era #000 desde o #201. Os dois saíram do
   `manifest.webmanifest`: a barra segue o tema claro/escuro do celular e o status bar continua pelo `<meta theme-color>` de
   cada página. Vale depois que o Android atualizar o app (alguns dias) ou reinstalando. Tela de abertura do app ficou branca.
+- **Redes do perfil organizadas (14/11/2026, PR depois do #218, MUDA REGRAS — não publicadas; 23 partes, 1188 testes):** prints
+  dele. Números ao lado da foto sem corte ("publicações" inteiro: `flex: 1 1 auto`, 12 px, nowrap). `links-perfil.js` (v=3): 9 redes
+  `TIPOS_LINK` instagram, whatsapp, telegram, tiktok, kwai, youtube, facebook, x, linkedin (`limparTelegram/Kwai/Facebook/Linkedin`;
+  Facebook por número = `profile.php?id=`; LinkedIn guardado codificado). Quem vê: **Todos · Seguidores · Amigos** (= vocês se
+  seguem; `ninguem` antigo vira Amigos no editor). **LinkedIn na profissão** (`pintarProfissao`: ícone + profissão + seta, abre o
+  LinkedIn; sem profissão mostra "LinkedIn"); fica fora da fileira. Fileira: até 5 ícones, com mais vira 4 + "+N" → lista
+  `abrirRedes` (`.plr-fundo`, nas CAMADAS do voltar.js). Editor: cada rede num cartão `.ed-rede` (ícone · nome + campo · pílula
+  de quem vê, grade que cabe em 360 px — antes passava da tela), Instagram/WhatsApp/TikTok sempre e as outras pelos botões
+  `.ed-rede-add`; LinkedIn em `#edLinkedin` embaixo da profissão. `pref_publicas.redes` (lista dos tipos, regra nova) faz o
+  visitante ler só as redes que existem (`lerLinks({redes})`; sem o campo lê as 9). Regras: tipo + valor num regex só;
+  get de `amigos` exige as duas `relacoes`. Teste `t-perfil-organizado.mjs` (23).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2628,7 +2639,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1180 testes; inclui os links do perfil (`contatos_perfil`), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1188 testes; inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

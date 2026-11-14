@@ -5,7 +5,10 @@
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao', 'redes'])
+                    // quais redes a pessoa tem no perfil (14/11/2026; só os nomes, os valores ficam em contatos_perfil)
+                    && (!('redes' in request.resource.data) || (request.resource.data.redes is list && request.resource.data.redes.size() <= 9
+                        && request.resource.data.redes.join(',').matches('^((instagram|whatsapp|telegram|tiktok|kwai|x|youtube|facebook|linkedin)(,|$))*$')))
                     // pronomes e profissão/ramo (13/11/2026, opcionais, aparecem no perfil)
                     && request.resource.data.get('pronomes', '') is string && request.resource.data.get('pronomes', '').size() <= 24
                     && request.resource.data.get('profissao', '') is string && request.resource.data.get('profissao', '').size() <= 40
@@ -24,27 +27,26 @@
       allow delete: if logado() && uid == request.auth.uid;
     }
 
-    // LINKS DO PERFIL (13/11/2026): contatos_perfil/{uid}_{instagram|whatsapp|tiktok|x|youtube} {uid, tipo, valor, ver, em}.
-    // Quem vê: todos (com login), só quem segue a pessoa ou ninguém; o dono e a moderação sempre. Bloqueio esconde.
+    // LINKS DO PERFIL (13/11/2026; 14/11 com Telegram, Kwai, Facebook e LinkedIn): contatos_perfil/{uid}_{tipo}
+    // {uid, tipo, valor, ver, em}. Quem vê: todos (com login), seguidores (quem segue a pessoa) ou amigos (vocês se seguem);
+    // o dono e a moderação sempre. Bloqueio esconde. 'ninguem' (antigo) só o dono vê. Tipo + valor conferidos num regex só.
     match /contatos_perfil/{id} {
       allow get: if logado() && resource != null
                     && (resource.data.uid == request.auth.uid || admin()
                         || (!bloqueioEntre(request.auth.uid, resource.data.uid)
                             && (resource.data.ver == 'todos'
-                                || (resource.data.ver == 'seguidores'
-                                    && exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))))));
+                                || (resource.data.ver in ['seguidores', 'amigos']
+                                    && exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))
+                                    && (resource.data.ver == 'seguidores'
+                                        || exists(/databases/$(database)/documents/relacoes/$(resource.data.uid + '_' + request.auth.uid)))))));
       allow list: if false;
       allow create, update: if logado()
                     && request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
                     && request.resource.data.uid == request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.tipo
-                    && request.resource.data.ver in ['todos', 'seguidores', 'ninguem']
-                    && request.resource.data.valor is string
-                    && ((request.resource.data.tipo == 'instagram' && request.resource.data.valor.matches('^[A-Za-z0-9._]{1,30}$'))
-                        || (request.resource.data.tipo == 'whatsapp' && request.resource.data.valor.matches('^[0-9]{10,13}$'))
-                        || (request.resource.data.tipo == 'tiktok' && request.resource.data.valor.matches('^[A-Za-z0-9._]{2,24}$'))
-                        || (request.resource.data.tipo == 'x' && request.resource.data.valor.matches('^[A-Za-z0-9_]{1,15}$'))
-                        || (request.resource.data.tipo == 'youtube' && request.resource.data.valor.matches('^[A-Za-z0-9._-]{3,30}$')))
+                    && request.resource.data.ver in ['todos', 'seguidores', 'amigos']
+                    && request.resource.data.tipo is string && request.resource.data.valor is string
+                    && (request.resource.data.tipo + ' ' + request.resource.data.valor).matches('^(instagram [A-Za-z0-9._]{1,30}|whatsapp [0-9]{10,13}|telegram [A-Za-z0-9_]{5,32}|tiktok [A-Za-z0-9._]{2,24}|kwai [A-Za-z0-9._]{2,30}|x [A-Za-z0-9_]{1,15}|youtube [A-Za-z0-9._-]{3,30}|facebook [A-Za-z0-9.]{5,50}|linkedin [A-Za-z0-9%_-]{3,100})$')
                     && request.resource.data.em == request.time;
       allow delete: if logado() && (resource.data.uid == request.auth.uid || admin());
     }
@@ -161,14 +163,6 @@
             || q == 'todos'
             || (q == 'seguidores' && segue(request.auth.uid, p.autorId))
             || (q == 'mutuos' && segue(request.auth.uid, p.autorId) && segue(p.autorId, request.auth.uid));
-      }
-
-      function respostaOk(d) {
-        return (!('respostaA' in d) && !('respostaAutorId' in d))
-            || (d.respostaA is string
-                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
-                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
-                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
       }
 
 // ===== FIM DA PARTE 17 DE 23 =====

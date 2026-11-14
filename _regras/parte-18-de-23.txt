@@ -1,3 +1,11 @@
+      function respostaOk(d) {
+        return (!('respostaA' in d) && !('respostaAutorId' in d))
+            || (d.respostaA is string
+                && exists(/databases/$(database)/documents/comentarios/$(d.respostaA))
+                && get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.postId == d.postId
+                && d.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(d.respostaA)).data.autorId);
+      }
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'midia', 'enquete', 'criadoEm'])
