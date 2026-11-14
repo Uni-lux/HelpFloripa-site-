@@ -2630,6 +2630,20 @@ chat da equipe).
   `.ed-rede-add`; LinkedIn em `#edLinkedin` embaixo da profissão. `pref_publicas.redes` (lista dos tipos, regra nova) faz o
   visitante ler só as redes que existem (`lerLinks({redes})`; sem o campo lê as 9). Regras: tipo + valor num regex só;
   get de `amigos` exige as duas `relacoes`. Teste `t-perfil-organizado.mjs` (23).
+- **Perfil e Social elegantes (14/11/2026, PR depois do #219, MUDA REGRA — não publicada; 23 partes, 1190 testes):** prints
+  dele. Capa **3:1** igual no seu perfil e no de quem visita (`.pf2 .pf-capa` aspect-ratio, sem o escurecido embaixo no
+  escuro), perfil sem cartão também no claro. **Rosinha: bolinha branca com a flor vermelha (ele disse que está perfeita,
+  NÃO mudar)**; a fotinho do duo virou cartão de vidro ao lado (`.pf-duo-bolha`, "Duo · Akai Ito" + nome em `.nm small/b`).
+  Negócios no perfil em cartões de 2 linhas (nome · tipo na cor da classe). **E-mail de contato** nas redes (`email`,
+  `limparEmail`, mailto, padrão Seguidores; regra no regex de `contatos_perfil`). Publicações da grade: **segurar** =
+  prévia grande (`abrirPreviaPub`, `.pp-previa` nas CAMADAS do voltar.js: Abrir, Salvar, Compartilhar, Copiar link);
+  **tocar** = lista rolando (`abrirFeedPerfil`/`itemFeed` na folha `#folhaFeed`, abre na tocada, barra de estrelas e vista só
+  quando aparece, ⋯ com Editar/Estatísticas/Comentários/Apagar ou Denunciar; `apagarPublicacao`/`denunciarPublicacao`
+  servem a folha antiga também). Social refeito (topo de app voltar · "Meu social"/@ · "+", cabeçalho sem cartão, números em
+  pílula, duo em vidro rosado, grupos com etiqueta; preto no escuro). Configurações e Notificações com topo de app
+  (`.topo.topo-app`, `a[data-voltar]` volta pela história no rede.js) e subtítulo `.sub-pagina`; slogan da marca sem quebrar
+  (`.marca small` nowrap). Brecha anotada em `_regras/REGRAS-PENDENTES.md`: a visibilidade do Social só vale no app.
+  Testes `t-perfil-social.mjs` (19, precisa de `dados-perfil.mjs`), `t-perfil-organizado` e `t-perfil` atualizados.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2639,7 +2653,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1188 testes; inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1190 testes; inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

@@ -204,12 +204,79 @@
       .diretorio { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+    /* =====================================================================================================
+       Social refeito (14/11/2026, prints dele): topo de app (voltar · título · adicionar), cabeçalho sem cartão com a capa
+       3:1, números em pílula, duo em vidro rosado, mapa e grupos com o mesmo acabamento do perfil. Preto no tema escuro.
+       ===================================================================================================== */
+    :root[data-theme="dark"] { --bg: #000; --panel: #0b0e11; --panel-2: #14191d; --hover: #171d22; --line: rgba(255, 255, 255, .1); --anel: rgba(255, 255, 255, .07); }
+    :root[data-theme="light"] { --bg: #f2f4f6; --panel: #ffffff; --panel-2: #f4f6f8; --line: #e4e9ed; }
+    .topo.topo-app { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; height: calc(54px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 6px 0;
+      background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    :root[data-theme="dark"] .topo.topo-app { background: #000; border-bottom-color: rgba(255, 255, 255, .12); }
+    .topo-tit { margin: 0; min-width: 0; display: grid; justify-items: center; line-height: 1.15; }
+    .topo-tit span { font-size: 16.5px; font-weight: 800; letter-spacing: -.2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topo-tit small { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .topo-tit small:empty { display: none; }
+    .icone-btn.vazio { pointer-events: none; }
+    .pagina { width: min(760px, 100%); padding: 0 0 calc(40px + env(safe-area-inset-bottom)); }
+    #conteudo { gap: 18px; }
+    #conteudo > .cartao:not(.hero), .grupos { margin: 0 14px; }
+    .cartao { border-radius: 22px; }
+    /* cabeçalho */
+    .hero { border: 0; border-radius: 0; background: transparent; overflow: visible; }
+    .hero-fundo { height: auto; aspect-ratio: 3 / 1; background-size: cover; background-position: center; }
+    .hero-fundo::after { background: linear-gradient(180deg, rgba(0, 0, 0, .14) 0%, transparent 45%); }
+    :root[data-theme="dark"] .hero-fundo::after { background: linear-gradient(180deg, rgba(0, 0, 0, .14) 0%, transparent 40%, rgba(0, 0, 0, .55) 80%, #000 100%); }
+    .hero-corpo { flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-top: -54px; padding: 0 16px 6px; }
+    .hero-corpo .avatar { width: 96px; height: 96px; font-size: 30px; box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px color-mix(in srgb, var(--accent) 75%, #fff), 0 14px 34px rgba(0, 0, 0, .35); }
+    .hero-tx { padding: 0; }
+    .hero-tx h2 { font-size: 23px; letter-spacing: -.4px; }
+    .hero-tx .nick { font-size: 13.5px; }
+    .numeros { margin: 14px 14px 0; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .numero { padding: 12px 2px 11px; }
+    .numero + .numero::before { top: 28%; bottom: 28%; }
+    .numero strong { font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
+    .numero span { gap: 5px; font-size: 11px; font-weight: 650; white-space: nowrap; }
+    .numero span i { width: 7px; height: 7px; box-shadow: 0 0 6px var(--cor); }
+    .numero.total span { text-decoration: none; color: var(--text); }
+    .numero.on { background: color-mix(in srgb, var(--cor, var(--accent)) 10%, transparent); box-shadow: inset 0 -2px 0 var(--cor, var(--accent)); }
+    /* duo */
+    .duo { padding: 18px 16px 18px; border-color: color-mix(in srgb, var(--duo) 28%, var(--line));
+      background: radial-gradient(90% 110% at 50% -10%, color-mix(in srgb, var(--duo) 20%, transparent), transparent 62%), var(--panel); }
+    .duo .rotulo { font-size: 11px; letter-spacing: 1.6px; color: color-mix(in srgb, var(--duo) 85%, #fff); }
+    .duo-par { gap: 76px; margin: 16px 0 10px; }
+    .duo-pessoa .avatar { width: 76px; height: 76px; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px #ff5a76, 0 12px 28px rgba(224, 36, 59, .28); }
+    .duo-pessoa strong { font-size: 14.5px; font-weight: 750; }
+    .duo small { display: inline-block; padding: 5px 12px; border-radius: 999px; background: color-mix(in srgb, var(--duo) 10%, var(--panel-2)); font-size: 12.5px; }
+    /* mapa */
+    .mapa-box { padding: 16px 14px; }
+    .rotulo { font-size: 11px; letter-spacing: 1.4px; }
+    .legenda button { padding: 6px 12px; font-size: 12px; background: transparent; }
+    .legenda button.on { background: color-mix(in srgb, var(--cor, var(--text)) 12%, transparent); }
+    .mapa .no span { background: color-mix(in srgb, var(--panel) 88%, transparent); }
+    /* grupos */
+    .grupo h3 { font-size: 13px; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); }
+    .grupo h3 i { box-shadow: 0 0 6px var(--cor); }
+    .diretorio { gap: 8px; }
+    .pessoa { padding: 10px 12px; border-radius: 16px; gap: 12px; }
+    .pessoa::before { display: none; }
+    .pessoa .avatar { width: 46px; height: 46px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--cor); }
+    .pessoa .tx small { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; background: color-mix(in srgb, var(--cor) 12%, transparent); }
+    .pessoa .tx small.pend { background: var(--panel-2); }
+    /* dono */
+    .dono-box { padding: 16px; }
+    .dono-box .btn.pri { border-radius: 999px; }
+    @media (max-width: 560px) {
+      .hero-corpo { margin-top: -50px; }
+      .hero-corpo .avatar { width: 90px; height: 90px; }
+      .numero strong { font-size: 17px; } .numero span { font-size: 10px; }
+    }
   </style>
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=160";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=161";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -226,16 +293,14 @@
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
   </svg>
 
-  <header class="topo">
-    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
-    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
+  <header class="topo topo-app">
+    <a class="icone-btn" href="usuarios.html" id="btnVoltar" aria-label="Voltar ao perfil"><svg class="i"><use href="#i-voltar"/></svg></a>
+    <h1 class="topo-tit"><span id="titulo">Social</span><small id="tituloSub"></small></h1>
+    <a class="icone-btn" href="usuarios.html?acao=social" id="btnAdd" aria-label="Adicionar pessoa ao meu social" title="Adicionar pessoa" hidden><svg class="i"><use href="#i-mais"/></svg></a>
+    <span class="icone-btn vazio" id="btnAddEspaco" aria-hidden="true"></span>
   </header>
 
   <main class="pagina">
-    <div class="cab-social"><a class="icone-btn" href="usuarios.html" id="btnVoltar" aria-label="Voltar ao perfil"><svg class="i"><use href="#i-voltar"/></svg></a><h1 id="titulo">Social</h1></div>
     <div class="estado" id="estado">Carregando...</div>
     <div id="conteudo" hidden>
       <section class="cartao hero" aria-label="Pessoa">
@@ -406,7 +471,9 @@
 
     // ---------- cabeçalho e números ----------
     function desenharCabecalho() {
-      if (urlSegura(dono.fotoCapa)) $("heroFundo").style.backgroundImage = `url("${dono.fotoCapa}")`;
+      const capa = urlSegura(dono.fotoCapa);
+      $("heroFundo").classList.toggle("com-foto", !!capa);
+      if (capa) $("heroFundo").style.backgroundImage = `url(${JSON.stringify(capa)})`;
       pintarAvatar($("heroAvatar"), dono.fotoPerfil, dono.nome);
       $("heroNome").textContent = dono.nome || "Usuário";
       $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
@@ -624,6 +691,8 @@
           const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId));
           dono = s.exists() ? s.data() : {};
           $("titulo").textContent = proprio ? "Meu social" : `Social de ${primeiroNome(dono.nome)}`;
+          $("tituloSub").textContent = dono.nickname ? "@" + dono.nickname : "";
+          $("btnAdd").hidden = !proprio; $("btnAddEspaco").hidden = proprio;
           document.title = `${$("titulo").textContent} | Help Floripa`;
           if (!proprio && (dono.socialVisibilidade || "todos") === "ocultar") { estado("Social privado", "Esta pessoa preferiu não mostrar o social."); return; }
           clicavel = await podeAbrirPerfis();

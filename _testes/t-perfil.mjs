@@ -41,7 +41,7 @@ ok(await pa.locator("#gradePosts .tile .mm-enq").count() >= 1, "aba Publicaçõe
 await pa.screenshot({ path: "saida/perfil-textos-enquete.png" });
 // Rosinha clicável abre o perfil do duo
 await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForTimeout(500);
-ok(await pa.locator("#meuPerfil .pf-duo-bolha.aberta .avatar").count() === 1 && (await pa.locator("#meuPerfil .pf-duo-bolha .nm").textContent()) === "Bruno", "tocar na rosinha: aparece a fotinho do duo");
+ok(await pa.locator("#meuPerfil .pf-duo-bolha.aberta .avatar").count() === 1 && (await pa.locator("#meuPerfil .pf-duo-bolha .nm b").textContent()) === "Bruno", "tocar na rosinha: aparece a fotinho do duo");
 await pa.screenshot({ path: "saida/rosinha-bolha.png" });
 await pa.locator("#meuPerfil .pf-duo-bolha").tap();
 await pa.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});

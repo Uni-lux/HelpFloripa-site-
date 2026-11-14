@@ -24,6 +24,12 @@ servidor (Blaze), ou são decisão sua. Ordem = prioridade.
       depois do fim (ou na hora, se a equipe tirar a sanção). O que já estava escondido do jeito antigo: botão
       "Guardar o que já está escondido" no painel (Publicações), só para os donos — apertar depois de publicar as regras.
 
+- [ ] **Social "Ocultar"/"Seguidores"/"Amigos" (achado em 14/11/2026)** — a escolha de quem abre o social só vale no
+      app: pela regra, qualquer pessoa logada lê os vínculos aceitos de qualquer um (`vinculos` com `status == aceito`).
+      A regra não consegue conferir a escolha numa lista (as buscas usam `participantes array-contains`). Correção: cada
+      pessoa guarda a própria visibilidade no vínculo (ou um índice `social_publico/{uid}` só com os aceitos que ela deixou
+      mostrar) e as buscas passam a usá-lo. PR próprio, médio.
+
 ## C. Dependem do servidor (Blaze / Cloud Functions)
 - [ ] **PIN da entrega/corrida** tem 4 números: um entregador mal-intencionado pode tentar todos. Conferir o PIN numa
       Cloud Function com limite de tentativas.

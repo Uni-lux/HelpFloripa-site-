@@ -5,18 +5,18 @@
 // fica em usuarios/{uid}.linksPerfil e só o próprio dono vê, até a publicação.
 // O LinkedIn não vai na fileira de ícones: fica na linha da profissão (tocar abre o perfil do LinkedIn).
 
-export const TIPOS_LINK = ["instagram", "whatsapp", "telegram", "tiktok", "kwai", "youtube", "facebook", "x", "linkedin"];
-export const NOMES_LINK = { instagram: "Instagram", whatsapp: "WhatsApp", telegram: "Telegram", tiktok: "TikTok", kwai: "Kwai", youtube: "YouTube",
+export const TIPOS_LINK = ["instagram", "whatsapp", "email", "telegram", "tiktok", "kwai", "youtube", "facebook", "x", "linkedin"];
+export const NOMES_LINK = { instagram: "Instagram", whatsapp: "WhatsApp", email: "E-mail", telegram: "Telegram", tiktok: "TikTok", kwai: "Kwai", youtube: "YouTube",
   facebook: "Facebook", x: "X", linkedin: "LinkedIn" };
 export const VER_LINK = { todos: "Todos", seguidores: "Seguidores", amigos: "Amigos (vocês se seguem)" };
 const OPCOES_VER = [["todos", "Todos"], ["seguidores", "Seguidores"], ["amigos", "Amigos"]];
-const PADRAO_VER = { whatsapp: "seguidores", telegram: "seguidores" };
+const PADRAO_VER = { whatsapp: "seguidores", telegram: "seguidores", email: "seguidores" };
 const padrao = (t) => PADRAO_VER[t] || "todos";
 // "ninguem" era a opção antiga (só eu): passa a valer como Amigos, a mais fechada de agora.
 const verOk = (v, t) => (v === "ninguem" ? "amigos" : VER_LINK[v] ? v : padrao(t));
 // Fileira do perfil (o LinkedIn fica na profissão); no editor, as 3 primeiras sempre aparecem e as outras com "+".
 const FILEIRA = TIPOS_LINK.filter((t) => t !== "linkedin");
-const SEMPRE = ["instagram", "whatsapp", "tiktok"];
+const SEMPRE = ["instagram", "whatsapp", "email", "tiktok"];
 
 // "@Help.Floripa", "instagram.com/help.floripa/" ou "https://www.instagram.com/help.floripa?igsh=..." → "help.floripa"
 export function limparInstagram(t) {
@@ -46,7 +46,15 @@ export function limparLinkedin(t) {
   try { s = decodeURIComponent(s); } catch {}
   return encodeURIComponent(s.replace(/[\s/?#]/g, "")).replace(/[^A-Za-z0-9%_-]/g, "").slice(0, 100);
 }
-const LIMPAR = { instagram: limparInstagram, tiktok: limparTiktok, x: limparX, youtube: limparYoutube, telegram: limparTelegram,
+// E-mail de contato (14/11/2026): "Fulano <a@b.com>" ou "mailto:a@b.com" → "a@b.com". Inválido = null.
+export function limparEmail(t) {
+  let s = String(t || "").trim().replace(/^mailto:/i, "");
+  const m = s.match(/<([^>]+)>/); if (m) s = m[1];
+  s = s.replace(/\s+/g, "").toLowerCase().slice(0, 120);
+  if (!s) return "";
+  return /^[a-z0-9._%+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,24}$/.test(s) && s.length <= 120 ? s : null;
+}
+const LIMPAR = { email: limparEmail, instagram: limparInstagram, tiktok: limparTiktok, x: limparX, youtube: limparYoutube, telegram: limparTelegram,
   kwai: limparKwai, facebook: limparFacebook, linkedin: limparLinkedin };
 // "(48) 99999-0000" → "5548999990000"; já com 55 fica igual.
 export function limparWhatsapp(t) {
@@ -60,6 +68,7 @@ export function formatarWhatsapp(d) {
 }
 export function urlLink(tipo, valor) {
   const v = encodeURIComponent(valor);
+  if (tipo === "email") return `mailto:${valor}`;
   if (tipo === "linkedin") return `https://www.linkedin.com/in/${String(valor).replace(/[^A-Za-z0-9%_-]/g, "")}`;
   if (tipo === "facebook" && /^\d+$/.test(valor)) return `https://www.facebook.com/profile.php?id=${valor}`;
   return { instagram: `https://instagram.com/${v}`, tiktok: `https://www.tiktok.com/@${v}`, x: `https://x.com/${v}`,
@@ -68,6 +77,7 @@ export function urlLink(tipo, valor) {
 }
 export function textoLink(tipo, valor) {
   if (tipo === "whatsapp") return formatarWhatsapp(valor);
+  if (tipo === "email") return valor;
   if (tipo === "linkedin") { try { return "in/" + decodeURIComponent(valor); } catch { return "in/" + valor; } }
   if (tipo === "facebook") return /^\d+$/.test(valor) ? "perfil do Facebook" : valor;
   return "@" + valor;
@@ -127,6 +137,7 @@ export async function gravarLinks(fb, uid, links, antes = null) {
 
 const SVG = {
   instagram: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" fill="currentColor" stroke="none"/>',
+  email: '<rect x="3" y="5.5" width="18" height="13" rx="2.6"/><path d="M3.8 7l8.2 6 8.2-6"/>',
   whatsapp: '<path d="M20.5 11.7a8.5 8.5 0 01-12.6 7.5L3.5 20.5l1.3-4.2A8.5 8.5 0 1120.5 11.7z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.5 4.5 0 01-2.4-2.4l.8-1-1-2z"/>',
   telegram: '<path d="M20.8 4.2L3.4 11c-.6.2-.6 1.1 0 1.3l4.3 1.4 1.7 5.3c.2.6.9.7 1.3.3l2.5-2.4 4.4 3.2c.5.4 1.2.1 1.3-.5l2.8-13.4c.1-.6-.5-1.2-1-1z"/><path d="M7.7 13.7l9.6-6.1-7 7.4"/>',
   tiktok: '<path d="M14 3.5v11.2a3.7 3.7 0 11-3.2-3.7"/><path d="M14 3.5c.4 2.6 2.2 4.4 5 4.6"/>',
@@ -239,7 +250,7 @@ export function abrirRedes(links, { proprio = false } = {}) {
 // Editor (Editar perfil): uma linha por rede (campo + "quem pode ver"). Instagram, WhatsApp e TikTok sempre aparecem; as
 // outras entram pelos botões "+ Rede" (e as que já têm valor já vêm abertas). O LinkedIn vai em `boxLinkedin`, junto da
 // profissão. ler() devolve {tipo: {valor, ver}} ou lança Error com a mensagem para a pessoa.
-const DICA = { instagram: "seunome ou link", whatsapp: "(48) 90000-0000", telegram: "@seunome ou t.me/…", tiktok: "@seunome ou link",
+const DICA = { email: "seu@email.com", instagram: "seunome ou link", whatsapp: "(48) 90000-0000", telegram: "@seunome ou t.me/…", tiktok: "@seunome ou link",
   kwai: "@seunome ou link", youtube: "@seucanal ou link", facebook: "seunome ou link", x: "@seunome ou link", linkedin: "link do seu perfil (opcional)" };
 export function montarEditorLinks(box, links = {}, { boxLinkedin = null } = {}) {
   box.replaceChildren();
@@ -253,7 +264,7 @@ export function montarEditorLinks(box, links = {}, { boxLinkedin = null } = {}) 
     const ic = document.createElement("span"); ic.className = "ed-rede-ic " + t; ic.title = NOMES_LINK[t]; ic.appendChild(iconeLink(t));
     const inp = document.createElement("input");
     inp.id = "edLink-" + t; inp.maxLength = 120; inp.autocomplete = "off"; inp.spellcheck = false; inp.setAttribute("autocapitalize", "off");
-    inp.type = t === "whatsapp" ? "tel" : "text"; inp.placeholder = DICA[t]; inp.setAttribute("aria-label", NOMES_LINK[t]);
+    inp.type = t === "whatsapp" ? "tel" : t === "email" ? "email" : "text"; inp.placeholder = DICA[t]; inp.setAttribute("aria-label", NOMES_LINK[t]);
     inp.value = l.valor ? (t === "whatsapp" ? formatarWhatsapp(l.valor) : t === "linkedin" ? urlLink(t, l.valor).replace(/^https:\/\/www\./, "") : l.valor) : "";
     const campo = document.createElement("label"); campo.className = "ed-rede-campo";
     const nm = document.createElement("span"); nm.className = "ed-rede-nome"; nm.textContent = NOMES_LINK[t];
@@ -291,7 +302,7 @@ export function montarEditorLinks(box, links = {}, { boxLinkedin = null } = {}) 
         const { inp, sel } = c;
         const v = t === "whatsapp" ? limparWhatsapp(inp.value) : LIMPAR[t](inp.value);
         const erro = (m) => { inp.focus(); throw new Error(m); };
-        if (v === null) erro("WhatsApp: informe o número com DDD.");
+        if (v === null) erro(t === "email" ? "E-mail: confira o endereço (ex.: seu@email.com)." : "WhatsApp: informe o número com DDD.");
         if (v && t === "tiktok" && v.length < 2) erro("TikTok: nome muito curto.");
         if (v && t === "kwai" && v.length < 2) erro("Kwai: nome muito curto.");
         if (v && t === "youtube" && v.length < 3) erro("YouTube: use o @ do canal (3 letras ou mais).");
