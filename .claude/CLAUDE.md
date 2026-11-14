@@ -2662,7 +2662,12 @@ chat da equipe).
   Telefone do Editar perfil no padrão `(48) 99999-9999` (`formatarTel` em usuarios-app.js; tira o +55 do cadastro antigo; avisa
   se faltar DDD). Para que serve (explicado a ele): privado, a equipe usa para falar com a pessoa (botão WhatsApp na ficha do
   painel), achar contas ligadas (mesmo telefone) e a senha forte recusa senha com o telefone. Fotinho do duo: logo acima e à
-  direita da foto de perfil, nome ao lado, ligada à rosinha por um fio pontilhado com pontos nas pontas (`::before` em SVG).
+  colada na rosinha (logo ao lado e acima, nome em cima; o fio pontilhado foi tirado a pedido dele). Borda do painel no escuro
+  continua a suave (a branco gelo foi desfeita). Prévia ao segurar a publicação sem faixas pretas (`.ppv-midia` na cor do cartão).
+  **Social = sistema solar** (social.html `desenharCeu`/`girar`): a pessoa é o Sol (coroa dourada `.sol .coroa`), cada grupo
+  numa órbita elíptica inclinada (Amor mais perto → Trabalho), pessoas girando por requestAnimationFrame (vale com animações
+  desligadas), atrás do Sol ficam menores/apagadas (`--longe`, z-index), encostar o dedo segura o giro (1,5 s depois volta);
+  filtros não grudam mais no topo e `#conteudo` com `minmax(0, 1fr)` (o cartão Akai Ito passava da tela).
   Opções da enquete na grade do perfil sumiam no tema claro (`.mm-op` com `color: var(--text)`).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
