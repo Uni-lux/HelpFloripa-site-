@@ -4272,38 +4272,38 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
   :root[data-theme="light"] #meuPerfil > .pf2 { margin: 0; border: 1px solid var(--line); border-radius: 24px; overflow: hidden; }
   #meuPerfil > .pf2 .pf-capa { border-radius: 24px 24px 0 0 !important; }
 }
-/* fotinho do duo: cartão de vidro ao lado da rosinha, com a setinha apontando para ela */
-.pf2 .pf-duo-bolha { left: calc(100% + 2px); right: auto; bottom: 2px; width: max-content; display: flex; align-items: center; gap: 9px; padding: 5px 14px 5px 5px; border-radius: 999px;
-  background: rgba(14, 16, 20, .84); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 12px 30px rgba(0, 0, 0, .35); transform: translateX(-6px) scale(.9); transform-origin: 0 50%; }
-.pf2 .pf-duo-bolha.aberta { transform: none; }
-.pf2 .pf-duo-bolha::before { content: ""; position: absolute; left: -5px; bottom: 18px; width: 10px; height: 10px; background: inherit; border-left: 1px solid rgba(255, 255, 255, .14);
-  border-bottom: 1px solid rgba(255, 255, 255, .14); transform: rotate(45deg); border-radius: 0 0 0 2px; }
-.pf2 .pf-duo-bolha .avatar { width: 40px; height: 40px; font-size: 14px; border: 0; box-shadow: 0 0 0 2px rgba(14, 16, 20, .9), 0 0 0 3.5px #ff5a76; }
-.pf2 .pf-duo-bolha .nm { display: grid; gap: 1px; padding: 0; background: none; box-shadow: none; max-width: 140px; text-align: left; font-size: 14px; font-weight: 750; color: #fff;
-  line-height: 1.25; white-space: nowrap; overflow: visible; border-radius: 0; }
-.pf2 .pf-duo-bolha .nm small { font-size: 9px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; color: #ff8aa0; }
-.pf2 .pf-duo-bolha .nm b { display: block; max-width: 130px; font-weight: 750; overflow: hidden; text-overflow: ellipsis; }
-.pf2 .pf-duo-bolha.sem-nome { padding: 5px; }
+/* fotinho do duo (14/11, 2ª versão, pedido dele: bolinha como antes, menor e mais elegante): foto redonda com o anel rosa
+   fino e o nome numa etiqueta discreta embaixo, logo acima da rosinha */
+.pf2 .pf-duo-bolha { right: -46px; bottom: 50px; gap: 4px; }
+.pf2 .pf-duo-bolha .avatar { width: 42px; height: 42px; font-size: 13px; border: 2px solid var(--pf-fundo, var(--panel)); box-shadow: 0 0 0 1.5px #ff5a76, 0 8px 18px rgba(0, 0, 0, .35); }
+.pf2 .pf-duo-bolha .nm { display: block; max-width: 70px; padding: 2px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 750; letter-spacing: .01em; color: #fff;
+  background: rgba(12, 14, 18, .78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.pf2 .pf-duo-bolha .nm small { display: none; }
+.pf2 .pf-duo-bolha .nm b { font-weight: 750; }
 .pf2 .pf-duo-bolha.sem-nome .nm { display: none; }
-/* negócios: cartões de 2 linhas, deslizando para o lado */
-.pf2 [data-el="negocios"] { margin-top: 12px; }
-.pf2 [data-el="negocios"] .vinculos { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; padding: 2px 1px 4px; margin: 0; justify-content: flex-start; }
-.pf2 [data-el="negocios"] .vinculo { --cor: var(--accent); flex: 0 0 auto; width: auto; max-width: 210px; display: grid; grid-template-columns: 38px minmax(0, 1fr); grid-template-rows: auto auto;
-  column-gap: 10px; align-items: center; padding: 6px 14px 6px 6px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--cor) 6%, var(--panel-2));
-  text-align: left; scroll-snap-align: start; transition: border-color .15s, background .15s; }
+/* negócios (14/11, 2ª versão, pedido dele): bolinhas como antes, menores e alinhadas — foto com anel fino na cor da classe,
+   nome do negócio e o tipo embaixo */
+.pf2 [data-el="negocios"] { margin-top: 14px; }
+.pf2 [data-el="negocios"] .vinculos { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 2px; margin: 0; justify-content: flex-start; scroll-snap-type: x proximity; }
+.pf2 [data-el="negocios"] .vinculo { --cor: var(--accent); flex: 0 0 64px; width: 64px; min-width: 0; display: grid; justify-items: center; gap: 0; padding: 0; border: 0; background: none;
+  text-align: center; scroll-snap-align: start; }
+.pf2 [data-el="negocios"] .vinculo[data-cat="servicos"] { --cor: #00adee; }
+.pf2 [data-el="negocios"] .vinculo[data-cat="delivery"] { --cor: #ff7a1a; }
+.pf2 [data-el="negocios"] .vinculo[data-cat="lojinha"] { --cor: #b066ff; }
+.pf2 [data-el="negocios"] .vinculo[data-cat="imoveis"] { --cor: #2fbf71; }
 .pf2 [data-el="negocios"] .vinculo[data-cat="saude"] { --cor: #0fb5a6; }
 .pf2 [data-el="negocios"] .vinculo[data-cat="automotivo"] { --cor: #f5b301; }
-.pf2 [data-el="negocios"] .vinculo .avatar { grid-row: 1 / 3; width: 38px; height: 38px; margin: 0; border-radius: 11px; font-size: 13px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
-.pf2 [data-el="negocios"] .vinculo .avatar.fn-anel { border-radius: 50%; }
-.pf2 [data-el="negocios"] .vinculo .nome { display: block; grid-column: 2; max-width: 150px; margin: 0; font-size: 13.5px; font-weight: 750; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25; }
-.pf2 [data-el="negocios"] .vinculo .papel { display: flex; align-items: center; gap: 5px; grid-column: 2; max-width: 150px; margin: 1px 0 0; font-size: 11.5px; font-weight: 700;
-  color: var(--cor); line-height: 1.2; }
-.pf2 [data-el="negocios"] .vinculo .papel::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 6px var(--cor); flex: none; }
-@media (hover: hover) { .pf2 [data-el="negocios"] .vinculo:hover { border-color: color-mix(in srgb, var(--cor) 55%, var(--line)); } }
-.pf2 [data-el="negocios"] .vinculo:active { transform: scale(.98); }
+.pf2 [data-el="negocios"] .vinculo .avatar { width: 54px; height: 54px; margin: 0 0 6px; border: 0; outline: 0 !important; border-radius: 50%; font-size: 15px;
+  box-shadow: 0 0 0 2px var(--pf-fundo, var(--panel)), 0 0 0 3.5px var(--cor) !important; }
+.pf2 [data-el="negocios"] .vinculo .avatar.fn-anel { box-shadow: 0 0 0 2px var(--pf-fundo, var(--panel)), 0 0 0 4px var(--fn-cor, var(--cor)), 0 0 14px color-mix(in srgb, var(--fn-cor, var(--cor)) 50%, transparent) !important; }
+.pf2 [data-el="negocios"] .vinculo .nome { display: block; max-width: 64px; margin: 0; font-size: 11.5px; font-weight: 700; color: var(--text); line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf2 [data-el="negocios"] .vinculo .papel { display: block; max-width: 64px; margin: 1px 0 0; font-size: 10.5px; font-weight: 700; color: var(--cor); line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf2 [data-el="negocios"] .vinculo .papel::before { display: none; }
+@media (hover: hover) { .pf2 [data-el="negocios"] .vinculo:hover .avatar { transform: scale(1.04); } }
+.pf2 [data-el="negocios"] .vinculo:active .avatar { transform: scale(.96); }
 /* lista das publicações do perfil (tocar numa publicação da grade) */
 .folha-feed .folha-caixa { width: min(620px, 100%); }
 .folha-feed .pfd-topo { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; padding: 6px 8px; }

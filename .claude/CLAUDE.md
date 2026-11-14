@@ -2644,6 +2644,15 @@ chat da equipe).
   (`.topo.topo-app`, `a[data-voltar]` volta pela história no rede.js) e subtítulo `.sub-pagina`; slogan da marca sem quebrar
   (`.marca small` nowrap). Brecha anotada em `_regras/REGRAS-PENDENTES.md`: a visibilidade do Social só vale no app.
   Testes `t-perfil-social.mjs` (19, precisa de `dados-perfil.mjs`), `t-perfil-organizado` e `t-perfil` atualizados.
+- **Perfil e Social, 2ª versão (14/11/2026, mesmo PR #220, sem regra nova):** pedido dele. Negócios do perfil voltaram a
+  ser **bolinhas** (54 px, anel fino na cor da classe, nome e tipo embaixo; NÃO usar pílula/cartão) e a fotinho do duo virou
+  bolinha pequena (42 px, anel rosa fino, nome numa etiqueta escura discreta) acima e à direita da rosinha. **Página Social
+  refeita do zero — "Constelação"** (social.html): céu escuro (também no tema claro) com a pessoa no centro e as conexões em
+  órbita (`desenharCeu`: duo no alto, os outros espalhados pela ordem dos grupos, raios na cor do grupo, pendentes
+  tracejados), nome + "N conexões" (abre a lista), filtros fixos com contagem (`desenharFiltros`, apagam o resto no céu),
+  cartão **Akai Ito** com o fio vermelho animado e o coração (`desenharDuo`), grupos em **cartões-retrato** que deslizam
+  (`desenharGrupos`, "Adicionar · N vagas" para o dono) e o painel de privacidade. Mapa antigo (`desenharMapa`, vagas) saiu.
+  `t-perfil-social.mjs` (21).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

@@ -45,7 +45,7 @@ const v = await p.evaluate(() => {
   return { capa: r.width / r.height, neg, sw: document.documentElement.scrollWidth, vw: innerWidth };
 });
 ok(Math.abs(v.capa - 3) < 0.05, "capa 3:1 no perfil de quem visita (" + v.capa.toFixed(2) + ")");
-ok(v.neg.length >= 1 && v.neg.every((n) => n.nome && n.tipo), "negócios em cartões com nome e tipo (" + v.neg.map((n) => n.tipo).join(", ") + ")");
+ok(v.neg.length >= 1 && v.neg.every((n) => n.nome && n.tipo), "negócios em bolinhas com nome e tipo (" + v.neg.map((n) => n.tipo).join(", ") + ")");
 ok(v.sw <= v.vw, "sem passar da largura");
 // Social, Configurações e Notificações: topo de app, sem a marca antiga
 for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "Configurações"], ["notificacoes.html", "Notificações"]]) {
@@ -53,7 +53,15 @@ for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "
   const t = await p.evaluate(() => ({ app: !!document.querySelector(".topo.topo-app"), marca: !!document.querySelector(".topo .marca"), tit: document.querySelector(".topo-tit")?.textContent || "",
     voltar: !!document.querySelector(".topo-app .icone-btn use[href='#i-voltar']"), sw: document.documentElement.scrollWidth, vw: innerWidth }));
   ok(t.app && !t.marca && t.tit.startsWith(tit) && t.voltar && t.sw <= t.vw, `${pg}: topo voltar · ${tit} (${t.tit})`);
-  if (pg === "social.html") ok(await p.locator("#duo:not([hidden]) .duo-par").count() === 1, "Social: cartão do duo");
+  if (pg === "social.html") {
+    const ceu = await p.evaluate(() => ({ astros: document.querySelectorAll("#orbita .astro:not(.centro)").length, retratos: document.querySelectorAll("#grupos .retrato:not(.add)").length,
+      filtros: document.querySelectorAll("#filtros button").length }));
+    ok(ceu.astros === 3 && ceu.retratos === 3 && ceu.filtros === 5, `Social: 3 conexões em órbita, 3 retratos e 5 filtros (${JSON.stringify(ceu)})`);
+    await p.locator('#filtros button[data-cat="familia"]').click(); await p.waitForTimeout(300);
+    ok(await p.locator("#orbita .astro.apagado").count() === 2 && await p.locator("#grupos .grupo").count() === 1 && await p.locator("#duo").isHidden(), "Social: filtro Família apaga os outros no céu e mostra só o grupo");
+    await p.locator('#filtros button:not([data-cat])').click(); await p.waitForTimeout(300);
+  }
+  if (pg === "social.html") ok(await p.locator("#duo:not([hidden]) .akai-par").count() === 1, "Social: cartão do duo (Akai Ito)");
 }
 ok(!erros.length, "sem erros" + (erros.length ? ": " + erros.join(" | ") : ""));
 await A.browser.close();
