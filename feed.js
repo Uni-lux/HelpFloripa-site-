@@ -16,12 +16,12 @@ import {
   barraInteracao, abrirCompositor, avisarPublicacaoGuardada, abrirOpcoes, compartilharPerfil, botaoSeguir, montarBarraRede, marcarBarra, pintarBarraRede, ouvirAvisos, lerOrdenado,
   editarPublicacao, bloquear, comMencoes, fotosDoPost, carrosselFotos, contadorEstrelas, estaSalvo, alternarSalvo, escolherColecao, lerResumosEstrelas, contarComentarios,
   silenciado, alternarSilenciar, marcarVista, definirOrigem, jaVisto, confirmarHF, blocoEnquete, blocoCaixa, editarPublicoDoPost, apagarFlashesDaPublicacao
-} from "./rede.js?v=161";
+} from "./rede.js?v=162";
 import { afinidade, sincronizarGosto, registrarGosto, PESO } from "./gosto.js?v=2";
-import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=133";
+import { montarStories, atualizarBarraFlash, abrirFlashPorId, abrirFlashesDoNegocio, repostarFlash, voltarAoFlash, novoFlash } from "./stories.js?v=134";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { pessoasRecentes } from "./pessoas.js?v=6";
-import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=152";
+import { recarregarExplorar, abrirExplorar, definirCartao, abrirPublicacao, abrirTopico, montarSugestoes } from "./explorar.js?v=153";
 import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal } from "./local-escolhido.js?v=3";
 import { distanciaKm, minhaPosicao } from "./perto.js?v=3";
@@ -30,7 +30,7 @@ import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
 import { lerRanking, juntarRanking, fatorTaxa } from "./ranking-diario.js?v=1";
 import { comDescoberta, sorteioFixo, janela } from "./relevancia.js?v=4";
 import { maisNovo, marcoOu, haNovidade, pilulaNovidades, conferirDeTempos } from "./novidades.js?v=1";
-import { partesDoTexto } from "./texto-pub.js?v=1";
+import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=2";
 import { layoutDe, blocoFotos, abrirVisorFotos, tomDestaque } from "./pub-modelos.js?v=1";
 
 const POR_VEZ = 10;
@@ -103,7 +103,7 @@ const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.perg
 const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
-const verReels = (comecarEm = null) => import("./reels.js?v=80").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
+const verReels = (comecarEm = null) => import("./reels.js?v=81").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
 const compor = (inicio = "") => abrirCompositor({ aoPublicar: ganchos.aoPublicar, inicio });
 function pintarTipos() {
   const w = $("tiposFeed"); if (!w) return;
@@ -744,7 +744,7 @@ function cartaoPost(post) {
       : { rotulo: "Salvar publicação", sub: "Para ver depois no seu Perfil → Salvos", icone: "salvo", fn: () => alternarSalvo(post) },
     { rotulo: "Salvar em uma coleção", sub: "Organize seus salvos em pastas", icone: "fotos", fn: () => escolherColecao(post) },
     { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(post.autorId, post.nome) },
-    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=128").then((m) => m.abrirEstatisticas(post)) },
+    post.autorId === eu.uid && { rotulo: "Estatísticas", sub: "Alcance, estrelas, salvos e de onde vieram", icone: "estrela", fn: () => import("./estatisticas-post.js?v=129").then((m) => m.abrirEstatisticas(post)) },
     post.autorId === eu.uid && { rotulo: "Editar publicação", icone: "lapis", fn: () => editarPublicacao(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId === eu.uid && { rotulo: "Público da publicação", sub: temPublico(post) ? resumoPublico(post.publico) : "Para todos · escolha idade, gênero, lugar e seguidores", icone: "pessoa-mais", fn: () => editarPublicoDoPost(post, () => c.replaceWith(cartaoPost(post))) },
     post.autorId !== eu.uid && { rotulo: silenciado(post.autorId) ? `Mostrar ${nome.textContent} de novo` : `Silenciar ${nome.textContent}`, sub: "Continua seguindo, mas as publicações e flashes somem do seu Diário", icone: "restringir",
@@ -870,16 +870,7 @@ function descricaoPost(texto, classe, linhas = 4) {
   else requestAnimationFrame(() => { if (!conferir()) setTimeout(conferir, 400); });
   return p;
 }
-function etiquetasTags(tags) {
-  const w = el("div", "post-tags");
-  tags.forEach((t) => {
-    const a = document.createElement("a"); a.className = "tag-chip"; a.href = `feed.html?tag=${encodeURIComponent(t.toLowerCase())}`;
-    a.append(el("b", null, "#"), document.createTextNode(t));
-    a.addEventListener("click", (e) => e.stopPropagation());
-    w.appendChild(a);
-  });
-  return w;
-}
+function etiquetasTags(tags) { return rodapeHashtags(tags); }
 // Dois toques rápidos no elemento (links e "ver mais" continuam funcionando com um toque).
 function toqueDuploEm(alvo, fn) {
   let ultimo = 0;

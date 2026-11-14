@@ -33,7 +33,7 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { seletorDuracao, fimEscolhido, fimDaEnquete, encerrada, faltaTexto, dataCurta, resumoResultado, guardarInfoEnquete, enquetesEncerradas, textoEnqueteFim, linhaChave, MAX_PUB_MIN, lerContasEnquete, resultadoFinal, sortearFatia, pedacoDaEnquete } from "./enquetes.js?v=7";
 import "./sem-menu-imagem.js?v=6"; // segurar a foto não abre o menu de baixar/compartilhar
 import "./fotos-suaves.js?v=1"; // fotos entram suaves
-import { formatarTexto, organizarHashtags, hashtagsDe, limparTitulo, partesDoTexto, MAX_TITULO, MAX_TAGS } from "./texto-pub.js?v=1";
+import { formatarTexto, organizarHashtags, hashtagsDe, limparTitulo, partesDoTexto, MAX_TITULO, MAX_TAGS, MAX_TAG_LEN } from "./texto-pub.js?v=2";
 import { modelosDe, layoutDe, desenhoModelo, abrirVisorFotos } from "./pub-modelos.js?v=1";
 import { criarPlayerAudio } from "./audio-ondas.js?v=5";
 
@@ -1606,7 +1606,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=133").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=134").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2377,7 +2377,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=133").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=134").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);
@@ -2553,9 +2553,7 @@ export function abrirCompositor({ aoPublicar, inicio = "", texto = "", local = n
 // @usuário vira link para o perfil (o @ é procurado em nicknames/ ao clicar).
 // #hashtag: minúsculas, letras/números/_, até 30 (as mesmas das regras). Guardadas sem o # em diario.tags.
 export function tagsDoTexto(texto) {
-  const r = new Set();
-  for (const m of String(texto || "").matchAll(/(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu)) r.add(m[2].toLowerCase());
-  return [...r].slice(0, 10);
+  return [...new Set(hashtagsDe(texto).map((t) => t.toLowerCase()))].slice(0, MAX_TAGS);
 }
 // Pode marcar/mencionar a pessoa? Configurações → "Quem pode me marcar" (pref_publicas/{uid}.permiteMarcar:
 // todos, seguindo = só quem ela segue, ninguem). Sem a preferência (ou sem as regras novas), pode.
@@ -2756,8 +2754,10 @@ function pintarTagsPrev() {
   const tags = hashtagsDe($("pubTexto").value);
   box.hidden = !tags.length;
   if (!tags.length) { box.replaceChildren(); return; }
-  box.replaceChildren(el("small", null, tags.length > MAX_TAGS ? `Só as ${MAX_TAGS} primeiras hashtags valem` : "Vão para o fim:"), ...tags.slice(0, MAX_TAGS).map((t) => el("b", null, "#" + t)));
-  box.classList.toggle("demais", tags.length > MAX_TAGS);
+  const longa = new RegExp(`#[\\p{L}\\p{N}_]{${MAX_TAG_LEN + 1},}`, "u").test($("pubTexto").value);
+  const aviso = tags.length > MAX_TAGS ? `Só as ${MAX_TAGS} primeiras hashtags valem` : longa ? `Cada hashtag vai com até ${MAX_TAG_LEN} letras` : "Vão para o fim:";
+  box.replaceChildren(el("small", null, aviso), ...tags.slice(0, MAX_TAGS).map((t) => el("b", null, "#" + t)));
+  box.classList.toggle("demais", tags.length > MAX_TAGS || longa);
 }
 // Prévia: o cartão de verdade (o mesmo do Diário), quando a página tem o Diário; senão os modelos já dizem.
 function verPrevia() {

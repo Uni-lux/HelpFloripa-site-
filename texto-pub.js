@@ -5,16 +5,18 @@
 // Sem dependências (usado no formulário de publicar, no cartão do Diário e nos testes).
 // =====================================================
 export const MAX_TITULO = 90;
-export const MAX_TAGS = 10;
-const TAG = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})(?![\p{L}\p{N}_])/gu;
+// Hashtags (14/11, pedido do dono): até 5 por publicação e cada uma com até 24 letras (a mais comprida é cortada).
+export const MAX_TAGS = 5;
+export const MAX_TAG_LEN = 24;
+const TAG = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,60})(?![\p{L}\p{N}_])/gu;
 const ehEspecial = (tok) => /^(https?:\/\/|www\.)|^[@#]|\.[a-z]{2,}(\/|$)/i.test(tok) || /\d[.,:]\d/.test(tok);
 
 // Hashtags do texto, na ordem em que aparecem (sem repetir, sem diferenciar maiúsculas).
 export function hashtagsDe(texto) {
   const vistas = new Set(), lista = [];
   for (const m of String(texto || "").matchAll(TAG)) {
-    const k = m[2].toLowerCase();
-    if (!vistas.has(k)) { vistas.add(k); lista.push(m[2]); }
+    const t = m[2].slice(0, MAX_TAG_LEN), k = t.toLowerCase();
+    if (!vistas.has(k)) { vistas.add(k); lista.push(t); }
   }
   return lista;
 }
@@ -24,7 +26,7 @@ export function hashtagsDe(texto) {
 export function semHashtags(texto) {
   return String(texto || "").split("\n").map((linha) => {
     // grupo de hashtags no fim da linha (com espaços e pontuação leve entre elas)
-    let l = linha.replace(/(?:(?:^|\s+)#[\p{L}\p{N}_]{1,30}[,;.!]*)+\s*$/u, "");
+    let l = linha.replace(/(?:(?:^|\s+)#[\p{L}\p{N}_]{1,60}[,;.!]*)+\s*$/u, "");
     l = l.replace(TAG, (m, antes, tag) => antes + tag);
     return l.replace(/\s+$/, "");
   }).join("\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -43,6 +45,31 @@ export function organizarHashtags(texto) {
 export function partesDoTexto(texto) {
   const tags = hashtagsDe(texto).slice(0, MAX_TAGS);
   return { corpo: tags.length ? semHashtags(texto) : String(texto || "").trim(), tags };
+}
+
+// Rodapé padronizado das hashtags (1 a 5): um "#" num quadradinho e as etiquetas separadas por pontinhos, pequenas e
+// discretas. Até 3 numa linha; 4 e 5 em duas linhas iguais (2+2 / 3+2). Cada etiqueta corta com "…" se não couber.
+export function rodapeHashtags(tags, { classe = "" } = {}) {
+  const lista = (tags || []).slice(0, MAX_TAGS);
+  const w = document.createElement("div");
+  w.className = `post-tags hf-tags n${lista.length}${classe ? " " + classe : ""}`;
+  if (!lista.length) return w;
+  const ic = document.createElement("span"); ic.className = "hf-tags-ic"; ic.setAttribute("aria-hidden", "true"); ic.textContent = "#";
+  const grade = document.createElement("div"); grade.className = "hf-tags-lista";
+  // linhas: até 3 numa linha; 4 = 2 + 2; 5 = 3 + 2
+  const cortes = lista.length === 4 ? [2, 2] : lista.length === 5 ? [3, 2] : [lista.length];
+  let linha = null, falta = 0;
+  lista.forEach((t) => {
+    if (!falta) { linha = document.createElement("div"); linha.className = "hf-tags-linha"; grade.appendChild(linha); falta = cortes.shift(); }
+    falta--;
+    const a = document.createElement("a"); a.className = "tag-chip";
+    a.href = `feed.html?tag=${encodeURIComponent(String(t).toLowerCase())}`;
+    a.title = "#" + t; a.textContent = t;
+    a.addEventListener("click", (e) => e.stopPropagation());
+    linha.appendChild(a);
+  });
+  w.append(ic, grade);
+  return w;
 }
 
 function frasesComMaiuscula(linha, comecaFrase) {
