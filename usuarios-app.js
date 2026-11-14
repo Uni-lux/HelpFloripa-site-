@@ -30,6 +30,13 @@ let meusVinculos = [];
 // ======================================================
 // Cabeçalho de perfil (seu e dos outros)
 // ======================================================
+// Telefone no padrão do site: (48) 99999-9999 (tira o +55 do cadastro antigo).
+function formatarTel(v) {
+  const d = String(v || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "").slice(0, 11);
+  if (!d) return "";
+  return d.length <= 2 ? `(${d}` : d.length <= 6 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d.length <= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 function montarCabecalho(raiz) {
   raiz.replaceChildren($("tplPerfil").content.cloneNode(true));
   const el = (n) => raiz.querySelector(`[data-el="${n}"]`);
@@ -90,7 +97,10 @@ function preencherCabecalho(h, p, { posts = 0, seguidores = 0, seguindo = 0 } = 
   }
   const cidade = textoCidade({ cidade: nomeCidade(p.cidade || p.cidadeNome), uf: p.uf });
   if (cidade) {
-    const s = document.createElement("span"); s.className = "pf-cidade";
+    // Tocar na cidade abre a CIDADE no mapa (nunca o endereço da pessoa).
+    const s = document.createElement("a"); s.className = "pf-cidade";
+    s.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(cidade.replace("/", ", ") + ", Brasil");
+    s.target = "_blank"; s.rel = "noopener"; s.title = "Ver " + cidade + " no mapa";
     s.append(icone("pin", "i xs"), document.createTextNode(cidade));
     handle.appendChild(s);
   }
@@ -1044,7 +1054,8 @@ function abrirEditar(foco) {
   // Estado + cidade da lista do IBGE (cidade antiga em texto é convertida na hora).
   $("edLocal").replaceChildren();
   edLocal = camposEndereco($("edLocal"), { campos: ["uf", "cidade"], obrigatorios: [], valor: { cidade: nomeCidade(dados.cidade || dados.cidadeNome), uf: dados.uf, cidadeIbge: dados.cidadeIbge } });
-  $("edTelefone").value = dados.telefone || "";
+  $("edTelefone").value = formatarTel(dados.telefone);
+  if (!$("edTelefone")._fmt) { $("edTelefone")._fmt = 1; $("edTelefone").addEventListener("input", () => { $("edTelefone").value = formatarTel($("edTelefone").value); }); }
   $("edEmail").value = dados.email || eu.email || "";
   nickDisponivel = true;
   mostrarStatusNick("3 a 20 caracteres: letras minúsculas, números, ponto e _");
@@ -1107,7 +1118,9 @@ $("edSalvar").addEventListener("click", async () => {
   const erroLocal = edLocal?.validar();
   if (erroLocal) { toast(erroLocal); return; }
   const { uf, cidade, cidadeIbge } = edLocal ? edLocal.ler() : { uf: dados.uf || "", cidade: dados.cidade || "", cidadeIbge: dados.cidadeIbge || null };
-  const telefone = $("edTelefone").value.trim();
+  const telefone = formatarTel($("edTelefone").value);
+  const telDig = telefone.replace(/\D/g, "").length;
+  if (telDig && telDig < 10) { toast("Confira o telefone: DDD + número, como (48) 99999-9999."); $("edTelefone").focus(); return; }
   if (nome.length < 2) { toast("Informe seu nome."); $("edNome").focus(); return; }
   let linksNovos;
   try { linksNovos = edLinks.ler(); } catch (e) { toast(e.message); return; }
