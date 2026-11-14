@@ -41,11 +41,11 @@ ok(await pa.locator("#gradePosts .tile .mm-enq").count() >= 1, "aba Publicaçõe
 await pa.screenshot({ path: "saida/perfil-textos-enquete.png" });
 // Rosinha clicável abre o perfil do duo
 await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForTimeout(500);
-ok(await pa.locator("#meuPerfil .pf-duo-bolha.aberta .avatar").count() === 1 && (await pa.locator("#meuPerfil .pf-duo-bolha .nm b").textContent()) === "Bruno", "tocar na rosinha: aparece a fotinho do duo");
+ok(await pa.locator("#meuPerfil .pf-duo-gaveta.aberta .avatar").count() === 1 && (await pa.locator("#meuPerfil .pf-duo-gaveta .dg-nome").textContent()).includes("Bruno"), "tocar na rosinha: abre a gaveta do duo");
 await pa.screenshot({ path: "saida/rosinha-bolha.png" });
-await pa.locator("#meuPerfil .pf-duo-bolha").tap();
+await pa.locator("#meuPerfil .pf-duo-gaveta .dg-corpo").tap();
 await pa.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});
-ok((await pa.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "tocar na fotinho do duo abre o perfil dele");
+ok((await pa.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "tocar na gaveta do duo abre o perfil dele");
 // Perfil do Bruno visto pela Ana: Seguir · Mensagem · ⋯ e a rosinha dele
 await pa.waitForSelector("#ppCabecalho .pf-acoes .btn", { timeout: 15000 }); await pa.waitForTimeout(2000);
 const botoes = await pa.locator("#ppCabecalho .pf-acoes > *").count();

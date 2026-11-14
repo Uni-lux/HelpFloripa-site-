@@ -1014,6 +1014,7 @@ await t("nota do atendimento: nota 6 é recusada", async () => { await semRegras
 await t("nota do atendimento: a equipe lê", () => assertSucceeds(getDoc(doc(ctx("mod2"), "suporte_notas", "cb1"))));
 
 await t("perfil: rosinha do duo \"Só a rosinha\" (rosa)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "rosa" })));
+await t("perfil: duo em gaveta (abre o perfil) e gaveta só para ver", async () => { await assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "gaveta" })); await assertSucceeds(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "gaveta-fixa" })); });
 await t("perfil: rosinha com valor estranho é recusada", () => assertFails(updateDoc(doc(ctx("ana"), "perfis_publicos", "ana"), { duoCapa: "piscando" })));
 
 // ---------- verificação do perfil ----------
