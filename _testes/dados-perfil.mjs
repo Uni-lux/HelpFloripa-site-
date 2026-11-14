@@ -21,7 +21,8 @@ const posts = [
   { texto: "Bom dia, Floripa! Primeiro post com foto.", mediaUrl: foto("#0b7cb3"), mediaTipo: "imagem" },
   { texto: "Um texto só, sem foto, para ver como fica a lista do perfil. #teste" },
   { texto: "Qual o melhor bairro para morar?", enquete: { pergunta: "Qual o melhor bairro para morar?", opcoes: ["Centro", "Lagoa", "Campeche"] } },
-  { texto: "Pôr do sol na ponte", mediaUrl: foto("#e07a1a"), mediaTipo: "imagem" }
+  { texto: "Pôr do sol na ponte", mediaUrl: foto("#e07a1a"), mediaTipo: "imagem" },
+  { texto: "Essa é muito linda! #ponte #floripa", mediaUrl: foto("#8a4b2b"), mediaTipo: "imagem", estilo: "casada", tipo: "texto", titulo: "Ponte ao entardecer" }
 ];
 let n = 0;
 for (const p of posts) {

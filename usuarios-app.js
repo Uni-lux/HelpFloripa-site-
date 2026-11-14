@@ -631,9 +631,9 @@ function itemFeed(post, i) {
   let barra = null;
   const darCinco = async (alvo) => { if (!barra?.estrelas?.darNota) return; await contadorEstrelas(alvo, (nota) => barra.estrelas.darNota(nota)); };
   if (post.titulo) art.appendChild(el("h3", "pfd-titulo", post.titulo));
-  if (casada) { const m = el("div", "pfd-midia"); m.appendChild(blocoCasado(post.texto, url, { verMais: true })); art.appendChild(m); }
-  else if (url && post.mediaTipo === "video") { const m = el("div", "pfd-midia"); const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); art.appendChild(m); }
-  else if (url) { const m = el("div", "pfd-midia"); m.appendChild(carrosselFotos(fotosDoPost(post), { alt: "Imagem da publicação", aoToqueDuplo: () => darCinco(m) })); art.appendChild(m); }
+  if (casada) { const m = el("div", "pfd-casada"); m.appendChild(blocoCasado(post.texto, url, { verMais: true })); art.appendChild(m); }
+  else if (url && post.mediaTipo === "video") { const m = el("div", "post-midia pfd-midia"); const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); art.appendChild(m); }
+  else if (url) { const m = el("div", "post-midia pfd-midia"); m.appendChild(carrosselFotos(fotosDoPost(post), { alt: "Imagem da publicação", aoToqueDuplo: () => darCinco(m) })); art.appendChild(m); }
   const repete = post.texto && [post.enquete?.pergunta, post.caixa?.pergunta].includes(post.texto.trim());
   if (post.texto && !casada && !repete) {
     const t = el("p", "pfd-texto" + (url ? "" : " so-texto"));
