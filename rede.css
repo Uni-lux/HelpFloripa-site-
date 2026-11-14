@@ -4368,3 +4368,30 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .mm-ops { flex: 1 1 0; min-height: 0; overflow: hidden; align-content: start; }
 /* capa inteira também no tema escuro (14/11, print dele): sem o escurecido embaixo, só uma sombra leve em cima */
 .pf2 .pf-capa::after, :root[data-theme="dark"] .pf2 .pf-capa::after { background: linear-gradient(180deg, rgba(0, 0, 0, .16) 0%, transparent 32%); }
+/* =====================================================================================================
+   Painel do perfil igual em tudo (14/11/2026, prints dele): o cartão arredondado do tema claro vale também no tema escuro
+   e no perfil de quem você visita. A cidade é um link para o mapa da cidade.
+   ===================================================================================================== */
+.pf2 .pf-handle a.pf-cidade { display: inline-flex; align-items: center; gap: 4px; color: inherit; text-decoration: none; }
+@media (hover: hover) { .pf2 .pf-handle a.pf-cidade:hover { color: var(--accent); text-decoration: underline; } }
+.pf2 .pf-handle a.pf-cidade:active { color: var(--accent); }
+.pf2 .pf-handle a.pf-cidade[hidden] { display: none; }
+:root[data-theme="dark"] .pf2 { --pf-fundo: #101214; background: #101214; border: 1px solid rgba(255, 255, 255, .12); border-radius: 24px; overflow: hidden; }
+:root[data-theme="dark"] #meuPerfil > .pf2, :root[data-theme="dark"] #meuPerfil > .pf2 .pf-capa { margin: 0; }
+@media (max-width: 640px) { :root[data-theme="dark"] #meuPerfil > .pf2 { margin: 0; } }
+:root[data-theme="dark"] .pf2 .pf-capa { border-radius: 24px 24px 0 0; }
+.folha-perfil #ppCabecalho { padding: 10px 10px 0; }
+.folha-perfil #ppCabecalho > .pf2 { border-radius: 24px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 6px 22px rgba(10, 30, 45, .06); }
+.folha-perfil .pf2 .pf-capa { border-radius: 24px 24px 0 0; }
+.mm-op, .mm-op span { color: var(--text); } /* no tema claro a grade pintava as opções de branco */
+/* fotinho do duo perto da foto e ligada à rosinha por um fio fino com pontos nas pontas, como num diagrama (14/11, pedido dele).
+   A foto fica logo acima, à direita da foto de perfil; o nome numa etiqueta ao lado. */
+.pf2 .pf-duo-bolha { right: auto; left: calc(100% + 3px); bottom: 66px; display: flex; align-items: center; gap: 6px; transform-origin: 0 100%; }
+.pf2 .pf-duo-bolha .avatar { flex: none; width: 40px; height: 40px; }
+.pf2 .pf-duo-bolha .nm { max-width: 86px; }
+.pf2 .pf-duo-bolha::before { content: ""; position: absolute; left: -23px; top: 26px; width: 28px; height: 44px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 40'%3E%3Cpath d='M3 37C3 22 7 12 20 4' fill='none' stroke='%23ff5a76' stroke-width='1.4' stroke-linecap='round' stroke-dasharray='.1 3.4'/%3E%3Ccircle cx='3' cy='37' r='2.2' fill='%23ff5a76'/%3E%3Ccircle cx='20' cy='4' r='2' fill='none' stroke='%23ff5a76' stroke-width='1.3'/%3E%3C/svg%3E") no-repeat center / contain;
+  filter: drop-shadow(0 0 3px rgba(255, 90, 118, .55)); }
+@media (max-width: 380px) { .pf2 .pf-duo-bolha .nm { max-width: 70px; } }
+/* borda do painel em branco gelo no tema escuro (14/11, pedido dele): destaque elegante, com um brilho bem leve */
+:root[data-theme="dark"] .pf2, :root[data-theme="dark"] .folha-perfil #ppCabecalho > .pf2 { border: 1.5px solid rgba(236, 244, 249, .9); box-shadow: 0 0 0 1px rgba(236, 244, 249, .06), 0 0 18px rgba(214, 236, 248, .10); }

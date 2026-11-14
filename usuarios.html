@@ -29,7 +29,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
-  <link rel="stylesheet" href="rede.css?v=114" />
+  <link rel="stylesheet" href="rede.css?v=116" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -165,8 +165,8 @@
         <div id="edLocal"></div>
         <div class="campo">
           <label for="edTelefone">Telefone</label>
-          <input id="edTelefone" type="tel" maxlength="20" autocomplete="tel" placeholder="(48) 90000-0000" />
-          <div class="ajuda"><span>Privado: não aparece no seu perfil público</span></div>
+          <input id="edTelefone" type="tel" inputmode="tel" maxlength="15" autocomplete="tel" placeholder="(48) 99999-9999" />
+          <div class="ajuda"><span>Privado: só você e a equipe do Help Floripa veem. Serve para a equipe falar com você sobre a sua conta (segurança e suporte) e ajuda a barrar contas falsas. Para mostrar no perfil, use o WhatsApp em “Redes e contatos”.</span></div>
         </div>
         <div class="campo"><label for="edEmail">E-mail</label><input id="edEmail" disabled /></div>
         <div class="ed-links" id="edLinks">
@@ -269,6 +269,6 @@
     </div>
   </div>
 
-  <script type="module" src="usuarios-app.js?v=64"></script>
+  <script type="module" src="usuarios-app.js?v=65"></script>
 </body>
 </html>

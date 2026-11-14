@@ -2656,6 +2656,14 @@ chat da equipe).
   fica no cartão arredondado com margem; capa `clamp(140px, 36vw, 220px)`, sem o 3:1) — só a organização de dentro é nova.
   Lista de publicações: fotos/vídeos no `.post-midia` do Diário e texto com imagem em `.pfd-casada` (antes o cartão casado
   ficava com a foto encolhida e faixas pretas); `.post-midia:has(> .casada)` sem fundo preto na folha da publicação.
+- **Painel igual em tudo, cidade no mapa, telefone e fio do duo (14/11/2026, PR depois do #221, sem regra nova):** prints dele.
+  O cartão arredondado do perfil vale também no tema escuro (#101214 com borda fina, `--pf-fundo` igual) e no perfil de quem
+  visita (`#ppCabecalho` com recuo de 10 px). A cidade embaixo do nome é link para a CIDADE no Google Maps (nunca o endereço).
+  Telefone do Editar perfil no padrão `(48) 99999-9999` (`formatarTel` em usuarios-app.js; tira o +55 do cadastro antigo; avisa
+  se faltar DDD). Para que serve (explicado a ele): privado, a equipe usa para falar com a pessoa (botão WhatsApp na ficha do
+  painel), achar contas ligadas (mesmo telefone) e a senha forte recusa senha com o telefone. Fotinho do duo: logo acima e à
+  direita da foto de perfil, nome ao lado, ligada à rosinha por um fio pontilhado com pontos nas pontas (`::before` em SVG).
+  Opções da enquete na grade do perfil sumiam no tema claro (`.mm-op` com `color: var(--text)`).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
