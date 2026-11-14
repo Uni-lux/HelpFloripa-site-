@@ -4394,3 +4394,7 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
    que sobra fica na cor do cartão */
 .ppv-midia { background: var(--panel-2); }
 .ppv-midia img, .ppv-midia video { height: auto; max-height: calc(100dvh - 300px); }
+/* prévia ao segurar (14/11, pedido dele): a foto com cantos arredondados e um respiro dos lados, como o cartão do Diário */
+.ppv-midia { margin: 0 12px; padding: 0; border-radius: 18px; background: transparent; }
+.ppv-midia img, .ppv-midia video { width: auto; max-width: 100%; height: auto; max-height: calc(100dvh - 300px); border-radius: 18px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
