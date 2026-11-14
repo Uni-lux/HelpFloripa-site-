@@ -4398,3 +4398,11 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .ppv-midia { margin: 0 12px; padding: 0; border-radius: 18px; background: transparent; }
 .ppv-midia img, .ppv-midia video { width: auto; max-width: 100%; height: auto; max-height: calc(100dvh - 300px); border-radius: 18px;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
+/* #hashtags no rodapé (14/11, pedido dele): pequenas, sem pílula, num tom discreto — não disputam com o texto */
+.post-tags { gap: 2px 10px; padding: 2px 16px 10px; }
+.post-tags .tag-chip { padding: 0; border: 0; border-radius: 0; background: none; font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  color: color-mix(in srgb, var(--accent) 70%, var(--muted)); opacity: .9; }
+.post-tags .tag-chip b { font-weight: 600; opacity: 1; }
+@media (hover: hover) { .post-tags .tag-chip:hover { color: var(--accent); text-decoration: underline; } }
+.pfd-casada + .post-tags, #postMidia .post-tags { padding-top: 8px; }
+.pfd-item > .post-tags { padding: 6px 16px 0; }
