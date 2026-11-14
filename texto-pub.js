@@ -49,26 +49,38 @@ export function partesDoTexto(texto) {
 
 // Rodapé padronizado das hashtags (1 a 5): um "#" num quadradinho e as etiquetas separadas por pontinhos, pequenas e
 // discretas. Até 3 numa linha; 4 e 5 em duas linhas iguais (2+2 / 3+2). Cada etiqueta corta com "…" se não couber.
+// Rodapé das #hashtags (14/11, pedido dele): todas guardadas num símbolo só — o "#" com o número. Tocar abre as hashtags
+// usadas na publicação (cada uma leva à página dela); tocar de novo, ou fora, fecha.
 export function rodapeHashtags(tags, { classe = "" } = {}) {
   const lista = (tags || []).slice(0, MAX_TAGS);
   const w = document.createElement("div");
-  w.className = `post-tags hf-tags n${lista.length}${classe ? " " + classe : ""}`;
+  w.className = `post-tags hf-tags${classe ? " " + classe : ""}`;
   if (!lista.length) return w;
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "hf-tags-btn";
+  b.setAttribute("aria-expanded", "false");
+  b.setAttribute("aria-label", `${lista.length} ${lista.length === 1 ? "hashtag" : "hashtags"} nesta publicação`);
   const ic = document.createElement("span"); ic.className = "hf-tags-ic"; ic.setAttribute("aria-hidden", "true"); ic.textContent = "#";
-  const grade = document.createElement("div"); grade.className = "hf-tags-lista";
-  // linhas: até 3 numa linha; 4 = 2 + 2; 5 = 3 + 2
-  const cortes = lista.length === 4 ? [2, 2] : lista.length === 5 ? [3, 2] : [lista.length];
-  let linha = null, falta = 0;
+  const n = document.createElement("span"); n.className = "hf-tags-n"; n.textContent = String(lista.length);
+  b.append(ic, n);
+  const pop = document.createElement("div"); pop.className = "hf-tags-pop"; pop.hidden = true;
   lista.forEach((t) => {
-    if (!falta) { linha = document.createElement("div"); linha.className = "hf-tags-linha"; grade.appendChild(linha); falta = cortes.shift(); }
-    falta--;
     const a = document.createElement("a"); a.className = "tag-chip";
     a.href = `feed.html?tag=${encodeURIComponent(String(t).toLowerCase())}`;
-    a.title = "#" + t; a.textContent = t;
+    a.title = "#" + t; a.textContent = "#" + t;
     a.addEventListener("click", (e) => e.stopPropagation());
-    linha.appendChild(a);
+    pop.appendChild(a);
   });
-  w.append(ic, grade);
+  const fora = (e) => { if (!w.contains(e.target)) fechar(); };
+  function fechar() { w.classList.remove("aberto"); b.setAttribute("aria-expanded", "false"); pop.hidden = true; document.removeEventListener("pointerdown", fora, true); }
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (w.classList.contains("aberto")) { fechar(); return; }
+    pop.hidden = false; w.classList.add("aberto"); b.setAttribute("aria-expanded", "true");
+    document.addEventListener("pointerdown", fora, true);
+  });
+  b.addEventListener("dblclick", (e) => e.stopPropagation());
+  w.append(b, pop);
   return w;
 }
 

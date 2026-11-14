@@ -2704,6 +2704,18 @@ chat da equipe).
   (`#duoModos`, 4 cartões com prévia animada `previaDuo` + chave "Tocar abre o perfil do duo"; `social.html#duoModos`) e
   Configurações (`#cfgDuoCapa` gaveta/bolinha/rosa/ocultar + `#cfgDuoClique`). Teste `t-duo-gaveta.mjs` (23); `t-perfil`,
   `t-avisos` atualizados.
+- **Hashtags num símbolo, gaveta do duo com fotos e Social gótico (14/11/2026, PR depois do #226, sem regra nova):** prints dele.
+  `rodapeHashtags` (texto-pub.js v=3): as # ficam guardadas num botão só `.hf-tags-btn` ("#" + número); tocar abre `.hf-tags-pop`
+  com as hashtags em pílulas (links `feed.html?tag=`), tocar de novo/fora fecha. Gaveta do duo (`desenharDuoCapa`): agora desce
+  da altura da capa (`top: -88px`) e mostra até 4 fotos recentes do duo (`fotosDoDuo`: 12 últimas do `diario` por autorId +
+  criadoEm, sem `publico`/guardadas/escondidas/agendadas, 1ª foto de cada; lidas só na 1ª abertura; `.dg-fotos q1..q4`; tocar
+  abre a publicação se o toque estiver ligado). Cor da gaveta: ele aprovou, NÃO mudar. **Social: tema gótico/vampiro elegante**
+  (o radar saiu; NÃO voltar a radar/coração/sistema solar): veludo vinho com treliça dourada, arco ogival dourado duplo, rosácea
+  de catedral girando devagar atrás da pessoa, medalhão com moldura dupla e 8 joias, conexões em medalhões com gema da cor do
+  grupo e faixa com o nome (Cinzel), correntinhas douradas com brasa, luz de vela tremulando (`#vela`), brasas subindo e pétalas
+  de rosa caindo (canvas), arabescos nos cantos, data em algarismos romanos (`#hudData`), nome em dourado e @ em Cormorant
+  itálico, divisor com a rosinha. Fontes Cinzel + Cormorant Garamond pelo Google Fonts (Georgia de reserva). **O cartão Akai
+  Ito, os filtros e os cartões dos grupos ficaram como estavam (ele aprovou: "não mexa").** Teste `t-duo-gaveta.mjs` (27).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
