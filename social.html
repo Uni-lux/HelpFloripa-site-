@@ -31,15 +31,15 @@
   </script>
   <style>
     /* =====================================================================================================
-       Social (14/11/2026, pedido dele): um céu escuro com a pessoa no centro de um coração, as conexões no contorno ligadas a
-       ela por fios finos (a cor diz o grupo), o duo no alto pelo fio vermelho do Akai Ito, filtros com contagem e cada grupo
-       em cartões pequenos, 4 por linha, que deslizam para o lado. O céu fica escuro também no tema claro.
+       Social (14/11/2026, 3ª versão, pedido dele: "tira o romântico, algo futurista que impressione"): um radar escuro com a
+       pessoa no núcleo, as conexões em órbitas, filtros com contagem, o link do duo (Akai Ito), os grupos em cartões e, para o
+       dono, a escolha de como o duo aparece no perfil com a prévia de cada modelo. O radar fica escuro também no tema claro.
        ===================================================================================================== */
     :root {
       --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
       --duo: #ff4d6d; --familia: #f5b301; --amizade: #00adee; --trabalho: #2fbf71;
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --ceu: #04070b;
+      --ceu: #01050a; --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
     }
     :root[data-theme="dark"] { --bg: #000; --panel: #0b0e11; --panel-2: #14191d; --hover: #171d22; --line: rgba(255, 255, 255, .1); --text: #eef3f6; --muted: #8b9aa5; --overlay: rgba(0, 0, 0, .7); --sombra: 0 18px 50px rgba(0, 0, 0, .5); }
     :root[data-theme="light"] { --bg: #f2f4f6; --panel: #fff; --panel-2: #f4f6f8; --hover: #eef2f5; --line: #e4e9ed; --text: #0e1a21; --muted: #607380; --overlay: rgba(10, 20, 26, .5); --sombra: 0 18px 50px rgba(15, 30, 40, .12); }
@@ -75,95 +75,137 @@
     .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
     .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
 
-    /* ---------- o céu ---------- */
-    .ceu { position: relative; overflow: hidden; color: #fff; background: var(--ceu); padding: 10px 0 22px; isolation: isolate; }
-    @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 28px; } }
-    .ceu-fundo { position: absolute; inset: -40px; z-index: -3; background: #06202c url("ponte-help.webp") center / cover; filter: blur(40px) saturate(1.2); opacity: .12; transform: scale(1.1); }
-    .ceu::before { content: ""; position: absolute; inset: 0; z-index: -2; pointer-events: none;
+    /* ---------- o radar (14/11/2026, pedido dele: tirar o romântico, algo futurista que impressione) ----------
+       A pessoa é o núcleo de um radar: anéis de HUD girando em volta da foto, uma varredura que passa e "acende" cada conexão,
+       as conexões em 3 órbitas (amor perto, família e amizades no meio, colegas por fora) ligadas ao núcleo por linhas de dados
+       com pacotes de luz, grade em perspectiva embaixo e leituras reais (hora, contagens). Fica escuro também no tema claro. */
+    .ceu { position: relative; overflow: hidden; color: #e8f7ff; background: var(--ceu); padding: 34px 0 22px; isolation: isolate; }
+    @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 22px; } }
+    .ceu-fundo { position: absolute; inset: -40px; z-index: -4; background: center / cover no-repeat; filter: blur(46px) saturate(1.1) hue-rotate(-10deg); opacity: .1; transform: scale(1.1); }
+    .ceu::before { content: ""; position: absolute; inset: 0; z-index: -3; pointer-events: none;
       background:
-        radial-gradient(42% 38% at 18% 22%, rgba(88, 60, 200, .22), transparent 70%),
-        radial-gradient(40% 34% at 86% 30%, rgba(0, 173, 238, .16), transparent 70%),
-        radial-gradient(50% 40% at 70% 92%, rgba(255, 77, 109, .12), transparent 70%),
-        radial-gradient(55% 45% at 50% 40%, rgba(255, 190, 90, .10), transparent 70%),
-        linear-gradient(180deg, #03050b, #070b18 55%, #04060c); }
+        radial-gradient(46% 34% at 50% 38%, rgba(0, 173, 238, .2), transparent 70%),
+        radial-gradient(40% 30% at 12% 8%, rgba(70, 90, 255, .13), transparent 70%),
+        radial-gradient(40% 30% at 92% 70%, rgba(0, 220, 200, .08), transparent 70%),
+        linear-gradient(180deg, #01040a, #020a12 60%, #01050a); }
+    /* linhas de varredura bem finas por cima de tudo */
+    .ceu::after { content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: .35;
+      background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px); }
+    .ceu-chao { position: absolute; left: -30%; right: -30%; bottom: -8%; height: 44%; z-index: -2; pointer-events: none; transform: perspective(260px) rotateX(62deg); transform-origin: 50% 100%;
+      background-image: linear-gradient(rgba(0, 173, 238, .45) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 173, 238, .45) 1px, transparent 1px); background-size: 34px 34px;
+      -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 92%); mask-image: linear-gradient(to top, #000 10%, transparent 92%); opacity: .4; animation: chao 3.2s linear infinite; }
+    @keyframes chao { to { background-position: 0 34px; } }
     .ceu-estrelas { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
-    /* Painel das conexões (14/11, pedido dele: romântico e elegante): a pessoa no centro, as conexões pousadas no contorno de
-       um coração e ligadas a ela por fios finos (o duo no alto, pelo fio vermelho). Nada gira: só flutuam de leve. */
+    /* cantoneiras e leituras do HUD */
+    .hud-canto { position: absolute; width: 16px; height: 16px; z-index: 6; border: 0 solid rgba(79, 210, 255, .7); pointer-events: none; }
+    .hud-canto.a { left: 10px; top: 10px; border-width: 1.5px 0 0 1.5px; } .hud-canto.b { right: 10px; top: 10px; border-width: 1.5px 1.5px 0 0; }
+    .hud-canto.c { left: 10px; bottom: 10px; border-width: 0 0 1.5px 1.5px; } .hud-canto.d { right: 10px; bottom: 10px; border-width: 0 1.5px 1.5px 0; }
+    .hud-txt { position: absolute; top: 12px; z-index: 6; font: 700 9.5px/1 var(--mono); letter-spacing: 1.6px; text-transform: uppercase; color: rgba(140, 220, 255, .75); pointer-events: none; white-space: nowrap; }
+    .hud-txt.esq { left: 32px; } .hud-txt.dir { right: 32px; display: flex; align-items: center; gap: 6px; }
+    .hud-txt.dir i { width: 6px; height: 6px; border-radius: 50%; background: #3dffa8; box-shadow: 0 0 8px #3dffa8; animation: piscar 1.6s steps(2, jump-none) infinite; }
+    @keyframes piscar { 50% { opacity: .25; } }
     .orbita { position: relative; width: min(100%, 440px); margin: 0 auto; touch-action: pan-y; }
     .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-    .orbita .coracao { fill: none; stroke: #ff7a93; stroke-width: 1; stroke-dasharray: 1 6; stroke-linecap: round; opacity: .38; }
-    .orbita .coracao-luz { fill: url(#luzCoracao); stroke: none; }
-    .orbita .fio { fill: none; stroke-width: 1; stroke-linecap: round; opacity: .42; transition: opacity .25s; }
-    .orbita .fio.duo { stroke-width: 1.6; opacity: .9; filter: drop-shadow(0 0 3px rgba(255, 77, 109, .9)); }
-    .orbita .fio.pend { stroke-dasharray: 3 4; opacity: .28; }
-    .orbita .fio.apagado, .orbita .gota.apagado { opacity: .06; }
-    .orbita .gota { opacity: .95; }
-    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 3px; width: 64px; padding: 0; border: 0; background: none; color: #fff;
+    .orbita .guia { fill: none; stroke: rgba(79, 210, 255, .2); stroke-width: 1; stroke-dasharray: 2 5; }
+    .orbita .guia.fora { stroke: rgba(79, 210, 255, .32); stroke-dasharray: none; }
+    .orbita .marca { stroke: rgba(79, 210, 255, .35); stroke-width: 1; }
+    .orbita .marca.g { stroke: rgba(79, 210, 255, .75); stroke-width: 1.4; }
+    .orbita .hud-a { fill: none; stroke: #4fd2ff; stroke-width: 1.4; stroke-dasharray: 3 7; opacity: .75; }
+    .orbita .hud-b { fill: none; stroke: #4fd2ff; stroke-width: 2.4; stroke-linecap: round; opacity: .9; filter: drop-shadow(0 0 4px rgba(79, 210, 255, .9)); }
+    .orbita .hud-c { fill: none; stroke: rgba(79, 210, 255, .45); stroke-width: 1; }
+    .orbita .fio { stroke-width: 1.1; stroke-linecap: round; transition: opacity .25s; }
+    .orbita .fio.duo { stroke-width: 1.6; filter: drop-shadow(0 0 3px rgba(255, 77, 109, .9)); }
+    .orbita .fio.pend { stroke-dasharray: 3 4; opacity: .4; }
+    .orbita .fio.apagado, .orbita .pacote.apagado { opacity: .06; }
+    .orbita .pacote { filter: drop-shadow(0 0 4px currentColor); }
+    .radar { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 50%; pointer-events: none; will-change: transform;
+      background: conic-gradient(from 0deg, transparent 0 290deg, rgba(0, 173, 238, .05) 300deg, rgba(0, 173, 238, .3) 356deg, rgba(160, 235, 255, .85) 359.4deg, transparent 360deg);
+      -webkit-mask-image: radial-gradient(circle, #000 58%, transparent 71%); mask-image: radial-gradient(circle, #000 58%, transparent 71%); }
+    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 4px; width: 66px; padding: 0; border: 0; background: none; color: #fff;
       cursor: pointer; will-change: transform; transition: opacity .25s; }
     .astro[disabled] { cursor: default; }
-    .astro .avatar { width: 38px; height: 38px; font-size: 12px; box-shadow: 0 0 0 2px #070912, 0 0 0 3.2px var(--cor), 0 4px 14px rgba(0, 0, 0, .5); }
-    .astro span { max-width: 64px; font-size: 10.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 5px #000; }
-    .astro.duo .avatar { width: 44px; height: 44px; box-shadow: 0 0 0 2px #070912, 0 0 0 3.6px var(--duo), 0 0 22px rgba(255, 77, 109, .7); }
-    .astro.duo span { color: #ffb3c1; font-weight: 750; }
-    .astro.pend { opacity: .6; }
-    .astro.pend .avatar { filter: grayscale(.5); box-shadow: 0 0 0 2px #070912, 0 0 0 3px color-mix(in srgb, var(--cor) 50%, transparent); }
+    .astro .no { position: relative; display: block; }
+    .astro .avatar { width: 40px; height: 40px; font-size: 12px; box-shadow: 0 0 0 2px #020810, 0 0 0 3.2px var(--cor), 0 0 14px color-mix(in srgb, var(--cor) 60%, transparent); }
+    .astro .ping { position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid var(--cor); opacity: 0; pointer-events: none; }
+    .astro .rot { max-width: 66px; padding: 2px 5px; border-radius: 3px; font: 700 9px/1.1 var(--mono); letter-spacing: .8px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: color-mix(in srgb, var(--cor) 55%, #fff); background: rgba(2, 10, 18, .72); border: 1px solid color-mix(in srgb, var(--cor) 40%, transparent); }
+    .astro.duo .avatar { width: 46px; height: 46px; box-shadow: 0 0 0 2px #020810, 0 0 0 3.6px var(--duo), 0 0 22px rgba(255, 77, 109, .75); }
+    .astro.duo .rosinha { position: absolute; right: -4px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #e0243b; box-shadow: 0 0 8px rgba(255, 77, 109, .8); }
+    .astro.duo .rosinha svg { width: 12px; height: 12px; }
+    .astro.pend { opacity: .55; }
+    .astro.pend .avatar { filter: grayscale(.6); box-shadow: 0 0 0 2px #020810, 0 0 0 3px color-mix(in srgb, var(--cor) 45%, transparent); }
     .astro.apagado { opacity: .1 !important; pointer-events: none; }
-    .astro.centro { width: 110px; cursor: default; z-index: 20; }
-    .astro.centro .avatar { position: relative; width: 70px; height: 70px; font-size: 22px; box-shadow: 0 0 0 3px #070912, 0 0 0 4.5px rgba(255, 179, 193, .9), 0 0 30px rgba(255, 77, 109, .55); }
-    .centro .halo { position: absolute; left: 50%; top: 35px; width: 150px; height: 150px; border-radius: 50%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none;
-      background: radial-gradient(circle, rgba(255, 120, 150, .34) 0%, rgba(255, 77, 109, .14) 32%, transparent 66%); }
-    .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
-    .ceu-id h2 { margin: 0; font-size: 24px; font-weight: 850; letter-spacing: -.4px; }
-    .ceu-id p { margin: 3px 0 0; font-size: 13.5px; color: rgba(255, 255, 255, .62); }
-    .ceu-total { display: flex; align-items: center; gap: 8px; margin: 14px auto 0; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16);
-      background: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; }
-    .ceu-total b { font-size: 15px; }
-    .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 14%; margin: 0; text-align: center; color: rgba(255, 255, 255, .7); font-size: 13.5px; }
+    .astro.centro { width: 96px; cursor: default; z-index: 20; }
+    .astro.centro .avatar { position: relative; width: 74px; height: 74px; font-size: 22px; box-shadow: 0 0 0 3px #020810, 0 0 0 4.5px rgba(160, 235, 255, .95), 0 0 34px rgba(0, 173, 238, .65); }
+    .ceu-id { text-align: center; margin-top: 2px; padding: 0 16px; }
+    .ceu-id h2 { margin: 0; font-size: 25px; font-weight: 850; letter-spacing: -.3px; text-shadow: 0 0 18px rgba(0, 173, 238, .45); }
+    .ceu-id p { margin: 5px 0 0; font: 600 12.5px/1 var(--mono); letter-spacing: .6px; color: #4fd2ff; }
+    .leituras { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 14px 16px 0; }
+    .leituras span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid rgba(79, 210, 255, .2); border-radius: 4px; background: rgba(0, 173, 238, .05);
+      font: 700 10px/1 var(--mono); letter-spacing: .8px; text-transform: uppercase; color: rgba(200, 236, 255, .72); }
+    .leituras span i { width: 6px; height: 6px; border-radius: 1px; background: var(--cor); box-shadow: 0 0 6px var(--cor); }
+    .leituras span b { color: #fff; }
+    .ceu-total { display: flex; align-items: center; gap: 8px; margin: 14px auto 0; padding: 10px 20px; border: 1px solid rgba(79, 210, 255, .55); border-radius: 0; color: #e8f7ff;
+      background: linear-gradient(180deg, rgba(0, 173, 238, .16), rgba(0, 173, 238, .04)); font-size: 13.5px; font-weight: 700; cursor: pointer;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); box-shadow: inset 0 0 18px rgba(0, 173, 238, .18); }
+    .ceu-total b { font: 800 15px/1 var(--mono); color: #4fd2ff; }
+    @media (hover: hover) { .ceu-total:hover { background: rgba(0, 173, 238, .22); } }
+    .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 6%; margin: 0; text-align: center; color: rgba(200, 236, 255, .7); font: 600 11.5px/1.4 var(--mono); letter-spacing: .4px; padding: 0 20px; z-index: 6; }
 
     /* ---------- filtros ---------- */
     .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 14px; scrollbar-width: none; }
     .filtros::-webkit-scrollbar { display: none; }
     .filtros button { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
       font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
-    .filtros button i { width: 8px; height: 8px; border-radius: 50%; background: var(--cor, var(--text)); }
-    .filtros button b { font-size: 12px; font-weight: 800; color: var(--text); opacity: .7; }
+    .filtros button i { width: 7px; height: 7px; border-radius: 1px; transform: rotate(45deg); background: var(--cor, var(--text)); box-shadow: 0 0 6px var(--cor, transparent); }
+    .filtros button b { font: 800 11.5px/1 var(--mono); color: var(--text); opacity: .7; }
     .filtros button.on { color: var(--text); border-color: var(--cor, var(--text)); background: color-mix(in srgb, var(--cor, var(--text)) 12%, var(--panel)); }
 
-    /* ---------- Akai Ito ---------- */
-    .akai { position: relative; margin: 0 14px; padding: 18px 16px 16px; border-radius: 24px; overflow: hidden; color: #fff;
-      background: radial-gradient(120% 90% at 50% 120%, rgba(255, 77, 109, .45), transparent 60%), linear-gradient(160deg, #2a0710, #12040a 70%); }
-    .akai-tit { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #ff9aae; }
-    .akai-tit svg { width: 15px; height: 15px; }
-    .akai-par { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 14px 6px 10px; }
-    .akai-fio { position: absolute; left: 40px; right: 40px; top: 30px; height: 50px; overflow: visible; pointer-events: none; }
-    .akai-fio path.linha { fill: none; stroke: #ff4d6d; stroke-width: 2.4; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(255, 77, 109, .9)); }
-    .akai-fio path.brilho { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 18 400; animation: correr 3.2s linear infinite; opacity: .9; }
+    /* ---------- Akai Ito: o link do duo, um feixe de energia vermelho entre as duas fotos ---------- */
+    .akai { position: relative; margin: 0 14px; padding: 16px 16px 14px; border-radius: 4px 20px 4px 20px; overflow: hidden; color: #fff; isolation: isolate;
+      background: radial-gradient(90% 120% at 50% 50%, rgba(255, 77, 109, .18), transparent 60%), linear-gradient(160deg, #12040a, #04060c 75%); border: 1px solid rgba(255, 77, 109, .35); }
+    .akai::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+      background: linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 100% 10px; }
+    .akai-tit { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 0; font: 800 10px/1 var(--mono); letter-spacing: 1.8px; text-transform: uppercase; color: #ff8fa3; }
+    .akai-tit span { display: flex; align-items: center; gap: 6px; }
+    .akai-tit svg { width: 14px; height: 14px; color: #ff4d6d; }
+    .akai-tit em { font-style: normal; color: #3dffa8; display: flex; align-items: center; gap: 5px; }
+    .akai-tit em::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+    .akai-par { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 16px 6px 10px; }
+    .akai-fio { position: absolute; left: 44px; right: 44px; top: 4px; height: 50px; overflow: visible; pointer-events: none; }
+    .akai-fio path.linha { fill: none; stroke: #ff4d6d; stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(255, 77, 109, .95)); }
+    .akai-fio path.linha.b { stroke: rgba(255, 140, 160, .5); stroke-width: 1; }
+    .akai-fio path.brilho { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 14 400; animation: correr 2.4s linear infinite; }
     @keyframes correr { from { stroke-dashoffset: 420; } to { stroke-dashoffset: 0; } }
-    .akai-cor { position: absolute; left: 50%; top: 22px; width: 30px; height: 30px; transform: translateX(-50%); color: #ff4d6d; filter: drop-shadow(0 0 10px rgba(255, 77, 109, .9)); animation: bater 1.6s ease-in-out infinite; }
-    @keyframes bater { 0%, 60%, 100% { transform: translateX(-50%) scale(1); } 20% { transform: translateX(-50%) scale(1.18); } }
+    .akai-cor { position: absolute; left: 50%; top: 14px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; transform: translateX(-50%); z-index: 2;
+      background: #fff; color: #e0243b; box-shadow: 0 0 0 4px rgba(255, 77, 109, .2), 0 0 22px rgba(255, 77, 109, .9); }
+    .akai-cor svg { width: 18px; height: 18px; }
     .akai-pessoa { position: relative; z-index: 2; display: grid; justify-items: center; gap: 6px; width: 96px; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
     .akai-pessoa[disabled] { cursor: default; }
-    .akai-pessoa .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px #1a050b, 0 0 0 4.5px #ff4d6d, 0 10px 26px rgba(255, 77, 109, .35); }
+    .akai-pessoa .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px #12040a, 0 0 0 4px #ff4d6d, 0 0 26px rgba(255, 77, 109, .45); }
     .akai-pessoa strong { max-width: 96px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .akai-pessoa em { margin-top: -4px; font-style: normal; font-size: 11.5px; color: #ff9aae; font-weight: 700; }
-    .akai-desde { margin: 0; text-align: center; font-size: 12.5px; color: rgba(255, 255, 255, .7); }
+    .akai-pessoa em { margin-top: -4px; font: 700 10px/1 var(--mono); font-style: normal; color: #ff8fa3; text-transform: uppercase; letter-spacing: .8px; }
+    .akai-desde { margin: 0; text-align: center; font: 600 11px/1.4 var(--mono); letter-spacing: .4px; color: rgba(255, 220, 228, .62); }
 
     /* ---------- grupos em cartões-retrato ---------- */
     .grupos { display: grid; gap: 22px; }
     .grupo-cab { display: flex; align-items: baseline; gap: 8px; margin: 0 16px 10px; }
     .grupo-cab h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
     .grupo-cab small { color: var(--muted); font-size: 13px; font-weight: 600; }
-    .grupo-cab i { align-self: center; width: 10px; height: 10px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 8px var(--cor); }
+    .grupo-cab i { align-self: center; width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg); background: var(--cor); box-shadow: 0 0 8px var(--cor); }
+    .grupo-cab small { font-family: var(--mono); font-size: 11.5px; letter-spacing: .5px; }
     .trilho { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x proximity; scroll-padding: 16px; scrollbar-width: none; }
     .trilho::-webkit-scrollbar { display: none; }
     .retrato { position: relative; flex: none; width: calc((100% - 24px) / 4); min-width: 0; max-width: 140px; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 11px 4px 9px; border: 1px solid var(--line);
       border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--cor) 9%, var(--panel)), var(--panel) 70%); color: var(--text); cursor: pointer;
       scroll-snap-align: start; text-align: center; overflow: hidden; transition: transform .15s; }
     .retrato[disabled] { cursor: default; }
-    .retrato::before { content: ""; position: absolute; left: 22%; right: 22%; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--cor); box-shadow: 0 0 10px var(--cor); }
+    .retrato::before { content: ""; position: absolute; left: 0; width: 46%; top: 0; height: 2px; background: var(--cor); box-shadow: 0 0 10px var(--cor); }
+    .retrato:not(.add) { border-radius: 4px 16px 4px 16px; }
+    .retrato:not(.add)::after { content: ""; position: absolute; right: 6px; bottom: 6px; width: 7px; height: 7px; border: 0 solid color-mix(in srgb, var(--cor) 70%, transparent); border-width: 0 1.5px 1.5px 0; }
     .retrato .avatar { width: 46px; height: 46px; font-size: 15px; box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--cor), 0 6px 16px color-mix(in srgb, var(--cor) 30%, transparent); }
     .retrato strong { max-width: 100%; margin-top: 3px; font-size: 12px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .retrato small { max-width: 100%; padding: 1px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 700; color: color-mix(in srgb, var(--cor) 80%, var(--text));
+    .retrato small { max-width: 100%; padding: 2px 5px; border-radius: 3px; font: 700 8.5px/1.2 var(--mono); letter-spacing: .5px; text-transform: uppercase; color: color-mix(in srgb, var(--cor) 80%, var(--text));
       background: color-mix(in srgb, var(--cor) 14%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .retrato.pend { opacity: .8; }
     .retrato.pend .avatar { box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--cor) 45%, transparent); filter: grayscale(.4); }
@@ -188,6 +230,60 @@
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 800; cursor: pointer; text-decoration: none; }
     .btn.pri { background: var(--accent); color: var(--accent-ink); }
 
+
+    /* ---------- Seu duo no perfil: 4 modelos com prévia (duo-modo.js) ---------- */
+    .duo-modos { scroll-margin-top: 70px; }
+    .dm-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .dm-op { position: relative; display: grid; gap: 8px; padding: 8px 8px 10px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; }
+    .dm-op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel-2)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .dm-op.on::after { content: ""; position: absolute; right: 8px; top: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23001a24' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; z-index: 3; }
+    .dm-op strong { font-size: 13.5px; }
+    .dm-op small { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+    .dm-prev { position: relative; height: 104px; border-radius: 11px; overflow: hidden; background: #0b1016; isolation: isolate; }
+    .dm-prev::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 44px; background: linear-gradient(120deg, #123a52, #0b1a26 60%, #1a1030); }
+    .dm-prev .dm-eu { position: absolute; left: 10px; top: 26px; width: 46px; height: 46px; font-size: 14px; box-shadow: 0 0 0 2.5px #0b1016; }
+    .dm-prev .dm-linhas { position: absolute; left: 10px; right: 10px; bottom: 10px; display: grid; gap: 5px; }
+    .dm-prev .dm-linhas i { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .14); }
+    .dm-prev .dm-linhas i:first-child { width: 46%; background: rgba(255, 255, 255, .3); }
+    .dm-prev .dm-linhas i:last-child { width: 70%; }
+    .dm-prev .dm-num { position: absolute; left: 66px; right: 8px; top: 52px; display: flex; justify-content: space-around; }
+    .dm-prev .dm-num i { width: 16px; height: 9px; border-radius: 2px; background: rgba(255, 255, 255, .22); }
+    .dm-rosa { position: absolute; left: 43px; top: 58px; z-index: 4; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #e0243b; box-shadow: 0 0 0 2px #0b1016, 0 0 8px rgba(255, 77, 109, .6); }
+    .dm-rosa svg { width: 11px; height: 11px; }
+    .dm-gav { position: absolute; left: 51px; right: 6px; top: 40px; z-index: 3; height: 42px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; border-radius: 3px 11px 11px 11px;
+      background: linear-gradient(120deg, rgba(36, 8, 18, .97), rgba(6, 14, 22, .97)); border: 1px solid rgba(255, 77, 109, .55); box-shadow: 0 0 12px rgba(255, 77, 109, .3);
+      animation: dmGav 3.4s cubic-bezier(.2, .9, .2, 1) infinite; }
+    .dm-gav .avatar { width: 24px; height: 24px; font-size: 9px; box-shadow: 0 0 0 1.5px #10070c, 0 0 0 2.6px #ff4d6d; }
+    .dm-gav span { flex: 1; min-width: 0; display: grid; gap: 4px; }
+    .dm-gav span i { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .55); width: 80%; }
+    .dm-gav span i + i { width: 55%; background: #4fd2ff; }
+    .dm-gav.fixa span i + i { background: rgba(255, 255, 255, .2); }
+    @keyframes dmGav { 0%, 12% { clip-path: inset(0 100% 0 0 round 3px 11px 11px 11px); } 30%, 82% { clip-path: inset(0 0 0 0 round 3px 11px 11px 11px); } 96%, 100% { clip-path: inset(0 100% 0 0 round 3px 11px 11px 11px); } }
+    .dm-bol { position: absolute; left: 36px; top: 24px; z-index: 3; display: grid; justify-items: center; gap: 2px; animation: dmBol 3.4s cubic-bezier(.2, 1.4, .4, 1) infinite; transform-origin: 50% 100%; }
+    .dm-bol .avatar { width: 30px; height: 30px; font-size: 10px; border: 2px solid #fff; box-shadow: 0 0 0 2px #e0243b; }
+    .dm-bol b { padding: 0 4px; border-radius: 99px; background: #e0243b; color: #fff; font-size: 7.5px; line-height: 1.5; }
+    .dm-bol.fixa b { display: none; }
+    @keyframes dmBol { 0%, 12% { opacity: 0; transform: translateY(8px) scale(.5); } 28%, 84% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; transform: translateY(8px) scale(.5); } }
+    .dm-rosa.pulsa { animation: dmRosa 1.7s ease-in-out infinite; }
+    @keyframes dmRosa { 0%, 70%, 100% { transform: scale(1); } 20% { transform: scale(1.35); } 40% { transform: scale(1); } }
+    .dm-dedo { position: absolute; left: 48px; top: 66px; z-index: 5; width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, .5); box-shadow: 0 0 0 3px rgba(255, 255, 255, .18); animation: dmDedo 3.4s ease infinite; pointer-events: none; }
+    @keyframes dmDedo { 0% { opacity: 0; transform: translate(10px, 14px); } 8% { opacity: 1; transform: none; } 14% { opacity: 1; transform: scale(.75); } 22%, 100% { opacity: 0; transform: none; } }
+    .dm-nada { position: absolute; right: 10px; top: 14px; z-index: 3; font: 700 9px/1 var(--mono); letter-spacing: .6px; color: rgba(255, 255, 255, .45); text-transform: uppercase; }
+    .dm-clique { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); cursor: pointer; }
+    .dm-clique.desligado { opacity: .5; cursor: default; }
+    .dm-clique .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+    .dm-clique .tx strong { font-size: 14px; }
+    .dm-clique .tx small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .chave { position: relative; width: 46px; height: 28px; flex: none; }
+    .chave input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .chave span { position: absolute; inset: 0; border-radius: 99px; background: color-mix(in srgb, var(--muted) 45%, transparent); transition: background .2s; }
+    .chave span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .2s; }
+    .chave input:checked + span { background: var(--accent); }
+    .chave input:checked + span::after { transform: translateX(18px); }
+    .chave input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .dm-atual { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+    @media (prefers-reduced-motion: reduce) { .dm-gav, .dm-bol, .dm-rosa.pulsa, .dm-dedo { animation: none; } .dm-dedo { display: none; } }
+
     /* ---------- folhas ---------- */
     .folha-fundo { position: fixed; inset: 0; z-index: 2000; background: var(--overlay); display: grid; place-items: end center; }
     .folha { width: min(480px, 100%); max-height: 86vh; display: flex; flex-direction: column; background: var(--panel); border-radius: 22px 22px 0 0; overflow: hidden; }
@@ -205,14 +301,14 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 58px; } .astro .avatar { width: 34px; height: 34px; } .astro.duo .avatar { width: 40px; height: 40px; } .astro.centro .avatar { width: 62px; height: 62px; } .centro .halo { top: 31px; } }
-    @media (prefers-reduced-motion: reduce) { .akai-cor, .akai-fio path.brilho { animation: none; } }
+    @media (max-width: 380px) { .astro { width: 58px; } .astro .avatar { width: 34px; height: 34px; } .astro.duo .avatar { width: 40px; height: 40px; } .astro.centro .avatar { width: 64px; height: 64px; } }
+    @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho, .ceu-chao, .hud-txt.dir i { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=162";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=163";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -241,15 +337,27 @@
     <div id="conteudo" hidden>
       <section class="ceu" aria-label="Suas conexões">
         <div class="ceu-fundo" id="ceuFundo"></div>
+        <div class="ceu-chao" aria-hidden="true"></div>
         <canvas class="ceu-estrelas" id="ceuEstrelas" aria-hidden="true"></canvas>
-        <div class="orbita" id="orbita"><svg id="orbitaSvg" aria-hidden="true"></svg></div>
+        <i class="hud-canto a"></i><i class="hud-canto b"></i><i class="hud-canto c"></i><i class="hud-canto d"></i>
+        <span class="hud-txt esq" aria-hidden="true">Help Floripa · Social</span>
+        <span class="hud-txt dir" aria-hidden="true"><i></i><span id="hudHora">--:--:--</span></span>
+        <div class="orbita" id="orbita"><div class="radar" id="radar" aria-hidden="true"></div><svg id="orbitaSvg" aria-hidden="true"></svg></div>
         <div class="ceu-id"><h2 id="heroNome"></h2><p id="heroNick"></p></div>
+        <div class="leituras" id="leituras" aria-hidden="true"></div>
         <button type="button" class="ceu-total" id="ceuTotal"></button>
       </section>
       <nav class="filtros" id="filtros" aria-label="Mostrar um grupo"></nav>
       <section class="akai" id="duo" hidden aria-label="Duo"></section>
       <section class="grupos" id="grupos" aria-label="Conexões por grupo"></section>
       <p class="nota" id="nota" hidden></p>
+      <section class="painel-dono duo-modos" id="duoModos" hidden aria-labelledby="duoModosTit">
+        <h3 id="duoModosTit"><svg class="i s"><use href="#i-rosa"/></svg>Seu duo no perfil</h3>
+        <p id="duoModosSub">Escolha o que acontece quando alguém toca na rosinha da sua foto de perfil.</p>
+        <div class="dm-grade" id="dmGrade" role="radiogroup" aria-label="Como o duo aparece no perfil"></div>
+        <label class="dm-clique" id="dmClique"><span class="tx"><strong>Tocar abre o perfil do duo</strong><small id="dmCliqueTx"></small></span><span class="chave"><input type="checkbox" id="dmCliqueIn" /><span></span></span></label>
+        <p class="dm-atual" id="dmAtual"></p>
+      </section>
       <section class="painel-dono" id="donoBox" hidden>
         <h3><svg class="i s"><use href="#i-cadeado"/></svg>Quem pode abrir os perfis do seu social</h3>
         <div class="segmentado" id="visibilidade">
@@ -258,7 +366,7 @@
           <button type="button" data-valor="amigos">Amigos</button>
           <button type="button" data-valor="ocultar">Ocultar</button>
         </div>
-        <p>Quem não estiver liberado vê as fotos, mas não abre os perfis. Amigos = quem você segue e segue você. "Ocultar" esconde o social de todo mundo. O duo no perfil tem opção própria em Configurações.</p>
+        <p>Quem não estiver liberado vê as fotos, mas não abre os perfis. Amigos = quem você segue e segue você. "Ocultar" esconde o social de todo mundo. O jeito que o duo aparece no seu perfil fica logo acima.</p>
         <a class="btn pri" href="usuarios.html?acao=social"><svg class="i s"><use href="#i-mais"/></svg>Adicionar pessoa ao meu social</a>
       </section>
     </div>
@@ -267,6 +375,7 @@
   <script type="module">
     import { fotoSegura } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=6";
+    import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=1";
     const $ = (id) => document.getElementById(id);
     // Duo inclui namorado(a) e cônjuge: é a pessoa ligada pelo Akai Ito.
     const TIPOS = {
@@ -404,102 +513,108 @@
       $("heroNome").textContent = dono.nome || "Usuário";
       $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
       const n = aceitas().length;
-      const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? " conexão" : " conexões"));
+      const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n).padStart(2, "0")), document.createTextNode(n === 1 ? " conexão" : " conexões"));
       t.onclick = listaDeNomes;
+      const lei = $("leituras"); lei.replaceChildren();
+      GRUPOS.forEach((g) => {
+        const q = aceitas().filter((c) => c.cat === g.cat).length;
+        const sp = el("span"); sp.dataset.cat = g.cat;
+        sp.append(el("i"), document.createTextNode(g.nome + " "), el("b", null, String(q).padStart(2, "0")));
+        lei.appendChild(sp);
+      });
     }
-    // Painel romântico (14/11, pedido dele): a pessoa no centro de um coração; as conexões pousam no contorno (o duo na
-    // curvinha de cima, pelo fio vermelho) e cada uma fica ligada à pessoa por um fio fino na cor do grupo, com uma
-    // gotinha de luz que corre de vez em quando. Nada gira: cada um flutua de leve no seu ritmo; o centro "bate" devagar.
-    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0 };
-    // ponto do coração (u = 0 na curvinha de cima, volta toda em 2π); y para baixo
-    const noCoracao = (u) => ({ x: 16 * Math.sin(u) ** 3, y: -(13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u)) });
-    function amostrasCoracao(esc, ox, oy) {
-      const pts = []; let tot = 0;
-      for (let k = 0; k <= 480; k++) {
-        const q = noCoracao((k / 480) * Math.PI * 2), p = { x: ox + q.x * esc, y: oy + q.y * esc };
-        if (pts.length) tot += Math.hypot(p.x - pts[pts.length - 1].x, p.y - pts[pts.length - 1].y);
-        p.l = tot; pts.push(p);
-      }
-      return { pts, tot };
-    }
-    const pontoNa = (a, l) => { const pts = a.pts; let k = 1; while (k < pts.length - 1 && pts[k].l < l) k++; return pts[k]; };
+    // Radar (14/11/2026): a pessoa no núcleo, as conexões em 3 órbitas (amor perto, família e amizades no meio, colegas por
+    // fora) que giram devagar, linhas de dados até o núcleo com pacotes de luz, uma varredura que acende ("ping") cada
+    // conexão quando passa e anéis de HUD girando em volta da foto. Tudo por requestAnimationFrame (vale com "remover
+    // animações"); encostar o dedo segura o giro.
+    const ANEL = { duo: 0, familia: 1, amizade: 1, trabalho: 2 };
+    const RAIO = [0.5, 0, 0.97];
+    const VEL = [0, 0.045, -0.03];
+    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0, R: 0, hud: [], radar: null, varre: 0, pausa: 0, t0: 0, rot: [0, 0, 0], ultimo: 0, hora: "" };
+    const TAU = Math.PI * 2;
     function desenharCeu() {
       const box = $("orbita"), svg = $("orbitaSvg");
       box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
       svg.replaceChildren();
-      giro.planetas = [];
+      giro.planetas = []; giro.hud = [];
       const W = box.clientWidth; if (!W) return;
       const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
-      const esc = Math.min(10.5, (W / 2 - 34) / 16);
-      const H = Math.round(30 * esc + 70);
+      const H = Math.round(W * 0.98);
       box.style.height = H + "px";
-      const ox = W / 2, oy = 13 * esc + 22;
-      const cx = ox, cy = oy + 4.5 * esc;
-      giro.cx = cx; giro.cy = cy;
+      const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 34;
+      Object.assign(giro, { cx, cy, R });
       svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      const defs = svgEl("defs", {});
-      const rg = svgEl("radialGradient", { id: "luzCoracao", cx: "50%", cy: "48%", r: "60%" });
-      rg.append(svgEl("stop", { offset: "0%", "stop-color": "#ff4d6d", "stop-opacity": ".16" }), svgEl("stop", { offset: "100%", "stop-color": "#ff4d6d", "stop-opacity": "0" }));
-      defs.appendChild(rg); svg.appendChild(defs);
-      const fora = amostrasCoracao(esc, ox, oy);
-      const d = "M " + fora.pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ") + " Z";
-      svg.append(svgEl("path", { class: "coracao-luz", d }), svgEl("path", { class: "coracao", d }));
+      // varredura do radar
+      const radar = $("radar");
+      const rr = R + 24;
+      Object.assign(radar.style, { width: rr * 2 + "px", height: rr * 2 + "px", left: cx - rr + "px", top: cy - rr + "px" });
+      giro.radar = radar;
+      // órbitas (a de dentro sempre longe dos anéis da foto) e régua em volta
+      const rc = W < 381 ? 32 : 37;
+      const r0 = Math.max(R * RAIO[0], rc + 58), r2 = R * RAIO[2];
+      const raios = [r0, (r0 + r2) / 2, r2];
+      raios.forEach((r, i) => svg.appendChild(svgEl("circle", { class: "guia" + (i === 2 ? " fora" : ""), cx, cy, r: r.toFixed(1) })));
+      for (let g = 0; g < 360; g += 6) {
+        const a = (g * Math.PI) / 180, grande = g % 30 === 0, r1 = R + 10, r2 = R + (grande ? 18 : 14);
+        svg.appendChild(svgEl("line", { class: "marca" + (grande ? " g" : ""), x1: (cx + Math.cos(a) * r1).toFixed(1), y1: (cy + Math.sin(a) * r1).toFixed(1), x2: (cx + Math.cos(a) * r2).toFixed(1), y2: (cy + Math.sin(a) * r2).toFixed(1) }));
+      }
+      // anéis do HUD em volta da foto (giram em sentidos opostos)
+      const arco = (r, de, ate) => { const p = (g) => [cx + Math.cos((g * Math.PI) / 180) * r, cy + Math.sin((g * Math.PI) / 180) * r]; const [x1, y1] = p(de), [x2, y2] = p(ate); return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`; };
+      const ga = svgEl("g", {}); ga.appendChild(svgEl("circle", { class: "hud-a", cx, cy, r: rc + 9 }));
+      const gb = svgEl("g", {}); [0, 120, 240].forEach((g) => gb.appendChild(svgEl("path", { class: "hud-b", d: arco(rc + 15, g, g + 62) })));
+      const gc = svgEl("g", {}); gc.appendChild(svgEl("circle", { class: "hud-c", cx, cy, r: rc + 21 })); [45, 135, 225, 315].forEach((g) => { const a = (g * Math.PI) / 180; gc.appendChild(svgEl("circle", { cx: (cx + Math.cos(a) * (rc + 21)).toFixed(1), cy: (cy + Math.sin(a) * (rc + 21)).toFixed(1), r: 2, fill: "#4fd2ff" })); });
+      svg.append(ga, gb, gc);
+      giro.hud = [[ga, 18], [gb, -32], [gc, 9]];
+      // lugares: cada grupo na sua órbita; se a órbita encher, o resto vai para a de fora
+      const cabe = raios.map((r) => Math.max(1, Math.floor((TAU * r) / 60)));
+      const porAnel = [[], [], []];
+      lista.forEach((c) => { let k = ANEL[c.cat] ?? 1; while (k < 2 && porAnel[k].length >= cabe[k]) k++; if (porAnel[k].length < cabe[k]) porAnel[k].push(c); });
       const raiz = getComputedStyle(document.documentElement);
-      // lugares: o duo na curvinha de cima; os outros espalhados pelo contorno (e num coração menor, se não couberem)
-      const duo = lista.find((c) => c.cat === "duo" && !c.pendente);
-      const resto = lista.filter((c) => c !== duo);
-      const lugares = [];
-      if (duo) lugares.push({ c: duo, p: { x: ox, y: oy - 5 * esc - 4 } });
-      const folga = duo ? 0.07 : 0.035, passo = 60;
-      const cabe = Math.max(1, Math.floor((fora.tot * (1 - 2 * folga)) / passo) + 1);
-      const dentro = amostrasCoracao(esc * 0.6, ox, oy + 1.5 * esc);
-      const nFora = Math.min(resto.length, cabe), nDentro = resto.length - nFora;
-      const espalhar = (a, n, f, de) => { for (let k = 0; k < n; k++) { const l = a.tot * (f + (1 - 2 * f) * (k + 0.5) / n); lugares.push({ c: resto[de + k], p: pontoNa(a, l) }); } };
-      espalhar(fora, nFora, folga, 0);
-      if (nDentro > 0) espalhar(dentro, Math.min(nDentro, 12), 0.12, nFora);
-      lugares.forEach(({ c, p }, idx) => {
+      porAnel.forEach((itens, k) => itens.forEach((c, i) => {
+        const base = -Math.PI / 2 + (k === 0 ? 0 : k * 0.55) + (TAU * i) / itens.length;
         const ap = filtro !== "todos" && filtro !== c.cat;
         const cor = c.cat === "duo" ? "#ff4d6d" : raiz.getPropertyValue(`--${c.cat}`).trim() || "#00adee";
         const extra = (ap ? " apagado" : "") + (c.pendente ? " pend" : "");
-        const fio = svgEl("path", { class: "fio" + (c === duo ? " duo" : "") + extra, stroke: cor });
-        const gota = svgEl("circle", { class: "gota" + extra, r: c === duo ? "2.4" : "1.8", fill: cor });
-        svg.append(fio, gota);
-        const b = el("button", "astro" + (c === duo ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
+        const grad = svgEl("linearGradient", { id: "fio" + k + "_" + i, gradientUnits: "userSpaceOnUse" });
+        grad.append(svgEl("stop", { offset: "0%", "stop-color": cor, "stop-opacity": "0.05" }), svgEl("stop", { offset: "100%", "stop-color": cor, "stop-opacity": c.cat === "duo" ? "0.95" : "0.6" }));
+        svg.appendChild(grad);
+        const fio = svgEl("line", { class: "fio" + (c.cat === "duo" ? " duo" : "") + extra, stroke: `url(#fio${k}_${i})` });
+        const pacote = svgEl("circle", { class: "pacote" + extra, r: c.cat === "duo" ? "2.6" : "2", fill: cor, color: cor });
+        svg.append(fio, pacote);
+        const b = el("button", "astro" + (c.cat === "duo" && !c.pendente ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
         b.type = "button"; b.dataset.cat = c.cat;
-        b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome)));
+        const no = el("span", "no"); const ping = el("i", "ping");
+        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), ping);
+        if (c.cat === "duo" && !c.pendente) { const r = el("i", "rosinha"); r.appendChild(icone("rosa", "")); no.appendChild(r); }
+        b.append(no, el("span", "rot", primeiroNome(c.perfil.nome)));
         b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
         const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
         box.appendChild(b);
-        // a curva do fio vai para o lado de fora (como um fio de seda caindo)
-        const lado = p.x >= cx ? 1 : -1;
-        giro.planetas.push({ b, fio, gota, x: p.x, y: p.y, fase: idx * 1.7, lado, atraso: (idx * 0.73) % 4 });
-      });
+        giro.planetas.push({ b, fio, grad, pacote, ping, anel: k, base, r: raios[k], atraso: (i * 0.9 + k * 0.4) % 3, ultimoPing: 0 });
+      }));
       const centro = el("div", "astro centro");
-      centro.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -35px)`;
-      centro.append(el("i", "halo"), novoAvatar(dono.fotoPerfil, dono.nome));
+      centro.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+      centro.append(novoAvatar(dono.fotoPerfil, dono.nome));
       box.appendChild(centro); giro.centro = centro;
-      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Seu coração ainda está vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "Radar vazio: adicione quem é importante para você." : "Ainda sem conexões por aqui."));
+      if (!box.dataset.ligado) {
+        box.dataset.ligado = "1";
+        box.addEventListener("pointerdown", () => { giro.pausa = performance.now() + 1800; });
+      }
       prepararEstrelas();
       posicionar(performance.now());
       if (!giro.quadro) giro.quadro = requestAnimationFrame(girar);
     }
-    // estrelas piscando no fundo e, de vez em quando, um coraçãozinho que sobe devagar
+    // poeira de dados no fundo: pontinhos que sobem devagar e piscam, e de vez em quando um risco de luz
     function prepararEstrelas() {
       const cv = $("ceuEstrelas"), ceu = cv.parentElement;
       const w = ceu.clientWidth, h = ceu.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
       if (!w || !h) return;
       cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px";
-      let semente = 7; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-      const lista = Array.from({ length: Math.round((w * h) / 2600) }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() < 0.85 ? 0.4 + rnd() * 0.7 : 1.1 + rnd() * 0.8,
-        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, cor: rnd() < 0.18 ? "255,190,205" : rnd() < 0.1 ? "255,224,170" : "255,255,255" }));
-      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, subindo: [], proxima: performance.now() + 1200 };
-    }
-    function coracaozinho(ctx, x, y, r) {
-      ctx.beginPath(); ctx.moveTo(x, y + r * 0.35);
-      ctx.bezierCurveTo(x, y - r * 0.3, x - r, y - r * 0.3, x - r, y + r * 0.25);
-      ctx.bezierCurveTo(x - r, y + r * 0.75, x - r * 0.2, y + r * 1.05, x, y + r * 1.4);
-      ctx.bezierCurveTo(x + r * 0.2, y + r * 1.05, x + r, y + r * 0.75, x + r, y + r * 0.25);
-      ctx.bezierCurveTo(x + r, y - r * 0.3, x, y - r * 0.3, x, y + r * 0.35); ctx.fill();
+      let semente = 11; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
+      const lista = Array.from({ length: Math.round((w * h) / 3200) }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() < 0.85 ? 0.4 + rnd() * 0.6 : 1 + rnd() * 0.7,
+        f: 0.6 + rnd() * 1.8, o: rnd() * 6.3, v: 3 + rnd() * 9, cor: rnd() < 0.55 ? "79,210,255" : rnd() < 0.2 ? "61,255,168" : "220,240,255" }));
+      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, riscos: [], proximo: performance.now() + 900 };
     }
     function pintarEstrelas(t) {
       const e = giro.estrelas; if (!e) return;
@@ -508,46 +623,57 @@
       ctx.clearRect(0, 0, w, h);
       const s = t / 1000;
       for (const p of e.lista) {
-        const a = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
-        ctx.fillStyle = `rgba(${p.cor},${a.toFixed(3)})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+        const a = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(s * p.f + p.o));
+        const y = (((p.y - s * p.v) % h) + h) % h;
+        ctx.fillStyle = `rgba(${p.cor},${(a * 0.8).toFixed(3)})`;
+        ctx.fillRect(p.x, y, p.r * 1.6, p.r * 1.6);
       }
-      if (e.subindo.length < 5 && t > e.proxima) { e.subindo.push({ x: w * (0.06 + Math.random() * 0.88), t0: t, d: 9000 + Math.random() * 5000, r: 3 + Math.random() * 3, o: Math.random() * 6 }); e.proxima = t + 1800 + Math.random() * 2600; }
-      e.subindo = e.subindo.filter((c) => {
-        const k = (t - c.t0) / c.d; if (k >= 1) return false;
-        const y = h + 10 - k * (h + 30), x = c.x + Math.sin(k * 6 + c.o) * 8;
-        ctx.fillStyle = `rgba(255,110,140,${(Math.sin(k * Math.PI) * 0.32).toFixed(3)})`;
-        coracaozinho(ctx, x, y, c.r);
+      if (e.riscos.length < 2 && t > e.proximo) { e.riscos.push({ y: h * (0.08 + Math.random() * 0.84), t0: t, d: 900 + Math.random() * 700, dir: Math.random() < 0.5 ? 1 : -1, l: 40 + Math.random() * 70 }); e.proximo = t + 2200 + Math.random() * 3000; }
+      e.riscos = e.riscos.filter((r) => {
+        const k = (t - r.t0) / r.d; if (k >= 1) return false;
+        const x = r.dir > 0 ? -r.l + k * (w + r.l * 2) : w + r.l - k * (w + r.l * 2);
+        const g = ctx.createLinearGradient(x, 0, x + r.l * r.dir, 0);
+        g.addColorStop(0, "rgba(79,210,255,0)"); g.addColorStop(1, `rgba(160,235,255,${(Math.sin(k * Math.PI) * 0.6).toFixed(3)})`);
+        ctx.strokeStyle = g; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, r.y); ctx.lineTo(x + r.l * r.dir, r.y); ctx.stroke();
         return true;
       });
     }
     function posicionar(t) {
+      const dt = giro.ultimo ? Math.min(0.1, (t - giro.ultimo) / 1000) : 0; giro.ultimo = t;
+      const parado = t < giro.pausa || !!document.querySelector(".folha-fundo");
+      if (!parado) { for (let k = 0; k < 3; k++) giro.rot[k] += VEL[k] * dt; }
       const s = t / 1000, cx = giro.cx, cy = giro.cy;
+      // varredura: uma volta a cada 5 s; acende quem ela alcança
+      const antes = giro.varre;
+      giro.varre = (giro.varre + dt * (TAU / 5)) % TAU;
+      if (giro.radar) giro.radar.style.transform = `rotate(${((giro.varre + Math.PI / 2) * 180) / Math.PI}deg)`;
       for (const p of giro.planetas) {
-        const x = p.x + Math.sin(s * 0.7 + p.fase) * 2, y = p.y + Math.sin(s * 0.9 + p.fase * 1.3) * 3.2;
-        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -22px)`;
-        const mx = (cx + x) / 2, my = (cy + y) / 2, dx = x - cx, dy = y - cy, len = Math.hypot(dx, dy) || 1;
-        const qx = mx + (-dy / len) * len * 0.12 * p.lado, qy = my + (dx / len) * len * 0.12 * p.lado + len * 0.05;
-        p.fio.setAttribute("d", `M ${cx.toFixed(1)} ${cy.toFixed(1)} Q ${qx.toFixed(1)} ${qy.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`);
-        // gotinha de luz: corre do centro até a pessoa em 1,6 s, a cada 4 s
-        const k = ((s + p.atraso) % 4) / 1.6;
+        const ang = p.base + giro.rot[p.anel];
+        const x = cx + Math.cos(ang) * p.r, y = cy + Math.sin(ang) * p.r;
+        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -24px)`;
+        p.fio.setAttribute("x1", cx.toFixed(1)); p.fio.setAttribute("y1", cy.toFixed(1)); p.fio.setAttribute("x2", x.toFixed(1)); p.fio.setAttribute("y2", y.toFixed(1));
+        p.grad.setAttribute("x1", cx.toFixed(1)); p.grad.setAttribute("y1", cy.toFixed(1)); p.grad.setAttribute("x2", x.toFixed(1)); p.grad.setAttribute("y2", y.toFixed(1));
+        // pacote de dados: sai do núcleo e chega na pessoa em 1,2 s, a cada 3 s
+        const k = ((s + p.atraso) % 3) / 1.2;
         if (k <= 1) {
-          const a = 1 - k, gx = a * a * cx + 2 * a * k * qx + k * k * x, gy = a * a * cy + 2 * a * k * qy + k * k * y;
-          p.gota.setAttribute("cx", gx.toFixed(1)); p.gota.setAttribute("cy", gy.toFixed(1)); p.gota.style.display = "";
-          p.gota.style.opacity = (Math.sin(k * Math.PI) * 0.95).toFixed(2);
-        } else p.gota.style.display = "none";
+          p.pacote.setAttribute("cx", (cx + (x - cx) * k).toFixed(1)); p.pacote.setAttribute("cy", (cy + (y - cy) * k).toFixed(1));
+          p.pacote.style.display = ""; p.pacote.style.opacity = (Math.sin(k * Math.PI) * 0.95).toFixed(2);
+        } else p.pacote.style.display = "none";
+        // ping quando a varredura passa por cima
+        const a = ((Math.atan2(y - cy, x - cx) % TAU) + TAU) % TAU;
+        const passou = antes <= giro.varre ? a > antes && a <= giro.varre : a > antes || a <= giro.varre;
+        if (passou && dt > 0 && t - p.ultimoPing > 1500) {
+          p.ultimoPing = t;
+          p.ping.animate?.([{ opacity: 0.95, transform: "scale(1)" }, { opacity: 0, transform: "scale(1.9)" }], { duration: 900, easing: "ease-out" });
+        }
       }
-      if (giro.centro) {
-        // batida: duas pulsadas curtas a cada 1,8 s
-        const f = (s % 1.8) / 1.8, bate = Math.exp(-((f - 0.06) ** 2) / 0.0012) + 0.6 * Math.exp(-((f - 0.2) ** 2) / 0.0012);
-        const halo = giro.centro.querySelector(".halo");
-        if (halo) { halo.style.transform = `translate(-50%, -50%) scale(${(1 + bate * 0.12).toFixed(3)})`; halo.style.opacity = (0.75 + bate * 0.25).toFixed(2); }
-      }
+      for (const [g, v] of giro.hud) g.setAttribute("transform", `rotate(${((s * v) % 360).toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})`);
+      const hora = new Date().toLocaleTimeString("pt-BR", { hour12: false });
+      if (hora !== giro.hora) { giro.hora = hora; const h = $("hudHora"); if (h) h.textContent = hora; }
     }
     function girar(t) {
       if (!document.body.contains($("orbita"))) { giro.quadro = 0; return; }
-      if (!document.querySelector(".folha-fundo")) posicionar(t);
-      pintarEstrelas(t);
+      if (!document.hidden) { posicionar(t); pintarEstrelas(t); }
       giro.quadro = requestAnimationFrame(girar);
     }
 
@@ -573,11 +699,14 @@
       box.hidden = !c || (filtro !== "todos" && filtro !== "duo");
       if (!c) return;
       box.replaceChildren();
-      const tit = el("p", "akai-tit"); tit.append(icone("rosa"), document.createTextNode(c.tipo === "duo" ? "Duo · Akai Ito" : `${TIPOS[c.tipo][0]} · Akai Ito`));
+      const tit = el("p", "akai-tit");
+      const tl = el("span"); tl.append(icone("rosa"), document.createTextNode(c.tipo === "duo" ? "Duo · Akai Ito" : `${TIPOS[c.tipo][0]} · Akai Ito`));
+      tit.append(tl, el("em", null, "Link ativo"));
       const par = el("div", "akai-par");
       const fio = svgEl("svg", { class: "akai-fio", viewBox: "0 0 200 50", preserveAspectRatio: "none" });
-      fio.append(svgEl("path", { class: "linha", d: "M0 30 C40 2 70 46 100 22 C130 46 160 2 200 30" }), svgEl("path", { class: "brilho", d: "M0 30 C40 2 70 46 100 22 C130 46 160 2 200 30" }));
-      const cor = svgEl("svg", { class: "akai-cor", viewBox: "0 0 24 24" }); cor.appendChild(svgEl("path", { d: "M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.3 2.6.7-1.4 2.2-2.6 4.3-2.6 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z", fill: "currentColor" }));
+      const onda = "M0 26 C25 8 45 44 70 26 S115 8 140 26 S180 44 200 26", onda2 = "M0 26 C25 44 45 8 70 26 S115 44 140 26 S180 8 200 26";
+      fio.append(svgEl("path", { class: "linha b", d: onda2 }), svgEl("path", { class: "linha", d: onda }), svgEl("path", { class: "brilho", d: onda }));
+      const cor = el("span", "akai-cor"); cor.appendChild(icone("rosa", ""));
       const pessoa = (perfil, uid, papel) => {
         const b = el("button", "akai-pessoa"); b.type = "button";
         b.append(novoAvatar(perfil.fotoPerfil, perfil.nome), el("strong", null, primeiroNome(perfil.nome)));
@@ -588,7 +717,7 @@
       };
       par.append(fio, cor, pessoa(dono, donoId, ""), pessoa(c.perfil, c.outro, c.tipo === "duo" ? "" : TIPOS[c.tipo][0]));
       const desde = c.aceitoEm?.toDate?.();
-      box.append(tit, par, el("p", "akai-desde", desde ? `Ligados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Ligados pelo fio vermelho"));
+      box.append(tit, par, el("p", "akai-desde", desde ? `Conectados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Conectados pelo fio vermelho"));
     }
 
     // ---------- grupos: cartões-retrato ----------
@@ -622,8 +751,66 @@
       });
     }
 
+    // ---------- Seu duo no perfil: os 4 modelos com prévia ----------
+    let modoDuo = "gaveta";
+    function previaDuo(estilo, clique, duo) {
+      const pv = el("div", "dm-prev"); pv.setAttribute("aria-hidden", "true");
+      const eu2 = novoAvatar(dono.fotoPerfil, dono.nome); eu2.classList.add("dm-eu");
+      const num = el("div", "dm-num"); num.append(el("i"), el("i"), el("i"));
+      const lin = el("div", "dm-linhas"); lin.append(el("i"), el("i"));
+      pv.append(eu2, num, lin);
+      const fotoDuo = () => novoAvatar(duo?.perfil.fotoPerfil, duo?.perfil.nome || "Duo");
+      if (estilo !== "ocultar") { const r = el("span", "dm-rosa" + (estilo === "rosa" ? " pulsa" : "")); r.appendChild(icone("rosa", "")); pv.appendChild(r); }
+      if (estilo === "gaveta") { const g = el("div", "dm-gav" + (clique ? "" : " fixa")); const t = el("span"); t.append(el("i"), el("i")); g.append(fotoDuo(), t); pv.append(g, el("i", "dm-dedo")); }
+      if (estilo === "bolinha") { const b = el("div", "dm-bol" + (clique ? "" : " fixa")); b.append(fotoDuo(), el("b", null, primeiroNome(duo?.perfil.nome || "Duo"))); pv.append(b, el("i", "dm-dedo")); }
+      if (estilo === "rosa") pv.appendChild(el("i", "dm-dedo"));
+      if (estilo === "ocultar") pv.appendChild(el("span", "dm-nada", "Sem rosinha"));
+      return pv;
+    }
+    function desenharModosDuo() {
+      const box = $("dmGrade"); box.replaceChildren();
+      const atual = lerModoDuo(modoDuo);
+      const duo = conexoes.find((x) => x.cat === "duo" && !x.pendente);
+      ESTILOS_DUO.forEach((m) => {
+        const b = el("button", "dm-op" + (atual.estilo === m.id ? " on" : "")); b.type = "button";
+        b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(atual.estilo === m.id)); b.dataset.estilo = m.id;
+        const clique = m.id === "gaveta" || m.id === "bolinha" ? atual.estilo === m.id ? atual.clique : true : false;
+        b.append(previaDuo(m.id, clique, duo), el("strong", null, m.nome), el("small", null, m.texto));
+        b.addEventListener("click", () => {
+          const vale = atual.estilo === "gaveta" || atual.estilo === "bolinha" ? atual.clique : true;
+          mudarModoDuo(montarModoDuo(m.id, vale));
+        });
+        box.appendChild(b);
+      });
+      const comClique = atual.estilo === "gaveta" || atual.estilo === "bolinha";
+      $("dmCliqueIn").checked = comClique && atual.clique;
+      $("dmCliqueIn").disabled = !comClique;
+      $("dmClique").classList.toggle("desligado", !comClique);
+      $("dmCliqueTx").textContent = comClique ? (atual.estilo === "gaveta" ? "Tocar na gaveta abre o perfil do seu duo." : "Tocar na bolinha abre o perfil do seu duo.") : "Só na gaveta e na bolinha.";
+      $("dmAtual").textContent = (duo ? "" : "Você ainda não tem um duo: a escolha vale quando tiver. ") + "Agora: " + textoModoDuo(modoDuo);
+    }
+    async function mudarModoDuo(valor) {
+      if (valor === valorDuo(modoDuo)) return;
+      const antes = modoDuo;
+      modoDuo = valor; desenharModosDuo();
+      try {
+        const pub = await salvarModoDuo(fb, eu.uid, valor);
+        dono.duoCapa = pub;
+        toast(pub === valor ? "Pronto: " + ESTILOS_DUO.find((e) => e.id === lerModoDuo(valor).estilo).nome : "Salvo na sua conta. Para quem visita, vale depois da atualização das regras do site.");
+      } catch { modoDuo = antes; desenharModosDuo(); toast("Não foi possível salvar."); }
+    }
+    async function prepararModosDuo() {
+      const conta = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid)).then((d) => (d.exists() ? d.data().duoCapa : undefined)).catch(() => undefined);
+      modoDuo = valorDuo(duoDaConta(conta, dono.duoCapa));
+      $("duoModos").hidden = false;
+      $("dmCliqueIn").addEventListener("change", (e) => { const a = lerModoDuo(modoDuo); mudarModoDuo(montarModoDuo(a.estilo, e.target.checked)); });
+      desenharModosDuo();
+      if (location.hash === "#duoModos") requestAnimationFrame(() => $("duoModos").scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+
     function desenharTudo() {
       desenharCabecalho(); desenharFiltros(); desenharCeu(); desenharDuo(); desenharGrupos();
+      if (proprio && !$("duoModos").hidden) desenharModosDuo();
     }
 
     async function iniciar() {
@@ -693,6 +880,7 @@
             });
           }
           desenharTudo();
+          if (proprio) prepararModosDuo();
           let t = null;
           let largura = $("orbita").clientWidth;
           new ResizeObserver(() => { const w = $("orbita").clientWidth; if (w === largura) return; largura = w; clearTimeout(t); t = setTimeout(desenharCeu, 100); }).observe($("orbita"));

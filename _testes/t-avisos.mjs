@@ -66,19 +66,20 @@ ok(await f.locator("#folhaNovo.aberta").count() === 0 && await p.locator("#paine
 
 // Rosinha do duo
 await p.goto(BASE + "configuracoes.html"); await p.waitForTimeout(2500);
-ok(await p.locator("#cfgDuoCapa button").count() === 4, "rosinha: 4 opções (Foto e nome, Só a foto, Só a rosinha, Ocultar)");
+ok(await p.locator("#cfgDuoCapa button").count() === 4, "duo: 4 opções (Gaveta, Bolinha, Só a rosinha, Nada)");
 await p.locator("#cfgDuoCapa button[data-valor=rosa]").tap(); await p.waitForTimeout(1200);
 ok((await db.doc(`usuarios/${U.ana}`).get()).data().duoCapa === "rosa" && (await db.doc(`perfis_publicos/${U.ana}`).get()).data().duoCapa === "rosa", "Só a rosinha gravado (conta e perfil público)");
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector(".pf-rosa", { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(800);
 await p.locator(".pf-rosa").first().tap(); await p.waitForTimeout(500);
 ok(await p.locator(".pf-duo-bolha.aberta").count() === 0, "Só a rosinha: tocar não mostra foto nem nome");
 await p.goto(BASE + "configuracoes.html"); await p.waitForTimeout(2500);
-await p.locator("#cfgDuoCapa button[data-valor=foto]").tap(); await p.waitForTimeout(1200);
+await p.locator("#cfgDuoCapa button[data-valor=bolinha]").tap(); await p.waitForTimeout(1200);
+await p.locator("#cfgDuoCliqueLinha").tap(); await p.waitForTimeout(1200);
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector(".pf-rosa", { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(800);
 await p.locator(".pf-rosa").first().tap(); await p.waitForTimeout(500);
 ok(await p.locator(".pf-duo-bolha.aberta.sem-nome").count() === 1 && await p.locator(".pf-duo-bolha .nm").evaluate((e) => getComputedStyle(e).display) === "none", "Só a foto: aparece a foto sem o nome");
 await p.goto(BASE + "configuracoes.html"); await p.waitForTimeout(2500);
-await p.locator("#cfgDuoCapa button[data-valor=clicavel]").tap(); await p.waitForTimeout(1200);
+await p.locator("#cfgDuoCliqueLinha").tap(); await p.waitForTimeout(1200);
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector(".pf-rosa", { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(1200);
 await p.locator(".pf-rosa").first().tap(); await p.waitForTimeout(500);
 const fonte = await p.locator(".pf-duo-bolha .nm").evaluate((e) => parseFloat(getComputedStyle(e).fontSize));

@@ -2687,6 +2687,23 @@ chat da equipe).
   cima, fio vermelho), fios finos na cor do grupo com uma gotinha de luz correndo, todos flutuando de leve (rAF), halo do
   centro batendo como coração, estrelas + coraçõezinhos subindo no fundo. Cartões dos grupos 4 por linha (`.retrato`
   `calc((100% - 24px)/4)`, máx. 140 px). Teste `t-perfil-social` (21).
+- **Social em radar futurista + duo em gaveta (14/11/2026, PR depois do #225, MUDA 1 REGRA — não publicada; 23 partes, 1191
+  testes):** pedido dele ("tira o romântico, algo futurista que impressione"; NÃO voltar ao coração/sistema solar). social.html:
+  radar escuro (também no claro): núcleo com a foto e 3 anéis de HUD girando (`giro.hud`), varredura de radar `#radar`
+  (conic-gradient, uma volta a cada 5 s) que dá "ping" (`animate`) em quem ela alcança, conexões em 3 órbitas (`ANEL`: amor
+  por dentro, família/amizades no meio, colegas por fora; `VEL` giram em sentidos opostos; a de dentro fica a ≥58 px dos
+  anéis da foto), linhas de dados com degradê e pacote de luz, régua em volta, grade em perspectiva `.ceu-chao`, poeira de
+  dados no canvas, cantoneiras, relógio real `#hudHora` e leituras por grupo `#leituras`; Akai Ito como feixe de energia
+  vermelho com a rosinha no meio; cartões dos grupos com canto cortado e fonte de máquina (`--mono`). Fundo sem a ponte
+  (sem autorização). **Duo no perfil** `duo-modo.js` (sem deps): `duoCapa` gaveta (padrão, sem o campo) | gaveta-fixa |
+  clicavel (bolinha que abre) | foto (bolinha só para ver) | rosa | ocultar; `lerModoDuo` → {estilo, clique},
+  `montarModoDuo`, `salvarModoDuo` (público com reserva gaveta→clicavel, gaveta-fixa/rosa→foto se as regras recusarem;
+  rede.js `RESERVA_DUO` não deixa a reserva apagar o valor da conta), `duoDaConta`. Gaveta (`desenharDuoCapa` em
+  usuarios-app.js, `.pf-duo-gaveta` no fim do rede.css): sai da rosinha (`--dg-x`, clip-path) por cima dos números, com foto,
+  nome + selo, @ · cidade, bio (1 linha) e "Ver perfil"; X, tocar fora ou Esc fecham. Escolha: Social → "Seu duo no perfil"
+  (`#duoModos`, 4 cartões com prévia animada `previaDuo` + chave "Tocar abre o perfil do duo"; `social.html#duoModos`) e
+  Configurações (`#cfgDuoCapa` gaveta/bolinha/rosa/ocultar + `#cfgDuoClique`). Teste `t-duo-gaveta.mjs` (23); `t-perfil`,
+  `t-avisos` atualizados.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2696,7 +2713,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1190 testes; inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1191 testes; inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

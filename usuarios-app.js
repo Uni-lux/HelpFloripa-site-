@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=162";
+} from "./rede.js?v=163";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -17,10 +17,11 @@ import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, mon
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=134";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=119";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=135";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=120";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=2";
+import { lerModoDuo } from "./duo-modo.js?v=1";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -179,7 +180,7 @@ function renderizarMeuPerfil() {
   // Estatísticas, selo e o resto ficam no ⋯ e no ícone ao lado dos números (antes eram cartões grandes aqui).
   meuCab.el("extra").replaceChildren();
   prefPublicas(eu.uid).then((pref) => aplicarPref(meuCab, pref));
-  desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos, (dados.duoCapa || "clicavel") === "clicavel");
+  desenharDuoCapa(meuCab, eu.uid, dados, meusVinculos);
   renderizarNegocios(meuCab.el("negocios"), meusNegocios, { proprio: true, dono: dados });
   pintarAvatar($("comporAvatar"), dados.fotoPerfil, dados.nome);
   document.title = `${dados.nome || "Meu perfil"} | Help Floripa`;
@@ -230,7 +231,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=126").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=127").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -690,7 +691,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=129").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=130").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -799,7 +800,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=129").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=130").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1405,7 +1406,7 @@ async function abrirPerfilPublico(uid) {
   // Como nas redes sociais: Seguir · Mensagem · ⋯ (Social, compartilhar, bloquear... ficam no ⋯)
   acoes.append(bSeguir, bMsg, botaoOpcoesPerfil(uid, { ...p, comSocial: (p.socialVisibilidade || "todos") !== "ocultar" }));
   // O duo na capa segue a escolha do dono: clicável, só a foto ou oculto.
-  desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : [], (p.duoCapa || "clicavel") === "clicavel");
+  desenharDuoCapa(ppCab, uid, p, vins.status === "fulfilled" ? vins.value : []);
   // Atalhos dos negócios: só se a pessoa deixou aparecer no perfil (pref_publicas.negociosNoPerfil; padrão sim).
   Promise.all([buscarNegocios(uid).then((lista) => semPausados(fb, lista)), atalhosNoPerfil(uid)])
     .then(([lista, mostra]) => renderizarNegocios(ppCab.el("negocios"), mostra ? lista : [], { proprio: false, dono: { ...p, uid } })).catch(() => {});
@@ -1515,14 +1516,17 @@ function botaoSocial(uid) {
   return b;
 }
 
-// Duo (Akai Ito): uma rosinha no canto da foto de perfil, no lugar da foto do duo e do fio na capa.
-// O dono escolhe em Configurações: clicável (abre o perfil do duo), só a rosinha ou oculta.
-function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
+// Duo (Akai Ito): uma rosinha no canto da foto de perfil. O dono escolhe (Social → "Seu duo no perfil" ou Configurações):
+// gaveta (prévia do perfil do duo saindo da rosinha), bolinha (a fotinho, como antes), só a rosinha ou nada; na gaveta e na
+// bolinha também se tocar abre o perfil do duo (duo-modo.js).
+function desenharDuoCapa(cab, uid, dono, vinculos = []) {
   const linha = cab.raiz.querySelector(".pf-avatar-wrap");
+  const faixa = cab.raiz.querySelector(".pf-linha-av") || linha.parentElement;
   linha.querySelectorAll(".pf-rosa, .pf-duo-bolha").forEach((x) => x.remove());
+  faixa.querySelectorAll(".pf-duo-gaveta").forEach((x) => x.remove());
   linha.classList.remove("com-rosa");
-  const modo = dono.duoCapa || "clicavel";
-  if (modo === "ocultar") return;
+  const { estilo, clique: podeAbrir } = lerModoDuo(dono.duoCapa);
+  if (estilo === "ocultar") return;
   const duo = vinculos.map((v) => lerVinculo(v, uid)).find((v) => TIPOS_DUO.includes(v.tipo) && !v.pendente && !escondido(v.outro));
   if (!duo) return;
   const btn = document.createElement("button");
@@ -1532,39 +1536,99 @@ function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
   linha.appendChild(btn);
   linha.classList.add("com-rosa");
   const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
+  const rotulo = papel === "Duo" ? "Duo · Akai Ito" : `${papel} · Akai Ito`;
   btn.setAttribute("aria-label", papel);
   btn.setAttribute("aria-expanded", "false");
-  // Tocar na rosinha: aparece a fotinho redonda do duo. "Clicável": a fotinho abre o perfil; "Só a rosinha": só mostra.
-  const bolha = document.createElement("button");
-  bolha.type = "button"; bolha.className = "pf-duo-bolha" + (podeAbrir ? "" : " so-ver") + (modo === "foto" ? " sem-nome" : ""); bolha.hidden = true;
-  const av = document.createElement("div"); av.className = "avatar";
-  const nm = document.createElement("span"); nm.className = "nm";
-  bolha.append(av, nm);
-  linha.appendChild(bolha);
-  obterPerfil(duo.outro).then((o) => {
-    pintarAvatar(av, o.fotoPerfil, o.nome);
-    nm.replaceChildren(el("small", null, papel === "Duo" ? "Duo · Akai Ito" : papel), el("b", null, (o.nome || "Usuário").split(" ")[0]));
-    btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
-    bolha.setAttribute("aria-label", podeAbrir ? `Abrir o perfil de ${o.nome || "Usuário"}` : `${papel}: ${o.nome || "Usuário"}`);
-  });
-  let fora = null, tempo = null;
-  const esconder = () => { bolha.classList.remove("aberta"); btn.setAttribute("aria-expanded", "false"); clearTimeout(tempo); document.removeEventListener("pointerdown", fora, true); setTimeout(() => { if (!bolha.classList.contains("aberta")) bolha.hidden = true; }, 200); };
-  fora = (e) => { if (!bolha.contains(e.target) && !btn.contains(e.target)) esconder(); };
+  const proprio = uid === eu.uid;
+  const avisoDono = (t) => { if (proprio) toast(t); };
+  if (estilo === "rosa") {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      btn.classList.remove("pulsa"); void btn.offsetWidth; btn.classList.add("pulsa"); navigator.vibrate?.(6);
+      avisoDono("Duo em \"Só a rosinha\": ninguém vê a foto nem o nome do seu duo. Mude no seu Social.");
+    });
+    return;
+  }
+  let caixa;
+  if (estilo === "gaveta") {
+    // Gaveta: sai da rosinha para a direita, por cima dos números, com a prévia do perfil do duo.
+    faixa.classList.add("com-gaveta");
+    caixa = document.createElement("div");
+    caixa.className = "pf-duo-gaveta" + (podeAbrir ? "" : " so-ver");
+    caixa.hidden = true;
+    caixa.setAttribute("role", "dialog");
+    const av = el("div", "avatar");
+    const nome = el("strong", "dg-nome");
+    const selo = icone("selo", "i dg-selo"); selo.style.display = "none";
+    const nmLinha = el("span", "dg-nm"); nmLinha.append(nome, selo);
+    const sub = el("span", "dg-sub");
+    const bio = el("span", "dg-bio");
+    const tx = el("span", "dg-tx"); tx.append(nmLinha, sub, bio);
+    const topo = el("span", "dg-rot"); topo.append(icone("rosa", "i"), document.createTextNode(rotulo));
+    const fechar = el("button", "dg-fechar"); fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar"); fechar.appendChild(icone("fechar", "i"));
+    const corpo = el(podeAbrir ? "button" : "div", "dg-corpo");
+    if (podeAbrir) corpo.type = "button";
+    corpo.append(av, tx);
+    if (podeAbrir) { const ir = el("span", "dg-ir"); ir.append(document.createTextNode("Ver perfil"), icone("avancar", "i")); tx.appendChild(ir); }
+    caixa.append(el("i", "dg-luz"), topo, fechar, corpo);
+    faixa.appendChild(caixa);
+    obterPerfil(duo.outro).then((o) => {
+      pintarAvatar(av, o.fotoPerfil, o.nome);
+      nome.textContent = o.nome || "Usuário";
+      selo.style.display = o.verificado ? "" : "none";
+      sub.textContent = [o.nickname ? "@" + o.nickname : "", nomeCidade(o.cidade || "")].filter(Boolean).join(" · ");
+      bio.textContent = o.bio || "";
+      bio.hidden = !o.bio;
+      btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
+      caixa.setAttribute("aria-label", `${rotulo}: ${o.nome || "Usuário"}`);
+    });
+    fechar.addEventListener("click", (e) => { e.stopPropagation(); esconder(); });
+    corpo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
+      else avisoDono("Gaveta só para ver: visitantes não abrem o perfil do seu duo por ela. Mude no seu Social.");
+    });
+  } else {
+    // Bolinha (como antes): a fotinho redonda do duo no lugar da rosinha.
+    caixa = document.createElement("button");
+    caixa.type = "button"; caixa.className = "pf-duo-bolha" + (podeAbrir ? "" : " so-ver sem-nome"); caixa.hidden = true;
+    const av = document.createElement("div"); av.className = "avatar";
+    const nm = document.createElement("span"); nm.className = "nm";
+    caixa.append(av, nm);
+    linha.appendChild(caixa);
+    obterPerfil(duo.outro).then((o) => {
+      pintarAvatar(av, o.fotoPerfil, o.nome);
+      nm.replaceChildren(el("small", null, rotulo), el("b", null, (o.nome || "Usuário").split(" ")[0]));
+      btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
+      caixa.setAttribute("aria-label", podeAbrir ? `Abrir o perfil de ${o.nome || "Usuário"}` : `${papel}: ${o.nome || "Usuário"}`);
+    });
+    caixa.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
+      else avisoDono("Bolinha só para ver: visitantes não abrem o perfil do seu duo por ela. Mude no seu Social.");
+    });
+  }
+  let tempo = null;
+  const fora = (e) => { if (!caixa.contains(e.target) && !btn.contains(e.target)) esconder(); };
+  const tecla = (e) => { if (e.key === "Escape") esconder(); };
+  function esconder() {
+    caixa.classList.remove("aberta"); btn.setAttribute("aria-expanded", "false"); btn.classList.remove("ativa"); clearTimeout(tempo);
+    document.removeEventListener("pointerdown", fora, true); document.removeEventListener("keydown", tecla);
+    setTimeout(() => { if (!caixa.classList.contains("aberta")) caixa.hidden = true; }, 320);
+  }
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    // "Só a rosinha": não mostra foto nem nome, só a rosinha pulsa.
-    if (modo === "rosa") { btn.classList.remove("pulsa"); void btn.offsetWidth; btn.classList.add("pulsa"); navigator.vibrate?.(6); if (uid === eu.uid) toast("Rosinha em \"Só a rosinha\": ninguém vê a foto nem o nome do seu duo. Mude em Configurações."); return; }
-    if (bolha.classList.contains("aberta")) { esconder(); return; }
-    bolha.hidden = false; requestAnimationFrame(() => bolha.classList.add("aberta"));
-    btn.setAttribute("aria-expanded", "true");
+    if (caixa.classList.contains("aberta")) { esconder(); return; }
+    if (estilo === "gaveta") {
+      // a gaveta começa no meio da rosinha
+      const r = btn.getBoundingClientRect(), f = faixa.getBoundingClientRect();
+      caixa.style.setProperty("--dg-x", Math.round(r.left + r.width / 2 - f.left) + "px");
+    }
+    caixa.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => caixa.classList.add("aberta")));
+    btn.setAttribute("aria-expanded", "true"); btn.classList.add("ativa");
     navigator.vibrate?.(6);
-    document.addEventListener("pointerdown", fora, true);
-    clearTimeout(tempo); tempo = setTimeout(esconder, 5000);
-  });
-  bolha.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
-    else if (uid === eu.uid) toast("Rosinha em \"Só a rosinha\": visitantes veem a foto, mas não abrem o perfil do seu duo. Mude em Configurações.");
+    document.addEventListener("pointerdown", fora, true); document.addEventListener("keydown", tecla);
+    clearTimeout(tempo); if (estilo === "bolinha") tempo = setTimeout(esconder, 5000);
   });
 }
 

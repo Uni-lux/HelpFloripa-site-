@@ -32,10 +32,10 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=120" />
+  <link rel="stylesheet" href="rede.css?v=121" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="configuracoes.js?v=181"></script>
+  <script type="module" src="configuracoes.js?v=182"></script>
 </head>
 <body>
   <header class="topo topo-app">
@@ -86,13 +86,14 @@
             <button type="button" data-valor="amigos">Amigos</button>
             <button type="button" data-valor="ocultar">Ocultar</button>
           </div>
-          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-rosa"/></svg><span class="txt">Rosinha do duo no perfil<small id="cfgDuoTxt"></small></span></div>
+          <div class="cfg-item" style="cursor:default"><svg class="i"><use href="#i-rosa"/></svg><span class="txt">Seu duo no perfil<small id="cfgDuoTxt"></small></span></div>
           <div class="segmentado" id="cfgDuoCapa">
-            <button type="button" data-valor="clicavel">Foto e nome</button>
-            <button type="button" data-valor="foto">Só a foto</button>
+            <button type="button" data-valor="gaveta">Gaveta</button>
+            <button type="button" data-valor="bolinha">Bolinha</button>
             <button type="button" data-valor="rosa">Só a rosinha</button>
-            <button type="button" data-valor="ocultar">Ocultar</button>
+            <button type="button" data-valor="ocultar">Nada</button>
           </div>
+          <label class="cfg-item" id="cfgDuoCliqueLinha"><svg class="i"><use href="#i-pessoa"/></svg><span class="txt">Tocar abre o perfil do duo<small>Na gaveta e na bolinha. <a href="social.html#duoModos">Ver como fica cada modelo</a></small></span><span class="switch"><input type="checkbox" id="cfgDuoClique" /><span></span></span></label>
           <label class="cfg-item"><svg class="i"><use href="#i-olho"/></svg><span class="txt">Mostrar quando estou online<small>Aparece como "online" nas conversas</small></span><span class="switch"><input type="checkbox" id="cfgOnline" /><span></span></span></label>
           <label class="cfg-item"><svg class="i"><use href="#i-check"/></svg><span class="txt">Confirmação de leitura<small>Se desligar, ninguém vê quando você leu e você também não vê a leitura dos outros</small></span><span class="switch"><input type="checkbox" id="cfgLeitura" /><span></span></span></label>
           <button type="button" class="cfg-item" id="cfgBloqueados"><svg class="i"><use href="#i-bloquear"/></svg><span class="txt">Contas bloqueadas<small id="cfgBloqueadosTxt">Ninguém bloqueado</small></span><svg class="i s"><use href="#i-avancar"/></svg></button>
