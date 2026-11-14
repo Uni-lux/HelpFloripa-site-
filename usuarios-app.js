@@ -8,17 +8,17 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=160";
+} from "./rede.js?v=161";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas } from "./avaliacoes.js?v=20";
-import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=3";
+import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=4";
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=132";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=117";
+import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=133";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=118";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 
 // ======================================================
@@ -219,7 +219,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=124").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=125").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -506,10 +506,210 @@ function desenharGrade(container, posts, { proprio, autor, vazio, salvo }) {
     }
     if ((post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) { tile.classList.add("agendada"); tile.appendChild(el("span", "selo-agendada", "Agendada")); }
     tile.setAttribute("aria-label", post._repub ? `Publicação republicada de ${post.nome || "outra pessoa"}` : post._marcacao ? `Publicação de ${post.nome || "outra pessoa"} com marcação` : "Abrir publicação");
-    tile.addEventListener("click", () => abrirPost(posts, i, { proprio, autor }));
+    // Tocar: as publicações em lista, rolando para baixo (como no Instagram). Segurar: a prévia grande.
+    tile.addEventListener("click", () => abrirFeedPerfil(posts, i, { proprio, autor }));
+    segurarTile(tile, () => abrirPreviaPub(post, { autor, abrir: () => abrirFeedPerfil(posts, i, { proprio, autor }) }));
     container.appendChild(tile);
   });
 }
+// ======================================================
+// Publicações do perfil (14/11/2026, pedido dele): tocar abre a lista rolando para baixo; segurar abre a prévia grande.
+// ======================================================
+function segurarTile(tile, fn) {
+  let tempo = null, x0 = 0, y0 = 0;
+  const parar = () => { clearTimeout(tempo); tempo = null; tile.classList.remove("segurando"); };
+  tile.addEventListener("pointerdown", (e) => {
+    if (e.button || e.target.closest(".sv-marca")) return;
+    x0 = e.clientX; y0 = e.clientY; tile.classList.add("segurando");
+    tempo = setTimeout(() => { tempo = null; tile.classList.remove("segurando"); tile._segurou = true; setTimeout(() => { tile._segurou = false; }, 700); navigator.vibrate?.(12); fn(); }, 430);
+  });
+  tile.addEventListener("pointermove", (e) => { if (tempo && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) parar(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((t) => tile.addEventListener(t, () => { if (tempo) parar(); }));
+  tile.addEventListener("contextmenu", (e) => e.preventDefault());
+  tile.addEventListener("click", (e) => { if (tile._segurou) { tile._segurou = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
+const linkPub = (id) => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}feed.html?post=${encodeURIComponent(id)}`;
+async function compartilharPub(post, nome) {
+  const url = linkPub(post.id);
+  try { if (navigator.share) { await navigator.share({ title: `Publicação de ${nome || "Help Floripa"}`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(url); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); }
+}
+function quemPublicou(post, autor) {
+  return post._marcacao || !autor ? { uid: post.autorId, nome: post.nome, foto: post.fotoPerfil } : { uid: autor.uid || post.autorId, nome: autor.nome || post.nome, foto: autor.fotoPerfil || post.fotoPerfil };
+}
+// Conteúdo da publicação (mídia, texto ou modelo de enquete/caixa) para a prévia.
+function miolo(post) {
+  const url = urlSegura(post.mediaUrl);
+  if (url && post.mediaTipo === "video") {
+    const v = document.createElement("video"); v.src = url; v.muted = true; v.autoplay = true; v.loop = true; v.playsInline = true; return v;
+  }
+  if (url) { const i = document.createElement("img"); i.src = url; i.alt = post.texto ? post.texto.slice(0, 80) : "Publicação"; return i; }
+  const c = el("div", "ppv-texto");
+  if (post.enquete?.pergunta) {
+    c.classList.add("enq");
+    c.append(el("span", "ppv-selo", post.caixa ? "Perguntas" : "Enquete"), el("strong", null, post.enquete.pergunta));
+    (post.enquete.opcoes || []).slice(0, 4).forEach((o) => c.appendChild(el("span", "ppv-op", String(o))));
+  } else if (post.caixa?.pergunta) {
+    c.classList.add("enq");
+    c.append(el("span", "ppv-selo", "Caixa de perguntas"), el("strong", null, post.caixa.pergunta), el("span", "ppv-op campo", "Escreva sua resposta…"));
+  } else {
+    if (post.titulo) c.appendChild(el("strong", "ppv-tit", post.titulo));
+    c.append(el("b", "ppv-aspas", "“"), el("p", null, String(post.texto || "").slice(0, 600)));
+  }
+  return c;
+}
+function abrirPreviaPub(post, { autor, abrir }) {
+  document.querySelector(".pp-previa")?.remove();
+  const q = quemPublicou(post, autor);
+  const tela = el("div", "pp-previa"); tela.setAttribute("role", "dialog"); tela.setAttribute("aria-modal", "true"); tela.setAttribute("aria-label", "Prévia da publicação");
+  const cartao = el("div", "ppv-cartao");
+  const cab = el("div", "ppv-cab");
+  const av = el("div", "avatar"); pintarAvatar(av, q.foto, q.nome);
+  const tx = el("div", "ppv-quem"); tx.append(el("strong", null, q.nome || "Usuário"), el("small", null, tempoRelativo(paraData(post.criadoEm))));
+  const bX = el("button", "ppv-x"); bX.type = "button"; bX.dataset.fechar = ""; bX.setAttribute("aria-label", "Fechar"); bX.appendChild(icone("fechar", "i s"));
+  cab.append(av, tx, bX);
+  const midia = el("div", "ppv-midia"); midia.appendChild(miolo(post));
+  const n = fotosDoPost(post).length; if (urlSegura(post.mediaUrl) && n > 1) midia.appendChild(el("span", "ppv-n", `1/${n}`));
+  cartao.append(cab, midia);
+  if (urlSegura(post.mediaUrl) && post.texto) cartao.appendChild(el("p", "ppv-legenda", post.texto));
+  const fechar = () => { tela.classList.add("saindo"); document.removeEventListener("keydown", tecla); setTimeout(() => tela.remove(), 180); };
+  const tecla = (e) => { if (e.key === "Escape") fechar(); };
+  const salvo = () => idsSalvos().includes(post.id);
+  const acoes = el("div", "ppv-acoes");
+  const acao = (ic, rot, fn) => { const b = el("button", "ppv-acao"); b.type = "button"; b.append(icone(ic, "i s"), el("span", null, rot)); b.addEventListener("click", fn); acoes.appendChild(b); return b; };
+  acao("olho", "Abrir", () => { fechar(); abrir(); });
+  const bSalvar = acao("salvo", salvo() ? "Salvo" : "Salvar", async () => { await alternarSalvo(post); bSalvar.lastChild.textContent = salvo() ? "Salvo" : "Salvar"; bSalvar.classList.toggle("on", salvo()); });
+  bSalvar.classList.toggle("on", salvo());
+  acao("compartilhar", "Compartilhar", () => compartilharPub(post, q.nome));
+  acao("link", "Copiar link", async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } });
+  tela.append(cartao, acoes);
+  bX.addEventListener("click", fechar);
+  tela.addEventListener("click", (e) => { if (e.target === tela) fechar(); });
+  document.addEventListener("keydown", tecla);
+  document.body.appendChild(tela);
+}
+
+// Lista das publicações (folha em tela cheia): cada uma com quem publicou, a mídia, o texto e a barra de estrelas e ações.
+let feedPerfil = null;
+function abrirFeedPerfil(lista, indice, opcoes) {
+  const corpo = $("feedLista");
+  feedPerfil?.obs?.disconnect();
+  feedPerfil = { lista, opcoes, obs: null };
+  corpo.replaceChildren();
+  const q0 = quemPublicou(lista[indice] || {}, opcoes.autor);
+  $("feedSub").textContent = opcoes.proprio ? "Suas publicações" : q0.nome ? q0.nome : "";
+  const itens = lista.map((p, i) => itemFeed(p, i));
+  corpo.append(...itens);
+  // A barra de estrelas e a vista só quando a publicação aparece (não lê tudo de uma vez).
+  feedPerfil.obs = new IntersectionObserver((ents) => ents.forEach((e) => {
+    const it = e.target;
+    if (e.isIntersecting) { it._ligar?.(); }
+    else it.querySelector("video")?.pause();
+  }), { root: corpo.closest(".folha-corpo"), rootMargin: "300px 0px" });
+  itens.forEach((it) => feedPerfil.obs.observe(it));
+  abrirFolha("folhaFeed");
+  requestAnimationFrame(() => { const alvo = itens[indice]; const c = corpo.closest(".folha-corpo"); if (alvo && c) c.scrollTop = alvo.offsetTop - corpo.offsetTop; });
+}
+function itemFeed(post, i) {
+  const { lista, opcoes } = feedPerfil;
+  const proprio = opcoes.proprio && !post._marcacao;
+  const q = quemPublicou(post, opcoes.autor);
+  const art = el("article", "pfd-item");
+  const cab = el("div", "pfd-cab");
+  const av = el("div", "avatar"); pintarAvatar(av, q.foto, q.nome);
+  const tx = el("div", "pfd-quem");
+  const nm = el("strong", null, q.nome || "Usuário");
+  const sub = el("small", null, tempoRelativo(paraData(post.criadoEm)) + (post.local?.nome ? ` · ${post.local.nome}` : "") + (post.editadoEm ? " · editada" : ""));
+  tx.append(nm, sub);
+  if (post._marcacao) obterPerfil(post.autorId).then((pp) => { if (pp.nome) nm.textContent = pp.nome; if (pp.fotoPerfil || pp.nome) pintarAvatar(av, pp.fotoPerfil, pp.nome); }).catch(() => {});
+  const mais = el("button", "icone-btn pfd-mais"); mais.type = "button"; mais.setAttribute("aria-label", "Opções da publicação"); mais.appendChild(icone("pontos", "i"));
+  cab.append(av, tx, mais);
+  if (q.uid && q.uid !== eu.uid) { const ir = () => abrirPerfilPublico(q.uid); av.addEventListener("click", ir); nm.addEventListener("click", ir); av.style.cursor = nm.style.cursor = "pointer"; }
+  art.appendChild(cab);
+  const url = urlSegura(post.mediaUrl);
+  const casada = post.estilo === "casada" && url && post.mediaTipo !== "video";
+  let barra = null;
+  const darCinco = async (alvo) => { if (!barra?.estrelas?.darNota) return; await contadorEstrelas(alvo, (nota) => barra.estrelas.darNota(nota)); };
+  if (post.titulo) art.appendChild(el("h3", "pfd-titulo", post.titulo));
+  if (casada) { const m = el("div", "pfd-midia"); m.appendChild(blocoCasado(post.texto, url, { verMais: true })); art.appendChild(m); }
+  else if (url && post.mediaTipo === "video") { const m = el("div", "pfd-midia"); const v = document.createElement("video"); v.src = url; v.controls = true; v.playsInline = true; v.preload = "metadata"; m.appendChild(v); art.appendChild(m); }
+  else if (url) { const m = el("div", "pfd-midia"); m.appendChild(carrosselFotos(fotosDoPost(post), { alt: "Imagem da publicação", aoToqueDuplo: () => darCinco(m) })); art.appendChild(m); }
+  const repete = post.texto && [post.enquete?.pergunta, post.caixa?.pergunta].includes(post.texto.trim());
+  if (post.texto && !casada && !repete) {
+    const t = el("p", "pfd-texto" + (url ? "" : " so-texto"));
+    comMencoes(t, post.texto);
+    if (!url) { let ult = 0; t.addEventListener("click", (e) => { if (e.target.closest("a, button")) return; const ag = Date.now(); if (ag - ult < 320) { ult = 0; barra?.estrelas?.pular?.(); barra?.estrelas?.darNota?.(5); } else ult = ag; }); }
+    art.appendChild(t);
+  }
+  const extra = el("div", "pfd-extras");
+  const enq = blocoEnquete(post); if (enq) extra.appendChild(enq);
+  const cx = blocoCaixa(post); if (cx) extra.appendChild(cx);
+  if (Array.isArray(post.marcados) && post.marcados.length) extra.appendChild(pessoasEmPilha(post.marcados, { classe: "post-com", aoPerfil: () => fecharFolha("folhaFeed") }));
+  if (extra.children.length) art.appendChild(extra);
+  const social = el("div", "pfd-social"); art.appendChild(social);
+  let ligado = false;
+  art._ligar = () => {
+    if (ligado || post._agendada) return; ligado = true;
+    const p2 = { ...post, autorId: post.autorId || q.uid };
+    barra = barraInteracao(p2, { aoComentar: () => abrirPost(lista, i, opcoes) });
+    social.appendChild(barra);
+    if (!proprio) marcarVista(p2);
+  };
+  if (post._agendada || (post.agendadoPara?.toMillis?.() ?? 0) > Date.now()) social.appendChild(el("p", "pfd-aviso", "Agendada: só você vê até a hora marcada."));
+  mais.addEventListener("click", () => opcoesPublicacao(post, art, i));
+  return art;
+}
+function opcoesPublicacao(post, art, i) {
+  const { lista, opcoes } = feedPerfil;
+  const proprio = opcoes.proprio && !post._marcacao;
+  const q = quemPublicou(post, opcoes.autor);
+  const itens = proprio
+    ? [
+        { rotulo: "Editar", icone: "lapis", fn: () => {
+          if (post._agendada) { toast("Para mudar uma publicação agendada, apague e agende de novo (ou publique agora e edite)."); return; }
+          if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
+          editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
+        } },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=128").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
+        { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
+        { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
+      ]
+    : [
+        { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
+        { rotulo: "Compartilhar", icone: "compartilhar", fn: () => compartilharPub(post, q.nome) },
+        { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
+        { rotulo: "Denunciar", icone: "alerta", perigo: true, fn: () => denunciarPublicacao(post, opcoes.autor) }
+      ];
+  abrirOpcoes("Publicação", itens);
+}
+// Apagar e denunciar: usados pela folha da publicação e pela lista.
+async function apagarPublicacao(post) {
+  if (!await confirmarHF({ titulo: post._agendada ? "Apagar esta publicação agendada?" : "Apagar esta publicação?", texto: post._agendada ? "Ela não vai ser publicada. Não dá para desfazer." : "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return false;
+  try {
+    if (post._agendada) await fb.deleteDoc(fb.doc(fb.db, "agendadas", post.id));
+    else if (post.guardado) await apagarComGuardado(fb, "diario", post.id); // escondida: o esqueleto e o conteúdo guardado juntos
+    else await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
+    apagarFlashesDaPublicacao(post.id);
+    meusPosts = meusPosts.filter((p) => p.id !== post.id);
+    renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
+    renderizarMeuPerfil();
+    toast("Publicação apagada");
+    return true;
+  } catch (e) {
+    console.error(e);
+    toast("Não foi possível apagar: " + erroAmigavel(e));
+    return false;
+  }
+}
+function denunciarPublicacao(post, autor) {
+  const autorId = post.autorId || autor?.uid;
+  const nomeA = (post._marcacao ? post.nome : autor?.nome) || post.nome || "";
+  abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nomeA,
+    aoBloquear: async () => { if (await bloquear(autorId, nomeA)) { fecharFolha("folhaPost"); fecharFolha("folhaFeed"); abrirPerfilPublico(autorId); } } });
+}
+$("folhaFeed")?.addEventListener("fechada", () => { feedPerfil?.obs?.disconnect(); $("feedLista").querySelectorAll("video").forEach((v) => v.pause()); });
+
 // Tom do cartão de texto (sempre o mesmo para a mesma publicação).
 function tomDoTexto(id) { let h = 0; for (const c of String(id || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 5; }
 
@@ -577,7 +777,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=127").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=128").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -606,22 +806,7 @@ $("postAnterior").addEventListener("click", () => { if (postCtx.indice > 0) { po
 $("postProximo").addEventListener("click", () => { if (postCtx.indice < postCtx.lista.length - 1) { postCtx.indice++; mostrarPost(); } });
 $("folhaPost").addEventListener("fechada", () => $("postMidia").querySelector("video")?.pause());
 $("postApagar").addEventListener("click", async () => {
-  const post = postCtx.lista[postCtx.indice];
-  if (!await confirmarHF({ titulo: post._agendada ? "Apagar esta publicação agendada?" : "Apagar esta publicação?", texto: post._agendada ? "Ela não vai ser publicada. Não dá para desfazer." : "Ela some do seu perfil e do Diário. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
-  try {
-    if (post._agendada) await fb.deleteDoc(fb.doc(fb.db, "agendadas", post.id));
-    else if (post.guardado) await apagarComGuardado(fb, "diario", post.id); // escondida: o esqueleto e o conteúdo guardado juntos
-    else await fb.deleteDoc(fb.doc(fb.db, "diario", post.id));
-    apagarFlashesDaPublicacao(post.id);
-    fecharFolha("folhaPost");
-    meusPosts = meusPosts.filter((p) => p.id !== post.id);
-    renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") });
-    renderizarMeuPerfil();
-    toast("Publicação apagada");
-  } catch (e) {
-    console.error(e);
-    toast("Não foi possível apagar: " + erroAmigavel(e));
-  }
+  if (await apagarPublicacao(postCtx.lista[postCtx.indice])) fecharFolha("folhaPost");
 });
 
 $("postEditar").addEventListener("click", () => {
@@ -632,10 +817,7 @@ $("postEditar").addEventListener("click", () => {
 });
 $("postDenunciar").addEventListener("click", () => {
   const post = postCtx.lista[postCtx.indice];
-  const autorId = post.autorId || postCtx.autor?.uid;
-  const nomeA = postCtx.autor?.nome || post.nome || "";
-  abrirDenuncia({ fb, eu, tipo: "publicacao", alvoId: autorId, itemId: post.id, trecho: post.texto || "", nomeAlvo: nomeA,
-    aoBloquear: async () => { if (await bloquear(autorId, nomeA)) { fecharFolha("folhaPost"); abrirPerfilPublico(autorId); } } });
+  denunciarPublicacao(post, post._marcacao ? null : postCtx.autor);
 });
 
 // ---------- Salvos (só você vê): coleções em cima, filtros e a grade com quem publicou ----------
@@ -1336,7 +1518,7 @@ function desenharDuoCapa(cab, uid, dono, vinculos, podeAbrir) {
   linha.appendChild(bolha);
   obterPerfil(duo.outro).then((o) => {
     pintarAvatar(av, o.fotoPerfil, o.nome);
-    nm.textContent = (o.nome || "Usuário").split(" ")[0];
+    nm.replaceChildren(el("small", null, papel === "Duo" ? "Duo · Akai Ito" : papel), el("b", null, (o.nome || "Usuário").split(" ")[0]));
     btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
     bolha.setAttribute("aria-label", podeAbrir ? `Abrir o perfil de ${o.nome || "Usuário"}` : `${papel}: ${o.nome || "Usuário"}`);
   });

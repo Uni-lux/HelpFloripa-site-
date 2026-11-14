@@ -333,3 +333,5 @@ html { -webkit-tap-highlight-color: transparent; }
    (hora/bateria em cima e botões embaixo), no site e no app instalado. */
 :root[data-theme="dark"] .topo { background: #000; border-bottom-color: rgba(255, 255, 255, .12); -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-theme="dark"], :root[data-theme="dark"] body { background-color: #000; }
+/* o slogan da marca nunca quebra em 2 linhas (print de 14/11: "TUDO EM UM SÓ / LUGAR") */
+.marca small { white-space: nowrap; }

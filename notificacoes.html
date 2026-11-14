@@ -32,22 +32,20 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=111" />
+  <link rel="stylesheet" href="rede.css?v=113" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="notificacoes.js?v=160"></script>
+  <script type="module" src="notificacoes.js?v=161"></script>
 </head>
 <body>
-  <header class="topo">
-    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
-    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
-    <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
+  <header class="topo topo-app">
+    <a href="usuarios.html" class="icone-btn" data-voltar aria-label="Voltar" title="Voltar"><svg class="i"><use href="#i-voltar"/></svg></a>
+    <h1 class="topo-tit"><span>Notificações</span></h1>
     <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
 
   <main class="pagina">
-    <div class="cab-pagina"><div><h1>Notificações</h1><p>Seguidores, estrelas, comentários, pedidos do social, mensagens, avaliações, reclamações e o seu plano.</p></div></div>
+    <p class="sub-pagina">Seguidores, estrelas, comentários, pedidos do social, mensagens, avaliações, reclamações e o seu plano.</p>
     <div class="cartao nt-pagina" id="listaAvisos"><div class="lista-vazia">Carregando...</div></div>
   </main>
 </body>

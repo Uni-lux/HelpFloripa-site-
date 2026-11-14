@@ -1956,8 +1956,10 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
     await assertSucceeds(lk("lk_a", "facebook", "100012345678", "todos")); await assertSucceeds(lk("lk_a", "linkedin", "douglas-jos%C3%A9-123", "todos"));
   });
   await t("links: Telegram curto e LinkedIn com barra são recusados", async () => { await assertFails(lk("lk_a", "telegram", "abc", "todos")); await assertFails(lk("lk_a", "linkedin", "in/x/y", "todos")); });
+  await t("links: e-mail de contato", () => assertSucceeds(lk("lk_a", "email", "contato.ana+hf@empresa.com.br", "seguidores")));
+  await t("links: e-mail inválido ou com maiúscula é recusado", async () => { await assertFails(lk("lk_a", "email", "ana@", "todos")); await assertFails(lk("lk_a", "email", "Ana@x.com", "todos")); await assertFails(lk("lk_a", "email", "a b@x.com", "todos")); });
   await t("links: valor de outra rede no tipo errado é recusado", () => assertFails(lk("lk_a", "whatsapp", "help.floripa", "todos")));
-  await t("perfil: lista das redes", () => assertSucceeds(setDoc(doc(ctx("lk_a"), "pref_publicas", "lk_a"), { redes: ["instagram", "linkedin"] }, { merge: true })));
+  await t("perfil: lista das redes", () => assertSucceeds(setDoc(doc(ctx("lk_a"), "pref_publicas", "lk_a"), { redes: ["instagram", "email", "linkedin"] }, { merge: true })));
   await t("perfil: rede inventada na lista é recusada", () => assertFails(setDoc(doc(ctx("lk_a"), "pref_publicas", "lk_a"), { redes: ["orkut"] }, { merge: true })));
   await t("links: campo a mais é recusado", () => assertFails(setDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_instagram"), { uid: "lk_a", tipo: "instagram", valor: "x", ver: "todos", em: serverTimestamp(), extra: 1 })));
   await t("links: qualquer pessoa vê o que é para todos", () => assertSucceeds(getDoc(doc(ctx("lk_b"), "contatos_perfil", "lk_a_instagram"))));

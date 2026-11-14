@@ -177,6 +177,9 @@
 > **Redes do perfil (14/11/2026):** `contatos_perfil` aceita também `telegram`, `kwai`, `facebook` e `linkedin` (tipo + valor
 > num regex só); quem vê agora é `todos`, `seguidores` ou `amigos` (vocês se seguem: as duas `relacoes` existem); `ninguem`
 > antigo só o dono vê. `pref_publicas.redes` = lista dos tipos que a pessoa tem (sem os valores). Continuam **23 partes**, 1188 testes.
+>
+> **E-mail de contato no perfil (14/11/2026):** `contatos_perfil` aceita também `email` (minúsculo, ≤120); `redes` até 10.
+> Continuam **23 partes**, 1190 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
@@ -186,7 +189,7 @@ linha), para colar no console do Firebase.
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 23 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 23 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1188 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1190 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

@@ -29,7 +29,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="vitrine.css?v=44" />
-  <link rel="stylesheet" href="rede.css?v=111" />
+  <link rel="stylesheet" href="rede.css?v=113" />
   <title>Meu Perfil | Help Floripa</title>
   <script>
     // Tema compartilhado com a página de mensagens; aplicado antes de desenhar.
@@ -184,6 +184,17 @@
 
 
 
+  <div class="folha cheia folha-feed" id="folhaFeed" role="dialog" aria-modal="true" aria-labelledby="tFeed">
+    <div class="folha-caixa">
+      <div class="folha-topo pfd-topo">
+        <button type="button" class="icone-btn" data-fechar aria-label="Voltar"><svg class="i"><use href="#i-voltar"/></svg></button>
+        <h2 id="tFeed">Publicações<small id="feedSub"></small></h2>
+        <span class="pfd-espaco" aria-hidden="true"></span>
+      </div>
+      <div class="folha-corpo"><div class="pfd-lista" id="feedLista"></div></div>
+    </div>
+  </div>
+
   <div class="folha larga" id="folhaPost" role="dialog" aria-modal="true" aria-labelledby="tPost">
     <div class="folha-caixa">
       <div class="folha-topo">
@@ -258,6 +269,6 @@
     </div>
   </div>
 
-  <script type="module" src="usuarios-app.js?v=62"></script>
+  <script type="module" src="usuarios-app.js?v=63"></script>
 </body>
 </html>
