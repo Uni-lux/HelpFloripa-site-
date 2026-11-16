@@ -164,52 +164,147 @@
     .ceu-total { display: flex; align-items: center; justify-content: center; gap: 8px; }
     .nota { margin: 0 16px; text-align: center; color: var(--muted); font-size: 13px; }
 
-    /* ---------- Akai Ito: o link do duo, um feixe de energia vermelho entre as duas fotos ---------- */
-    .akai { position: relative; margin: 0 14px; padding: 16px 16px 14px; border-radius: 4px 20px 4px 20px; overflow: hidden; color: #fff; isolation: isolate;
-      background: radial-gradient(90% 120% at 50% 50%, rgba(255, 77, 109, .18), transparent 60%), linear-gradient(160deg, #12040a, #04060c 75%); border: 1px solid rgba(255, 77, 109, .35); }
-    .akai::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
-      background: linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 100% 10px; }
-    .akai-tit { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 0; font: 800 10px/1 var(--mono); letter-spacing: 1.8px; text-transform: uppercase; color: #ff8fa3; }
-    .akai-tit span { display: flex; align-items: center; gap: 6px; }
-    .akai-tit svg { width: 14px; height: 14px; color: #ff4d6d; }
-    .akai-tit em { font-style: normal; color: #3dffa8; display: flex; align-items: center; gap: 5px; }
-    .akai-tit em::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
-    .akai-par { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 16px 6px 10px; }
+    /* ---------- Akai Ito (duo), 7ª versão (16/11/2026, pedido dele): cartão organizado, sem "conectados pelo fio vermelho",
+       frase de vocês (ou uma da lenda), data em que se conheceram, tempo juntos e o retrato dos dois. ---------- */
+    .akai { position: relative; margin: 0 14px; padding: 16px 16px 14px; border-radius: 22px; overflow: hidden; color: #fff; isolation: isolate;
+      background: radial-gradient(120% 80% at 50% 0%, rgba(255, 77, 109, .24), transparent 62%), linear-gradient(172deg, #1c0811 0%, #0d0509 58%, #08060a 100%);
+      border: 1px solid rgba(255, 77, 109, .34); box-shadow: 0 16px 40px rgba(70, 0, 18, .22); }
+    .akai::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(55% 45% at 100% 100%, rgba(255, 77, 109, .1), transparent 72%), radial-gradient(40% 35% at 0% 100%, rgba(255, 140, 160, .06), transparent 72%); }
+    .ak-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
+    .ak-rot { display: flex; align-items: center; gap: 7px; min-width: 0; font: 800 11px/1 var(--head); letter-spacing: 1.6px; text-transform: uppercase; color: #ff9fb0; }
+    .ak-rot svg { width: 15px; height: 15px; color: #ff4d6d; }
+    .ak-rot small { font: 700 10.5px/1 var(--font); letter-spacing: .2px; text-transform: none; color: rgba(255, 222, 230, .72); padding: 5px 9px; border-radius: 99px; background: rgba(255, 255, 255, .07); white-space: nowrap; }
+    .ak-edit { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .07); color: #fff; font-size: 12px; font-weight: 750; cursor: pointer; }
+    .ak-edit svg { width: 14px; height: 14px; }
+    @media (hover: hover) { .ak-edit:hover { background: rgba(255, 255, 255, .13); } }
+    .ak-retrato { position: relative; display: block; width: 100%; margin: 14px 0 0; padding: 0; border: 1px solid rgba(255, 255, 255, .08); border-radius: 16px; overflow: hidden; aspect-ratio: 16 / 10; max-height: 300px; background: #160a0f; cursor: zoom-in; }
+    .ak-retrato img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ak-retrato::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 60%, rgba(8, 4, 7, .55)); pointer-events: none; }
+    .akai-par { position: relative; display: flex; align-items: center; justify-content: space-between; margin: 16px 6px 12px; }
     .akai-fio { position: absolute; left: 44px; right: 44px; top: 4px; height: 50px; overflow: visible; pointer-events: none; }
     .akai-fio path.linha { fill: none; stroke: #ff4d6d; stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(255, 77, 109, .95)); }
-    .akai-fio path.linha.b { stroke: rgba(255, 140, 160, .5); stroke-width: 1; }
-    .akai-fio path.brilho { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 14 400; animation: correr 2.4s linear infinite; }
+    .akai-fio path.linha.b { stroke: rgba(255, 140, 160, .45); stroke-width: 1; }
+    .akai-fio path.brilho { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 14 400; animation: correr 2.6s linear infinite; }
     @keyframes correr { from { stroke-dashoffset: 420; } to { stroke-dashoffset: 0; } }
     .akai-cor { position: absolute; left: 50%; top: 14px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; transform: translateX(-50%); z-index: 2;
       background: #fff; color: #e0243b; box-shadow: 0 0 0 4px rgba(255, 77, 109, .2), 0 0 22px rgba(255, 77, 109, .9); }
     .akai-cor svg { width: 18px; height: 18px; }
     .akai-pessoa { position: relative; z-index: 2; display: grid; justify-items: center; gap: 6px; width: 96px; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
     .akai-pessoa[disabled] { cursor: default; }
-    .akai-pessoa .avatar { width: 56px; height: 56px; font-size: 18px; box-shadow: 0 0 0 2.5px #12040a, 0 0 0 4px #ff4d6d, 0 0 26px rgba(255, 77, 109, .45); }
-    .akai-pessoa strong { max-width: 96px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .akai-pessoa em { margin-top: -4px; font: 700 10px/1 var(--mono); font-style: normal; color: #ff8fa3; text-transform: uppercase; letter-spacing: .8px; }
-    .akai-desde { margin: 0; text-align: center; font: 600 11px/1.4 var(--mono); letter-spacing: .4px; color: rgba(255, 220, 228, .62); }
+    .ak-av { position: relative; }
+    .akai-pessoa .avatar { width: 58px; height: 58px; font-size: 18px; box-shadow: 0 0 0 2.5px #14060c, 0 0 0 4px #ff4d6d, 0 0 26px rgba(255, 77, 109, .45); }
+    .akai-pessoa strong { max-width: 96px; font: 800 14px/1.2 var(--head); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .akai-pessoa em { margin-top: -3px; font-size: 10.5px; font-weight: 700; font-style: normal; color: #ff9fb0; }
+    .ak-frase { margin: 0 4px; text-align: center; font: 600 15px/1.5 var(--head); letter-spacing: -.1px; color: #ffe9ee; text-wrap: balance; overflow-wrap: anywhere; }
+    .ak-frase::before, .ak-frase::after { color: #ff4d6d; font-weight: 800; }
+    .ak-frase::before { content: "“"; margin-right: 1px; }
+    .ak-frase::after { content: "”"; margin-left: 1px; }
+    .ak-dados { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .ak-dado { min-width: 0; display: grid; gap: 4px; padding: 10px 6px; border-radius: 14px; text-align: center; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
+    .ak-dado small { font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: rgba(255, 196, 210, .66); line-height: 1.25; }
+    .ak-dado b { font: 800 13px/1.25 var(--head); color: #fff; overflow-wrap: anywhere; }
+    .ak-vazio { width: 100%; margin-top: 14px; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; border: 1px dashed rgba(255, 77, 109, .5); background: rgba(255, 77, 109, .06);
+      color: #ffd9e1; font-size: 12.5px; font-weight: 650; line-height: 1.4; text-align: left; cursor: pointer; }
+    .ak-vazio svg { flex: none; width: 20px; height: 20px; color: #ff4d6d; }
 
-    /* ---------- painel do dono ---------- */
-    .painel-dono { margin: 0 14px; padding: 16px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 12px; }
-    .painel-dono h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; }
-    .painel-dono p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
-    .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--panel-2); padding: 4px; border-radius: 12px; }
-    .segmentado button { border: 0; background: transparent; border-radius: 9px; padding: 9px 4px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
-    .segmentado button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .15); }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 800; cursor: pointer; text-decoration: none; }
+    /* ---------- pet ao lado do dono (RG do pet: só os que a pessoa deixou visíveis) ---------- */
+    .pet-bol { position: absolute; left: -7px; bottom: -5px; z-index: 3; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; overflow: visible; display: grid; place-items: center; cursor: pointer;
+      background: var(--panel-2); box-shadow: 0 0 0 2px var(--panel); }
+    .pet-bol > img, .pet-bol > .hf-ic { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
+    .pet-bol > img { object-fit: cover; display: block; }
+    .pet-bol > .hf-ic { --t: 14px; display: grid; place-items: center; }
+    .pet-bol.perdido { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px #e5484d; }
+    .pet-bol b { position: absolute; right: -6px; top: -5px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 99px; background: var(--text); color: var(--panel); font-size: 9px; font-weight: 800; line-height: 15px; text-align: center; }
+    .akai .pet-bol { width: 26px; height: 26px; left: -6px; bottom: -4px; background: #1b0c12; box-shadow: 0 0 0 2px #14060c; }
+    .hs-avw { position: relative; flex: none; }
+    .hs-avw .pet-bol { left: auto; right: -7px; bottom: -6px; width: 28px; height: 28px; }
+    .dest .anel { position: relative; }
+    .dest .pet-bol { left: -6px; bottom: -6px; width: 22px; height: 22px; box-shadow: 0 0 0 2px var(--bg); }
+
+    /* ---------- retrato no cartão da conexão ---------- */
+    .pe-foto { display: block; width: calc(100% + 24px); margin: -13px -12px 11px; height: 92px; padding: 0; border: 0; border-radius: 16px 16px 0 0; overflow: hidden; background: var(--panel-2); cursor: zoom-in; }
+    .pe-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pessoa.com-foto::before { display: none; }
+    .pessoa.com-foto > button.mais { top: 6px; right: 6px; border-radius: 50%; background: rgba(0, 0, 0, .45); color: #fff; }
+    .pe-texto.frase { font-style: italic; }
+    .pe-pes button.ic { flex: 0 0 34px; padding: 0; }
+    .pessoa { container-type: inline-size; }
+    .pe-pes button { overflow: hidden; }
+    @container (max-width: 210px) { .pe-pes .msg span { display: none; } }
+    .pe-pes button.aceitar { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+
+    /* ---------- Cuidado e proteção (SOS, pets, presentes) ---------- */
+    .cd-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 14px; }
+    .cd { min-width: 0; display: grid; align-content: start; gap: 4px; padding: 12px 10px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; text-align: left; }
+    .cd .hf-ic { margin-bottom: 4px; }
+    .cd strong { font: 800 13px/1.2 var(--head); }
+    .cd small { font-size: 11px; line-height: 1.35; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    @media (hover: hover) { .cd:hover { border-color: color-mix(in srgb, var(--c, var(--accent)) 50%, var(--line)); } }
+
+    /* ---------- gavetas: Configurações, Adicionar, Memória ---------- */
+    .folha.grande { width: min(560px, 100%); max-height: 92vh; }
+    .cfg-sec { padding: 14px 18px 16px; display: grid; gap: 10px; }
+    .cfg-sec + .cfg-sec { border-top: 1px solid var(--line); }
+    .cfg-sec h4 { margin: 0; display: flex; align-items: center; gap: 8px; font: 800 15px/1.25 var(--head); }
+    .cfg-sec h4 svg { width: 17px; height: 17px; color: var(--accent); }
+    .cfg-sec > p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+    .ops { display: grid; gap: 6px; }
+    .op { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; }
+    .op .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+    .op .tx b { font-size: 13.5px; }
+    .op .tx small { font-size: 11.5px; line-height: 1.35; color: var(--muted); }
+    .op .radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); }
+    .op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel-2)); }
+    .op.on .radio { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 45%, transparent 50%); }
+    .cfg-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn.sec { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
     .btn.pri { background: var(--accent); color: var(--accent-ink); }
-
-
-    /* ---------- Seu duo no perfil: 4 modelos com prévia (duo-modo.js) ---------- */
+    .btn.largo { width: 100%; }
+    .btn[disabled] { opacity: .5; cursor: default; }
+    .busca-add { display: flex; align-items: center; gap: 8px; margin: 10px 18px 6px; padding: 0 12px; height: 42px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+    .busca-add input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; outline: none; }
+    .add-esc { display: flex; align-items: center; gap: 12px; margin: 12px 18px 4px; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); }
+    .add-esc .avatar { width: 44px; height: 44px; }
+    .add-esc .tx { flex: 1; min-width: 0; display: grid; }
+    .add-esc .tx b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .add-esc .tx small { color: var(--muted); font-size: 12px; }
+    .tipos { padding: 4px 18px 6px; display: grid; gap: 12px; }
+    .tipos .grupo { display: grid; gap: 7px; }
+    .tipos .grupo > span { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--cor); }
+    .tipos .chips-t { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tipos button { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .tipos button.on { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 15%, var(--panel)); }
+    .tipos button[disabled] { opacity: .4; cursor: default; }
+    .folha-pe { padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
+    .aviso-add { margin: 0 18px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+    .mem { display: grid; gap: 14px; padding: 14px 18px 4px; }
+    .mem label { display: grid; gap: 6px; font-size: 12.5px; font-weight: 750; }
+    .mem input[type="date"], .mem input[type="text"] { height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: inherit; font-size: 14px; }
+    .mem .conta { justify-self: end; font-size: 11px; font-weight: 600; color: var(--muted); }
+    .mem .sug { display: flex; flex-wrap: wrap; gap: 6px; }
+    .mem .sug button { padding: 6px 10px; border-radius: 999px; border: 1px dashed var(--line); background: none; color: var(--muted); font-size: 11.5px; cursor: pointer; text-align: left; }
+    .mem-ret { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; border: 1.5px dashed var(--line); background: var(--panel-2); color: var(--muted); cursor: pointer; padding: 0; width: 100%; }
+    .mem-ret img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .mem-ret span { display: grid; justify-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; }
+    .mem-ret span svg { width: 26px; height: 26px; }
+    .mem-ret-acoes { display: flex; gap: 8px; }
+    .mem .nota-mem { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+    .foto-grande { position: fixed; inset: 0; z-index: 5600; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, .92); cursor: zoom-out; }
+    .foto-grande img { max-width: 100%; max-height: 100%; border-radius: 12px; }
+    /* ---------- Seu duo no perfil: 4 modelos com prévia (duo-modo.js), cartões refeitos (16/11) ---------- */
     .duo-modos { scroll-margin-top: 70px; }
     .dm-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .dm-op { position: relative; display: grid; gap: 8px; padding: 8px 8px 10px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; }
-    .dm-op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel-2)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
-    .dm-op.on::after { content: ""; position: absolute; right: 8px; top: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23001a24' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; z-index: 3; }
-    .dm-op strong { font-size: 13.5px; }
-    .dm-op small { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
-    .dm-prev { position: relative; height: 104px; border-radius: 11px; overflow: hidden; background: #0b1016; isolation: isolate; }
+    .dm-op { position: relative; min-width: 0; display: grid; align-content: start; gap: 0; padding: 6px; border: 1.5px solid var(--line); border-radius: 18px; background: var(--panel-2); color: var(--text); text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+    .dm-op .dm-tx { display: grid; gap: 3px; padding: 10px 6px 6px; }
+    .dm-op .dm-nome { display: flex; align-items: center; gap: 8px; }
+    .dm-op strong { flex: 1; min-width: 0; font: 800 13.5px/1.2 var(--head); }
+    .dm-op .radio { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); }
+    .dm-op small { color: var(--muted); font-size: 11.5px; line-height: 1.38; }
+    .dm-op.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--panel-2)); }
+    .dm-op.on .radio { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 42%, transparent 48%); }
+    @media (hover: hover) { .dm-op:not(.on):hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); } }
+    /* ---------- Seu duo no perfil: 4 modelos com prévia (duo-modo.js) ---------- */
+    .dm-prev { position: relative; height: 96px; border-radius: 11px; overflow: hidden; background: #0b1016; isolation: isolate; }
     .dm-prev::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 44px; background: linear-gradient(120deg, #123a52, #0b1a26 60%, #1a1030); }
     .dm-prev .dm-eu { position: absolute; left: 10px; top: 26px; width: 46px; height: 46px; font-size: 14px; box-shadow: 0 0 0 2.5px #0b1016; }
     .dm-prev .dm-linhas { position: absolute; left: 10px; right: 10px; bottom: 10px; display: grid; gap: 5px; }
@@ -229,10 +324,8 @@
     .dm-gav span i + i { width: 55%; background: #4fd2ff; }
     .dm-gav.fixa span i + i { background: rgba(255, 255, 255, .2); }
     @keyframes dmGav { 0%, 12% { clip-path: inset(0 100% 0 0 round 3px 11px 11px 11px); } 30%, 82% { clip-path: inset(0 0 0 0 round 3px 11px 11px 11px); } 96%, 100% { clip-path: inset(0 100% 0 0 round 3px 11px 11px 11px); } }
-    .dm-bol { position: absolute; left: 36px; top: 24px; z-index: 3; display: grid; justify-items: center; gap: 2px; animation: dmBol 3.4s cubic-bezier(.2, 1.4, .4, 1) infinite; transform-origin: 50% 100%; }
+    .dm-bol { position: absolute; left: 50px; top: 14px; z-index: 3; display: grid; justify-items: center; gap: 2px; animation: dmBol 3.4s cubic-bezier(.2, 1.4, .4, 1) infinite; transform-origin: 50% 100%; }
     .dm-bol .avatar { width: 30px; height: 30px; font-size: 10px; border: 2px solid #fff; box-shadow: 0 0 0 2px #e0243b; }
-    .dm-bol b { padding: 0 4px; border-radius: 99px; background: #e0243b; color: #fff; font-size: 7.5px; line-height: 1.5; }
-    .dm-bol.fixa b { display: none; }
     @keyframes dmBol { 0%, 12% { opacity: 0; transform: translateY(8px) scale(.5); } 28%, 84% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; transform: translateY(8px) scale(.5); } }
     .dm-rosa.pulsa { animation: dmRosa 1.7s ease-in-out infinite; }
     @keyframes dmRosa { 0%, 70%, 100% { transform: scale(1); } 20% { transform: scale(1.35); } 40% { transform: scale(1); } }
@@ -255,8 +348,12 @@
     @media (prefers-reduced-motion: reduce) { .dm-gav, .dm-bol, .dm-rosa.pulsa, .dm-dedo { animation: none; } .dm-dedo { display: none; } }
 
     /* ---------- folhas ---------- */
-    .folha-fundo { position: fixed; inset: 0; z-index: 2000; background: var(--overlay); display: grid; place-items: end center; }
-    .folha { width: min(480px, 100%); max-height: 86vh; display: flex; flex-direction: column; background: var(--panel); border-radius: 22px 22px 0 0; overflow: hidden; }
+    .folha-fundo { position: fixed; inset: 0; z-index: 5000; background: var(--overlay); display: grid; place-items: end center; animation: fundoEntra .18s ease; }
+    .folha-fundo > .folha { animation: folhaSobe .26s cubic-bezier(.2, .9, .2, 1); }
+    @keyframes fundoEntra { from { opacity: 0; } }
+    @keyframes folhaSobe { from { transform: translateY(40px); opacity: .4; } }
+    .folha-fundo.empilhada { z-index: 5100; }
+    .folha { position: relative; width: min(480px, 100%); max-height: 86vh; display: flex; flex-direction: column; background: var(--panel); border-radius: 22px 22px 0 0; overflow: hidden; }
     .folha-topo { display: flex; align-items: center; gap: 8px; padding: 12px 10px 12px 18px; border-bottom: 1px solid var(--line); }
     .folha-topo h3 { flex: 1; margin: 0; font-size: 16px; }
     .folha-corpo { overflow-y: auto; padding: 6px 0 calc(12px + env(safe-area-inset-bottom)); }
@@ -269,8 +366,8 @@
     .linha .tx strong { display: block; font-size: 14.5px; }
     .linha .tx small { color: var(--muted); font-size: 12.5px; }
     .linha.perigo { color: var(--danger); }
-    .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
-    @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
+    .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9950; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
+    @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } .folha.grande { max-height: 84vh; } }
     @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
@@ -296,13 +393,17 @@
     <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-compartilhar" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"/></symbol>
     <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-lapis" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 013 3L8 18.5z"/><path d="M13.5 7l3 3"/></symbol>
+    <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 5.5l1.2-2h4.6l1.2 2"/></symbol>
+    <symbol id="i-presente" viewBox="0 0 24 24"><rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19M12 9v11.5M12 9c-1.6-3.6-6-4.2-6-1.6C6 9 9.5 9 12 9zM12 9c1.6-3.6 6-4.2 6-1.6C18 9 14.5 9 12 9z"/></symbol>
+    <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
     <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="currentColor" stroke="none"/><path d="M8.3 12.2l2.5 2.5 5-5.2" stroke="#fff" stroke-width="2.2"/></symbol>
   </svg>
 
   <header class="topo topo-app">
     <a class="icone-btn" href="usuarios.html" id="btnVoltar" aria-label="Voltar ao perfil"><svg class="i"><use href="#i-voltar"/></svg></a>
     <h1 class="topo-tit"><span id="titulo">Social</span><small id="tituloSub"></small></h1>
-    <a class="icone-btn" href="usuarios.html?acao=social" id="btnAdd" aria-label="Adicionar pessoa ao meu social" title="Adicionar pessoa" hidden><svg class="i"><use href="#i-mais"/></svg></a>
+    <button class="icone-btn" type="button" id="btnAdd" aria-label="Adicionar pessoa ao meu social" title="Adicionar pessoa" hidden><svg class="i"><use href="#i-mais"/></svg></button>
     <span class="icone-btn vazio" id="btnAddEspaco" aria-hidden="true"></span>
   </header>
 
@@ -310,7 +411,7 @@
     <div class="estado" id="estado">Carregando...</div>
     <div id="conteudo" hidden>
       <section class="hero-social" id="hero" aria-label="Perfil">
-        <div class="hs-topo"><div class="avatar hs-av" id="hsAv"></div>
+        <div class="hs-topo"><div class="hs-avw" id="hsAvw"><div class="avatar hs-av" id="hsAv"></div></div>
           <div class="hs-info"><h2><span id="heroNome"></span><svg class="i selo-v" id="heroSelo" hidden aria-label="Perfil verificado"><use href="#i-selo"/></svg></h2><div class="hs-nick" id="heroNick"></div><p class="hs-bio" id="heroBio"></p></div></div>
         <div class="hs-acoes" id="hsAcoes"></div>
         <div class="hs-stats"><div class="hs-stat"><b id="stCon">0</b><span>Conexões</span></div><div class="hs-stat"><b id="stSeg">–</b><span>Seguidores</span></div><div class="hs-stat"><b id="stSig">–</b><span>Seguindo</span></div></div>
@@ -320,31 +421,17 @@
         <div class="sec-cab"><div><h3>Conexões em destaque</h3><p>Atalhos para quem está mais perto de você.</p></div><button type="button" id="btnTodas">Ver todas</button></div>
         <div class="destaques" id="destaques"></div>
       </section>
+      <section id="secCuidado" hidden aria-label="Cuidado e proteção">
+        <div class="sec-cab"><div><h3>Cuidado e proteção</h3><p>Seu social também é a sua rede de apoio.</p></div></div>
+        <div class="cd-grade" id="cuidado"></div>
+      </section>
       <section aria-label="Sua rede de conexões">
-        <div class="sec-cab"><div><h3 id="redeTit">Sua rede de conexões</h3><p>Organize e encontre rapidamente suas pessoas.</p></div></div>
+        <div class="sec-cab"><div><h3 id="redeTit">Sua rede de conexões</h3><p id="redeSub">Organize e encontre rapidamente suas pessoas.</p></div></div>
         <div class="controles"><nav class="chips" id="filtros" aria-label="Mostrar um grupo"></nav>
-          <select class="ordem" id="ordem" aria-label="Ordenar"><option value="recentes">Recentes</option><option value="nome">Nome A–Z</option><option value="ativos">Ativos agora</option></select></div>
+          <select class="ordem" id="ordem" aria-label="Ordenar"><option value="recentes">Recentes</option><option value="nome">Nome A–Z</option><option value="ativos">Ativos agora</option><option value="tempo">Há mais tempo</option></select></div>
         <div class="rede" id="rede"></div>
       </section>
       <p class="nota" id="nota" hidden></p>
-      <section class="painel-dono duo-modos" id="duoModos" hidden aria-labelledby="duoModosTit">
-        <h3 id="duoModosTit"><svg class="i s"><use href="#i-rosa"/></svg>Seu duo no perfil</h3>
-        <p id="duoModosSub">Escolha o que acontece quando alguém toca na rosinha da sua foto de perfil.</p>
-        <div class="dm-grade" id="dmGrade" role="radiogroup" aria-label="Como o duo aparece no perfil"></div>
-        <label class="dm-clique" id="dmClique"><span class="tx"><strong>Tocar abre o perfil do duo</strong><small id="dmCliqueTx"></small></span><span class="chave"><input type="checkbox" id="dmCliqueIn" /><span></span></span></label>
-        <p class="dm-atual" id="dmAtual"></p>
-      </section>
-      <section class="painel-dono" id="donoBox" hidden>
-        <h3><svg class="i s"><use href="#i-cadeado"/></svg>Quem pode abrir os perfis do seu social</h3>
-        <div class="segmentado" id="visibilidade">
-          <button type="button" data-valor="todos">Todos</button>
-          <button type="button" data-valor="seguidores">Seguidores</button>
-          <button type="button" data-valor="amigos">Amigos</button>
-          <button type="button" data-valor="ocultar">Ocultar</button>
-        </div>
-        <p>Quem não estiver liberado vê as fotos, mas não abre os perfis. Amigos = quem você segue e segue você. "Ocultar" esconde o social de todo mundo. O jeito que o duo aparece no seu perfil fica logo acima.</p>
-        <a class="btn pri" href="usuarios.html?acao=social"><svg class="i s"><use href="#i-mais"/></svg>Adicionar pessoa ao meu social</a>
-      </section>
     </div>
   </main>
 
@@ -352,6 +439,8 @@
     import { fotoSegura } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=6";
     import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=1";
+    import { iconeEl, iconeEspecie } from "./icones-hf.js?v=1";
+    import { QUEM_PODE } from "./presentes-base.js?v=2";
     const $ = (id) => document.getElementById(id);
     // Duo inclui namorado(a) e cônjuge: é a pessoa ligada pelo Akai Ito.
     const TIPOS = {
@@ -361,16 +450,24 @@
       primo: ["Primo(a)", "familia"], tio: ["Tio(a)", "familia"], sobrinho: ["Sobrinho(a)", "familia"],
       avo: ["Avô/Avó", "familia"], neto: ["Neto(a)", "familia"], parceiro: ["Colega de trabalho", "trabalho"]
     };
-    // Vagas fixas no mapa: 1 para o amor (duo), 4 para amizades, 4 para colegas e 4 para família.
-    // centro = ângulo do setor (270 = topo, 0 = direita, 90 = baixo, 180 = esquerda).
+    // Igual ao inversos() das regras do vínculo.
+    const INVERSO = { duo: "duo", namoro: "namoro", casamento: "casamento", melhor_amigo: "melhor_amigo", amigo: "amigo", irmao: "irmao", pai_mae: "filho", filho: "pai_mae", primo: "primo", tio: "sobrinho", sobrinho: "tio", avo: "neto", neto: "avo", parceiro: "parceiro" };
+    const TIPOS_DUO = ["duo", "namoro", "casamento"];
     const GRUPOS = [
-      { cat: "duo", nome: "Amor", centro: 270, vagas: 1 },
-      { cat: "amizade", nome: "Amizades", centro: 0, vagas: 4 },
-      { cat: "trabalho", nome: "Colegas", centro: 90, vagas: 4 },
-      { cat: "familia", nome: "Família", centro: 180, vagas: 4 }
+      { cat: "duo", nome: "Amor" }, { cat: "amizade", nome: "Amizades" },
+      { cat: "trabalho", nome: "Colegas" }, { cat: "familia", nome: "Família" }
     ];
-    // posição de cada vaga: deslocamento em graus e distância do centro (fração do raio), em zigue-zague
     const nomeGrupo = (cat) => GRUPOS.find((g) => g.cat === cat)?.nome || "";
+    // Frase do cartão do duo quando os dois ainda não escreveram a deles (sempre a mesma para cada duo).
+    const FRASES = [
+      "Um fio vermelho invisível liga quem estava destinado a se encontrar.",
+      "O fio pode esticar e se enrolar, mas nunca se rompe.",
+      "Algumas pessoas a gente encontra. Outras, a gente reconhece.",
+      "Tem encontro que muda o caminho inteiro."
+    ];
+    const SUGESTOES = ["Melhor encontro da vida.", "Parceiros em tudo.", "Desde o primeiro café.", "Do jeito que tinha que ser."];
+    const hashTexto = (s) => [...String(s)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const fraseDe = (c) => c.frase || FRASES[hashTexto(c.id) % FRASES.length];
 
     const urlSegura = (u) => fotoSegura(u);
     const iniciais = (n) => { const p = String(n || "?").trim().split(/\s+/); return ((p[0]?.[0] || "?") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); };
@@ -390,13 +487,34 @@
     }
     const svgEl = (tag, attrs) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
     const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-    function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = el("div", "toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1\u00a0")); document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
+    const botao = (cls, txt, fn) => { const b = el("button", cls, txt); b.type = "button"; if (fn) b.addEventListener("click", fn); return b; };
+    function toast(t) { document.querySelectorAll(".toast").forEach((x) => x.remove()); const d = el("div", "toast", String(t ?? "").replace(/(R\$|\d)\s+(?=\S)/g, "$1 ")); document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
     function estado(titulo, texto) { $("conteudo").hidden = true; $("estado").hidden = false; $("estado").replaceChildren(el("strong", null, titulo), texto || ""); }
     const irPerfil = (uid) => { location.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; };
+    const irPresente = (uid) => { location.href = `presentes.html?para=${encodeURIComponent(uid)}`; };
+
+    // ---------- datas ----------
+    const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+    const deISO = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(s || "") ? new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) : null);
+    const dataLonga = (d) => d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+    const dataCurta = (d) => d.toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }).replace(/\./g, "");
+    const mesAno = (d) => d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(/\./g, "").replace(" de ", " ");
+    function tempoDesde(d) {
+      const a = new Date();
+      let meses = (a.getFullYear() - d.getFullYear()) * 12 + (a.getMonth() - d.getMonth());
+      if (a.getDate() < d.getDate()) meses--;
+      if (meses < 1) { const dias = Math.max(0, Math.floor((a - d) / 864e5)); return dias === 1 ? "1 dia" : `${dias} dias`; }
+      const anos = Math.floor(meses / 12), m = meses % 12;
+      const tA = anos ? (anos === 1 ? "1 ano" : `${anos} anos`) : "", tM = m ? (m === 1 ? "1 mês" : `${m} meses`) : "";
+      return [tA, tM].filter(Boolean).join(" e ");
+    }
 
     let fb, eu, dono, donoId, proprio = false, clicavel = false;
     let conexoes = [];
-    let filtro = "todos";
+    let filtro = "todos", ordem = "recentes";
+    let conta = null; // usuarios/{eu} (só no seu social)
+    let pets = new Map(); // uid → pets visíveis
+    const retratos = new Map(); // id do vínculo → Promise<url>
 
     async function podeAbrirPerfis() {
       if (proprio) return true;
@@ -410,15 +528,17 @@
       return vis === "seguidores" ? euSigo : euSigo && meSegue;
     }
 
-    // ---------- folha (lista / opções) ----------
-    function abrirFolha(titulo, montar) {
+    // ---------- gaveta (o "voltar" do celular fecha: .folha.aberta + [data-fechar], voltar.js) ----------
+    function abrirFolha(titulo, montar, { grande = false, pe = null } = {}) {
       const fundo = el("div", "folha-fundo");
-      const f = el("div", "folha");
+      if (document.querySelector(".folha-fundo")) fundo.classList.add("empilhada");
+      const f = el("div", "folha aberta" + (grande ? " grande" : ""));
       f.setAttribute("role", "dialog");
       f.setAttribute("aria-modal", "true");
+      f.setAttribute("aria-label", titulo);
       const topo = el("div", "folha-topo");
       const fechar = el("button", "icone-btn");
-      fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar");
+      fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar"); fechar.dataset.fechar = "";
       fechar.appendChild(icone("fechar", "i"));
       topo.append(el("h3", null, titulo), fechar);
       const corpo = el("div", "folha-corpo");
@@ -427,36 +547,122 @@
       const sair = () => fundo.remove();
       fechar.addEventListener("click", sair);
       fundo.addEventListener("click", (e) => { if (e.target === fundo) sair(); });
-      montar(corpo, sair);
+      f.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); sair(); } });
+      const rodape = pe ? el("div", "folha-pe") : null;
+      if (rodape) f.appendChild(rodape);
+      montar(corpo, sair, rodape);
       document.body.appendChild(fundo);
-      fechar.focus();
+      fechar.focus({ preventScroll: true });
+      return { fundo, corpo, sair };
+    }
+    function verFoto(url) {
+      const d = el("div", "foto-grande"); d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Retrato"); d.tabIndex = -1;
+      const i = el("img"); i.src = url; i.alt = "Retrato";
+      d.appendChild(i);
+      const sair = () => d.remove();
+      d.addEventListener("click", sair);
+      d.addEventListener("keydown", (e) => { if (e.key === "Escape") sair(); });
+      document.body.appendChild(d); d.focus();
     }
 
+    // ---------- pets (RG do pet): bolinha pequena ao lado do dono ----------
+    async function carregarPets() {
+      const uids = [...new Set([donoId, ...conexoes.filter((c) => !c.pendente).map((c) => c.outro)].filter(Boolean))];
+      const mapa = new Map();
+      const por = (d) => { const p = { id: d.id, ...d.data() }; if (!p.donoId) return; const l = mapa.get(p.donoId) || []; if (!l.some((x) => x.id === p.id)) l.push(p); mapa.set(p.donoId, l); };
+      const col = fb.collection(fb.db, "pets");
+      const lotes = [];
+      for (let i = 0; i < uids.length; i += 30) lotes.push(uids.slice(i, i + 30));
+      await Promise.all([
+        ...lotes.map((l) => fb.getDocs(fb.query(col, fb.where("donoId", "in", l), fb.where("visivel", "==", true), fb.limit(80))).then((s) => s.docs.forEach(por)).catch(() => {})),
+        // os seus aparecem todos para você (também os que não estão nas buscas)
+        proprio ? fb.getDocs(fb.query(col, fb.where("donoId", "==", eu.uid), fb.limit(20))).then((s) => s.docs.forEach(por)).catch(() => {}) : null
+      ]);
+      pets = mapa;
+    }
+    function petBolha(uid) {
+      const l = pets.get(uid);
+      if (!l?.length) return null;
+      const p = l.find((x) => x.status === "perdido") || l[0];
+      // span (não botão): fica dentro de outros botões (foto do duo, destaques)
+      const b = el("span", "pet-bol" + (p.status === "perdido" ? " perdido" : "")); b.setAttribute("role", "button"); b.tabIndex = 0;
+      const nomes = l.map((x) => x.nome).join(", ");
+      b.setAttribute("aria-label", (p.status === "perdido" ? `${p.nome} está perdido. ` : "") + (l.length > 1 ? `Pets: ${nomes}` : `Pet: ${p.nome}`));
+      b.title = b.getAttribute("aria-label");
+      const u = urlSegura(p.foto);
+      if (u) { const i = el("img"); i.src = u; i.alt = ""; b.appendChild(i); }
+      else { const [ic, cor] = iconeEspecie(p.especie); b.appendChild(iconeEl(ic, { cor, tam: 14 })); }
+      if (l.length > 1) b.appendChild(el("b", null, String(l.length)));
+      b.addEventListener("click", (e) => { e.stopPropagation(); e.preventDefault(); abrirPets(uid); });
+      b.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); abrirPets(uid); } });
+      return b;
+    }
+    function abrirPets(uid) {
+      const l = pets.get(uid) || [];
+      const meu = uid === eu.uid;
+      const dele = uid === donoId ? dono : conexoes.find((c) => c.outro === uid)?.perfil || {};
+      abrirFolha(meu ? "Seus pets" : `Pets de ${primeiroNome(dele.nome)}`, (corpo) => {
+        l.forEach((p) => {
+          const b = botao("linha", null, () => { location.href = `alertas.html?pet=${encodeURIComponent(p.id)}`; });
+          const av = el("div", "avatar");
+          const u = urlSegura(p.foto);
+          if (u) { const i = el("img"); i.src = u; i.alt = ""; av.appendChild(i); } else { const [ic, cor] = iconeEspecie(p.especie); av.style.background = "var(--panel-2)"; av.appendChild(iconeEl(ic, { cor, tam: 20 })); }
+          const tx = el("span", "tx");
+          tx.append(el("strong", null, p.nome || "Pet"), el("small", null, p.status === "perdido" ? "Perdido · toque para ver o RG e ajudar" : [p.raca, p.porte].filter(Boolean).join(" · ") || "RG do pet"));
+          b.append(av, tx, icone("avancar"));
+          corpo.appendChild(b);
+        });
+        if (meu) { const a = el("a", "btn sec", "Gerenciar seus pets"); a.href = "alertas.html?aba=pets"; a.style.margin = "10px 18px 4px"; corpo.appendChild(a); }
+      });
+    }
+
+    // ---------- retrato dos dois (vinculos_retrato/{id}) ----------
+    function lerRetrato(c) {
+      if (!c.retrato) return Promise.resolve("");
+      if (!retratos.has(c.id)) retratos.set(c.id, fb.getDoc(fb.doc(fb.db, "vinculos_retrato", c.id)).then((s) => (s.exists() ? urlSegura(s.data().foto) || "" : "")).catch(() => ""));
+      return retratos.get(c.id);
+    }
+    const olhar = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { olhar.unobserve(e.target); e.target._carregar?.(); } }), { rootMargin: "300px" }) : null;
+    function quandoAparecer(alvo, fn) { if (olhar) { alvo._carregar = fn; olhar.observe(alvo); } else fn(); }
+
+    // ---------- ações de cada conexão ----------
     function acaoPessoa(c) {
       if (proprio) {
         return () => abrirFolha(c.perfil.nome || "Usuário", (corpo, sair) => {
-          const ver = el("button", "linha"); ver.type = "button";
-          ver.append(icone("perfil", "i"), el("span", "tx", "Ver perfil"));
-          ver.addEventListener("click", () => irPerfil(c.outro));
-          const rm = el("button", "linha perigo"); rm.type = "button";
-          rm.append(icone("lixo", "i"), el("span", "tx", c.pendente ? "Cancelar pedido" : "Desfazer vínculo"));
-          rm.addEventListener("click", async () => {
+          const linha = (ic, txt, sub, fn, cls = "linha") => { const b = botao(cls, null, fn); const tx = el("span", "tx"); tx.append(el("strong", null, txt)); if (sub) tx.appendChild(el("small", null, sub)); b.append(icone(ic, "i"), tx); corpo.appendChild(b); return b; };
+          if (!c.pendente) {
+            linha("perfil", "Ver perfil", "", () => irPerfil(c.outro));
+            linha("lapis", "Memória de vocês", "Data em que se conheceram, frase e retrato", () => { sair(); abrirMemoria(c); });
+            linha("presente", "Enviar um presente", "Mimo, Pix, produto ou vale", () => irPresente(c.outro));
+          }
+          linha("lixo", c.pendente ? (c.de === eu.uid ? "Cancelar pedido" : "Recusar pedido") : "Desfazer vínculo", "", async () => {
             if (!c.pendente && !(await confirmarHF({ titulo: "Desfazer o vínculo?", texto: `Você e ${c.perfil.nome || "esta pessoa"} deixam de aparecer como vínculo no Social.`, ok: "Desfazer", icone: "lixo" }))) return;
-            try { await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); sair(); desenharTudo(); toast("Pronto"); }
-            catch { toast("Não foi possível desfazer."); }
-          });
-          corpo.append(ver, rm);
+            try {
+              if (c.retrato) await fb.deleteDoc(fb.doc(fb.db, "vinculos_retrato", c.id)).catch(() => {});
+              await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); sair(); desenharTudo(); toast("Pronto");
+            } catch { toast("Não foi possível desfazer."); }
+          }, "linha perigo");
         });
       }
       return clicavel ? () => irPerfil(c.outro) : null;
     }
+    const temDuo = (ignorar) => conexoes.some((c) => !c.pendente && c.id !== ignorar && TIPOS_DUO.includes(c.tipo));
+    async function responderPedido(c, aceitar, b) {
+      if (aceitar && TIPOS_DUO.includes(c.tipo) && temDuo(c.id)) { toast("Você já tem um duo no seu social. Desfaça o atual para aceitar."); return; }
+      if (b) b.disabled = true;
+      try {
+        if (aceitar) { await fb.updateDoc(fb.doc(fb.db, "vinculos", c.id), { status: "aceito", aceitoEm: fb.serverTimestamp() }); c.pendente = false; c.aceitoEm = fb.Timestamp.now(); toast(`${primeiroNome(c.perfil.nome)} entrou no seu social`); }
+        else { await fb.deleteDoc(fb.doc(fb.db, "vinculos", c.id)); conexoes = conexoes.filter((x) => x.id !== c.id); toast("Pedido recusado"); }
+        desenharTudo();
+      } catch { toast("Não foi possível responder."); if (b) b.disabled = false; }
+    }
 
     function listaDeNomes() {
-      const aceitas = conexoes.filter((c) => !c.pendente);
-      abrirFolha(`${aceitas.length} ${aceitas.length === 1 ? "conexão" : "conexões"}`, (corpo) => {
-        if (!aceitas.length) { corpo.appendChild(el("p", "nota", "Nenhuma conexão ainda.")); return; }
+      const lista = aceitas();
+      abrirFolha(`${lista.length} ${lista.length === 1 ? "conexão" : "conexões"}`, (corpo) => {
+        if (!lista.length) { corpo.appendChild(el("p", "nota", "Nenhuma conexão ainda.")); return; }
         GRUPOS.forEach((g) => {
-          const doGrupo = aceitas.filter((c) => c.cat === g.cat);
+          const doGrupo = lista.filter((c) => c.cat === g.cat);
           if (!doGrupo.length) return;
           const t = el("div", "grupo-t", `${g.nome} · ${doGrupo.length}`);
           t.dataset.cat = g.cat;
@@ -466,47 +672,49 @@
             const tx = el("span", "tx");
             tx.append(el("strong", null, c.perfil.nome || "Usuário"), el("small", null, TIPOS[c.tipo]?.[0] || ""));
             b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), tx);
-            if (clicavel) { b.addEventListener("click", () => irPerfil(c.outro)); b.appendChild(icone("avancar")); } else b.disabled = true;
+            if (proprio || clicavel) { b.addEventListener("click", () => irPerfil(c.outro)); b.appendChild(icone("avancar")); } else b.disabled = true;
             corpo.appendChild(b);
           });
         });
       });
     }
 
-
     function escolherFiltro(cat) {
       filtro = filtro === cat || cat === "todos" ? "todos" : cat;
       desenharControles(); desenharDuo(); desenharRede();
     }
     const aceitas = () => conexoes.filter((c) => !c.pendente);
-    const ordemGrupo = (c) => GRUPOS.findIndex((g) => g.cat === c.cat);
     const cidadeDe = (p) => [p.cidade, p.uf].filter(Boolean).join("/");
     const online = (p) => (p.ultimoAcesso?.toMillis?.() ?? 0) > Date.now() - 10 * 60000;
     const puroNome = (c) => String(c.perfil.nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-    let ordem = "recentes";
+    const msAceito = (c) => c.aceitoEm?.toMillis?.() ?? 0;
+    const msConheceram = (c) => deISO(c.conheceram)?.getTime() ?? msAceito(c);
 
     // ---------- cartão do perfil (números reais) ----------
     function desenharHero() {
       pintarAvatar($("hsAv"), dono.fotoPerfil, dono.nome);
+      $("hsAvw").querySelector(".pet-bol")?.remove();
+      const pb = petBolha(donoId); if (pb) $("hsAvw").appendChild(pb);
       $("heroNome").textContent = dono.nome || "Usuário";
       $("heroSelo").toggleAttribute("hidden", !dono.verificado);
       $("heroNick").textContent = [dono.nickname ? "@" + dono.nickname : "", cidadeDe(dono)].filter(Boolean).join(" · ");
       $("heroBio").textContent = dono.bio || "";
       $("stCon").textContent = String(aceitas().length);
       const box = $("hsAcoes"); box.replaceChildren();
-      const compartilhar = el("button"); compartilhar.type = "button"; compartilhar.append(icone("compartilhar"), document.createTextNode("Compartilhar"));
-      compartilhar.addEventListener("click", async () => {
+      const compartilhar = async () => {
         const url = location.href.split("#")[0];
         try { if (navigator.share) { await navigator.share({ title: `Social de ${primeiroNome(dono.nome)} | Help Floripa`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
         try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast("Não foi possível copiar o link."); }
-      });
+      };
       if (proprio) {
-        const cfg = el("button"); cfg.type = "button"; cfg.append(icone("ajustes"), document.createTextNode("Configurar"));
-        cfg.addEventListener("click", () => ($("duoModos").hidden ? $("donoBox") : $("duoModos")).scrollIntoView({ behavior: "smooth", block: "start" }));
-        box.append(cfg, compartilhar);
+        const cfg = botao("", null, () => abrirConfig()); cfg.id = "btnConfig"; cfg.append(icone("ajustes"), document.createTextNode("Configurar"));
+        const sh = botao("", null, compartilhar); sh.append(icone("compartilhar"), document.createTextNode("Compartilhar"));
+        box.append(cfg, sh);
       } else {
         const ver = el("a"); ver.href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`; ver.append(icone("perfil"), document.createTextNode("Ver perfil"));
-        box.append(ver, compartilhar);
+        const pr = botao("", null, () => irPresente(donoId)); pr.append(icone("presente"), document.createTextNode("Presente"));
+        const sh = botao("", null, compartilhar); sh.setAttribute("aria-label", "Compartilhar"); sh.style.flex = "0 0 42px"; sh.style.padding = "0"; sh.appendChild(icone("compartilhar"));
+        box.append(ver, pr, sh);
       }
     }
     // seguidores e seguindo (só a contagem, 2 leituras)
@@ -518,11 +726,11 @@
 
     // ---------- conexões em destaque (fileira) ----------
     function desenharDestaques() {
-      const lista = aceitas().sort((a, b) => Number(b.cat === "duo") - Number(a.cat === "duo") || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0)).slice(0, 12);
+      const lista = aceitas().sort((a, b) => Number(b.cat === "duo") - Number(a.cat === "duo") || msAceito(b) - msAceito(a)).slice(0, 12);
       $("secDest").hidden = !lista.length && !proprio;
       const box = $("destaques"); box.replaceChildren();
       if (proprio) {
-        const a = el("a", "dest novo"); a.href = "usuarios.html?acao=social";
+        const a = botao("dest novo", null, () => abrirAdicionar());
         const an = el("span", "anel"); an.appendChild(icone("mais", "i"));
         a.append(an, el("strong", null, "Adicionar"), el("small", null, "Nova conexão"));
         box.appendChild(a);
@@ -530,6 +738,7 @@
       lista.forEach((c) => {
         const b = el("button", "dest"); b.type = "button"; b.dataset.cat = c.cat; b.style.setProperty("--cor", corDe(c.cat));
         const an = el("span", "anel"); an.appendChild(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome));
+        const pb = petBolha(c.outro); if (pb) an.appendChild(pb);
         b.append(an, el("strong", null, primeiroNome(c.perfil.nome)), el("small", null, online(c.perfil) ? "Online" : (TIPOS[c.tipo]?.[0] || "")));
         if (proprio || clicavel) b.addEventListener("click", () => irPerfil(c.outro)); else b.disabled = true;
         box.appendChild(b);
@@ -537,6 +746,23 @@
       $("btnTodas").onclick = listaDeNomes;
     }
     const corDe = (cat) => ({ duo: "#ff4d6d", familia: "#f5b301", amizade: "#00adee", trabalho: "#2fbf71" }[cat] || "#00adee");
+
+    // ---------- Cuidado e proteção: SOS, pets e presentes (só no seu social) ----------
+    function desenharCuidado() {
+      $("secCuidado").hidden = !proprio;
+      if (!proprio) return;
+      const n = aceitas().length, meus = pets.get(eu.uid) || [];
+      const tile = (href, ic, cor, tit, sub, id) => {
+        const a = el("a", "cd"); a.href = href; a.style.setProperty("--c", cor); if (id) a.id = id;
+        a.append(iconeEl(ic, { cor, tam: 20, fundo: true }), el("strong", null, tit), el("small", null, sub));
+        return a;
+      };
+      $("cuidado").replaceChildren(
+        tile("alertas.html", "sirene", "#e5484d", "SOS", n ? `${n} ${n === 1 ? "pessoa do seu social é avisada" : "pessoas do seu social são avisadas"} primeiro.` : "Adicione pessoas: elas são avisadas primeiro.", "cdSos"),
+        tile("alertas.html?aba=pets", "pata", "#f5b301", "Pets", meus.length ? `${meus.length === 1 ? meus[0].nome + " tem" : meus.length + " pets com"} RG do pet.` : "Faça o RG do seu pet com QR.", "cdPets"),
+        tile("presentes.html", "presente", "#e5487f", "Presentes", "Mande um mimo para quem você gosta.", "cdPresentes")
+      );
+    }
 
     // ---------- filtros com contagem + ordenação ----------
     function desenharControles() {
@@ -566,44 +792,65 @@
       } catch (e) { toast(e?.message && e.name === "ConversaFechada" ? e.message : "Não foi possível abrir a conversa."); }
       b.disabled = false;
     }
+    function textoCartao(c) {
+      const p = c.perfil;
+      if (c.pendente) return [c.de === eu.uid ? "Pedido enviado. Aguardando a resposta." : `Quer entrar no seu social como ${(TIPOS[INVERSO[c.tipo]]?.[0] || "conexão").toLowerCase()}.`, ""];
+      if (c.frase) return [c.frase, "frase"];
+      const d = deISO(c.conheceram);
+      if (d) return [`Se conheceram em ${dataLonga(d)} · há ${tempoDesde(d)}.`, ""];
+      if (p.bio) return [p.bio, ""];
+      const desde = c.aceitoEm?.toDate?.();
+      return [desde ? `No social desde ${mesAno(desde)}.` : "Uma conexão da rede.", ""];
+    }
     function desenharRede() {
       const box = $("rede"); box.replaceChildren();
       let lista = conexoes.filter((c) => (proprio || !c.pendente) && (filtro === "todos" || filtro === c.cat));
       lista.sort((a, b) => ordem === "nome" ? puroNome(a).localeCompare(puroNome(b))
-        : ordem === "ativos" ? Number(online(b.perfil)) - Number(online(a.perfil)) || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0)
-        : Number(a.pendente) - Number(b.pendente) || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0));
+        : ordem === "ativos" ? Number(online(b.perfil)) - Number(online(a.perfil)) || msAceito(b) - msAceito(a)
+        : ordem === "tempo" ? Number(a.pendente) - Number(b.pendente) || msConheceram(a) - msConheceram(b)
+        : Number(b.pendente && b.de !== eu.uid) - Number(a.pendente && a.de !== eu.uid) || Number(a.pendente) - Number(b.pendente) || msAceito(b) - msAceito(a));
       if (!lista.length) {
         const v = el("div", "vazio-rede");
         v.append(document.createTextNode(filtro === "todos" ? (proprio ? "Você ainda não tem conexões. " : "Ainda sem conexões por aqui.") : `Nenhuma conexão em ${nomeGrupo(filtro)}. `));
-        if (proprio) { const a = el("a", null, "Adicionar pessoa"); a.href = "usuarios.html?acao=social"; v.appendChild(a); }
+        if (proprio) { const a = el("a", null, "Adicionar pessoa"); a.href = "#"; a.addEventListener("click", (e) => { e.preventDefault(); abrirAdicionar(); }); v.appendChild(a); }
         box.appendChild(v); return;
       }
       lista.forEach((c) => {
-        const p = c.perfil, eu_ = c.outro === eu.uid;
-        const art = el("article", "pessoa" + (c.pendente ? " pend" : "")); art.dataset.cat = c.cat; art.style.setProperty("--cor", corDe(c.cat));
-        const av = el("div", "pe-av"); av.appendChild(novoAvatar(p.fotoPerfil, p.nome)); if (online(p) && !c.pendente) av.appendChild(el("i", "on"));
-        const nome = el("div", "pe-nome"); const b = el("b"); b.appendChild(el("span", null, eu_ ? "Você" : (p.nome || "Usuário")));
-        if (p.verificado) { const sv = icone("selo", "i selo-v"); b.appendChild(sv); }
-        nome.append(b, el("small", null, [TIPOS[c.tipo]?.[0] || "", cidadeDe(p)].filter(Boolean).join(" · ")));
-        const desde = c.aceitoEm?.toDate?.();
-        const texto = c.pendente ? (c.de === eu.uid ? "Pedido enviado. Aguardando a resposta." : "Quer entrar no seu social. Responda pelas notificações.")
-          : (p.bio || (desde ? `Conectados desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}.` : "Uma conexão da sua rede."));
-        const tags = el("div", "pe-tags"); tags.appendChild(el("span", "pe-tag", nomeGrupo(c.cat)));
-        if (c.pendente) tags.appendChild(el("span", "pe-tag neutra", c.de === eu.uid ? "Aguardando" : "Pedido recebido"));
-        else if (online(p)) tags.appendChild(el("span", "pe-tag neutra", "Online"));
-        const pes = el("div", "pe-pes");
-        if (!c.pendente && !eu_) {
-          const ver = el("button"); ver.type = "button"; ver.textContent = "Ver perfil";
-          if (proprio || clicavel) ver.addEventListener("click", () => irPerfil(c.outro)); else { ver.disabled = true; ver.title = "O dono deste social não liberou abrir os perfis"; }
-          const msg = el("button", "msg"); msg.type = "button"; msg.textContent = "Mensagem";
-          msg.addEventListener("click", () => abrirConversa(c, msg));
-          pes.append(ver, msg);
+        const p = c.perfil, recebido = c.pendente && c.de !== eu.uid;
+        const art = el("article", "pessoa" + (c.pendente ? " pend" : "")); art.dataset.cat = c.cat; art.dataset.id = c.id; art.style.setProperty("--cor", corDe(c.cat));
+        if (c.retrato && !c.pendente) {
+          art.classList.add("com-foto");
+          const ft = botao("pe-foto"); ft.setAttribute("aria-label", "Retrato de vocês");
+          art.appendChild(ft);
+          quandoAparecer(ft, () => lerRetrato(c).then((u) => { if (!u) { ft.remove(); art.classList.remove("com-foto"); return; } const i = el("img"); i.src = u; i.alt = ""; i.loading = "lazy"; ft.appendChild(i); ft.onclick = () => verFoto(u); }));
         }
-        let mais = null;
-        if (proprio) { art.classList.add("com-mais"); mais = el("button", "mais"); mais.type = "button"; mais.setAttribute("aria-label", "Mais opções"); mais.appendChild(icone("pontos")); mais.addEventListener("click", acaoPessoa(c)); }
-        art.append(el("div", "pe-topo"), el("p", "pe-texto", texto), tags, pes);
-        art.firstChild.append(av, nome);
-        if (mais) art.appendChild(mais);
+        const av = el("div", "pe-av"); av.appendChild(novoAvatar(p.fotoPerfil, p.nome)); if (online(p) && !c.pendente) av.appendChild(el("i", "on"));
+        const pb = petBolha(c.outro); if (pb) av.appendChild(pb);
+        const nome = el("div", "pe-nome"); const b = el("b"); b.appendChild(el("span", null, p.nome || "Usuário"));
+        if (p.verificado) b.appendChild(icone("selo", "i selo-v"));
+        nome.append(b, el("small", null, [TIPOS[c.tipo]?.[0] || "", cidadeDe(p)].filter(Boolean).join(" · ")));
+        const [texto, cls] = textoCartao(c);
+        const tags = el("div", "pe-tags"); tags.appendChild(el("span", "pe-tag", nomeGrupo(c.cat)));
+        const dC = deISO(c.conheceram);
+        if (c.pendente) tags.appendChild(el("span", "pe-tag neutra", recebido ? "Pedido recebido" : "Aguardando"));
+        else {
+          if (dC && c.frase) tags.appendChild(el("span", "pe-tag neutra", `Desde ${dC.getFullYear()}`));
+          if (online(p)) tags.appendChild(el("span", "pe-tag neutra", "Online"));
+        }
+        const pes = el("div", "pe-pes");
+        if (recebido && proprio) {
+          pes.append(botao("", "Recusar", (e) => responderPedido(c, false, e.currentTarget)), botao("aceitar", "Aceitar", (e) => responderPedido(c, true, e.currentTarget)));
+        } else if (!c.pendente && c.outro !== eu.uid) {
+          // Mensagem (larga) + perfil e presente em ícones: cabem no cartão estreito do celular
+          const ver = botao("ic"); ver.setAttribute("aria-label", `Ver o perfil de ${primeiroNome(p.nome)}`); ver.title = "Ver perfil"; ver.appendChild(icone("perfil"));
+          if (proprio || clicavel) ver.addEventListener("click", () => irPerfil(c.outro)); else { ver.disabled = true; ver.title = "O dono deste social não liberou abrir os perfis"; }
+          const msg = botao("msg", null); msg.append(icone("chat"), el("span", null, "Mensagem")); msg.setAttribute("aria-label", `Mensagem para ${primeiroNome(p.nome)}`); msg.addEventListener("click", () => abrirConversa(c, msg));
+          const pr = botao("ic", null, () => irPresente(c.outro)); pr.setAttribute("aria-label", `Enviar um presente para ${primeiroNome(p.nome)}`); pr.title = "Enviar um presente"; pr.appendChild(icone("presente"));
+          pes.append(msg, ver, pr);
+        }
+        const topo = el("div", "pe-topo"); topo.append(av, nome);
+        art.append(topo, el("p", "pe-texto" + (cls ? " " + cls : ""), cls === "frase" ? `“${texto}”` : texto), tags, pes);
+        if (proprio) { art.classList.add("com-mais"); const mais = botao("mais"); mais.setAttribute("aria-label", "Mais opções"); mais.appendChild(icone("pontos")); mais.addEventListener("click", acaoPessoa(c)); art.appendChild(mais); }
         box.appendChild(art);
       });
     }
@@ -615,26 +862,287 @@
       box.hidden = !c || (filtro !== "todos" && filtro !== "duo");
       if (!c) return;
       box.replaceChildren();
-      const tit = el("p", "akai-tit");
-      const tl = el("span"); tl.append(icone("rosa"), document.createTextNode(c.tipo === "duo" ? "Duo · Akai Ito" : `${TIPOS[c.tipo][0]} · Akai Ito`));
-      tit.append(tl, el("em", null, "Link ativo"));
+      const cab = el("div", "ak-cab");
+      const rot = el("p", "ak-rot"); rot.style.margin = "0";
+      rot.append(icone("rosa"), document.createTextNode("Akai Ito"));
+      if (c.tipo !== "duo") rot.appendChild(el("small", null, TIPOS[c.tipo][0]));
+      cab.appendChild(rot);
+      if (proprio) { const ed = botao("ak-edit", null, () => abrirMemoria(c)); ed.id = "akEditar"; ed.append(icone("lapis"), document.createTextNode("Editar")); cab.appendChild(ed); }
+      box.appendChild(cab);
+      if (c.retrato) {
+        const rt = botao("ak-retrato"); rt.setAttribute("aria-label", "Ver o retrato de vocês");
+        box.appendChild(rt);
+        lerRetrato(c).then((u) => { if (!u) { rt.remove(); return; } const i = el("img"); i.src = u; i.alt = ""; rt.appendChild(i); rt.onclick = () => verFoto(u); });
+      }
       const par = el("div", "akai-par");
       const fio = svgEl("svg", { class: "akai-fio", viewBox: "0 0 200 50", preserveAspectRatio: "none" });
       const onda = "M0 26 C25 8 45 44 70 26 S115 8 140 26 S180 44 200 26", onda2 = "M0 26 C25 44 45 8 70 26 S115 44 140 26 S180 8 200 26";
       fio.append(svgEl("path", { class: "linha b", d: onda2 }), svgEl("path", { class: "linha", d: onda }), svgEl("path", { class: "brilho", d: onda }));
       const cor = el("span", "akai-cor"); cor.appendChild(icone("rosa", ""));
-      const pessoa = (perfil, uid, papel) => {
+      const pessoa = (perfil, uid) => {
         const b = el("button", "akai-pessoa"); b.type = "button";
-        b.append(novoAvatar(perfil.fotoPerfil, perfil.nome), el("strong", null, primeiroNome(perfil.nome)));
-        if (papel) b.appendChild(el("em", null, papel));
+        const av = el("span", "ak-av"); av.appendChild(novoAvatar(perfil.fotoPerfil, perfil.nome));
+        const pb = petBolha(uid); if (pb) av.appendChild(pb);
+        b.append(av, el("strong", null, primeiroNome(perfil.nome)));
         if (uid === donoId) b.disabled = true;
-        else { const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true; }
+        else if (proprio || clicavel) b.addEventListener("click", () => irPerfil(uid)); else b.disabled = true;
         return b;
       };
-      par.append(fio, cor, pessoa(dono, donoId, ""), pessoa(c.perfil, c.outro, c.tipo === "duo" ? "" : TIPOS[c.tipo][0]));
-      const desde = c.aceitoEm?.toDate?.();
-      box.append(tit, par, el("p", "akai-desde", desde ? `Conectados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Conectados pelo fio vermelho"));
+      par.append(fio, cor, pessoa(dono, donoId), pessoa(c.perfil, c.outro));
+      box.append(par, el("p", "ak-frase", fraseDe(c)));
+      const dados = [];
+      const d = deISO(c.conheceram), desde = c.aceitoEm?.toDate?.();
+      if (d) dados.push(["Conheceram", dataCurta(d)], ["Juntos há", tempoDesde(d)]);
+      if (desde) dados.push(["No social", mesAno(desde)]);
+      if (dados.length) {
+        const g = el("div", "ak-dados"); g.style.setProperty("--n", String(dados.length));
+        dados.forEach(([k, v]) => { const x = el("div", "ak-dado"); x.append(el("small", null, k), el("b", null, v)); g.appendChild(x); });
+        box.appendChild(g);
+      }
+      if (proprio && !d && !c.retrato) {
+        const v = botao("ak-vazio", null, () => abrirMemoria(c)); v.id = "akMemoria";
+        v.append(icone("foto", "i"), el("span", null, "Adicione a data em que vocês se conheceram, uma frase e um retrato dos dois."));
+        box.appendChild(v);
+      }
     }
+
+    // ---------- Memória de vocês: data, frase e retrato (um dos dois edita; aparece nos dois socials) ----------
+    function reduzirRetrato(arquivo) {
+      return new Promise((ok, erro) => {
+        const url = URL.createObjectURL(arquivo);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let lado = 1100, q = 0.82, saida = "";
+          for (let i = 0; i < 8; i++) {
+            const k = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight));
+            const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+            c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+            saida = c.toDataURL("image/jpeg", q);
+            if (saida.length <= 230000) break;
+            if (q > 0.6) q -= 0.08; else lado = Math.round(lado * 0.8);
+          }
+          saida.length <= 230000 ? ok(saida) : erro(new Error("grande"));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); erro(new Error("imagem")); };
+        img.src = url;
+      });
+    }
+    function abrirMemoria(c) {
+      let foto = null, tirou = false; // foto nova (data:) ou tirou a que tinha
+      abrirFolha(`Você e ${primeiroNome(c.perfil.nome)}`, (corpo, sair, pe) => {
+        const mem = el("div", "mem");
+        // retrato
+        const rotRet = el("label"); rotRet.textContent = "Retrato de vocês";
+        const ret = botao("mem-ret"); ret.id = "memRetrato";
+        const vazio = el("span"); vazio.append(icone("foto", "i"), document.createTextNode("Escolher uma foto dos dois"));
+        const arquivo = el("input"); arquivo.type = "file"; arquivo.accept = "image/*"; arquivo.hidden = true; arquivo.id = "memArquivo";
+        const acoes = el("div", "mem-ret-acoes");
+        const bTrocar = botao("btn sec", "Trocar foto", () => arquivo.click());
+        const bTirar = botao("btn sec", "Tirar", () => { foto = null; tirou = true; pintarRet(""); });
+        acoes.append(bTrocar, bTirar);
+        const pintarRet = (u) => {
+          ret.replaceChildren();
+          if (u) { const i = el("img"); i.src = u; i.alt = "Retrato de vocês"; ret.appendChild(i); } else ret.appendChild(vazio);
+          acoes.hidden = !u;
+        };
+        ret.addEventListener("click", () => arquivo.click());
+        arquivo.addEventListener("change", async () => {
+          const f = arquivo.files?.[0]; arquivo.value = "";
+          if (!f) return;
+          try { foto = await reduzirRetrato(f); tirou = false; pintarRet(foto); } catch { toast("Não foi possível usar esta foto. Tente outra."); }
+        });
+        pintarRet("");
+        lerRetrato(c).then((u) => { if (u && !foto && !tirou) pintarRet(u); });
+        rotRet.append(ret);
+        // data
+        const rotData = el("label"); rotData.append(document.createTextNode("Quando vocês se conheceram"));
+        const data = el("input"); data.type = "date"; data.id = "memData"; data.max = hojeISO(); data.min = "1920-01-01"; data.value = c.conheceram || "";
+        rotData.appendChild(data);
+        // frase
+        const rotFrase = el("label"); rotFrase.append(document.createTextNode("Uma frase de vocês (opcional)"));
+        const frase = el("input"); frase.type = "text"; frase.id = "memFrase"; frase.maxLength = 90; frase.value = c.frase || ""; frase.placeholder = fraseDe({ id: c.id });
+        const conta = el("span", "conta");
+        const contar = () => { conta.textContent = `${frase.value.length}/90`; };
+        frase.addEventListener("input", contar); contar();
+        const sug = el("div", "sug");
+        SUGESTOES.forEach((s) => sug.appendChild(botao("", s, () => { frase.value = s; contar(); })));
+        rotFrase.append(frase, conta);
+        mem.append(rotRet, acoes, arquivo, rotData, rotFrase, sug, el("p", "nota-mem", `Aparece no seu social e no de ${primeiroNome(c.perfil.nome)}, para quem pode ver o Social. Os dois podem mudar.`));
+        corpo.appendChild(mem);
+        const salvar = botao("btn pri largo", "Salvar", async () => {
+          const d = data.value;
+          if (d && (!deISO(d) || d > hojeISO())) { toast("Escolha uma data até hoje."); return; }
+          salvar.disabled = true;
+          const novo = { conheceram: d || "", frase: frase.value.trim().slice(0, 90), retrato: foto ? true : tirou ? false : !!c.retrato };
+          try {
+            const lote = fb.writeBatch(fb.db);
+            lote.update(fb.doc(fb.db, "vinculos", c.id), { ...novo, memoriaEm: fb.serverTimestamp(), memoriaPor: eu.uid });
+            if (foto) lote.set(fb.doc(fb.db, "vinculos_retrato", c.id), { foto, por: eu.uid, em: fb.serverTimestamp() });
+            else if (tirou && c.retrato) lote.delete(fb.doc(fb.db, "vinculos_retrato", c.id));
+            await lote.commit();
+            Object.assign(c, novo);
+            if (foto) retratos.set(c.id, Promise.resolve(foto)); else if (tirou) retratos.delete(c.id);
+            sair(); desenharTudo(); toast("Memória salva");
+          } catch (e) {
+            if (e?.code !== "permission-denied") { salvar.disabled = false; toast("Não foi possível salvar."); return; }
+            // Regras de antes (sem a memória): guarda só na sua conta e só você vê.
+            try {
+              await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { socialMemorias: { [c.id]: { conheceram: novo.conheceram, frase: novo.frase } } }, { merge: true });
+              c.conheceram = novo.conheceram; c.frase = novo.frase;
+              sair(); desenharTudo();
+              toast(foto ? "Data e frase salvas só para você. O retrato e o resto aparecem para todos depois da atualização das regras do site." : "Salvo só para você. Para aparecer para todos, falta a atualização das regras do site.");
+            } catch { salvar.disabled = false; toast("Não foi possível salvar."); }
+          }
+        });
+        salvar.id = "memSalvar";
+        pe.appendChild(salvar);
+      }, { grande: true, pe: true });
+    }
+
+    // ---------- Adicionar pessoa ao social (sem sair da página) ----------
+    function abrirAdicionar() {
+      let alvo = null, tipo = "";
+      abrirFolha("Adicionar ao seu social", (corpo, sair, pe) => {
+        const enviar = botao("btn pri largo", "Enviar pedido"); enviar.id = "addEnviar"; enviar.disabled = true;
+        pe.appendChild(enviar);
+        const pintar = () => {
+          corpo.replaceChildren();
+          if (!alvo) {
+            const busca = el("div", "busca-add"); busca.appendChild(icone("lupa"));
+            const inp = el("input"); inp.type = "search"; inp.id = "addBusca"; inp.placeholder = "Buscar pelo nome ou @usuário"; inp.setAttribute("aria-label", "Buscar pessoa");
+            busca.appendChild(inp);
+            const res = el("div"); res.id = "addRes";
+            corpo.append(busca, res);
+            let tempo = 0;
+            const buscar = async () => {
+              const termo = inp.value.trim();
+              let achados = [];
+              try { const { buscarPessoas } = await import("./pessoas.js?v=6"); achados = await buscarPessoas(fb, termo, { limite: 15 }); } catch {}
+              if (inp.value.trim() !== termo) return;
+              res.replaceChildren();
+              const lista = achados.filter((p) => p.uid && p.uid !== eu.uid).slice(0, 10);
+              if (!lista.length) { res.appendChild(el("p", "aviso-add", termo ? "Ninguém encontrado com esse nome." : "Digite o nome ou o @ da pessoa.")); return; }
+              lista.forEach((p) => {
+                const ja = conexoes.find((c) => c.outro === p.uid);
+                const b = botao("linha", null, () => { if (ja) { toast(ja.pendente ? "Já existe um pedido entre vocês." : "Essa pessoa já está no seu social."); return; } alvo = p; tipo = ""; pintar(); });
+                const tx = el("span", "tx");
+                tx.append(el("strong", null, p.nome || "Usuário"), el("small", null, ja ? (ja.pendente ? "Pedido em andamento" : "Já está no seu social") : [p.nickname ? "@" + p.nickname : "", cidadeDe(p)].filter(Boolean).join(" · ")));
+                b.append(novoAvatar(p.fotoPerfil, p.nome), tx);
+                res.appendChild(b);
+              });
+            };
+            inp.addEventListener("input", () => { clearTimeout(tempo); tempo = setTimeout(buscar, 300); });
+            buscar();
+            setTimeout(() => inp.focus({ preventScroll: true }), 60);
+            enviar.disabled = true;
+            return;
+          }
+          const esc = el("div", "add-esc");
+          const tx = el("span", "tx"); tx.append(el("b", null, alvo.nome || "Usuário"), el("small", null, alvo.nickname ? "@" + alvo.nickname : ""));
+          esc.append(novoAvatar(alvo.fotoPerfil, alvo.nome), tx, botao("btn sec", "Trocar", () => { alvo = null; pintar(); }));
+          const tipos = el("div", "tipos"); tipos.id = "addTipos";
+          const ocupado = temDuo();
+          GRUPOS.forEach((g) => {
+            const gr = el("div", "grupo"); gr.style.setProperty("--cor", corDe(g.cat));
+            gr.appendChild(el("span", null, g.nome));
+            const ch = el("div", "chips-t");
+            Object.entries(TIPOS).filter(([, t]) => t[1] === g.cat).forEach(([k, t]) => {
+              const b = botao(k === tipo ? "on" : "", k === "duo" ? "Duo (Akai Ito)" : t[0], () => { tipo = k; pintar(); });
+              b.dataset.tipo = k;
+              if (ocupado && TIPOS_DUO.includes(k)) { b.disabled = true; b.title = "Você já tem um duo no seu social"; }
+              ch.appendChild(b);
+            });
+            gr.appendChild(ch); tipos.appendChild(gr);
+          });
+          corpo.append(esc, el("p", "aviso-add", `O que ${primeiroNome(alvo.nome)} é para você? Ela recebe o pedido e escolhe aceitar.${ocupado ? " Você já tem um duo: desfaça o atual para escolher outro." : ""}`), tipos);
+          enviar.disabled = !tipo;
+          enviar.textContent = tipo ? `Enviar pedido · ${TIPOS[tipo][0]}` : "Escolha o que a pessoa é para você";
+        };
+        enviar.addEventListener("click", async () => {
+          if (!alvo || !tipo) return;
+          const ids = [eu.uid, alvo.uid].sort();
+          const id = `${ids[0]}_${ids[1]}`;
+          enviar.disabled = true;
+          try {
+            await fb.setDoc(fb.doc(fb.db, "vinculos", id), { participantes: ids, de: eu.uid, para: alvo.uid, tipoDe: tipo, tipoPara: INVERSO[tipo], status: "pendente", criadoEm: fb.serverTimestamp() });
+            conexoes.push({ id, de: eu.uid, outro: alvo.uid, tipo, cat: TIPOS[tipo][1], pendente: true, perfil: alvo, aceitoEm: null, conheceram: "", frase: "", retrato: false });
+            sair(); desenharTudo(); toast(`Pedido enviado para ${primeiroNome(alvo.nome)}`);
+          } catch (e) { enviar.disabled = false; toast(e?.code === "permission-denied" ? "Não foi possível enviar: confirme seu e-mail ou veja se vocês já têm um pedido." : "Não foi possível enviar."); }
+        });
+        pintar();
+      }, { grande: true, pe: true });
+    }
+
+    // ---------- Configurações do Social (gaveta) ----------
+    const VIS = {
+      todos: ["Todos", "Qualquer pessoa com conta abre os perfis do seu social."],
+      seguidores: ["Seguidores", "Só quem segue você abre os perfis."],
+      amigos: ["Amigos", "Só quem você segue e segue você."],
+      ocultar: ["Ninguém", "Seu social fica escondido de todo mundo."]
+    };
+    function opcoes(lista, atual, aoEscolher) {
+      const box = el("div", "ops"); box.setAttribute("role", "radiogroup");
+      const pintar = (v) => box.querySelectorAll(".op").forEach((b) => { const on = b.dataset.v === v; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+      Object.entries(lista).forEach(([k, [nome, desc]]) => {
+        const b = botao("op"); b.dataset.v = k; b.setAttribute("role", "radio");
+        const tx = el("span", "tx"); tx.append(el("b", null, nome), el("small", null, desc));
+        b.append(tx, el("span", "radio"));
+        b.addEventListener("click", async () => { const antes = box.dataset.v; pintar(k); box.dataset.v = k; if (!(await aoEscolher(k))) { pintar(antes); box.dataset.v = antes; } });
+        box.appendChild(b);
+      });
+      box.dataset.v = atual; pintar(atual);
+      return box;
+    }
+    function secao(id, ic, titulo, texto) {
+      const s = el("section", "cfg-sec"); if (id) s.id = id;
+      const h = el("h4"); h.append(icone(ic, "i"), document.createTextNode(titulo));
+      s.appendChild(h); if (texto) s.appendChild(el("p", null, texto));
+      return s;
+    }
+    function abrirConfig(foco) {
+      abrirFolha("Configurações do Social", (corpo) => {
+        // 1) privacidade
+        const priv = secao("cfgPrivacidade", "cadeado", "Quem pode abrir os perfis do seu social", "Quem não estiver liberado vê as fotos e os nomes, mas não abre os perfis. \"Ninguém\" esconde o social.");
+        priv.appendChild(opcoes(VIS, dono.socialVisibilidade || "todos", async (v) => {
+          try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: v }, { merge: true }); dono.socialVisibilidade = v; toast("Privacidade atualizada"); return true; }
+          catch { toast("Não foi possível salvar."); return false; }
+        }));
+        priv.lastChild.id = "visibilidade";
+        // 2) duo no perfil
+        const duo = secao("duoModos", "rosa", "Seu duo no perfil", "O que acontece quando alguém toca na rosinha da sua foto de perfil.");
+        duo.classList.add("duo-modos");
+        const grade = el("div", "dm-grade"); grade.id = "dmGrade"; grade.setAttribute("role", "radiogroup"); grade.setAttribute("aria-label", "Como o duo aparece no perfil");
+        const clique = el("label", "dm-clique"); clique.id = "dmClique";
+        const ctx = el("span", "tx"); const small = el("small"); small.id = "dmCliqueTx"; ctx.append(el("strong", null, "Tocar abre o perfil do duo"), small);
+        const ch = el("span", "chave"); const inp = el("input"); inp.type = "checkbox"; inp.id = "dmCliqueIn"; ch.append(inp, el("span"));
+        clique.append(ctx, ch);
+        inp.addEventListener("change", (e) => { const a = lerModoDuo(modoDuo); mudarModoDuo(montarModoDuo(a.estilo, e.target.checked)); });
+        const atual = el("p", "dm-atual"); atual.id = "dmAtual";
+        duo.append(grade, clique, atual);
+        // 3) presentes
+        const pres = secao("cfgPresentes", "presente", "Quem pode me enviar presentes", "Você sempre pode recusar um presente. Seu endereço vai só para a loja que entrega.");
+        const presBox = el("div"); presBox.appendChild(el("p", "aviso-add", "Carregando..."));
+        pres.appendChild(presBox);
+        fb.getDoc(fb.doc(fb.db, "pref_publicas", eu.uid)).then((s) => (s.exists() ? s.data().presentes : "")).catch(() => "").then((q) => {
+          presBox.replaceChildren(opcoes(QUEM_PODE, QUEM_PODE[q] ? q : "seguindo", async (v) => {
+            try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { presentes: v, atualizadoEm: fb.serverTimestamp() }, { merge: true }); toast("Salvo"); return true; }
+            catch (e) { toast(e?.code === "permission-denied" ? "Esta opção ainda está sendo liberada." : "Não foi possível salvar."); return false; }
+          }));
+        });
+        // 4) SOS e pets
+        const n = aceitas().length;
+        const sos = secao("cfgSos", "escudo", "SOS e rede de proteção", n ? `Quando você pede ajuda (SOS), as ${n} ${n === 1 ? "pessoa" : "pessoas"} do seu social recebem primeiro no Mensagens. Depois, se você escolher, quem está perto e a equipe de segurança.` : "Quando você pede ajuda (SOS), quem está no seu social recebe primeiro. Adicione família, amigos e o seu duo.");
+        const links = el("div", "cfg-links");
+        const a1 = el("a", "btn sec", "Configurar alertas"); a1.href = "alertas.html#config";
+        const a2 = el("a", "btn sec", "Seus pets (RG do pet)"); a2.href = "alertas.html?aba=pets";
+        links.append(a1, a2); sos.appendChild(links);
+        corpo.append(priv, duo, pres, sos);
+      }, { grande: true });
+      desenharModosDuo();
+      if (foco) requestAnimationFrame(() => document.getElementById(foco)?.scrollIntoView({ block: "start" }));
+    }
+    $("btnAdd").addEventListener("click", () => abrirAdicionar());
 
     // ---------- Seu duo no perfil: os 4 modelos com prévia ----------
     let modoDuo = "gaveta";
@@ -647,20 +1155,23 @@
       const fotoDuo = () => novoAvatar(duo?.perfil.fotoPerfil, duo?.perfil.nome || "Duo");
       if (estilo !== "ocultar") { const r = el("span", "dm-rosa" + (estilo === "rosa" ? " pulsa" : "")); r.appendChild(icone("rosa", "")); pv.appendChild(r); }
       if (estilo === "gaveta") { const g = el("div", "dm-gav" + (clique ? "" : " fixa")); const t = el("span"); t.append(el("i"), el("i")); g.append(fotoDuo(), t); pv.append(g, el("i", "dm-dedo")); }
-      if (estilo === "bolinha") { const b = el("div", "dm-bol" + (clique ? "" : " fixa")); b.append(fotoDuo(), el("b", null, primeiroNome(duo?.perfil.nome || "Duo"))); pv.append(b, el("i", "dm-dedo")); }
+      if (estilo === "bolinha") { const b = el("div", "dm-bol" + (clique ? "" : " fixa")); b.append(fotoDuo()); pv.append(b, el("i", "dm-dedo")); }
       if (estilo === "rosa") pv.appendChild(el("i", "dm-dedo"));
       if (estilo === "ocultar") pv.appendChild(el("span", "dm-nada", "Sem rosinha"));
       return pv;
     }
     function desenharModosDuo() {
-      const box = $("dmGrade"); box.replaceChildren();
+      const box = $("dmGrade"); if (!box) return;
+      box.replaceChildren();
       const atual = lerModoDuo(modoDuo);
       const duo = conexoes.find((x) => x.cat === "duo" && !x.pendente);
       ESTILOS_DUO.forEach((m) => {
         const b = el("button", "dm-op" + (atual.estilo === m.id ? " on" : "")); b.type = "button";
         b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(atual.estilo === m.id)); b.dataset.estilo = m.id;
         const clique = m.id === "gaveta" || m.id === "bolinha" ? atual.estilo === m.id ? atual.clique : true : false;
-        b.append(previaDuo(m.id, clique, duo), el("strong", null, m.nome), el("small", null, m.texto));
+        const tx = el("span", "dm-tx"); const nm = el("span", "dm-nome"); nm.append(el("strong", null, m.nome), el("span", "radio"));
+        tx.append(nm, el("small", null, m.texto));
+        b.append(previaDuo(m.id, clique, duo), tx);
         b.addEventListener("click", () => {
           const vale = atual.estilo === "gaveta" || atual.estilo === "bolinha" ? atual.clique : true;
           mudarModoDuo(montarModoDuo(m.id, vale));
@@ -684,18 +1195,11 @@
         toast(pub === valor ? "Pronto: " + ESTILOS_DUO.find((e) => e.id === lerModoDuo(valor).estilo).nome : "Salvo na sua conta. Para quem visita, vale depois da atualização das regras do site.");
       } catch { modoDuo = antes; desenharModosDuo(); toast("Não foi possível salvar."); }
     }
-    async function prepararModosDuo() {
-      const conta = await fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid)).then((d) => (d.exists() ? d.data().duoCapa : undefined)).catch(() => undefined);
-      modoDuo = valorDuo(duoDaConta(conta, dono.duoCapa));
-      $("duoModos").hidden = false;
-      $("dmCliqueIn").addEventListener("change", (e) => { const a = lerModoDuo(modoDuo); mudarModoDuo(montarModoDuo(a.estilo, e.target.checked)); });
-      desenharModosDuo();
-      if (location.hash === "#duoModos") requestAnimationFrame(() => $("duoModos").scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
 
     function desenharTudo() {
-      desenharHero(); desenharDestaques(); desenharControles(); desenharDuo(); desenharRede();
-      if (proprio && !$("duoModos").hidden) desenharModosDuo();
+      desenharHero(); desenharDuo(); desenharDestaques(); desenharCuidado(); desenharControles(); desenharRede();
+      if (proprio) desenharModosDuo();
+      $("redeSub").textContent = proprio && conexoes.some((c) => c.pendente && c.de !== eu.uid) ? "Você tem pedidos para responder." : "Organize e encontre rapidamente suas pessoas.";
     }
 
     async function iniciar() {
@@ -721,8 +1225,12 @@
             ]);
             if (b1 || b2) { estado("Social indisponível", "Não é possível ver este social."); return; }
           }
-          const s = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId));
+          const [s, c] = await Promise.all([
+            fb.getDoc(fb.doc(fb.db, "perfis_publicos", donoId)),
+            proprio ? fb.getDoc(fb.doc(fb.db, "usuarios", eu.uid)).then((d) => (d.exists() ? d.data() : {})).catch(() => ({})) : null
+          ]);
           dono = s.exists() ? s.data() : {};
+          conta = c;
           $("titulo").textContent = proprio ? "Meu social" : `Social de ${primeiroNome(dono.nome)}`;
           $("tituloSub").textContent = dono.nickname ? "@" + dono.nickname : "";
           $("btnAdd").hidden = !proprio; $("btnAddEspaco").hidden = proprio;
@@ -738,10 +1246,14 @@
             const outro = (v.participantes || []).find((x) => x !== donoId);
             return fb.getDoc(fb.doc(fb.db, "perfis_publicos", outro)).then((p) => (p.exists() ? p.data() : {})).catch(() => ({}));
           }));
+          const locais = (proprio && conta?.socialMemorias) || {};
           conexoes = brutos.map((v, i) => {
             const outro = (v.participantes || []).find((x) => x !== donoId);
             const tipo = donoId === v.de ? v.tipoDe : v.tipoPara;
-            return { id: v.id, de: v.de, outro, tipo, cat: TIPOS[tipo]?.[1] || "amizade", pendente: v.status !== "aceito", perfil: perfis[i], aceitoEm: v.aceitoEm };
+            // Memória guardada só na sua conta (antes da atualização das regras) vale enquanto o vínculo não tem a dele.
+            const loc = !v.memoriaEm && locais[v.id] ? locais[v.id] : {};
+            return { id: v.id, de: v.de, outro, tipo, cat: TIPOS[tipo]?.[1] || "amizade", pendente: v.status !== "aceito", perfil: perfis[i], aceitoEm: v.aceitoEm,
+              conheceram: v.conheceram || loc.conheceram || "", frase: v.frase || loc.frase || "", retrato: !!v.retrato };
           }).filter((c) => proprio || !c.pendente);
 
           $("estado").hidden = true;
@@ -750,23 +1262,11 @@
             $("nota").hidden = false;
             $("nota").textContent = dono.socialVisibilidade === "amigos" ? "Os perfis abrem só para amigos (quem segue e é seguido)." : "Os perfis abrem só para seguidores.";
           }
-          if (proprio) {
-            $("donoBox").hidden = false;
-            const pintar = () => document.querySelectorAll("#visibilidade [data-valor]").forEach((b) => b.classList.toggle("on", b.dataset.valor === (dono.socialVisibilidade || "todos")));
-            pintar();
-            $("visibilidade").addEventListener("click", async (e) => {
-              const b = e.target.closest("[data-valor]");
-              if (!b) return;
-              const antes = dono.socialVisibilidade;
-              dono.socialVisibilidade = b.dataset.valor;
-              pintar();
-              try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: b.dataset.valor }, { merge: true }); toast("Privacidade atualizada"); }
-              catch { dono.socialVisibilidade = antes; pintar(); toast("Não foi possível salvar."); }
-            });
-          }
+          if (proprio) modoDuo = valorDuo(duoDaConta(conta?.duoCapa, dono.duoCapa));
           desenharTudo();
-          if (proprio) prepararModosDuo();
+          if (proprio && ["#duoModos", "#privacidade", "#config"].includes(location.hash)) abrirConfig(location.hash === "#duoModos" ? "duoModos" : "");
           contarRede();
+          carregarPets().then(() => { if (pets.size) desenharTudo(); });
         } catch (e) {
           console.error(e);
           estado("Não foi possível carregar", "Tente novamente em instantes.");

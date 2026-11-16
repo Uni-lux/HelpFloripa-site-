@@ -2725,6 +2725,22 @@ chat da equipe).
   + selo, relação · cidade, bio ou "Conectados desde...", etiqueta do grupo, Ver perfil · Mensagem — `garantirConversa` +
   `chat-gaveta.js`, ⋯ no canto só no seu social). Títulos em Manrope (Google Fonts), cores do tema do site (claro e escuro).
   Saíram o mapa em órbita, as vagas por grupo e as fontes Cinzel/Cormorant. Testes `t-duo-gaveta.mjs` (31) e `t-perfil-social.mjs`.
+- **Social organizado (16/11/2026, PR depois do #228, MUDA REGRAS — não publicadas; 23 partes, 1210 testes):** prints dele.
+  "+" do topo e "Adicionar" abrem a gaveta **Adicionar ao seu social** na própria página (busca `pessoas.js`, tipos por grupo,
+  duo bloqueado se já tem um; antes ia para `usuarios.html?acao=social`). **Configurar** abre a gaveta "Configurações do Social"
+  (`abrirConfig`: quem abre os perfis, os 4 modelos do duo `#duoModos`/`#dmGrade` com cartões novos e rádio, quem pode mandar
+  presentes `pref_publicas.presentes`, SOS e pets com links); `social.html#duoModos` abre a gaveta no duo. **Cartão do duo
+  refeito** (sem "Conectados pelo fio vermelho" e sem letra de máquina): Akai Ito + Editar, retrato dos dois, fotos com o fio,
+  frase de vocês (ou uma da lenda `FRASES`, fixa por duo), dados Conheceram · Juntos há · No social. **Memória de cada vínculo**
+  (`abrirMemoria`, também no ⋯ de cada cartão): `vinculos.conheceram/frase/retrato/memoriaEm/memoriaPor` (regra nova: um dos
+  dois, vínculo aceito) + `vinculos_retrato/{id}` {foto JPEG ≤240 mil, por, em}; sem as regras guarda data/frase em
+  `usuarios.socialMemorias` (só o dono vê). Cartão com retrato ganha a foto em cima. **Pets** (`pets` visíveis, `donoId in` +
+  `visivel == true`; os seus todos) em bolinha pequena ao lado de cada dono (hero, duo, destaques, cartões) → lista e RG do pet.
+  **Cuidado e proteção** (só no seu): SOS (quantos do social são avisados), Pets, Presentes. Cartões: Mensagem + perfil + presente
+  (ícones; "Mensagem" só ícone em cartão estreito, container query); pedido recebido com Recusar/Aceitar. Visitante: Ver perfil ·
+  Presente · compartilhar. Gavetas `.folha.aberta` + `[data-fechar]` (voltar do celular fecha), z 5000. Desfazer vínculo apaga o
+  retrato; conta.js e limpeza-conta apagam `vinculos_retrato`. Teste `t-social-completo.mjs` (28); `t-duo-gaveta` atualizado.
+  Interpretado "o restrito deles" como **retrato** (foto dos dois) — confirmar com ele.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2734,7 +2750,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1191 testes; inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1210 testes; inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

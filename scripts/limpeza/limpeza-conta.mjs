@@ -105,6 +105,9 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     await apagar("relacoes", col("relacoes").where("alvoId", "==", uid));
     await apagar("bloqueios", col("bloqueios").where("bloqueadorId", "==", uid));
     await apagar("bloqueios", col("bloqueios").where("bloqueadoId", "==", uid));
+    // Retrato dos dois no Social (vinculos_retrato tem o mesmo id do vínculo).
+    const vins = await col("vinculos").where("participantes", "array-contains", uid).get();
+    for (const v of vins.docs) if (!simular) await col("vinculos_retrato").doc(v.id).delete().catch(() => {});
     await apagar("vinculos", col("vinculos").where("participantes", "array-contains", uid));
     await apagar("negocios", col("negocios").where("donoId", "==", uid));
     await apagar("anuncios", col("anuncios").where("donoId", "==", uid));
