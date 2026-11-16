@@ -1,3 +1,11 @@
+      function contextoOk() {
+        let c = request.resource.data.get('contexto', null);
+        return c == null
+            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
+                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
+                && valorTextoAte(c.get('titulo', ''), 120));
+      }
+
       // Quem pode mandar mensagem (12/11/2026, conversa-acesso.js). A conversa NOVA vai direto quando quem recebe aceita
       // todos (pref_publicas.msgPessoal/msgNegocios), segue quem escreve ou tem vínculo aceito com ele; senão ela nasce
       // como SOLICITAÇÃO (pedido {de, status: pendente, em}) — e com "fechado" nem a solicitação. Negócio (contexto do
@@ -183,17 +191,5 @@
         allow read: if logado() && participante();
         // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
         allow get: if podeModerar();
-
-        allow create: if logado()
-                      && emailOk()
-                      && participante()
-                      && semBloqueio()
-                      && pedidoLibera()
-                      && outroAtivo()
-                      && ritmoOk('msg')
-                      && request.resource.data.remetenteId == request.auth.uid
-                      && request.resource.data.criadoEm == request.time
-                      && textoAte('texto', 4000)
-                      && mensagemOk();
 
 // ===== FIM DA PARTE 7 DE 23 =====

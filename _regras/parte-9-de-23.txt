@@ -1,3 +1,19 @@
+      function doCliente() {
+        let d = request.resource.data;
+        let dono = donoDoNegocio(d.negocioId);
+        let eu = request.auth.uid;
+        return id == 'n_' + d.negocioId + '_' + eu
+            && d.alvoId == dono
+            && dono != eu
+            && d.chaves == ['neg_' + d.negocioId]
+            && contaAntiga(eu)
+            && falou(eu, dono, eu)
+            && falou(eu, dono, dono)
+            && !bloqueioEntre(eu, dono)
+            && pedidoOk(d, eu, d.negocioId)
+            && resumoAtualizado('neg_' + d.negocioId);
+      }
+
       function doVendedor() {
         let d = request.resource.data;
         let eu = request.auth.uid;

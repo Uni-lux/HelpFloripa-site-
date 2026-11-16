@@ -1,3 +1,31 @@
+    // =====================================================
+    // GUARDADOS: o conteúdo de um item escondido (guardar.js). Documento: guardados/{colecao}_{id}
+    // { colecao, docId, dono, dados (o documento como era), motivo, porEquipe, ate, por, em }.
+    // Só o dono e a equipe leem. Criado na MESMA gravação em que o item vira esqueleto; apagado na MESMA
+    // gravação em que o item volta (ou quando o item foi apagado).
+    // =====================================================
+    match /guardados/{gid} {
+      function itemRef(d) {
+        return /databases/$(database)/documents/$(d.colecao)/$(d.docId);
+      }
+      function campoDono(col) {
+        return col == 'diario' ? 'autorId' : 'donoId';
+      }
+      // dados = o documento como estava (sem as marcas de escondido) e o item vira esqueleto junto.
+      function guardaOk(d) {
+        let antes = get(itemRef(d)).data;
+        return antes.get('guardado', false) != true
+            && d.dono == antes.get(campoDono(d.colecao), '')
+            && d.dados is map
+            && !d.dados.keys().hasAny(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+            && d.dados.diff(antes).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+            && getAfter(itemRef(d)).data.get('guardado', false) == true;
+      }
+      // Quem pode: a própria pessoa (conta desativada) ou a moderação (qualquer motivo).
+      function quemGuardaOk(d) {
+        return (d.motivo == 'conta' && d.porEquipe == false && (d.dono == request.auth.uid || podeModerar()))
+            || (d.motivo in ['sancao', 'moderacao', 'sem_verif'] && d.porEquipe == true && podeModerar());
+      }
       allow get, list: if logado() && (resource.data.dono == request.auth.uid || admin());
       allow create: if logado()
                     && request.resource.data.keys().hasOnly(['colecao', 'docId', 'dono', 'dados', 'motivo', 'porEquipe', 'ate', 'por', 'em'])
@@ -145,14 +173,6 @@
         return !mudou().hasAny([campo])
             || (request.resource.data[campo] is map
                 && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
-      }
-
-      function contextoOk() {
-        let c = request.resource.data.get('contexto', null);
-        return c == null
-            || (c is map && c.keys().hasOnly(['tipo', 'titulo'])
-                && c.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
-                && valorTextoAte(c.get('titulo', ''), 120));
       }
 
 // ===== FIM DA PARTE 6 DE 23 =====

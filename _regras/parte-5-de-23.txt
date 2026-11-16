@@ -1,3 +1,56 @@
+      // Instagram (só o @, sem link), site (http/https, até 120) e CNPJ (14 números) num regex só;
+      // capa (foto do site); horário de cada dia (7 textos "HH:MM-HH:MM" ou "", domingo a sábado) e promoção.
+      // Só confere o que mudou: a gravação completa ficava perto do limite de 1.000 expressões.
+      function extrasNegocioOk() {
+        let d = request.resource.data;
+        let m = resource == null ? d.keys().toSet() : mudou();
+        return (!m.hasAny(['instagram', 'site', 'cnpj'])
+                || [d.get('instagram', ''), d.get('site', ''), d.get('cnpj', '')].join('\n')
+                     .matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
+            && (!m.hasAny(['capa']) || fotoOk(d.get('capa', null)))
+            && (!m.hasAny(['semana']) || d.get('semana', null) == null
+                || (d.semana is list && d.semana.size() == 7
+                    && d.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
+            && (!m.hasAny(['promocao']) || d.get('promocao', null) == null || promocaoOk(d.promocao))
+            && (!m.hasAny(['geo']) || geoOk(d.get('geo', null)))
+            && (!m.hasAny(['saude']) || saudeOk(d.get('saude', null)))
+            && (!m.hasAny(['principal']) || d.get('principal', null) == null
+                || d.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']);
+      }
+
+      function negocioOk() {
+        return textoAte('nome', 80)
+            && textoAte('descricao', 600)
+            && textoAte('cidade', 60)
+            && localOk()
+            && enderecoOk()
+            && textoAte('whatsapp', 20)
+            && textoAte('regiao', 100)
+            && textoAte('horario', 60)
+            && textoAte('categoriaPersonalizada', 30)
+            && listaAte('itens', 12)
+            && listaAte('fotos', 5)
+            && listaAte('busca', 100)
+            && dataOuNulo('ocultoAte')
+            && ((resource != null && !mudou().hasAny(['foto'])) || campoFotoOk('foto'))
+            && extrasNegocioOk();
+      }
+
+      allow get: if logado() && podeAbrir('donoId');
+      allow list: if logado();
+
+      allow create: if logado()
+                    && emailOk()
+                    && request.resource.data.donoId == request.auth.uid
+                    && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+                    && id == request.auth.uid + '_' + request.resource.data.tipo
+                    && request.resource.data.keys().hasOnly(camposNegocio())
+                    && naoTocaCamposProtegidosNoCreate()
+                    && !banidoDoPrograma(request.auth.uid, request.resource.data.tipo)
+                    && contaVerificada()
+                    && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
+                    && negocioOk();
+
       allow update: if logado() && !ehEsqueleto()
                     && emailOk()
                     && resource.data.donoId == request.auth.uid
@@ -168,32 +221,4 @@
       allow update: if podeModerar() && moderacaoOk();
     }
 
-    // =====================================================
-    // GUARDADOS: o conteúdo de um item escondido (guardar.js). Documento: guardados/{colecao}_{id}
-    // { colecao, docId, dono, dados (o documento como era), motivo, porEquipe, ate, por, em }.
-    // Só o dono e a equipe leem. Criado na MESMA gravação em que o item vira esqueleto; apagado na MESMA
-    // gravação em que o item volta (ou quando o item foi apagado).
-    // =====================================================
-    match /guardados/{gid} {
-      function itemRef(d) {
-        return /databases/$(database)/documents/$(d.colecao)/$(d.docId);
-      }
-      function campoDono(col) {
-        return col == 'diario' ? 'autorId' : 'donoId';
-      }
-      // dados = o documento como estava (sem as marcas de escondido) e o item vira esqueleto junto.
-      function guardaOk(d) {
-        let antes = get(itemRef(d)).data;
-        return antes.get('guardado', false) != true
-            && d.dono == antes.get(campoDono(d.colecao), '')
-            && d.dados is map
-            && !d.dados.keys().hasAny(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
-            && d.dados.diff(antes).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
-            && getAfter(itemRef(d)).data.get('guardado', false) == true;
-      }
-      // Quem pode: a própria pessoa (conta desativada) ou a moderação (qualquer motivo).
-      function quemGuardaOk(d) {
-        return (d.motivo == 'conta' && d.porEquipe == false && (d.dono == request.auth.uid || podeModerar()))
-            || (d.motivo in ['sancao', 'moderacao', 'sem_verif'] && d.porEquipe == true && podeModerar());
-      }
 // ===== FIM DA PARTE 5 DE 23 =====

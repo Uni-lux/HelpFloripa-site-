@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
-} from "./rede.js?v=164";
+} from "./rede.js?v=165";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -4480,7 +4480,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
       v.append(icone("olho", "i xs"), el("span", null, "Visualizações"), rostos);
       v.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); });
       // Destacar (como no Instagram): guarda o flash num destaque do perfil, que fica para sempre.
-      const bd = el("button", "story-destacar"); bd.type = "button"; bd.setAttribute("aria-label", "Destacar no perfil");
+      const bd = el("button", "story-destacar"); bd.type = "button"; bd.setAttribute("aria-label", "Destacar no Salão");
       bd.append(icone("destaque", "i s"), el("span", null, "Destacar"));
       bd.addEventListener("click", (e) => { e.stopPropagation(); pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); });
       const linhaMeu = el("div", "story-meu-rodape"); linhaMeu.append(v, bd);
@@ -4665,7 +4665,7 @@ function abrirVisor(uidInicial, { so = false, aoFechar = null, comecarEm = null,
           if (!l.length) fechar(); else { si = Math.min(si, l.length - 1); mostrar(); }
         } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
       } },
-      meu && { rotulo: destaque ? "Pôr em outro destaque" : "Destacar no perfil", sub: "O destaque fica no seu perfil para sempre", icone: "destaque", fn: () => setTimeout(() => { pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); }, 260) },
+      meu && { rotulo: destaque ? "Pôr em outro destaque" : "Destacar no Salão", sub: "O destaque fica no seu Salão para sempre", icone: "destaque", fn: () => setTimeout(() => { pausar(true); adicionarAoDestaque(s, () => { if (document.querySelector(".story-visor")) document.body.classList.add("travado"); pausar(false); }); }, 260) },
       meu && ativo(s) && { rotulo: "Visualizações", sub: "Quem viu, deu estrela ou reagiu", icone: "olho", fn: () => setTimeout(() => { pausar(true); verQuemViu(s, () => pausar(false), mapa.get(eu.uid), irPara, { aoApagar: tirarDaLista }); }, 260) },
       meu && s.tipo !== "video" && { rotulo: "Salvar foto", sub: "Guarda o flash no aparelho", icone: "imagem", fn: () => salvarFotoFlash(s) },
       { rotulo: "Compartilhar", sub: meu ? "Manda o link do flash (fica 24 h)" : "Manda o link do flash", icone: "compartilhar", fn: () => compartilharLinkFlash(s) },
@@ -4822,7 +4822,7 @@ async function verQuemViu(sInicial, aoFechar, flashes, aoTrocar, { aoApagar = nu
   // Barra do flash (como no Instagram): quantos viram + Destacar + Apagar; abas quando tem enquete ou perguntas.
   const barra = el("div", "vv-barra");
   const nVistos = el("span", "vv-barra-n"); nVistos.append(icone("olho", "i s"), el("strong", null, "…"));
-  const bDest = el("button", "vv-barra-btn"); bDest.type = "button"; bDest.title = "Destacar no perfil"; bDest.setAttribute("aria-label", "Destacar no perfil"); bDest.appendChild(icone("destaque", "i s"));
+  const bDest = el("button", "vv-barra-btn"); bDest.type = "button"; bDest.title = "Destacar no Salão"; bDest.setAttribute("aria-label", "Destacar no Salão"); bDest.appendChild(icone("destaque", "i s"));
   const bLixo = el("button", "vv-barra-btn perigo"); bLixo.type = "button"; bLixo.title = "Apagar este flash"; bLixo.setAttribute("aria-label", "Apagar este flash"); bLixo.appendChild(icone("lixo", "i s"));
   barra.append(nVistos, el("span", "esp"), bDest, bLixo);
   bDest.addEventListener("click", () => adicionarAoDestaque(s, () => {}));
@@ -5139,6 +5139,16 @@ export async function destaquesNoPerfil(corpo, uid) {
     fila.appendChild(novo);
   }
 }
+// Abrir um destaque pelo link (feed.html?destaque=ID): o Salão (social.html) mostra os destaques e toca aqui.
+export async function abrirDestaquePorId(id, { aoFechar = null } = {}) {
+  const s = await fb.getDoc(fb.doc(fb.db, "destaques", id)).catch(() => null);
+  if (!s?.exists()) { tirarCapa(); toast("Esse destaque não está disponível."); aoFechar?.(); return; }
+  const d = { id: s.id, ...s.data({ serverTimestamps: "estimate" }) };
+  const lista = await flashesDoDestaque(d);
+  if (!lista.length) { tirarCapa(); toast(d.uid === eu.uid ? "Esse destaque não tem mais flashes." : "Esse destaque não está disponível."); aoFechar?.(); return; }
+  abrirVisor(d.uid, { lista, destaque: d, aoFechar });
+  setTimeout(tirarCapa, 300);
+}
 async function abrirDestaque(d) {
   toast("Abrindo o destaque...");
   const lista = await flashesDoDestaque(d);
@@ -5147,10 +5157,10 @@ async function abrirDestaque(d) {
 }
 // Adicionar um flash a um destaque (ou criar um novo com ele).
 function adicionarAoDestaque(s, aoFechar) {
-  const corpo = abrirLista("Destacar no perfil");
+  const corpo = abrirLista("Destacar no Salão");
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
   const fila = el("div", "dq-fila"); const form = el("div", "dq-form"); form.hidden = true;
-  corpo.append(fila, form, el("p", "dq-nota", "Os destaques ficam no seu perfil, embaixo dos números, mesmo depois das 24 horas. Toque de novo para tirar."));
+  corpo.append(fila, form, el("p", "dq-nota", "Os destaques ficam no seu Salão (Social), mesmo depois das 24 horas. Toque de novo para tirar."));
   fila.appendChild(el("div", "lista-vazia", "Carregando..."));
   const mini = miniaturaFlash(s.tipo === "video" ? "" : s.midia);
   const pintar = async () => {
@@ -5276,6 +5286,12 @@ export async function novoDestaque() {
   salvar.addEventListener("click", ir); campo.addEventListener("keydown", (e) => { if (e.key === "Enter") ir(); });
 }
 // Editar: nome, capa (um dos flashes), tirar flashes, pôr mais do arquivo e apagar o destaque.
+// Editar um destaque pelo id (o Salão, social.html, manda para usuarios.html?acao=editarDestaque&id=ID).
+export async function editarDestaquePorId(id) {
+  const d = (await lerDestaques(eu.uid, true)).find((x) => x.id === id);
+  if (!d) { toast("Esse destaque não existe mais."); return; }
+  editarDestaque(d);
+}
 async function editarDestaque(d) {
   const corpo = abrirLista("Editar destaque");
   corpo.appendChild(el("div", "lista-vazia", "Carregando..."));

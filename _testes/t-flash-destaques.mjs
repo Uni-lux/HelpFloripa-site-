@@ -52,7 +52,10 @@ ok(dqs.length === 1 && dqs[0].nome === "Viagem" && dqs[0].ids.length === 2 && /^
 const marc = await Promise.all(velhos.map((id) => db.doc(`stories/${id}`).get().then((d) => d.data().destacado)));
 ok(marc.every(Boolean), "os flashes do destaque ficam marcados como destacados (visíveis depois das 24 h)");
 await p.waitForTimeout(600);
-ok(await p.locator("#meuPerfil .pf-dq", { hasText: "Viagem" }).count() === 1 && await p.locator("#meuPerfil .pf-dq", { hasText: "Viagem" }).locator("img").count() === 1, "perfil: o destaque 'Viagem' aparece com a capa");
+await p.goto(BASE + "usuarios.html"); await p.waitForSelector("#meuPerfil .pf-salao:not([hidden])", { timeout: 15000 }).catch(() => {}); await p.waitForTimeout(800);
+ok((await p.locator("#meuPerfil .pf-salao").textContent()).includes("1 destaque") && await p.locator("#meuPerfil .pf-salao .ps-fotos i.dq img").count() === 1, "perfil: cartão do Salão com o destaque e a capa");
+await p.goto(BASE + "social.html"); await p.waitForSelector("#dqf a", { timeout: 15000 }); await p.waitForTimeout(500);
+ok(await p.locator("#dqf a", { hasText: "Viagem" }).locator("img").count() === 1, "Salão: o destaque 'Viagem' aparece com a capa");
 await p.screenshot({ path: "saida/fd-perfil.png" });
 
 // ---------- 3) destacar pelo visor ----------
@@ -64,9 +67,9 @@ await p.screenshot({ path: "saida/fd-destacar.png" });
 await p.locator("#folhaLista.aberta [data-fechar]").first().click(); await p.waitForTimeout(400);
 
 // ---------- 4) editar (segurar) ----------
-await p.goto(BASE + "usuarios.html"); await p.waitForSelector("#meuPerfil .pf-dq", { hasText: "Viagem", timeout: 15000 }); await p.waitForTimeout(800);
-await p.locator("#meuPerfil .pf-dq", { hasText: "Viagem" }).scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
-const bv = await p.locator("#meuPerfil .pf-dq", { hasText: "Viagem" }).boundingBox();
+await p.goto(BASE + "social.html"); await p.waitForSelector("#dqf a", { timeout: 15000 }); await p.waitForTimeout(800);
+await p.locator("#dqf a", { hasText: "Viagem" }).scrollIntoViewIfNeeded(); await p.waitForTimeout(300);
+const bv = await p.locator("#dqf a", { hasText: "Viagem" }).boundingBox();
 await p.mouse.move(bv.x + bv.width / 2, bv.y + 20); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up();
 await p.waitForSelector(".dq-campo", { timeout: 8000 }); await p.waitForTimeout(600);
 ok(await p.locator(".dq-grade .dq-tile").count() === 3, "segurar o destaque abre a edição com os 3 flashes");
@@ -79,10 +82,11 @@ await db.doc(`stories/${noAr}/reacoes/${U.bruno}`).set({ curtiu: true, emoji: "�
 const B = await navegador({ mobile: true });
 const pb = await entrar(B.ctx, "bruno", `usuarios.html?perfil=${U.ana}`);
 pb.on("pageerror", (e) => erros.push("bruno: " + e.message));
-await pb.waitForSelector("#folhaPerfil .pf-dq", { timeout: 20000 }); await pb.waitForTimeout(800);
-ok(await pb.locator("#folhaPerfil .pf-dq.novo, #folhaPerfil .pf-dq.arquivo").count() === 0 && await pb.locator("#folhaPerfil .pf-dq", { hasText: "Viagens 2026" }).count() === 1, "visitante vê o destaque (sem Novo/Arquivo)");
+await pb.waitForSelector("#folhaPerfil .pf-salao:not([hidden])", { timeout: 20000 }).catch(() => {}); await pb.waitForTimeout(1500);
 ok(await pb.locator("#folhaPerfil .com-flash").count() >= 1, "visitante vê o anel do flash no ar");
-await pb.locator("#folhaPerfil .pf-dq", { hasText: "Viagens 2026" }).tap();
+await pb.goto(BASE + `social.html?uid=${U.ana}`); await pb.waitForSelector("#dqf a", { timeout: 20000 }); await pb.waitForTimeout(800);
+ok(await pb.locator("#dqf a.novo").count() === 0 && await pb.locator("#dqfArquivo[hidden]").count() === 1 && await pb.locator("#dqf a", { hasText: "Viagens 2026" }).count() === 1, "visitante vê o destaque no Salão (sem Novo/Arquivo)");
+await pb.locator("#dqf a", { hasText: "Viagens 2026" }).tap();
 await pb.waitForSelector(".story-visor", { timeout: 10000 }); await pb.waitForTimeout(800);
 ok((await pb.locator(".story-nome strong").textContent()) === "Viagens 2026" && await pb.locator(".story-barra").count() === 3, "visitante abre o destaque: nome no topo e os 3 flashes");
 await pb.screenshot({ path: "saida/fd-visitante.png" });
