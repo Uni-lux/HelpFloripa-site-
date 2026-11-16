@@ -2716,6 +2716,15 @@ chat da equipe).
   de rosa caindo (canvas), arabescos nos cantos, data em algarismos romanos (`#hudData`), nome em dourado e @ em Cormorant
   itálico, divisor com a rosinha. Fontes Cinzel + Cormorant Garamond pelo Google Fonts (Georgia de reserva). **O cartão Akai
   Ito, os filtros e os cartões dos grupos ficaram como estavam (ele aprovou: "não mexa").** Teste `t-duo-gaveta.mjs` (27).
+- **Social no modelo dele (16/11/2026, PR depois do #227, sem regra nova):** ele não gostou do gótico e mandou um HTML de
+  referência ("usa algo assim"). social.html refeito (NÃO voltar a gótico/radar/coração/sistema solar): cartão do perfil
+  `#hero` (foto 72 px arredondada, nome + selo, @ · cidade, bio, Configurar/Compartilhar ou Ver perfil, números Conexões ·
+  Seguidores · Seguindo — contagens reais por `getCountFromServer` em `relacoes`), cartão do duo Akai Ito (INTACTO, ele
+  aprovou), "Conexões em destaque" (fileira `#destaques`, duo primeiro, "Adicionar" no seu), filtros com contagem `#filtros` +
+  ordenar `#ordem` (Recentes | Nome A–Z | Ativos agora, online = `ultimoAcesso` < 10 min) e cartões `#rede .pessoa` (foto, nome
+  + selo, relação · cidade, bio ou "Conectados desde...", etiqueta do grupo, Ver perfil · Mensagem — `garantirConversa` +
+  `chat-gaveta.js`, ⋯ no canto só no seu social). Títulos em Manrope (Google Fonts), cores do tema do site (claro e escuro).
+  Saíram o mapa em órbita, as vagas por grupo e as fontes Cinzel/Cormorant. Testes `t-duo-gaveta.mjs` (31) e `t-perfil-social.mjs`.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

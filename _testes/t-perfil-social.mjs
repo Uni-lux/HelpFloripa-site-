@@ -54,11 +54,11 @@ for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "
     voltar: !!document.querySelector(".topo-app .icone-btn use[href='#i-voltar']"), sw: document.documentElement.scrollWidth, vw: innerWidth }));
   ok(t.app && !t.marca && t.tit.startsWith(tit) && t.voltar && t.sw <= t.vw, `${pg}: topo voltar · ${tit} (${t.tit})`);
   if (pg === "social.html") {
-    const ceu = await p.evaluate(() => ({ astros: document.querySelectorAll("#orbita .astro:not(.centro)").length, retratos: document.querySelectorAll("#grupos .retrato:not(.add)").length,
+    const ceu = await p.evaluate(() => ({ destaques: document.querySelectorAll("#destaques .dest:not(.novo)").length, cartoes: document.querySelectorAll("#rede .pessoa").length,
       filtros: document.querySelectorAll("#filtros button").length }));
-    ok(ceu.astros === 3 && ceu.retratos === 3 && ceu.filtros === 5, `Social: 3 conexões em órbita, 3 retratos e 5 filtros (${JSON.stringify(ceu)})`);
+    ok(ceu.destaques === 3 && ceu.cartoes === 3 && ceu.filtros === 5, `Social: 3 destaques, 3 cartões e 5 filtros (${JSON.stringify(ceu)})`);
     await p.locator('#filtros button[data-cat="familia"]').click(); await p.waitForTimeout(300);
-    ok(await p.locator("#orbita .astro.apagado").count() === 2 && await p.locator("#grupos .grupo").count() === 1 && await p.locator("#duo").isHidden(), "Social: filtro Família apaga os outros no céu e mostra só o grupo");
+    ok(await p.locator("#rede .pessoa").count() === 1 && await p.locator("#duo").isHidden(), "Social: filtro Família mostra só o grupo");
     await p.locator('#filtros button:not([data-cat])').click(); await p.waitForTimeout(300);
   }
   if (pg === "social.html") ok(await p.locator("#duo:not([hidden]) .akai-par").count() === 1, "Social: cartão do duo (Akai Ito)");
