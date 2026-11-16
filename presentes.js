@@ -5,12 +5,21 @@
 // Parâmetros: ?para=UID (enviar para alguém), ?id=PRESENTE (abrir), ?gorjeta=CORRIDA (gorjeta para quem levou),
 // ?negocio=ID (enviar um produto desse negócio), ?aba=enviados.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=165";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=166";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
 import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=2";
 import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=5";
 import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=2";
+const OCASIOES = {
+  aniversario: ["Aniversário", "Feliz aniversário! Que esse ano seja incrível."],
+  namoro: ["Nosso dia", "Mais um dia do nosso fio. Obrigado por estar comigo."],
+  amizade: ["Amizade", "Pela nossa amizade, que já virou família."],
+  obrigado: ["Obrigado", "Obrigado por tudo. Você fez a diferença."],
+  parabens: ["Parabéns", "Parabéns pela conquista! Você merece."],
+  melhoras: ["Melhoras", "Melhoras! Estou torcendo por você."],
+  porque: ["Só porque sim", "Lembrei de você e quis mandar um carinho."]
+};
 const NOMES_TIPO_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 
 const params = new URLSearchParams(location.search);
@@ -28,7 +37,8 @@ const corpo = () => $("prCorpo");
   document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => { aba = b.dataset.aba; pintar(); }));
   ouvir();
   pintarQuemPode();
-  if (params.get("gorjeta")) abrirGorjeta(params.get("gorjeta"));
+  if (params.get("aba") === "enviar") abrirEnviar({});
+  else if (params.get("gorjeta")) abrirGorjeta(params.get("gorjeta"));
   else if (params.get("para") || params.get("negocio")) abrirEnviar({ para: params.get("para") || "", negocio: params.get("negocio") || "", tipo: params.get("tipo") === "vale" ? "vale" : "" });
   if (params.get("id")) abrirPresente(params.get("id"));
 })();
@@ -320,7 +330,17 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
   const area = h("textarea"); area.maxLength = 300; area.placeholder = "Escreva um recado (opcional)"; area.id = "prMensagem";
   area.addEventListener("input", () => (S.mensagem = area.value));
   const lm = h("label", "ent-campo"); lm.append(h("span", null, "Mensagem"), area);
-  passoMsg.append(h("h3", null, "Recado"), lm);
+  // Ocasião (17/11/2026): escolhe o motivo e o recado vem sugerido (a pessoa pode mudar). Vai só no texto, sem campo novo.
+  const ocs = h("div", "ent-chips pr-ocasioes"); ocs.setAttribute("role", "group"); ocs.setAttribute("aria-label", "Ocasião");
+  const marcarOc = (k) => ocs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ocasiao === k)));
+  Object.entries(OCASIOES).forEach(([k, [nome, recado]]) => {
+    const b = h("button", "ent-chip", nome); b.type = "button"; b.dataset.ocasiao = k; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => { const sug = Object.values(OCASIOES).map((o) => o[1]); if (!area.value.trim() || sug.includes(area.value.trim())) { area.value = recado; S.mensagem = recado; } marcarOc(k); });
+    ocs.appendChild(b);
+  });
+  passoMsg.append(h("h3", null, "Ocasião"), ocs, h("h3", null, "Recado"), lm);
+  const oc = params.get("ocasiao");
+  if (OCASIOES[oc] && !corridaId) { area.value = OCASIOES[oc][1]; S.mensagem = area.value; marcarOc(oc); if (!S.tipo) S.tipo = "mimo"; }
 
   async function mandar() {
     if (enviar.disabled) return;

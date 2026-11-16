@@ -120,7 +120,7 @@ ok((await pf.textContent("#muAlertas .pets b")) !== "0", "Mural: faixa com pets 
 // Chat: Anexar tem SOS
 await pa.goto(BASE + `mensagens.html?conversa=${U.conv}`); await pa.waitForTimeout(3000);
 await pa.click("#btnAnexar"); await pa.waitForTimeout(800);
-ok(/SOS/.test(await pa.textContent(".ax-grade")), "Anexar do chat tem SOS");
+ok(/Help/.test(await pa.textContent(".ax-grade")), "Anexar do chat tem o Help");
 
 await A.browser.close(); await B.browser.close(); await F.browser.close();
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTudo certo");

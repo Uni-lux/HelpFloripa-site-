@@ -32,6 +32,8 @@ p.on("pageerror", (e) => erros.push(e.message));
 // 1) cartão do duo no perfil
 await p.waitForSelector("#meuPerfil .pf-rosa", { timeout: 25000 }); await p.waitForTimeout(1200);
 await p.locator("#meuPerfil .pf-rosa").tap();
+await p.waitForSelector(".dp.aberta", { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(400);
+await p.locator(".dp-acoes button:last-child").tap(); // a prévia (17/11/2026) leva ao cartão completo
 await p.waitForSelector(".dc-fundo.aberta", { timeout: 8000 }).catch(() => {});
 const dc = p.locator(".dc-fundo .dc");
 ok(await dc.count() === 1, "rosinha abre o cartão do duo");

@@ -35,7 +35,7 @@ ok(!(await p.locator("text=Conectados pelo fio vermelho").count()), "sem a frase
 ok(await p.locator("#duo .ak-tx small").count() === 1, "linha do duo com uma frase");
 ok(await p.locator("#rede .pessoa .pet-bol").count() >= 1 && await p.locator("#hsAvw .pet-bol").count() === 1, "pets ao lado das pessoas (Thor do Bruno na lista, Mia da Ana no topo)");
 ok(await p.locator("#hsAvw .pet-bol").count() === 1, "seu pet (mesmo fora das buscas) ao lado da sua foto");
-ok(await p.locator("#cuidado .cd").count() === 3, "Cuidado e proteção: SOS, Pets e Presentes");
+ok(await p.locator("#cuidado .hlp").count() === 1 && await p.locator("#cuidado .cd2").count() === 2, "Cuidado e proteção: Help, Pets e Presentes");
 await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
 ok(await p.locator(`#rede .pessoa[data-id="${pf.join("_")}"] .aceitar`).count() === 1, "pedido recebido com Aceitar no cartão (aba Conexões)");
 await p.locator("#abaSalao").click(); await p.waitForTimeout(300);
@@ -43,17 +43,21 @@ await p.locator("#abaSalao").click(); await p.waitForTimeout(300);
 // Configurar abre a gaveta (não rola a página)
 const y0 = await p.evaluate(() => scrollY);
 await p.locator("#btnConfig").click(); await p.waitForTimeout(600);
-ok(await p.locator(".folha.aberta #dmGrade .dm-op").count() === 4 && await p.locator(".folha.aberta #visibilidade .op").count() === 4, "Configurar abre a gaveta com privacidade e os 4 modelos do duo");
-ok(await p.locator(".folha.aberta #cfgPresentes .op").count() === 4 && await p.locator(".folha.aberta #cfgSos").count() === 1, "gaveta com presentes e SOS");
+ok(await p.locator(".folha.aberta .cfg-row").count() >= 6 && await p.locator(".folha.aberta #cfgPrivacidade").count() === 1, "Configurar abre a lista de ajustes");
+ok(await p.locator(".folha.aberta #cfgPresentes").count() === 1 && await p.locator(".folha.aberta #cfgSos").count() === 1 && await p.locator(".folha.aberta #cfgPets").count() === 1, "lista com presentes, Help e pets");
 ok(await p.evaluate(() => scrollY) === y0, "a página não rolou");
 await p.locator(".folha.aberta").screenshot({ path: "saida/social-config.png" });
-await p.locator(".folha.aberta #visibilidade .op[data-v=amigos]").click(); await p.waitForTimeout(1200);
+await p.locator("#cfgPrivacidade").click(); await p.waitForTimeout(400);
+await p.locator(".folha-fundo.empilhada .cfg-op[data-v=amigos]").click(); await p.waitForTimeout(1200);
 const vis = (await db.doc(`perfis_publicos/${ids.ana}`).get()).data().socialVisibilidade;
-ok(vis === "amigos", "privacidade salva (" + vis + ")");
-await p.locator(".folha.aberta #visibilidade .op[data-v=todos]").click(); await p.waitForTimeout(800);
-await p.locator(".folha.aberta #dmGrade .dm-op[data-estilo=bolinha]").click(); await p.waitForTimeout(1200);
-ok(await p.locator(".folha.aberta #dmGrade .dm-op.on[data-estilo=bolinha]").count() === 1, "modelo do duo muda na gaveta");
-await p.locator(".folha.aberta #dmGrade .dm-op[data-estilo=gaveta]").click(); await p.waitForTimeout(800);
+ok(vis === "amigos" && (await p.locator("#cfgPrivacidade .cfg-val").textContent()) === "Amigos", "privacidade salva (" + vis + ") e mostrada na linha");
+await p.locator("#cfgPrivacidade").click(); await p.waitForTimeout(400);
+await p.locator(".folha-fundo.empilhada .cfg-op[data-v=todos]").click(); await p.waitForTimeout(800);
+await p.locator("#duoModos").click(); await p.waitForSelector("#dmGrade .dm-op");
+await p.locator("#dmGrade .dm-op[data-estilo=bolinha]").click(); await p.waitForTimeout(1200);
+ok(await p.locator("#dmGrade .dm-op.on[data-estilo=bolinha]").count() === 1, "modelo do duo muda na folha");
+await p.locator("#dmGrade .dm-op[data-estilo=gaveta]").click(); await p.waitForTimeout(800);
+await p.locator(".folha-fundo.empilhada [data-fechar]").click(); await p.waitForTimeout(300);
 await p.goBack(); await p.waitForTimeout(600);
 ok(await p.locator(".folha.aberta").count() === 0, "voltar do celular fecha a gaveta");
 

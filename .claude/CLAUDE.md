@@ -2776,6 +2776,27 @@ chat da equipe).
   (mensagens-app.js): a fileira "Online agora" saiu; lista única com online primeiro (bolinha verde, "N online"), depois por último
   acesso com "visto há X" (`vistoHa`), sem repetir pessoa. Teste `t-duo-salao.mjs` (fotos JPEG de verdade via PIL);
   `t-salao`, `t-social-completo`, `t-perfil-social`, `t-duo-gaveta`, `t-perfil` atualizados.
+- **Gavetinha do duo, Social sem cores, Configurações em lista, pet no Social, Help e presentes (17/11/2026, PR depois do
+  #231, sem regra nova):** prints dele. **Rosinha (modo `gaveta`, agora chamado "Prévia")** abre `abrirPreviaDuo` (duo-cartao.js):
+  gavetinha `.dp` ao lado da foto, por cima da capa e dos números (foto com anel rosa, nome + selo, @ · cidade, "N dias de
+  fio", grade 2×2 Desde/Momentos/Conexões/Seguidores, Ver perfil + seta para o cartão completo `abrirCartaoDuo`). Fundo
+  transparente `.dc-fundo.dp-fundo` que ENGOLE o toque de fora (bug dele: o 2º toque caía na cidade/Mensagens/foto), ignora
+  350 ms depois de abrir, fecha ao rolar; a rosinha para `pointerdown/touchstart` (não vale como segurar a foto).
+  **Configurações do Social** = lista de ajustes (`.cfg-grupo/.cfg-row` com o valor à direita): Privacidade, Duo (Rosinha no
+  perfil → folha própria com os 4 modelos, `abrirModosDuo`), Presentes, Proteção (Rede de Help, Seus pets, Alertas);
+  `escolherOpcao` abre as opções curtas por cima. **Social sem cores sobrando:** anéis, etiquetas, filtros e ícones neutros
+  (rosa só no duo); "Cuidado" = cartão **Help** (Pedir ajuda vermelho + Rede; segurar 1,2 s = Help rápido) + Pets + Presentes.
+  **Pets:** `pet-cadastro.js` (`abrirCadastroPet`, `.pc-*`): foto, nome, idade (campo `idade` já existia na regra), espécie,
+  sexo/porte, raça com sugestões, cores com amostra, sinais, microchip, aparecer nas buscas → mesmo `pets/{id}`; Social →
+  Pets = lista com RG + cadastrar/editar ali. **Help (antigo SOS; coleção continua `sos`):** `help-rede.js` (sem deps):
+  `usuarios.help` {social [uids]|null, contatos [{nome,tel}] ≤5, whats, sms, ligar ""|190|192|193|c0, perto, equipe, rapido,
+  tipoRapido, msg ≤200}, `abrirConfigHelp` (folha `.hp-fundo`, nas CAMADAS do voltar.js e deslizar-flash.js),
+  `blocoAvisarFora` (1 toque por contato: wa.me / sms: com o mapa + tel:), `textoHelp`, `textoTudoBem`. alertas.js:
+  `enviarHelp` (id gerado antes + confere se chegou: o SDK repete e dá ALREADY_EXISTS quando a conexão cai), `helpRapido`
+  (`?sos=rapido`, 5 s para cancelar, lê o GPS na contagem), `?sos=rede`, depois de enviar o dono vê o bloco de contatos de
+  fora; resolvido = "Avisar que está tudo bem". Textos SOS → Help (página, menu, Mensagens, Mural, Configurações, Ajuda).
+  **Presentes:** `abrirPresentes` no Social (Datas para lembrar = aniversário de quando se conheceram e marcos de dias, Esperando
+  você, Enviar para), presentes.js com Ocasião (`OCASIOES`, `?ocasiao=`) e `?aba=enviar`. Teste `t-help-pets.mjs` (28).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

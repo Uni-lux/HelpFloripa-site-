@@ -16,8 +16,8 @@ import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerP
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps } from "./local-escolhido.js?v=3";
 import { lerPorLocal } from "./por-local.js?v=2";
 import { completarGuardados, lerComGuardado, motivoTexto } from "./guardar.js?v=1";
-import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=18";
-import { prepararConversa } from "./vitrine.js?v=100";
+import { montarBarra, pintarAvatarBarra } from "./barra-rede.js?v=19";
+import { prepararConversa } from "./vitrine.js?v=101";
 
 export const CATEGORIAS_COM = {
   doacao: { nome: "Doação", plural: "Doações", cor: "#e5487f", ic: "presente", acao: "Quero receber", dica: "Dê de graça o que você não usa mais" },

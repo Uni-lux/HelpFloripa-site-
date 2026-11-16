@@ -79,3 +79,27 @@
 .al-seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
 .al-check-eq { margin-top: 6px; }
 .al-btn-escalar { margin-top: 8px; justify-self: start; min-height: 38px; font-size: 13px; }
+
+/* ---------- Help (17/11/2026, antigo SOS): segurar = Help rápido, contatos de fora do app ---------- */
+.al-sos-bt { position: relative; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.al-sos-bt b { font-size: 22px; letter-spacing: .08em; }
+.al-sos-bt small { font-size: 10px; }
+.al-sos-bt::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: conic-gradient(#fff var(--p, 0%), transparent 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); opacity: 0; }
+.al-sos-bt.segurando { animation: none; transform: scale(.96); }
+.al-sos-bt.segurando::after { opacity: 1; animation: al-encher 1.2s linear forwards; }
+@property --p { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@keyframes al-encher { to { --p: 100%; } }
+.al-fora { display: flex; align-items: center; gap: 12px; margin: 14px 0; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); }
+.al-fora > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.al-fora b { font-size: 14px; }
+.al-fora small { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.al-fora-bt { flex: none; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.al-rapido { position: fixed; inset: 0; z-index: 6000; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; color: #fff; background: radial-gradient(120% 80% at 50% 30%, #6b0d12, #1a0204 70%); }
+.al-rapido-anel { width: 168px; height: 168px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 10px; border: 3px solid rgba(255, 255, 255, .25); box-shadow: 0 0 0 10px rgba(229, 72, 77, .25), 0 0 60px rgba(229, 72, 77, .6); animation: al-pulso 1s ease-in-out infinite; }
+.al-rapido-n { font-size: 72px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.al-rapido strong { font-size: 24px; }
+.al-rapido small { font-size: 14px; color: rgba(255, 220, 222, .8); }
+.al-rapido-agora, .al-rapido-cancelar { width: min(320px, 80vw); height: 52px; border-radius: 16px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+.al-rapido-agora { margin-top: 14px; border: 0; background: #fff; color: #b3161c; }
+.al-rapido-cancelar { border: 1.5px solid rgba(255, 255, 255, .5); background: transparent; color: #fff; }
+.hp-fora { margin: 14px 0; }
