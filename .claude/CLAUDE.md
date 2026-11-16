@@ -2798,11 +2798,12 @@ chat da equipe).
   **Presentes:** `abrirPresentes` no Social (Datas para lembrar = aniversário de quando se conheceram e marcos de dias, Esperando
   você, Enviar para), presentes.js com Ocasião (`OCASIOES`, `?ocasiao=`) e `?aba=enviar`. Teste `t-help-pets.mjs` (28).
 - **Marca do site com a ponte + rede social "The Diare" + "Meu diário" (16/11/2026, PR depois do #232, sem regra nova):**
-  pedido dele. Site (marketplace): `.marca` = ponte (as 2 máscaras `logo-ponte-estrutura/ondas.webp` em `.marca::before/::after`,
-  grade de 2 colunas) + HELP FLORIPA + slogan, nas 28 páginas com `.marca` (bloco "Marca com a ponte" no fim do categoria.css e do
-  rede.css; ≤400 px menor, nome numa linha só). **A rede social se chama The Diare**: topo do Diário (`#marcaTopo`) = nome em letra
-  cursiva como o do Instagram (Grand Hotel, SIL OFL, `fonte-diare.woff2` + `fonte-diare-OFL.txt`, `.marca-diare`; @font-face também no
-  rede.html para a cópia do topo); título do feed.html e do rede.html "The Diare". **Social/Salão virou "Meu diário"** (pedido dele):
+  pedido dele. Site (marketplace): `.marca` = HELP FLORIPA numa linha e, EMBAIXO, "casada" com o nome, a ponte (as 2 máscaras
+  `logo-ponte-estrutura/ondas.webp` em `.marca::before/::after`) entre os 2 filetes ciano, no lugar da frase (o texto do `<small>`
+  fica com font-size 0; a frase segue no aria-label), nas 28 páginas com `.marca` (bloco "Marca com a ponte" no fim do
+  categoria.css e do rede.css; ≤360 px menor). **A rede social se chama The Diare** (nome da rede: título do rede.html); o feed continua
+  **Diário** (corrigido por ele): topo do Diário (`#marcaTopo`) = "Diário" em letra cursiva como o do Instagram (Grand Hotel, SIL OFL, `fonte-diare.woff2` + `fonte-diare-OFL.txt`, `.marca-diare`; @font-face também no
+  rede.html para a cópia do topo); título do feed.html "Diário | The Diare" e do rede.html "The Diare". **Social/Salão virou "Meu diário"** (pedido dele):
   título da página social.html, aba Salão → "Diário", textos "salão" → "diário", cartão do perfil "Meu diário"/"Diário de X", botão
   "Diário" no perfil de quem visita, menu/Configurações/rodapé/404. Nomes internos (social.html, `momentos`, `salao-base.js`, classes
   `pf-salao`) não mudaram. "Social" nos textos do Help/SOS ("pessoas do seu Social"), presentes e notificações ficou — perguntado a ele.
