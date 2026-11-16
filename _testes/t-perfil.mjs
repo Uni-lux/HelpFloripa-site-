@@ -40,8 +40,8 @@ await pa.locator(".abas-perfil button[data-aba=posts]").tap(); await pa.waitForT
 ok(await pa.locator("#gradePosts .tile .mm-enq").count() >= 1, "aba Publicações: a enquete aparece na grade (cartão de enquete)");
 await pa.screenshot({ path: "saida/perfil-textos-enquete.png" });
 // Rosinha clicável abre o perfil do duo
-await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForSelector(".dc-fundo.aberta", { timeout: 8000 }).catch(() => {}); await pa.waitForTimeout(600);
-ok(await pa.locator(".dc-fundo .dc").count() === 1 && (await pa.locator(".dc-quem .nm").textContent()).includes("Bruno"), "tocar na rosinha: abre o cartão do duo");
+await pa.locator("#meuPerfil .pf-rosa").tap(); await pa.waitForSelector(".dp.aberta", { timeout: 8000 }).catch(() => {}); await pa.waitForTimeout(600);
+ok(await pa.locator(".dp-fundo .dp").count() === 1 && (await pa.locator(".dp-nome").textContent()).includes("Bruno"), "tocar na rosinha: abre a prévia do duo");
 await pa.screenshot({ path: "saida/rosinha-bolha.png" });
 await pa.locator(".dc-acoes .pri").tap();
 await pa.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});

@@ -1,5 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
-import { ligarPuxar } from "./puxar-atualizar.js?v=6";
+import { ligarPuxar } from "./puxar-atualizar.js?v=7";
 import {
   $, ms, paraData, LIMITE_DOC, el, icone, iniciais, urlSegura, pintarAvatar, pintarCapa, nomeCidade, numero, tempoRelativo, dataCompleta,
   toast, erroAmigavel, notificar, abrirFolha, fecharFolha, pilha, abrirOpcoes, abrirLista, confirmarHF,
@@ -8,20 +8,20 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=165";
+} from "./rede.js?v=166";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { avaliarNegocio, avaliarCliente, lerResumo, estrelas, pintarEstrelas } from "./avaliacoes.js?v=20";
 import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, montarEditorLinks, TIPOS_LINK } from "./links-perfil.js?v=4";
-import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
+import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=101";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, editarDestaquePorId } from "./stories.js?v=137";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=122";
+import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, editarDestaquePorId } from "./stories.js?v=138";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=123";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=3";
-import { lerModoDuo } from "./duo-modo.js?v=2";
+import { lerModoDuo } from "./duo-modo.js?v=3";
 import { salaoNoPerfil } from "./salao-base.js?v=2";
 
 // ======================================================
@@ -238,7 +238,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=129").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=130").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -698,7 +698,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=132").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=133").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -807,7 +807,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=132").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=133").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1540,6 +1540,9 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
   btn.type = "button";
   btn.className = "pf-rosa";
   btn.appendChild(icone("rosa", "i"));
+  // o dedo na rosinha não vale como toque/segurar na foto (17/11/2026: "a bolinha às vezes leva a outros lugares")
+  ["pointerdown", "touchstart"].forEach((t) => btn.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
+  btn.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); });
   linha.appendChild(btn);
   linha.classList.add("com-rosa");
   const papel = duo.tipo === "duo" ? "Duo" : rotuloTipo(duo.tipo);
@@ -1562,17 +1565,27 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
     // (duo-cartao.js) com os dois, o fio, desde quando, a frase, quem é, as fotos, os números e as ações.
     btn.setAttribute("aria-haspopup", "dialog");
     obterPerfil(duo.outro).then((o) => btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`));
+    // 17/11/2026 (pedido dele, com o desenho): a rosinha abre a GAVETINHA (prévia compacta ao lado da foto); o cartão
+    // grande fica no botão de dentro dela. A gavetinha abre na hora (sem esperar o import) e engole o toque de fora.
+    let abrindo = false;
     btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); e.preventDefault();
+      if (abrindo || document.querySelector(".dp-fundo")) return;
+      abrindo = true;
       btn.classList.add("ativa"); btn.setAttribute("aria-expanded", "true"); navigator.vibrate?.(6);
-      const [{ abrirCartaoDuo }, perfil] = await Promise.all([import("./duo-cartao.js?v=1"), obterPerfil(duo.outro).catch(() => null)]);
-      abrirCartaoDuo({
-        fb, eu: eu.uid, dono: { uid, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
-        vinculo: { ...duo, papel }, perfil, podeAbrir: podeAbrir || proprio, fotosDoPost, toast,
-        retrato: duo.retrato ? fb.getDoc(fb.doc(fb.db, "vinculos_retrato", duo.id)).then((r) => (r.exists() ? r.data().foto : "")).catch(() => "") : null,
-        abrirPerfil: (u) => abrirPerfilPublico(u), abrirPost: (id) => abrirPostPorLink(id),
-        aoFechar: () => { btn.classList.remove("ativa"); btn.setAttribute("aria-expanded", "false"); }
-      });
+      try {
+        const [{ abrirPreviaDuo }, perfil] = await Promise.all([import("./duo-cartao.js?v=2"), obterPerfil(duo.outro).catch(() => null)]);
+        const fimCartao = () => { btn.classList.remove("ativa"); btn.setAttribute("aria-expanded", "false"); };
+        abrirPreviaDuo({
+          fb, eu: eu.uid, dono: { uid, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
+          vinculo: { ...duo, papel }, perfil, podeAbrir: podeAbrir || proprio, fotosDoPost, toast,
+          ancora: btn, caixa: cab.raiz.querySelector(".pf2") || cab.raiz,
+          retrato: duo.retrato ? fb.getDoc(fb.doc(fb.db, "vinculos_retrato", duo.id)).then((r) => (r.exists() ? r.data().foto : "")).catch(() => "") : null,
+          abrirPerfil: (u) => abrirPerfilPublico(u), abrirPost: (id) => abrirPostPorLink(id),
+          aoFechar: fimCartao, aoFecharCartao: fimCartao
+        });
+      } catch { btn.classList.remove("ativa"); toast("Não foi possível abrir agora."); }
+      finally { setTimeout(() => { abrindo = false; }, 300); }
     });
     return;
   } else {

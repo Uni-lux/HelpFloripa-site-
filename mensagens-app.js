@@ -7,8 +7,8 @@ import "./sem-menu-imagem.js?v=6";
 import "./fotos-suaves.js?v=1";
 import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
-import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=12";
-import { ligarPuxar } from "./puxar-atualizar.js?v=6";
+import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=13";
+import { ligarPuxar } from "./puxar-atualizar.js?v=7";
 import { ligarQuadro, casca } from "./quadro-rede.js?v=3";
 import { textoDoFlash, guardarParaAbrir } from "./flash-direto.js?v=1";
 ligarQuadro(); // dentro da rede (rede.html): os itens da barra trocam de aba sem recarregar
@@ -769,7 +769,7 @@ function resumoMensagem(m) {
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local") return "📍 Localização";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "endereco") return "🏠 Endereço";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "chamada") return (m.cartao.modo === "video" ? "🎥 " : "📞 ") + textoChamada(m.cartao, m.remetenteId === eu?.uid);
-  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "sos") return `SOS: ${(TIPOS_SOS[m.cartao.sosTipo] || TIPOS_SOS.outro)[0]}`;
+  if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "sos") return `Help: ${(TIPOS_SOS[m.cartao.sosTipo] || TIPOS_SOS.outro)[0]}`;
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "pet") return `Pet: ${String(m.cartao.nome || "").slice(0, 40)}`;
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "local_vivo") return "📍 Localização em tempo real";
   if (m.tipoArquivo === "cartao" && m.cartao?.tipo === "presente") return `Presente: ${String(m.cartao.resumo || "").slice(0, 60)}`;
@@ -796,7 +796,7 @@ const PREVIAS = [
 ];
 const PREVIAS_TIPO = [
   [/^Foto$/, "imagem"], [/^Figurinha$/, "figurinha"], [/^Vídeo$/, "videochamada"], [/^Mensagem de voz/, "mic"], [/^Arquivo$/, "clipe"],
-  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Presente:/, "presente"], [/^SOS:/, "alerta"], [/^Pet:/, "estrela"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
+  [/^Pix\b/, "pix"], [/^Entrega:/, "pacote"], [/^Presente:/, "presente"], [/^(SOS|Help):/, "alerta"], [/^Pet:/, "estrela"], [/^Corrida:/, "carro"], [/^Pedido de avaliação$/, "estrela"], [/^Pedido\b/, "pedido"], [/^(Orçamento|Agendamento):/, "nota"],
   [/^Publicação:/, "imagem"], [/^Interesse:/, "loja"], [/^Mensagem apagada$/, "bloquear"]
 ];
 function previaLista(texto) {
@@ -2958,7 +2958,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=100"));
+  return (vitrineMod ||= import("./vitrine.js?v=101"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -3389,7 +3389,7 @@ async function abrirAnexar() {
   const outro = ativa.equipe ? "" : ativa.outroId || "";
   op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
   op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
-  op("alerta", "SOS", "#e5484d", () => irParaTopo("alertas.html?sos=novo"), "Pedir ajuda");
+  op("alerta", "Help", "#e5484d", () => irParaTopo("alertas.html?sos=novo"), "Pedir ajuda");
   if (outro) op("presente", "Presente", "#e5487f", () => irParaTopo(`presentes.html?para=${encodeURIComponent(outro)}`), `Para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}`);
   corpo.appendChild(grade);
   // A pessoa é entregador/motorista no Help Floripa: chamar direto.
@@ -3804,7 +3804,7 @@ function cartaoSos(c, minha) {
   const id = /^[A-Za-z0-9]{10,40}$/.test(String(c.id || "")) ? c.id : "";
   const t = TIPOS_SOS[c.sosTipo] || TIPOS_SOS.outro;
   const cab = elm("div", "sos-c-cab");
-  cab.append(elm("span", "sos-c-ic", "SOS"), elm("div"));
+  cab.append(elm("span", "sos-c-ic", "HELP"), elm("div"));
   const quem = c.acao === "ajudando" ? (minha ? "Você avisou que está indo ajudar" : `${String(c.nome || "Alguém").split(" ")[0]}: estou indo ajudar`) : minha ? "Você pediu ajuda" : `${String(c.nome || "Alguém").split(" ")[0]} pediu ajuda`;
   cab.lastChild.append(elm("small", null, quem), elm("b", null, t[0]));
   { const [icn, cor] = iconeSos(c.sosTipo); cab.lastChild.querySelector("b").prepend(iconeEl(icn, { cor, tam: 16 }), " "); }

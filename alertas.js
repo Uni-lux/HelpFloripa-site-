@@ -5,7 +5,7 @@
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=165";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=166";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {
@@ -15,6 +15,7 @@ import {
 } from "./alertas-base.js?v=1";
 import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=5";
 import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=2";
+import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=1";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).
@@ -30,7 +31,15 @@ const km = (x) => (x == null ? "" : x < 1 ? `${Math.round(x * 1000)} m` : `${x.t
 // Os telefones de emergência e o botão SOS respondem na hora (antes de a conta terminar de carregar).
 let avisarPronto; const pronto = new Promise((r) => (avisarPronto = r));
 pintarEmergencias($("alEmerg"));
-$("alSos").addEventListener("click", async () => { const b = $("alSos"); b.classList.add("carregando"); await pronto; b.classList.remove("carregando"); pedirSos(); });
+// Help (17/11/2026, antigo SOS): tocar = escolher o que está acontecendo; SEGURAR 1,2 s = Help rápido (rede pronta, 5 s para cancelar).
+(() => {
+  const b = $("alSos"); let t = null, segurou = false;
+  const parar = () => { clearTimeout(t); t = null; b.classList.remove("segurando"); };
+  b.addEventListener("pointerdown", () => { segurou = false; b.classList.add("segurando"); t = setTimeout(async () => { t = null; segurou = true; b.classList.remove("segurando"); navigator.vibrate?.([30, 40, 30]); await pronto; if (lerHelp(dados).rapido) helpRapido(); else { toast("O Help rápido está desligado na sua Rede de Help."); pedirSos(); } }, 1200); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((k) => b.addEventListener(k, () => { if (t) parar(); }));
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  b.addEventListener("click", async () => { if (segurou) { segurou = false; return; } b.classList.add("carregando"); await pronto; b.classList.remove("carregando"); pedirSos(); });
+})();
 $("alConfig").addEventListener("click", async () => { await pronto; abrirConfig(); });
 document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", async () => { aba = b.dataset.aba; history.replaceState(history.state, "", `alertas.html?aba=${aba}`); document.querySelectorAll("[data-aba]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); await pronto; pintarAba(); }));
 (async () => {
@@ -44,7 +53,7 @@ document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click
   pintarAba();
   if (location.hash === "#config") abrirConfig();
   const sos = params.get("sos");
-  if (sos === "novo") pedirSos(); else if (sos) abrirSos(sos);
+  if (sos === "novo") pedirSos(); else if (sos === "rapido") helpRapido(); else if (sos === "rede") abrirRede(); else if (sos) abrirSos(sos);
   if (params.get("pet")) abrirRg(params.get("pet"));
   if (params.get("achado")) abrirAchado(params.get("achado"));
   if (params.get("ocorrencia")) abrirOcorrencia(params.get("ocorrencia"));
@@ -107,11 +116,12 @@ function linhaSos(s) {
   return b;
 }
 async function pedirSos() {
-  const { corpo: c, fechar } = abrirTela("Pedir ajuda (SOS)");
+  const H = lerHelp(dados);
+  const { corpo: c, fechar } = abrirTela("Pedir Help");
   const aviso = h("div", "al-urgente");
   aviso.append(h("b", null, "Em perigo ou emergência? Ligue agora:"));
   const tels = h("div", "al-tels"); pintarEmergencias(tels); aviso.appendChild(tels);
-  aviso.appendChild(h("small", null, "O SOS avisa o seu Social e quem está perto, mas não chama a polícia, o SAMU nem os bombeiros."));
+  aviso.appendChild(h("small", null, "O Help avisa a sua rede e quem está perto, mas não chama a polícia, o SAMU nem os bombeiros."));
   c.appendChild(aviso);
   let tipo = "";
   c.appendChild(h("h3", null, "O que está acontecendo"));
@@ -128,7 +138,7 @@ async function pedirSos() {
   const la = h("label", "ent-campo"); la.append(h("span", null, "Detalhes"), area); c.appendChild(la);
   // Quem é avisado, em etapas: Social na hora → quem está perto + equipe de segurança se ninguém do Social aceitar.
   c.appendChild(h("h3", null, "Quem é avisado"));
-  let avisados = [], perto = "depois", equipe = true, escolheu = false, carregouSocial = false;
+  let avisados = [], perto = H.perto, equipe = H.equipe, escolheu = false, carregouSocial = false;
   const etapas = h("ol", "al-etapas");
   const et1 = h("li", "al-et"), et2 = h("li", "al-et"), et3 = h("li", "al-et");
   et1.append(iconeEl("pessoas", { cor: "#2fbf71", tam: 18, fundo: true }), h("div"));
@@ -140,14 +150,14 @@ async function pedirSos() {
   opPerto.forEach(([k, nome]) => { const b = h("button", null, nome); b.type = "button"; b.dataset.perto = k; b.addEventListener("click", () => { perto = k; escolheu = true; pintarEtapas(); }); seg.appendChild(b); });
   et2.lastChild.appendChild(seg);
   et3.append(iconeEl("equipe", { cor: "#00adee", tam: 18, fundo: true }), h("div"));
-  const le = h("label", "ent-check al-check-eq"); const ce = h("input"); ce.type = "checkbox"; ce.checked = true; ce.id = "alSosEquipe";
+  const le = h("label", "ent-check al-check-eq"); const ce = h("input"); ce.type = "checkbox"; ce.checked = H.equipe; ce.id = "alSosEquipe";
   ce.addEventListener("change", () => { equipe = ce.checked; pintarEtapas(); });
   le.append(ce, h("span", null, "Avisar a equipe de segurança do Help Floripa como URGENTE"));
   et3.lastChild.append(h("b", null, "3. Equipe do Help Floripa"), h("small", null, ""), le);
   etapas.append(et1, et2, et3); c.appendChild(etapas);
   const pintarEtapas = () => {
     const temSocial = avisados.length > 0;
-    if (!escolheu) perto = temSocial || !carregouSocial ? "depois" : "agora";
+    if (!escolheu) perto = temSocial || !carregouSocial ? H.perto : H.perto === "nao" ? "nao" : "agora";
     if (!temSocial && carregouSocial && perto === "depois") perto = "agora";
     seg.querySelector('[data-perto="depois"]').hidden = carregouSocial && !temSocial;
     seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.perto === perto)));
@@ -162,41 +172,116 @@ async function pedirSos() {
   (async () => {
     try {
       const s = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.where("status", "==", "aceito"), fb.limit(30)));
-      avisados = [...new Set(s.docs.map((d) => (d.data().participantes || []).find((u) => u !== eu.uid)).filter(Boolean))].slice(0, 30);
+      avisados = avisadosDe(H, [...new Set(s.docs.map((d) => (d.data().participantes || []).find((u) => u !== eu.uid)).filter(Boolean))]);
     } catch { avisados = []; }
     carregouSocial = true; pintarEtapas();
   })();
+  // Fora do app (Rede de Help): contatos que recebem por WhatsApp/SMS depois de enviar.
+  const fora = h("div", "al-fora");
+  const pintarFora = () => {
+    const n = H.contatos.length, lig = numeroLigar(H);
+    fora.replaceChildren(iconeEl("pessoas", { cor: "#8b9aa5", tam: 18, fundo: true }), h("div"));
+    fora.lastChild.append(h("b", null, n ? `${n} ${n === 1 ? "contato" : "contatos"} fora do app` : "Ninguém de fora do app"),
+      h("small", null, n ? `Depois de enviar, 1 toque manda ${[H.whats && "WhatsApp", H.sms && "SMS"].filter(Boolean).join(" e ") || "a mensagem"} com o seu mapa${lig ? ` e liga para ${lig}` : ""}.` : "Mãe, vizinho, colega: adicione até 5 na sua Rede de Help."));
+    const b = h("button", "al-fora-bt", n ? "Rede" : "Adicionar"); b.type = "button"; b.addEventListener("click", () => abrirRede(() => { Object.assign(H, lerHelp(dados)); pintarFora(); }));
+    fora.appendChild(b);
+  };
+  pintarFora(); c.appendChild(fora);
   const enviar = botao("Escolha o que está acontecendo", "ent-btn al-btn-sos", async () => {
     enviar.disabled = true; enviar.textContent = "Pegando sua localização...";
     const p = await lerGps(10000);
-    if (!p) { enviar.disabled = false; atualizar(); toast("Precisamos da sua localização para o SOS. Ative o GPS e permita no navegador."); return; }
+    if (!p) { enviar.disabled = false; atualizar(); toast("Precisamos da sua localização para o Help. Ative o GPS e permita no navegador."); return; }
     enviar.textContent = "Enviando...";
     try {
-      const temSocial = avisados.length > 0;
-      const publico = perto === "agora" || (perto === "depois" && !temSocial);
-      const base = {
-        uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), tipo, texto: area.value.trim().slice(0, 300),
-        lat: Math.round(p.lat * 1e5) / 1e5, lng: Math.round(p.lng * 1e5) / 1e5, precisao: Math.round(p.precisao || 0), geo4: geohash(p.lat, p.lng, 4),
-        publico, avisados, status: "aberto", ajudanteId: "", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
-      };
-      const extra = { equipe, escalarMin: perto === "depois" && temSocial ? ESCALAR_MIN : 0 };
-      let ref;
-      try { ref = await fb.addDoc(fb.collection(fb.db, "sos"), { ...base, ...extra }); }
-      catch (e) { if (e?.code !== "permission-denied") throw e; ref = await fb.addDoc(fb.collection(fb.db, "sos"), { ...base, publico: perto !== "nao" }); extra.antigo = true; }
-      // Social: cartão no Mensagens de cada pessoa (chega também como notificação com o app fechado quando o push estiver ligado).
-      avisados.forEach((u) => mandarMensagem(u, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: ref.id, sosTipo: tipo, nome: String(dados.nome || "").slice(0, 80) } }, `SOS: ${TIPOS_SOS[tipo][0]}`).catch(() => {}));
-      // Equipe: na hora quando quem está perto já foi avisado (ou não vai ser); senão, junto com a escalada.
-      if (equipe && (publico || perto === "nao" || extra.antigo)) chamadoSos({ id: ref.id, ...base, criadoEm: null }, temSocial ? "" : "Sem ninguém no Social: equipe avisada na hora.").catch(() => {});
-      fechar(); toast("SOS enviado. Fique onde está se for seguro."); abrirSos(ref.id);
-    } catch (e) { enviar.disabled = false; atualizar(); toast(e?.code === "permission-denied" ? "O SOS ainda está sendo liberado. Ligue 190/192/193 se for emergência." : "Não foi possível enviar: " + erroAmigavel(e)); }
+      const id = await enviarHelp({ tipo, texto: area.value.trim(), avisados, perto, equipe, p });
+      fechar(); toast("Help enviado. Fique onde está se for seguro."); abrirSos(id);
+    } catch (e) { enviar.disabled = false; atualizar(); toast(e?.code === "permission-denied" ? "O Help ainda está sendo liberado. Ligue 190/192/193 se for emergência." : "Não foi possível enviar: " + erroAmigavel(e)); }
   });
   enviar.id = "alSosEnviar";
-  const atualizar = () => { enviar.disabled = !tipo; enviar.textContent = tipo ? "Enviar SOS agora" : "Escolha o que está acontecendo"; };
+  const atualizar = () => { enviar.disabled = !tipo; enviar.textContent = tipo ? "Enviar Help agora" : "Escolha o que está acontecendo"; };
   atualizar();
   c.appendChild(enviar);
 }
+// Grava o Help (coleção `sos`, as mesmas regras de antes), avisa o Social no Mensagens e a equipe quando for a hora.
+async function enviarHelp({ tipo, texto = "", avisados, perto, equipe, p }) {
+  const temSocial = avisados.length > 0;
+  const publico = perto === "agora" || (perto === "depois" && !temSocial);
+  const base = {
+    uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), tipo, texto: String(texto || "").slice(0, 300),
+    lat: Math.round(p.lat * 1e5) / 1e5, lng: Math.round(p.lng * 1e5) / 1e5, precisao: Math.round(p.precisao || 0), geo4: geohash(p.lat, p.lng, 4),
+    publico, avisados, status: "aberto", ajudanteId: "", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
+  };
+  const extra = { equipe, escalarMin: perto === "depois" && temSocial ? ESCALAR_MIN : 0 };
+  // O id sai antes: se a conexão cair e o envio for repetido (ALREADY_EXISTS) ou der qualquer erro, conferimos se o pedido
+  // já chegou ao servidor antes de dizer que falhou (num Help, "não enviado" quando foi enviado é perigoso).
+  const ref = fb.doc(fb.collection(fb.db, "sos"));
+  const chegou = () => fb.getDoc(ref).then((d) => d.exists() && d.data().uid === eu.uid).catch(() => false);
+  try { await fb.setDoc(ref, { ...base, ...extra }); }
+  catch (e) {
+    if (!(await chegou())) {
+      if (e?.code !== "permission-denied") throw e;
+      try { await fb.setDoc(ref, { ...base, publico: perto !== "nao" }); } catch (e2) { if (!(await chegou())) throw e2; }
+      extra.antigo = true;
+    }
+  }
+  // Social: cartão no Mensagens de cada pessoa (chega também como notificação com o app fechado quando o push estiver ligado).
+  avisados.forEach((u) => mandarMensagem(u, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: ref.id, sosTipo: tipo, nome: String(dados.nome || "").slice(0, 80) } }, `Help: ${TIPOS_SOS[tipo][0]}`).catch(() => {}));
+  // Equipe: na hora quando quem está perto já foi avisado (ou não vai ser); senão, junto com a escalada.
+  if (equipe && (publico || perto === "nao" || extra.antigo)) chamadoSos({ id: ref.id, ...base, criadoEm: null }, temSocial ? "" : "Sem ninguém no Social: equipe avisada na hora.").catch(() => {});
+  enviadosAgora.add(ref.id);
+  return ref.id;
+}
+const enviadosAgora = new Set();
+async function socialDaRede() {
+  try {
+    const s = await fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", eu.uid), fb.where("status", "==", "aceito"), fb.limit(30)));
+    return [...new Set(s.docs.map((d) => (d.data().participantes || []).find((u) => u !== eu.uid)).filter(Boolean))];
+  } catch { return []; }
+}
+// Rede de Help (help-rede.js) aberta daqui: lê o Social com nome e foto.
+async function abrirRede(aoSalvar) {
+  const uids = await socialDaRede();
+  const social = (await Promise.all(uids.map(async (u) => { const p = await perfil(u); return { uid: u, nome: p.nome || "Usuário", foto: p.fotoPerfil || "", papel: "" }; })));
+  abrirConfigHelp({ fb, uid: eu.uid, dados, social, toast, aoSalvar });
+}
+// Help rápido: 5 s para cancelar e envia com a Rede de Help (tipo e recado prontos). O GPS já é lido durante a contagem.
+let rapidoAberto = false;
+function helpRapido() {
+  if (rapidoAberto) return; rapidoAberto = true;
+  const H = lerHelp(dados);
+  const tela = h("div", "al-rapido"); tela.setAttribute("role", "alertdialog"); tela.setAttribute("aria-modal", "true"); tela.dataset.semVoltar = "";
+  const n = h("b", "al-rapido-n", "5");
+  const anel = h("div", "al-rapido-anel"); anel.appendChild(n);
+  const tit = h("strong", null, "Enviando Help");
+  const sub = h("small", null, `${TIPOS_RAPIDO[H.tipoRapido]} · para a sua rede`);
+  const cancelar = h("button", "al-rapido-cancelar", "Cancelar"); cancelar.type = "button"; cancelar.id = "alRapidoCancelar";
+  const agora = h("button", "al-rapido-agora", "Enviar agora"); agora.type = "button"; agora.id = "alRapidoAgora";
+  tela.append(anel, tit, sub, agora, cancelar);
+  document.body.appendChild(tela);
+  const gps = lerGps(12000);
+  const uidsP = socialDaRede();
+  let falta = 5, fim = false;
+  const sair = () => { fim = true; clearInterval(rel); tela.remove(); rapidoAberto = false; };
+  const rel = setInterval(() => { falta--; n.textContent = String(Math.max(0, falta)); navigator.vibrate?.(40); if (falta <= 0) disparar(); }, 1000);
+  cancelar.addEventListener("click", () => { sair(); toast("Help cancelado"); });
+  agora.addEventListener("click", () => disparar());
+  async function disparar() {
+    if (fim) return; fim = true; clearInterval(rel);
+    tit.textContent = "Pegando sua localização..."; n.textContent = ""; agora.remove(); cancelar.disabled = true;
+    const p = await gps;
+    if (!p) { sair(); toast("Precisamos da sua localização. Ligue 190 se for emergência."); pedirSos(); return; }
+    tit.textContent = "Enviando...";
+    try {
+      const avisados = avisadosDe(H, await uidsP);
+      const perto = avisados.length ? H.perto : H.perto === "nao" ? "nao" : "agora";
+      const id = await enviarHelp({ tipo: H.tipoRapido, texto: H.msg, avisados, perto, equipe: H.equipe, p });
+      sair(); toast("Help enviado."); abrirSos(id);
+    } catch (e) { console.warn("[Help]", e); sair(); toast(e?.code === "permission-denied" ? "O Help ainda está sendo liberado. Ligue 190/192/193." : "Não foi possível enviar: " + erroAmigavel(e)); }
+  }
+}
 async function abrirSos(id) {
-  const { corpo: c, fechar, folha } = abrirTela("SOS");
+  const { corpo: c, fechar, folha } = abrirTela("Help");
+  let foraBox = null, bemBox = null;
   let mapa = null, vigia = null, ultimaPos = 0, relogio = 0, ultimo = null;
   relogio = setInterval(() => { if (!ultimo) return; info.querySelectorAll("[data-falta]").forEach((el) => { el.textContent = faltaTexto(ultimo); }); if (ultimo.uid === eu.uid && precisaEscalar(ultimo)) escalarSos(ultimo, "auto"); }, 1000);
   const mapaEl = h("div", "al-mapa");
@@ -226,11 +311,17 @@ async function abrirSos(id) {
       acoes.append(botao("Já estou bem (resolvido)", "ent-btn ok", () => mudar({ status: "resolvido", fimEm: fb.serverTimestamp() }, "Que bom! Pedido encerrado.")),
         botao("Cancelar o pedido", "ent-btn sec", () => mudar({ status: "cancelado", fimEm: fb.serverTimestamp() }, "Pedido cancelado")));
       if (s.ajudanteId) acoes.appendChild(botao(`Conversar com ${(s.ajudanteNome || "quem ajuda").split(" ")[0]}`, "ent-btn sec", () => conversar(s.ajudanteId, { tipo: "sos", id: s.id })));
+      // Rede de Help: contatos de fora do app (1 toque cada), feito uma vez para não perder o "enviado" a cada atualização.
+      if (!foraBox) foraBox = blocoAvisarFora(lerHelp(dados), textoHelp({ nome: dados.nome, tipo: t[0], msg: s.texto, lat: s.lat, lng: s.lng, precisao: s.precisao, id: s.id }), { titulo: enviadosAgora.has(s.id) ? "Agora avise quem está fora do app" : "Avisar quem está fora do app" }) || h("span");
+      frag.push(foraBox);
       // Atualiza a posição de quem pediu enquanto esta tela estiver aberta.
       if (vigia == null && navigator.geolocation) vigia = navigator.geolocation.watchPosition((p) => {
         if (Date.now() - ultimaPos < 20000) return; ultimaPos = Date.now();
         fb.updateDoc(fb.doc(fb.db, "sos", id), { lat: Math.round(p.coords.latitude * 1e5) / 1e5, lng: Math.round(p.coords.longitude * 1e5) / 1e5, precisao: Math.round(p.coords.accuracy || 0), geo4: geohash(p.coords.latitude, p.coords.longitude, 4), atualizadoEm: fb.serverTimestamp() }).catch(() => {});
       }, () => {}, { enableHighAccuracy: true, maximumAge: 10000 });
+    } else if (dono && s.status === "resolvido") {
+      if (!bemBox) bemBox = blocoAvisarFora(lerHelp(dados), textoTudoBem(String(dados.nome || "").split(" ")[0]), { ligar: false, titulo: "Avisar que está tudo bem" }) || h("span");
+      frag.push(bemBox);
     } else if (!dono && vivo) {
       if (s.status === "aberto") { const b = botao("Vou ajudar", "ent-btn ok", () => aceitar(s)); b.id = "alVouAjudar"; acoes.appendChild(b); }
       else if (!ajudo) acoes.appendChild(h("p", "ent-sub", "Já tem alguém indo. Se ainda assim puder ajudar, mande uma mensagem antes de ir."));
@@ -306,7 +397,7 @@ async function chamadoSos(s, motivo = "", gravarNoSos = true) {
   const ref = fb.doc(fb.collection(fb.db, "suporte"));
   const lote = fb.writeBatch(fb.db);
   const texto = [
-    "PEDIDO DE AJUDA (SOS) · URGENTE",
+    "PEDIDO DE AJUDA (HELP) · URGENTE",
     `O que está acontecendo: ${t}`,
     s.texto ? `Detalhes: “${s.texto}”` : "",
     `Onde: https://www.google.com/maps?q=${s.lat},${s.lng}${s.precisao ? ` (precisão de ${s.precisao} m)` : ""}`,
@@ -314,7 +405,7 @@ async function chamadoSos(s, motivo = "", gravarNoSos = true) {
     motivo,
     `Acompanhar ao vivo: https://helpfloripa.com.br/alertas.html?sos=${s.id}`
   ].filter(Boolean).join("\n");
-  lote.set(ref, { prioridade: "urgente", uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: `SOS: ${t}`.slice(0, 120), categoria: "sos", status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
+  lote.set(ref, { prioridade: "urgente", uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: `Help: ${t}`.slice(0, 120), categoria: "sos", status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
   lote.set(fb.doc(fb.db, "suporte", ref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: texto.slice(0, 2000), em: fb.serverTimestamp() });
   await lote.commit();
   if (gravarNoSos) await fb.updateDoc(fb.doc(fb.db, "sos", s.id), { suporteId: ref.id, atualizadoEm: fb.serverTimestamp() }).catch(() => {});
@@ -330,7 +421,7 @@ async function aceitar(s) {
       if (!d.exists() || d.data().status !== "aberto") throw new Error("pego");
       tx.update(ref, { status: "atendido", ajudanteId: eu.uid, ajudanteNome: String(dados.nome || "").slice(0, 80), aceitoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
     });
-    mandarMensagem(s.uid, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: s.id, sosTipo: s.tipo, nome: s.nome || "", acao: "ajudando" } }, "SOS: estou indo ajudar", { servico: { tipo: "sos", id: s.id } }).catch(() => {});
+    mandarMensagem(s.uid, { tipoArquivo: "cartao", cartao: { tipo: "sos", id: s.id, sosTipo: s.tipo, nome: s.nome || "", acao: "ajudando" } }, "Help: estou indo ajudar", { servico: { tipo: "sos", id: s.id } }).catch(() => {});
     toast("Obrigado! A pessoa e os outros veem que você está indo.");
   } catch (e) { toast(e?.message === "pego" ? "Outra pessoa já aceitou ajudar." : "Não foi possível: " + erroAmigavel(e)); }
 }
@@ -489,7 +580,7 @@ function cartaoRg(p) {
   meio.append(fotoOuEmoji(p.foto, p.especie), dadosRg);
   const qr = h("div", "al-rg-qr");
   import("./qr.js?v=1").then(async (m) => { const svg = await m.qrSvg(`https://helpfloripa.com.br/alertas.html?pet=${p.id}`, "QR do RG do pet"); if (svg) { qr.innerHTML = ""; qr.appendChild(typeof svg === "string" ? Object.assign(document.createElement("div"), { innerHTML: svg }).firstChild : svg); } }).catch(() => {});
-  card.append(cab, meio, qr, h("small", "al-rg-rod", "Achou este pet? Leia o QR ou procure o RG em Help Floripa › SOS e alertas › Pets."));
+  card.append(cab, meio, qr, h("small", "al-rg-rod", "Achou este pet? Leia o QR ou procure o RG em Help Floripa › Help e alertas › Pets."));
   return card;
 }
 async function marcarPerdido(p, fecharAntes) {
@@ -801,16 +892,18 @@ async function consultar(inicial) {
 // =====================================================
 function abrirConfig() {
   const { corpo: c, fechar } = abrirTela("Configurações de alertas");
+  const rede = botao("Rede de Help: quem recebe e como alertar", "ent-btn sec", () => abrirRede()); rede.id = "alAbrirRede";
+  c.appendChild(rede);
   c.appendChild(h("h3", null, "Distância"));
   const rs = h("div", "ent-chips");
   RAIOS_ALERTA.forEach((r) => { const b = h("button", "ent-chip", `${r} km`); b.type = "button"; b.dataset.raio = String(r); b.setAttribute("aria-pressed", String(cfg.raio === r)); b.addEventListener("click", () => { cfg.raio = r; rs.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }); rs.appendChild(b); });
   c.appendChild(rs);
   c.appendChild(h("h3", null, "O que mostrar perto de você"));
   const chave = (k, texto) => { const l = h("label", "ent-check"); const i = h("input"); i.type = "checkbox"; i.checked = cfg[k] !== false; i.dataset.cfg = k; i.addEventListener("change", () => (cfg[k] = i.checked)); l.append(i, h("span", null, texto)); c.appendChild(l); };
-  chave("sosArea", "Pedidos de ajuda (SOS) de quem está perto");
+  chave("sosArea", "Pedidos de Help de quem está perto");
   chave("petsArea", "Pets perdidos e encontrados");
   chave("roubosArea", "Alertas de roubo, furto e golpe");
-  c.appendChild(h("p", "ent-sub", "Pedidos de SOS do seu Social chegam sempre (no Mensagens). Quando as notificações no celular estiverem ligadas, chegam também com o app fechado."));
+  c.appendChild(h("p", "ent-sub", "Pedidos de Help do seu Social chegam sempre (no Mensagens). Quando as notificações no celular estiverem ligadas, chegam também com o app fechado."));
   c.appendChild(botao("Salvar", "ent-btn", async () => {
     try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { alertas: { ...cfg } }, { merge: true }); dados.alertas = { ...cfg }; toast("Salvo"); fechar(); pintarAba(); }
     catch (e) { toast("Não foi possível salvar: " + erroAmigavel(e)); }

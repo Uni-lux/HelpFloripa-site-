@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Help Floripa" />
-  <title>SOS e alertas | Help Floripa</title>
+  <title>Help e alertas | Help Floripa</title>
   <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png" />
   <link rel="icon" href="favicon.ico" />
@@ -35,10 +35,10 @@
   <link rel="stylesheet" href="rede.css?v=122" />
   <link rel="stylesheet" href="entregas.css?v=2" />
   <link rel="stylesheet" href="presentes.css?v=1" />
-  <link rel="stylesheet" href="alertas.css?v=1" />
+  <link rel="stylesheet" href="alertas.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="alertas.js?v=27"></script>
+  <script type="module" src="alertas.js?v=28"></script>
 </head>
 <body class="com-barra">
   <header class="topo">
@@ -51,19 +51,19 @@
   <main class="pagina pr-pagina al-pagina">
     <section class="al-hero">
       <div>
-        <h1>SOS e alertas</h1>
+        <h1>Help e alertas</h1>
         <p>Peça ajuda ao seu Social e a quem está perto, encontre pets perdidos e avise a vizinhança sobre roubos e golpes.</p>
       </div>
-      <button type="button" class="al-sos-bt" id="alSos" aria-label="Pedir ajuda (SOS)"><b>SOS</b><small>Pedir ajuda</small></button>
+      <button type="button" class="al-sos-bt" id="alSos" aria-label="Pedir ajuda (Help). Segure para o Help rápido"><b>HELP</b><small>Toque ou segure</small></button>
       <div class="al-tels" id="alEmerg" aria-label="Telefones de emergência"></div>
     </section>
     <div class="ent-abas al-abas" role="tablist">
-      <button type="button" role="tab" data-aba="sos" aria-selected="true">SOS</button>
+      <button type="button" role="tab" data-aba="sos" aria-selected="true">Help</button>
       <button type="button" role="tab" data-aba="pets" aria-selected="false">Pets</button>
       <button type="button" role="tab" data-aba="roubos" aria-selected="false">Roubos e furtos</button>
     </div>
     <div id="alCorpo"><p class="ent-vazio">Carregando...</p></div>
-    <p class="pr-rodape">O SOS não chama a polícia, o SAMU nem os bombeiros: em emergência, ligue 190, 192 ou 193. Ocorrências e pistas podem ser anônimas; só a moderação sabe quem registrou, para evitar abusos.</p>
+    <p class="pr-rodape">O Help não chama a polícia, o SAMU nem os bombeiros: em emergência, ligue 190, 192 ou 193. Ocorrências e pistas podem ser anônimas; só a moderação sabe quem registrou, para evitar abusos.</p>
   </main>
 </body>
 </html>

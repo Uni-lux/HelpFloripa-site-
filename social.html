@@ -371,13 +371,98 @@
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9950; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } .folha.grande { max-height: 84vh; } }
     @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho { animation: none; } }
+    /* ---------- Configurações do Social em lista (17/11/2026) ---------- */
+    .cfg-grupo { padding: 14px 16px 2px; }
+    .cfg-grupo h4 { margin: 0 4px 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .cfg-lista { border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); overflow: hidden; }
+    .cfg-row { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 0 12px 0 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .cfg-row + .cfg-row { border-top: 1px solid var(--line); }
+    .cfg-row > .i:first-child { width: 20px; height: 20px; color: var(--muted); flex: none; }
+    .cfg-nm { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 650; }
+    .cfg-val { flex: none; max-width: 45%; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cfg-seta { width: 16px; height: 16px; color: var(--muted); opacity: .7; flex: none; }
+    @media (hover: hover) { .cfg-row:hover { background: var(--hover); } }
+    .cfg-escolha { margin: 12px 16px 4px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); overflow: hidden; }
+    .cfg-op { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .cfg-op + .cfg-op { border-top: 1px solid var(--line); }
+    .cfg-op .tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+    .cfg-op b { font-size: 14.5px; font-weight: 650; }
+    .cfg-op small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .cfg-op .radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--muted) 70%, transparent); }
+    .cfg-op.on .radio { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 0 40%, transparent 46%); }
+    .cfg-nota { margin: 8px 20px 4px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+    .cfg-duo { display: grid; gap: 12px; padding: 12px 16px 4px; }
+    .cfg-duo .dm-op small { -webkit-line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    /* ---------- Social sem cores sobrando (17/11/2026, pedido dele: "tá cheio de cores"): uma cor de destaque só;
+       o rosa fica só no duo (Akai Ito). Anéis, etiquetas, filtros e ícones em tons neutros. ---------- */
+    #painelConexoes .dest .anel { background: color-mix(in srgb, var(--text) 16%, transparent); padding: 2px; }
+    #painelConexoes .dest[data-cat="duo"] .anel { background: var(--duo); }
+    #painelConexoes .dest.novo .anel { background: none; border: 1.5px dashed color-mix(in srgb, var(--text) 30%, transparent); color: var(--text); }
+    #painelConexoes .pessoa .pe-av .avatar { box-shadow: none; }
+    #painelConexoes .pessoa[data-cat="duo"] .pe-av .avatar { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--duo); }
+    #painelConexoes .pe-papel { color: var(--muted); background: var(--panel-2); font-weight: 650; }
+    #painelConexoes .pessoa[data-cat="duo"] .pe-papel { color: var(--duo); background: color-mix(in srgb, var(--duo) 12%, transparent); }
+    #painelConexoes .pessoa .pe-pes button.msg { background: var(--panel-2); color: var(--text); border: 0; }
+    #painelConexoes .chips button i { display: none; }
+    #painelConexoes .chips button { background: none; }
+    #painelConexoes .chips button.on { color: var(--panel); background: var(--text); border-color: var(--text); }
+    #painelConexoes .chips button.on b { color: var(--panel); opacity: .75; }
+    #painelConexoes .pe-visto.on { color: var(--muted); font-weight: 600; }
+    .pet-bol { box-shadow: 0 0 0 2px var(--panel); }
+    /* Help (antigo SOS) + Pets + Presentes */
+    #secCuidado #cuidado { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 14px; }
+    .hlp { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 12px 12px 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+    .hlp-tx { min-width: 0; display: grid; gap: 3px; }
+    .hlp-tx strong { display: flex; align-items: center; gap: 7px; font: 800 15px/1.2 var(--head, inherit); }
+    .hlp-tx strong .i { width: 18px; height: 18px; }
+    .hlp-tx small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hlp-pedir { position: relative; overflow: hidden; display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border-radius: 11px; background: #e5484d; color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+    .hlp-pedir::after { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, .28); transform: scaleX(0); transform-origin: left; }
+    .hlp-pedir.segurando::after { transform: scaleX(1); transition: transform 1.2s linear; }
+    .hlp-rede { height: 38px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .cd2-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cd2 { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+    .cd2 .i { grid-row: span 2; width: 20px; height: 20px; color: var(--muted); }
+    .cd2 strong { font-size: 13.5px; }
+    .cd2 small { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (hover: hover) { .cd2:hover, .hlp-rede:hover { background: var(--hover); } }
+    @media (max-width: 360px) { .hlp { grid-template-columns: minmax(0, 1fr) auto; } .hlp-tx { grid-column: 1 / -1; } .hlp-pedir { justify-content: center; } }
+    /* Seus pets */
+    .pets-vazio { display: grid; justify-items: center; gap: 6px; padding: 26px 24px 10px; text-align: center; }
+    .pets-vazio .i { width: 34px; height: 34px; color: var(--muted); margin-bottom: 4px; }
+    .pets-vazio strong { font-size: 16px; }
+    .pets-vazio small { font-size: 13px; line-height: 1.45; color: var(--muted); }
+    .pet-card { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; grid-template-areas: "f t s" "a a a"; gap: 10px 12px; align-items: center; margin: 12px 16px 0; padding: 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); }
+    .pet-foto { grid-area: f; width: 58px; height: 58px; border-radius: 16px; overflow: hidden; display: grid; place-items: center; background: var(--panel); }
+    .pet-foto img { width: 100%; height: 100%; object-fit: cover; }
+    .pet-tx { grid-area: t; min-width: 0; display: grid; gap: 2px; }
+    .pet-tx strong { font-size: 15px; }
+    .pet-tx small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pet-rg { font: 700 10.5px/1.4 var(--mono); letter-spacing: .5px; color: var(--muted); }
+    .pet-st { grid-area: s; align-self: start; padding: 4px 9px; border-radius: 99px; font-size: 11px; font-weight: 750; color: var(--muted); background: var(--panel); }
+    .pet-st.perdido { color: #fff; background: #e5484d; }
+    .pet-acoes { grid-area: a; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pet-acoes a, .pet-acoes button { height: 38px; display: grid; place-items: center; border-radius: 11px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
+    .folha-pe { display: grid; gap: 8px; }
+    .folha-pe .btn { width: 100%; justify-content: center; }
+    /* Presentes */
+    .cfg-row .avatar { width: 34px; height: 34px; font-size: 12px; flex: none; }
+    .cfg-nm b { display: block; font-size: 14px; font-weight: 650; }
+    .cfg-nm small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    a.cfg-row { text-decoration: none; padding-top: 8px; padding-bottom: 8px; }
+    .cfg-row.vazio { color: var(--muted); font-size: 13px; cursor: default; }
+    .pr-fila { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 2px 4px 4px; }
+    .pr-fila::-webkit-scrollbar { display: none; }
+    .pr-p { flex: none; width: 58px; display: grid; justify-items: center; gap: 5px; color: var(--text); text-decoration: none; font-size: 11.5px; font-weight: 650; }
+    .pr-p .avatar { width: 52px; height: 52px; font-size: 16px; }
+    .pr-p span { max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   </style>
   <link rel="stylesheet" href="salao.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=165";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=166";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -402,6 +487,12 @@
     <symbol id="i-salao" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 15.5l5-5 4 4 3-3 6 6"/><circle cx="15.5" cy="8.5" r="1.6"/></symbol>
     <symbol id="i-estrela-c" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.5 6 .7-4.5 4.1 1.2 5.9L12 16.5l-5.3 2.9 1.2-5.9L3.4 9.4l6-.7z"/></symbol>
     <symbol id="i-tranca" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-pata" viewBox="0 0 24 24"><ellipse cx="8" cy="7" rx="1.8" ry="2.4"/><ellipse cx="16" cy="7" rx="1.8" ry="2.4"/><ellipse cx="4.8" cy="11.8" rx="1.6" ry="2.1"/><ellipse cx="19.2" cy="11.8" rx="1.6" ry="2.1"/><path d="M12 11.5c-2.6 0-5.2 3.6-5.2 5.9 0 1.6 1.3 2.4 2.7 2.4 1 0 1.6-.6 2.5-.6s1.5.6 2.5.6c1.4 0 2.7-.8 2.7-2.4 0-2.3-2.6-5.9-5.2-5.9z"/></symbol>
+    <symbol id="i-sino" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0112 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 004 0"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/><path d="M6 6l3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-tel" viewBox="0 0 24 24"><path d="M5 4.5h3.5l1.6 4-2.2 1.4a11 11 0 005.2 5.2l1.4-2.2 4 1.6V18a2 2 0 01-2 2A15.5 15.5 0 013 6.5a2 2 0 012-2z"/></symbol>
     <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
     <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="currentColor" stroke="none"/><path d="M8.3 12.2l2.5 2.5 5-5.2" stroke="#fff" stroke-width="2.2"/></symbol>
   </svg>
@@ -468,7 +559,7 @@
   <script type="module">
     import { fotoSegura } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=6";
-    import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=2";
+    import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=3";
     import { iconeEl, iconeEspecie } from "./icones-hf.js?v=2";
     import { QUEM_PODE } from "./presentes-base.js?v=2";
     import { CATEGORIAS, catDe, VER_MOMENTO, MAX_MOMENTOS, LIMITES_SALAO, contarSalao, MODELOS_GALERIA, modeloGaleria, DESENHO_MODELO, quando, ordenar, relacaoCom, lerMomentos, lerDestaquesFlash, fotoOk, reduzirFotoSalao } from "./salao-base.js?v=2";
@@ -625,8 +716,9 @@
       return b;
     }
     function abrirPets(uid) {
+      if (uid === eu.uid) { abrirMeusPets(); return; }
       const l = pets.get(uid) || [];
-      const meu = uid === eu.uid;
+      const meu = false;
       const dele = uid === donoId ? dono : conexoes.find((c) => c.outro === uid)?.perfil || {};
       abrirFolha(meu ? "Seus pets" : `Pets de ${primeiroNome(dele.nome)}`, (corpo) => {
         l.forEach((p) => {
@@ -773,21 +865,146 @@
     }
     const corDe = (cat) => ({ duo: "#ff4d6d", familia: "#f5b301", amizade: "#00adee", trabalho: "#2fbf71" }[cat] || "#00adee");
 
-    // ---------- Cuidado e proteção: SOS, pets e presentes (só no seu social) ----------
+    // ---------- Cuidado e proteção (17/11/2026): Help (antigo SOS) com a rede, pets e presentes — sem cores sobrando ----------
+    function socialDoHelp() {
+      return aceitas().map((c) => ({ uid: c.outro, nome: c.perfil.nome || "Usuário", foto: urlSegura(c.perfil.fotoPerfil) || "", papel: TIPOS[c.tipo]?.[0] || nomeGrupo(c.cat) }));
+    }
+    function abrirRedeHelp() {
+      import("./help-rede.js?v=1").then(({ abrirConfigHelp }) => abrirConfigHelp({ fb, uid: eu.uid, dados: conta || (conta = {}), social: socialDoHelp(), toast, aoSalvar: () => desenharCuidado() }))
+        .catch(() => toast("Não foi possível abrir agora."));
+    }
     function desenharCuidado() {
       $("secCuidado").hidden = !proprio;
       if (!proprio) return;
-      const n = aceitas().length, meus = pets.get(eu.uid) || [];
-      const tile = (href, ic, cor, tit, sub, id) => {
-        const a = el("a", "cd"); a.href = href; a.style.setProperty("--c", cor); if (id) a.id = id;
-        const tx = el("span", "cd-tx"); tx.append(el("strong", null, tit), el("small", null, sub)); a.append(iconeEl(ic, { cor, tam: 16, fundo: true }), tx);
-        return a;
-      };
-      $("cuidado").replaceChildren(
-        tile("alertas.html", "sirene", "#e5484d", "SOS", n ? `${n} na rede` : "Monte a rede", "cdSos"),
-        tile("alertas.html?aba=pets", "pata", "#f5b301", "Pets", meus.length ? `${meus.length} com RG` : "RG do pet", "cdPets"),
-        tile("presentes.html", "presente", "#e5487f", "Presentes", "Mimos", "cdPresentes")
+      const meus = pets.get(eu.uid) || [];
+      const box = $("cuidado"); box.replaceChildren();
+      // Help: o cartão principal (pedir ajuda + a rede)
+      const help = el("div", "hlp"); help.id = "cdSos";
+      const tx = el("div", "hlp-tx");
+      const titulo = el("strong"); titulo.append(icone("help", "i"), document.createTextNode("Help"));
+      const sub = el("small", null, "Carregando a sua rede...");
+      tx.append(titulo, sub);
+      const pedir = el("a", "hlp-pedir"); pedir.href = "alertas.html?sos=novo"; pedir.id = "cdHelpPedir"; pedir.textContent = "Pedir ajuda";
+      const rede = botao("hlp-rede", "Rede", () => abrirRedeHelp()); rede.id = "cdHelpRede";
+      help.append(tx, pedir, rede);
+      import("./help-rede.js?v=1").then(({ lerHelp, resumoHelp }) => {
+        const h = lerHelp(conta || {});
+        const n = aceitas().length;
+        sub.textContent = n || h.contatos.length ? resumoHelp(h, n) : "Monte a sua rede: quem recebe quando você pedir ajuda";
+        if (h.rapido) { segurarHelp(pedir); pedir.title = "Toque para pedir ajuda. Segure 1 segundo para o Help rápido."; pedir.setAttribute("aria-label", pedir.title); }
+      }).catch(() => { sub.textContent = "Sua rede de proteção"; });
+      const tile = (id, ic, tit, val, fn) => { const b = botao("cd2", null, fn); b.id = id; b.append(icone(ic, "i"), el("strong", null, tit), el("small", null, val)); return b; };
+      const linha = el("div", "cd2-linha");
+      linha.append(
+        tile("cdPets", "pata", "Pets", meus.length ? `${meus.length} com RG` : "Cadastrar RG", () => abrirMeusPets()),
+        tile("cdPresentes", "presente", "Presentes", "Enviar e receber", () => abrirPresentes())
       );
+      box.append(help, linha);
+    }
+    // Segurar "Pedir ajuda" 1,2 s = Help rápido (a página de alertas conta 5 s para cancelar antes de enviar).
+    function segurarHelp(a) {
+      if (a._seg) return; a._seg = true;
+      let t = null;
+      const parar = () => { clearTimeout(t); t = null; a.classList.remove("segurando"); };
+      a.addEventListener("pointerdown", () => { a.classList.add("segurando"); t = setTimeout(() => { t = null; a._foi = true; navigator.vibrate?.([30, 40, 30]); location.href = "alertas.html?sos=rapido"; }, 1200); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach((k) => a.addEventListener(k, () => { if (t) parar(); }));
+      a.addEventListener("contextmenu", (e) => e.preventDefault());
+      a.addEventListener("click", (e) => { if (a._foi) { e.preventDefault(); a._foi = false; } });
+    }
+    // ---------- Seus pets: lista e cadastro aqui mesmo (pet-cadastro.js) ----------
+    function abrirMeusPets() {
+      const meus = pets.get(eu.uid) || [];
+      abrirFolha("Seus pets", (corpo, sair, pe) => {
+        if (!meus.length) {
+          const v = el("div", "pets-vazio");
+          v.append(icone("pata", "i"), el("strong", null, "Cadastre o RG do seu pet"), el("small", null, "Se ele sumir, quem encontrar um animal parecido é avisado de que pode ser o seu, e o QR do RG leva até você."));
+          corpo.appendChild(v);
+        }
+        meus.forEach((p) => {
+          const card = el("div", "pet-card"); card.dataset.pet = p.id;
+          const f = el("div", "pet-foto"); const u = urlSegura(p.foto);
+          if (u) { const i = el("img"); i.src = u; i.alt = ""; f.appendChild(i); } else { const [ic, cor] = iconeEspecie(p.especie); f.appendChild(iconeEl(ic, { cor, tam: 26 })); }
+          const tx = el("div", "pet-tx");
+          tx.append(el("strong", null, p.nome || "Pet"), el("small", null, [p.raca, p.idade].filter(Boolean).join(" · ") || "Sem raça informada"), el("span", "pet-rg", "HF-PET-" + String(p.id).replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase()));
+          const st = el("span", "pet-st" + (p.status === "perdido" ? " perdido" : ""), p.status === "perdido" ? "Perdido" : "Em casa");
+          const acoes = el("div", "pet-acoes");
+          const ver = el("a", null, "Ver RG"); ver.href = `alertas.html?pet=${encodeURIComponent(p.id)}`;
+          const ed = botao("", "Editar", () => { sair(); editarPetAqui(p); });
+          acoes.append(ver, ed);
+          card.append(f, tx, st, acoes);
+          corpo.appendChild(card);
+        });
+        const novo = botao("btn pri pets-novo", meus.length ? "Cadastrar outro pet" : "Cadastrar meu pet", () => { sair(); editarPetAqui(null); }); novo.id = "petsNovo";
+        const alertas = el("a", "btn sec", "Pets perdidos perto"); alertas.href = "alertas.html?aba=pets";
+        pe.append(novo, alertas);
+      }, { pe: true });
+    }
+    function editarPetAqui(p) {
+      import("./pet-cadastro.js?v=1").then(({ abrirCadastroPet }) => abrirCadastroPet({
+        fb, uid: eu.uid, dados: { ...dono, ...(conta || {}) }, pet: p, toast,
+        aoSalvar: (novo) => { const l = (pets.get(eu.uid) || []).filter((x) => x.id !== novo.id); l.unshift(novo); pets.set(eu.uid, l); desenharTudo(); }
+      })).catch(() => toast("Não foi possível abrir agora."));
+    }
+    // ---------- Presentes: os que esperam resposta, datas para lembrar e enviar para alguém do social ----------
+    const MARCOS = [30, 100, 200, 365, 500, 730, 1000, 1095, 1461, 1826];
+    function datasEspeciais() {
+      const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+      const l = [];
+      aceitas().forEach((c) => {
+        const ini = deISO(c.conheceram) || c.aceitoEm?.toDate?.(); if (!ini) return;
+        const base = new Date(ini); base.setHours(0, 0, 0, 0);
+        const dias = Math.round((hoje - base) / 864e5);
+        // aniversário de quando se conheceram (só com a data escolhida por vocês)
+        if (deISO(c.conheceram)) {
+          const prox = new Date(hoje.getFullYear(), base.getMonth(), base.getDate()); if (prox < hoje) prox.setFullYear(prox.getFullYear() + 1);
+          const falta = Math.round((prox - hoje) / 864e5), anos = prox.getFullYear() - base.getFullYear();
+          if (falta <= 30 && anos > 0) l.push({ c, falta, texto: `${anos} ${anos === 1 ? "ano" : "anos"} de ${c.cat === "duo" ? "fio" : "amizade"}`, ocasiao: c.cat === "duo" ? "namoro" : "amizade" });
+        }
+        const m = MARCOS.find((x) => x >= dias && x - dias <= 14 && x % 365);
+        if (m) l.push({ c, falta: m - dias, texto: `${m} dias de ${c.cat === "duo" ? "fio" : "social"}`, ocasiao: c.cat === "duo" ? "namoro" : "amizade" });
+      });
+      return l.sort((a, b) => a.falta - b.falta).slice(0, 5);
+    }
+    function abrirPresentes() {
+      abrirFolha("Presentes", async (corpo, sair, pe) => {
+        const grupo = (t) => { const g = el("section", "cfg-grupo"); g.appendChild(el("h4", null, t)); const l = el("div", "cfg-lista"); g.appendChild(l); corpo.appendChild(g); return l; };
+        // datas
+        const datas = datasEspeciais();
+        if (datas.length) {
+          const l = grupo("Datas para lembrar");
+          datas.forEach((d) => {
+            const a = el("a", "cfg-row pr-data"); a.href = `presentes.html?para=${encodeURIComponent(d.c.outro)}&ocasiao=${d.ocasiao}`;
+            const tx = el("span", "cfg-nm"); tx.append(el("b", null, d.texto), el("small", null, `com ${primeiroNome(d.c.perfil.nome)} · ${d.falta === 0 ? "hoje" : d.falta === 1 ? "amanhã" : `em ${d.falta} dias`}`));
+            a.append(novoAvatar(d.c.perfil.fotoPerfil, d.c.perfil.nome), tx, el("span", "cfg-val", "Presentear"), icone("avancar", "i s cfg-seta"));
+            l.appendChild(a);
+          });
+        }
+        // esperando resposta
+        const lEsp = grupo("Esperando você"); lEsp.appendChild(el("div", "cfg-row vazio", "Carregando..."));
+        // enviar para
+        const lista = aceitas().slice(0, 12);
+        if (lista.length) {
+          const g = el("section", "cfg-grupo"); g.appendChild(el("h4", null, "Enviar para"));
+          const fila = el("div", "pr-fila");
+          lista.forEach((c) => { const a = el("a", "pr-p"); a.href = `presentes.html?para=${encodeURIComponent(c.outro)}`; a.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome))); fila.appendChild(a); });
+          g.appendChild(fila); corpo.appendChild(g);
+        }
+        const todos = el("a", "btn pri", "Enviar um presente"); todos.href = "presentes.html?aba=enviar";
+        const hist = el("a", "btn sec", "Meus presentes"); hist.href = "presentes.html";
+        pe.append(todos, hist);
+        try {
+          const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "presentes"), fb.where("para", "==", eu.uid), fb.limit(40)));
+          const pend = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.status === "pendente");
+          lEsp.replaceChildren();
+          if (!pend.length) lEsp.appendChild(el("div", "cfg-row vazio", "Nenhum presente esperando resposta."));
+          pend.slice(0, 6).forEach((x) => {
+            const a = el("a", "cfg-row"); a.href = `presentes.html?id=${encodeURIComponent(x.id)}`;
+            const tx = el("span", "cfg-nm"); tx.append(el("b", null, x.deNome ? `De ${primeiroNome(x.deNome)}` : "Presente"), el("small", null, x.mensagem ? `“${x.mensagem.slice(0, 60)}”` : "Toque para aceitar ou recusar"));
+            a.append(icone("presente", "i"), tx, el("span", "cfg-val", "Responder"), icone("avancar", "i s cfg-seta"));
+            lEsp.appendChild(a);
+          });
+        } catch { lEsp.replaceChildren(el("div", "cfg-row vazio", "Os presentes ainda estão sendo liberados.")); }
+      }, { pe: true });
     }
 
     // ---------- filtros com contagem + ordenação ----------
@@ -889,7 +1106,7 @@
 
     // ---------- Akai Ito (16/11/2026: uma linha compacta que abre o cartão do duo, duo-cartao.js) ----------
     function abrirDuo(c) {
-      import("./duo-cartao.js?v=1").then(({ abrirCartaoDuo }) => abrirCartaoDuo({
+      import("./duo-cartao.js?v=2").then(({ abrirCartaoDuo }) => abrirCartaoDuo({
         fb, eu: eu.uid, dono: { uid: donoId, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
         vinculo: { ...c, papel: TIPOS[c.tipo]?.[0] || "Duo" }, perfil: c.perfil, podeAbrir: proprio || clicavel, toast,
         retrato: c.retrato ? lerRetrato(c) : null,
@@ -1124,47 +1341,76 @@
       s.appendChild(h); if (texto) s.appendChild(el("p", null, texto));
       return s;
     }
+    // Configurações do Social (17/11/2026, pedido dele: "mais profissional e organizado, sem informações desnecessárias"):
+    // uma lista como os ajustes do celular. Cada linha mostra a escolha atual; tocar abre as opções curtas por cima.
+    const PRES_CURTO = { todos: "Todo mundo", seguindo: "Quem eu sigo", vinculos: "Só o Social", ninguem: "Ninguém" };
+    let presAtual = null;
+    function escolherOpcao(titulo, lista, atual, aoEscolher, nota) {
+      abrirFolha(titulo, (corpo, sair) => {
+        const box = el("div", "cfg-escolha"); box.setAttribute("role", "radiogroup");
+        Object.entries(lista).forEach(([k, [nome, desc]]) => {
+          const b = botao("cfg-op" + (k === atual ? " on" : "")); b.dataset.v = k; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(k === atual));
+          const tx = el("span", "tx"); tx.append(el("b", null, nome)); if (desc) tx.appendChild(el("small", null, desc));
+          b.append(tx, el("span", "radio"));
+          b.addEventListener("click", async () => { if (k === atual) { sair(); return; } box.querySelectorAll(".cfg-op").forEach((x) => x.classList.toggle("on", x === b)); if (await aoEscolher(k)) sair(); else box.querySelectorAll(".cfg-op").forEach((x) => x.classList.toggle("on", x.dataset.v === atual)); });
+          box.appendChild(b);
+        });
+        corpo.appendChild(box);
+        if (nota) corpo.appendChild(el("p", "cfg-nota", nota));
+      });
+    }
     function abrirConfig(foco) {
       abrirFolha("Configurações do Social", (corpo) => {
-        // 1) privacidade
-        const priv = secao("cfgPrivacidade", "cadeado", "Quem pode abrir os perfis do seu social", "Quem não estiver liberado vê as fotos e os nomes, mas não abre os perfis. \"Ninguém\" esconde o social.");
-        priv.appendChild(opcoes(VIS, dono.socialVisibilidade || "todos", async (v) => {
-          try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: v }, { merge: true }); dono.socialVisibilidade = v; toast("Privacidade atualizada"); return true; }
-          catch { toast("Não foi possível salvar."); return false; }
-        }));
-        priv.lastChild.id = "visibilidade";
-        // 2) duo no perfil
-        const duo = secao("duoModos", "rosa", "Seu duo no perfil", "O que acontece quando alguém toca na rosinha da sua foto de perfil.");
-        duo.classList.add("duo-modos");
+        const grupo = (titulo) => { const g = el("section", "cfg-grupo"); g.appendChild(el("h4", null, titulo)); const l = el("div", "cfg-lista"); g.appendChild(l); corpo.appendChild(g); return l; };
+        const linha = (lista, id, ic, nome, valor, fn) => {
+          const b = botao("cfg-row", null, fn); if (id) b.id = id;
+          const v = el("span", "cfg-val", valor || "");
+          b.append(icone(ic, "i"), el("span", "cfg-nm", nome), v, icone("avancar", "i s cfg-seta"));
+          lista.appendChild(b); return v;
+        };
+        // Privacidade
+        const lp = grupo("Privacidade");
+        const vVis = linha(lp, "cfgPrivacidade", "cadeado", "Quem abre os perfis", VIS[dono.socialVisibilidade || "todos"]?.[0], () =>
+          escolherOpcao("Quem abre os perfis do seu social", VIS, dono.socialVisibilidade || "todos", async (v) => {
+            try { await fb.setDoc(fb.doc(fb.db, "perfis_publicos", eu.uid), { uid: eu.uid, socialVisibilidade: v }, { merge: true }); dono.socialVisibilidade = v; vVis.textContent = VIS[v][0]; toast("Salvo"); return true; }
+            catch { toast("Não foi possível salvar."); return false; }
+          }, "Quem não está liberado vê fotos e nomes, mas não abre os perfis."));
+        // Duo
+        const ld = grupo("Duo");
+        const vDuo = linha(ld, "duoModos", "rosa", "Rosinha no perfil", ESTILOS_DUO.find((e) => e.id === lerModoDuo(modoDuo).estilo)?.nome, () => abrirModosDuo(() => { vDuo.textContent = ESTILOS_DUO.find((e) => e.id === lerModoDuo(modoDuo).estilo)?.nome || ""; }));
+        // Presentes
+        const lpr = grupo("Presentes");
+        const vPres = linha(lpr, "cfgPresentes", "presente", "Quem pode me enviar", presAtual ? PRES_CURTO[presAtual] : "", () =>
+          escolherOpcao("Quem pode me enviar presentes", QUEM_PODE, presAtual || "seguindo", async (v) => {
+            try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { presentes: v, atualizadoEm: fb.serverTimestamp() }, { merge: true }); presAtual = v; vPres.textContent = PRES_CURTO[v]; toast("Salvo"); return true; }
+            catch (e) { toast(e?.code === "permission-denied" ? "Esta opção ainda está sendo liberada." : "Não foi possível salvar."); return false; }
+          }, "Você sempre pode recusar. O seu endereço vai só para a loja."));
+        if (!presAtual) fb.getDoc(fb.doc(fb.db, "pref_publicas", eu.uid)).then((s) => (s.exists() ? s.data().presentes : "")).catch(() => "").then((q) => { presAtual = QUEM_PODE[q] ? q : "seguindo"; vPres.textContent = PRES_CURTO[presAtual]; });
+        // Proteção
+        const lh = grupo("Proteção");
+        linha(lh, "cfgSos", "escudo", "Rede de Help", "", () => abrirRedeHelp());
+        const meus = pets.get(eu.uid) || [];
+        linha(lh, "cfgPets", "pata", "Seus pets", meus.length ? String(meus.length) : "", () => abrirMeusPets());
+        linha(lh, "cfgAlertas", "sino", "Alertas perto de você", "", () => { location.href = "alertas.html#config"; });
+      }, { grande: true });
+      if (foco === "duoModos") abrirModosDuo();
+    }
+    // Rosinha no perfil: os 4 modelos com prévia, numa folha própria (antes ficavam no meio das configurações).
+    function abrirModosDuo(aoMudar) {
+      abrirFolha("Rosinha no perfil", (corpo) => {
+        const box = el("div", "cfg-duo");
         const grade = el("div", "dm-grade"); grade.id = "dmGrade"; grade.setAttribute("role", "radiogroup"); grade.setAttribute("aria-label", "Como o duo aparece no perfil");
         const clique = el("label", "dm-clique"); clique.id = "dmClique";
         const ctx = el("span", "tx"); const small = el("small"); small.id = "dmCliqueTx"; ctx.append(el("strong", null, "Tocar abre o perfil do duo"), small);
         const ch = el("span", "chave"); const inp = el("input"); inp.type = "checkbox"; inp.id = "dmCliqueIn"; ch.append(inp, el("span"));
         clique.append(ctx, ch);
-        inp.addEventListener("change", (e) => { const a = lerModoDuo(modoDuo); mudarModoDuo(montarModoDuo(a.estilo, e.target.checked)); });
-        const atual = el("p", "dm-atual"); atual.id = "dmAtual";
-        duo.append(grade, clique, atual);
-        // 3) presentes
-        const pres = secao("cfgPresentes", "presente", "Quem pode me enviar presentes", "Você sempre pode recusar um presente. Seu endereço vai só para a loja que entrega.");
-        const presBox = el("div"); presBox.appendChild(el("p", "aviso-add", "Carregando..."));
-        pres.appendChild(presBox);
-        fb.getDoc(fb.doc(fb.db, "pref_publicas", eu.uid)).then((s) => (s.exists() ? s.data().presentes : "")).catch(() => "").then((q) => {
-          presBox.replaceChildren(opcoes(QUEM_PODE, QUEM_PODE[q] ? q : "seguindo", async (v) => {
-            try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { presentes: v, atualizadoEm: fb.serverTimestamp() }, { merge: true }); toast("Salvo"); return true; }
-            catch (e) { toast(e?.code === "permission-denied" ? "Esta opção ainda está sendo liberada." : "Não foi possível salvar."); return false; }
-          }));
-        });
-        // 4) SOS e pets
-        const n = aceitas().length;
-        const sos = secao("cfgSos", "escudo", "SOS e rede de proteção", n ? `Quando você pede ajuda (SOS), as ${n} ${n === 1 ? "pessoa" : "pessoas"} do seu social recebem primeiro no Mensagens. Depois, se você escolher, quem está perto e a equipe de segurança.` : "Quando você pede ajuda (SOS), quem está no seu social recebe primeiro. Adicione família, amigos e o seu duo.");
-        const links = el("div", "cfg-links");
-        const a1 = el("a", "btn sec", "Configurar alertas"); a1.href = "alertas.html#config";
-        const a2 = el("a", "btn sec", "Seus pets (RG do pet)"); a2.href = "alertas.html?aba=pets";
-        links.append(a1, a2); sos.appendChild(links);
-        corpo.append(priv, duo, pres, sos);
-      }, { grande: true });
+        inp.addEventListener("change", async (e) => { const a = lerModoDuo(modoDuo); await mudarModoDuo(montarModoDuo(a.estilo, e.target.checked)); aoMudar?.(); });
+        const atual = el("p", "cfg-nota"); atual.id = "dmAtual";
+        box.append(grade, clique, atual);
+        corpo.appendChild(box);
+        grade._aoMudar = aoMudar;
+      });
       desenharModosDuo();
-      if (foco) requestAnimationFrame(() => document.getElementById(foco)?.scrollIntoView({ block: "start" }));
     }
     $("btnAdd").addEventListener("click", () => (aba === "conexoes" ? abrirAdicionar() : abrirCriar()));
 
@@ -1184,6 +1430,7 @@
       if (estilo === "ocultar") pv.appendChild(el("span", "dm-nada", "Sem rosinha"));
       return pv;
     }
+    const CURTO_DUO = { gaveta: "Prévia ao lado da foto", bolinha: "A fotinho do duo", rosa: "Só a flor, sem nome", ocultar: "Nada aparece" };
     function desenharModosDuo() {
       const box = $("dmGrade"); if (!box) return;
       box.replaceChildren();
@@ -1194,11 +1441,11 @@
         b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(atual.estilo === m.id)); b.dataset.estilo = m.id;
         const clique = m.id === "gaveta" || m.id === "bolinha" ? atual.estilo === m.id ? atual.clique : true : false;
         const tx = el("span", "dm-tx"); const nm = el("span", "dm-nome"); nm.append(el("strong", null, m.nome), el("span", "radio"));
-        tx.append(nm, el("small", null, m.texto));
+        tx.append(nm, el("small", null, CURTO_DUO[m.id] || ""));
         b.append(previaDuo(m.id, clique, duo), tx);
-        b.addEventListener("click", () => {
+        b.addEventListener("click", async () => {
           const vale = atual.estilo === "gaveta" || atual.estilo === "bolinha" ? atual.clique : true;
-          mudarModoDuo(montarModoDuo(m.id, vale));
+          await mudarModoDuo(montarModoDuo(m.id, vale)); box._aoMudar?.();
         });
         box.appendChild(b);
       });
@@ -1206,8 +1453,9 @@
       $("dmCliqueIn").checked = comClique && atual.clique;
       $("dmCliqueIn").disabled = !comClique;
       $("dmClique").classList.toggle("desligado", !comClique);
-      $("dmCliqueTx").textContent = comClique ? (atual.estilo === "gaveta" ? "Tocar na gaveta abre o perfil do seu duo." : "Tocar na bolinha abre o perfil do seu duo.") : "Só na gaveta e na bolinha.";
-      $("dmAtual").textContent = (duo ? "" : "Você ainda não tem um duo: a escolha vale quando tiver. ") + "Agora: " + textoModoDuo(modoDuo);
+      $("dmCliqueTx").textContent = comClique ? "Botão Ver perfil na prévia" : "Só no Cartão e na Bolinha";
+      $("dmAtual").textContent = duo ? "" : "Você ainda não tem um duo: a escolha vale quando tiver.";
+      $("dmAtual").hidden = !!duo;
     }
     async function mudarModoDuo(valor) {
       if (valor === valorDuo(modoDuo)) return;
