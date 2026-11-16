@@ -54,7 +54,7 @@ for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "
     voltar: !!document.querySelector(".topo-app .icone-btn use[href='#i-voltar']"), sw: document.documentElement.scrollWidth, vw: innerWidth }));
   ok(t.app && !t.marca && t.tit.startsWith(tit) && t.voltar && t.sw <= t.vw, `${pg}: topo voltar · ${tit} (${t.tit})`);
   if (pg === "social.html") {
-    ok(await p.locator("#duo:not([hidden]) .akai-par").count() === 1, "Social: cartão do duo (Akai Ito) no Salão");
+    ok(await p.locator("#duo:not([hidden]) .ak-linha").count() === 1, "Social: cartão do duo (Akai Ito) no Salão");
     await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
     const ceu = await p.evaluate(() => ({ destaques: document.querySelectorAll("#destaques .dest:not(.novo)").length, cartoes: document.querySelectorAll("#rede .pessoa").length,
       filtros: document.querySelectorAll("#filtros button").length }));

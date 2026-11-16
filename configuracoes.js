@@ -13,7 +13,7 @@ import {
 import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=12";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
-import { lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo } from "./duo-modo.js?v=1";
+import { lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo } from "./duo-modo.js?v=2";
 
 function pintarConfig() {
   pintarAvatar($("cfgAvatar"), dados.fotoPerfil, dados.nome);

@@ -372,7 +372,7 @@
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } .folha.grande { max-height: 84vh; } }
     @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho { animation: none; } }
   </style>
-  <link rel="stylesheet" href="salao.css?v=1" />
+  <link rel="stylesheet" href="salao.css?v=2" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
@@ -418,8 +418,8 @@
     <div id="conteudo" hidden>
       <section class="hero-social" id="hero" aria-label="Perfil">
         <div class="hs-topo"><div class="hs-avw" id="hsAvw"><div class="avatar hs-av" id="hsAv"></div></div>
-          <div class="hs-info"><h2><span id="heroNome"></span><svg class="i selo-v" id="heroSelo" hidden aria-label="Perfil verificado"><use href="#i-selo"/></svg></h2><div class="hs-nick" id="heroNick"></div><p class="hs-bio" id="heroBio"></p></div></div>
-        <div class="hs-acoes" id="hsAcoes"></div>
+          <div class="hs-info"><h2><span id="heroNome"></span><svg class="i selo-v" id="heroSelo" hidden aria-label="Perfil verificado"><use href="#i-selo"/></svg></h2><div class="hs-nick" id="heroNick"></div><p class="hs-bio" id="heroBio" hidden></p></div>
+        <div class="hs-acoes" id="hsAcoes"></div></div>
         <div class="hs-stats"><button type="button" class="hs-stat" data-ir="salao"><b id="stMom">–</b><span>Momentos</span></button><button type="button" class="hs-stat" data-ir="conexoes"><b id="stCon">0</b><span>Conexões</span></button><div class="hs-stat"><b id="stSeg">–</b><span>Seguidores</span></div></div>
       </section>
       <nav class="abas-social" id="abasSocial" role="tablist" aria-label="Salão e conexões">
@@ -428,24 +428,20 @@
       </nav>
       <div class="painel-aba" id="painelSalao" role="tabpanel" aria-labelledby="abaSalao">
         <div class="sl-novo" id="slNovo" hidden></div>
-        <section id="secDqf" hidden aria-label="Destaques do Flash">
-          <div class="sl-cab"><div><h3>Destaques do Flash</h3><p id="dqfSub">Os flashes que ficaram para sempre.</p></div><a class="sl-acao" id="dqfArquivo" href="usuarios.html?acao=arquivo" hidden>Arquivo</a></div>
-          <div class="dqf" id="dqf"></div>
-        </section>
+        <section class="akai" id="duo" hidden aria-label="Duo"></section>
         <section id="secExpo" hidden aria-label="Em exposição">
           <div class="sl-cab"><div><h3>Em exposição</h3><p id="expoSub">Os momentos favoritos, escolhidos a dedo.</p></div></div>
           <div class="expo" id="expo"></div>
         </section>
-        <section class="akai" id="duo" hidden aria-label="Duo"></section>
         <section id="secGaleria" hidden aria-label="Galeria">
-          <div class="sl-cab"><div><h3>Galeria</h3><p id="galSub"></p></div></div>
+          <div class="sl-cab"><div><h3>Galeria <small id="galSub"></small></h3></div><button type="button" class="sl-acao sl-modelo" id="galModelo" hidden><svg class="i s"><use href="#i-salao"/></svg><span>Modelo</span></button></div>
           <nav class="gal-chips" id="galChips" aria-label="Filtrar a galeria"></nav>
           <div class="galeria" id="galeria"></div>
           <button type="button" class="btn sec gal-mais" id="galMais" hidden></button>
         </section>
-        <section id="secVida" hidden aria-label="Linha da vida">
-          <div class="sl-cab"><div><h3>Linha da vida</h3><p>Lembranças e conquistas, do mais recente ao começo.</p></div></div>
-          <div class="vida" id="vida"></div>
+        <section id="secDqf" hidden aria-label="Destaques do Flash">
+          <div class="sl-cab"><div><h3>Destaques do Flash</h3><p id="dqfSub">Os flashes que ficaram para sempre.</p></div><a class="sl-acao" id="dqfArquivo" href="usuarios.html?acao=arquivo" hidden>Arquivo</a></div>
+          <div class="dqf" id="dqf"></div>
         </section>
         <div class="sl-vazio" id="slVazio" hidden></div>
       </div>
@@ -456,13 +452,12 @@
         <div class="destaques" id="destaques"></div>
       </section>
       <section id="secCuidado" hidden aria-label="Cuidado e proteção">
-        <div class="sec-cab"><div><h3>Cuidado e proteção</h3><p>Seu social também é a sua rede de apoio.</p></div></div>
         <div class="cd-grade" id="cuidado"></div>
       </section>
       <section aria-label="Sua rede de conexões" id="secRede">
-        <div class="sec-cab"><div><h3 id="redeTit">Sua rede de conexões</h3><p id="redeSub">Organize e encontre rapidamente suas pessoas.</p></div></div>
+        <div class="sec-cab"><div><h3 id="redeTit">Sua rede <small id="redeSub"></small></h3></div></div>
         <div class="controles"><nav class="chips" id="filtros" aria-label="Mostrar um grupo"></nav>
-          <select class="ordem" id="ordem" aria-label="Ordenar"><option value="recentes">Recentes</option><option value="nome">Nome A–Z</option><option value="ativos">Ativos agora</option><option value="tempo">Há mais tempo</option></select></div>
+</div>
         <div class="rede" id="rede"></div>
       </section>
       <p class="nota" id="nota" hidden></p>
@@ -473,10 +468,10 @@
   <script type="module">
     import { fotoSegura } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=6";
-    import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=1";
+    import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=2";
     import { iconeEl, iconeEspecie } from "./icones-hf.js?v=2";
     import { QUEM_PODE } from "./presentes-base.js?v=2";
-    import { CATEGORIAS, catDe, VER_MOMENTO, MAX_MOMENTOS, quando, ordenar, relacaoCom, lerMomentos, lerDestaquesFlash, fotoOk, reduzirFotoSalao } from "./salao-base.js?v=1";
+    import { CATEGORIAS, catDe, VER_MOMENTO, MAX_MOMENTOS, LIMITES_SALAO, contarSalao, MODELOS_GALERIA, modeloGaleria, DESENHO_MODELO, quando, ordenar, relacaoCom, lerMomentos, lerDestaquesFlash, fotoOk, reduzirFotoSalao } from "./salao-base.js?v=2";
     const $ = (id) => document.getElementById(id);
     // Duo inclui namorado(a) e cônjuge: é a pessoa ligada pelo Akai Ito.
     const TIPOS = {
@@ -738,15 +733,14 @@
         try { if (navigator.share) { await navigator.share({ title: `Social de ${primeiroNome(dono.nome)} | Help Floripa`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
         try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast("Não foi possível copiar o link."); }
       };
+      // 16/11/2026: ações em ícones no canto do cartão (o topo ficou numa linha só)
+      const ic = (tag, nomeIc, rotulo, fn) => { const b = tag === "a" ? el("a") : botao("", null, fn); b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(icone(nomeIc)); return b; };
       if (proprio) {
-        const cfg = botao("", null, () => abrirConfig()); cfg.id = "btnConfig"; cfg.append(icone("ajustes"), document.createTextNode("Configurar"));
-        const sh = botao("", null, compartilhar); sh.append(icone("compartilhar"), document.createTextNode("Compartilhar"));
-        box.append(cfg, sh);
+        const cfg = ic("b", "ajustes", "Configurar o social", () => abrirConfig()); cfg.id = "btnConfig";
+        box.append(cfg, ic("b", "compartilhar", "Compartilhar", compartilhar));
       } else {
-        const ver = el("a"); ver.href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`; ver.append(icone("perfil"), document.createTextNode("Ver perfil"));
-        const pr = botao("", null, () => irPresente(donoId)); pr.append(icone("presente"), document.createTextNode("Presente"));
-        const sh = botao("", null, compartilhar); sh.setAttribute("aria-label", "Compartilhar"); sh.style.flex = "0 0 42px"; sh.style.padding = "0"; sh.appendChild(icone("compartilhar"));
-        box.append(ver, pr, sh);
+        const ver = ic("a", "perfil", "Ver perfil"); ver.href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`;
+        box.append(ver, ic("b", "presente", "Enviar um presente", () => irPresente(donoId)), ic("b", "compartilhar", "Compartilhar", compartilhar));
       }
     }
     // seguidores e seguindo (só a contagem, 2 leituras)
@@ -786,13 +780,13 @@
       const n = aceitas().length, meus = pets.get(eu.uid) || [];
       const tile = (href, ic, cor, tit, sub, id) => {
         const a = el("a", "cd"); a.href = href; a.style.setProperty("--c", cor); if (id) a.id = id;
-        a.append(iconeEl(ic, { cor, tam: 20, fundo: true }), el("strong", null, tit), el("small", null, sub));
+        const tx = el("span", "cd-tx"); tx.append(el("strong", null, tit), el("small", null, sub)); a.append(iconeEl(ic, { cor, tam: 16, fundo: true }), tx);
         return a;
       };
       $("cuidado").replaceChildren(
-        tile("alertas.html", "sirene", "#e5484d", "SOS", n ? `${n} ${n === 1 ? "pessoa do seu social é avisada" : "pessoas do seu social são avisadas"} primeiro.` : "Adicione pessoas: elas são avisadas primeiro.", "cdSos"),
-        tile("alertas.html?aba=pets", "pata", "#f5b301", "Pets", meus.length ? `${meus.length === 1 ? meus[0].nome + " tem" : meus.length + " pets com"} RG do pet.` : "Faça o RG do seu pet com QR.", "cdPets"),
-        tile("presentes.html", "presente", "#e5487f", "Presentes", "Mande um mimo para quem você gosta.", "cdPresentes")
+        tile("alertas.html", "sirene", "#e5484d", "SOS", n ? `${n} na rede` : "Monte a rede", "cdSos"),
+        tile("alertas.html?aba=pets", "pata", "#f5b301", "Pets", meus.length ? `${meus.length} com RG` : "RG do pet", "cdPets"),
+        tile("presentes.html", "presente", "#e5487f", "Presentes", "Mimos", "cdPresentes")
       );
     }
 
@@ -809,9 +803,8 @@
       };
       chip("todos", "Todas", conexoes.filter((c) => proprio || !c.pendente).length);
       GRUPOS.forEach((g) => chip(g.cat, g.nome, conexoes.filter((c) => c.cat === g.cat && (proprio || !c.pendente)).length));
-      $("ordem").value = ordem;
     }
-    $("ordem").addEventListener("change", (e) => { ordem = e.target.value; desenharRede(); });
+
 
     // ---------- cartões das conexões ----------
     async function abrirConversa(c, b) {
@@ -834,13 +827,29 @@
       const desde = c.aceitoEm?.toDate?.();
       return [desde ? `No social desde ${mesAno(desde)}.` : "Uma conexão da rede.", ""];
     }
+    // "visto há" das conexões (16/11/2026): online (bolinha verde) ou há quanto tempo esteve no site
+    const msAcesso = (p) => p.ultimoAcesso?.toMillis?.() ?? 0;
+    function vistoHa(p) {
+      const t = msAcesso(p); if (!t) return "";
+      const d = Date.now() - t, M = 60000, H = 36e5, D = 864e5;
+      if (d < 10 * M) return "online";
+      if (d < H) return `visto há ${Math.floor(d / M)} min`;
+      if (d < D) return `visto há ${Math.floor(d / H)} h`;
+      if (d < 2 * D) return "visto ontem";
+      if (d < 7 * D) return `visto há ${Math.floor(d / D)} dias`;
+      return "visto em " + new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "short" }).replace(".", "");
+    }
+    // Conexões em lista compacta (16/11/2026): foto com o anel do grupo e a bolinha verde, nome, papel e "visto há",
+    // mensagem e ⋯. Ordem padrão: pedidos recebidos, quem está online, depois quem esteve mais recentemente.
     function desenharRede() {
       const box = $("rede"); box.replaceChildren();
       let lista = conexoes.filter((c) => (proprio || !c.pendente) && (filtro === "todos" || filtro === c.cat));
+      const recebido = (c) => c.pendente && c.de !== eu.uid;
       lista.sort((a, b) => ordem === "nome" ? puroNome(a).localeCompare(puroNome(b))
-        : ordem === "ativos" ? Number(online(b.perfil)) - Number(online(a.perfil)) || msAceito(b) - msAceito(a)
+        : ordem === "ativos" ? Number(a.pendente) - Number(b.pendente) || msAceito(b) - msAceito(a)
         : ordem === "tempo" ? Number(a.pendente) - Number(b.pendente) || msConheceram(a) - msConheceram(b)
-        : Number(b.pendente && b.de !== eu.uid) - Number(a.pendente && a.de !== eu.uid) || Number(a.pendente) - Number(b.pendente) || msAceito(b) - msAceito(a));
+        : Number(recebido(b)) - Number(recebido(a)) || Number(a.pendente) - Number(b.pendente) || Number(online(b.perfil)) - Number(online(a.perfil)) || msAcesso(b.perfil) - msAcesso(a.perfil));
+      $("redeSub").textContent = `${lista.length} ${lista.length === 1 ? "pessoa" : "pessoas"}`;
       if (!lista.length) {
         const v = el("div", "vazio-rede");
         v.append(document.createTextNode(filtro === "todos" ? (proprio ? "Você ainda não tem conexões. " : "Ainda sem conexões por aqui.") : `Nenhuma conexão em ${nomeGrupo(filtro)}. `));
@@ -848,93 +857,76 @@
         box.appendChild(v); return;
       }
       lista.forEach((c) => {
-        const p = c.perfil, recebido = c.pendente && c.de !== eu.uid;
+        const p = c.perfil, rec = recebido(c), on = online(p) && !c.pendente;
         const art = el("article", "pessoa" + (c.pendente ? " pend" : "")); art.dataset.cat = c.cat; art.dataset.id = c.id; art.style.setProperty("--cor", corDe(c.cat));
-        if (c.retrato && !c.pendente) {
-          art.classList.add("com-foto");
-          const ft = botao("pe-foto"); ft.setAttribute("aria-label", "Retrato de vocês");
-          art.appendChild(ft);
-          quandoAparecer(ft, () => lerRetrato(c).then((u) => { if (!u) { ft.remove(); art.classList.remove("com-foto"); return; } const i = el("img"); i.src = u; i.alt = ""; i.loading = "lazy"; ft.appendChild(i); ft.onclick = () => verFoto(u); }));
-        }
-        const av = el("div", "pe-av"); av.appendChild(novoAvatar(p.fotoPerfil, p.nome)); if (online(p) && !c.pendente) av.appendChild(el("i", "on"));
+        const abre = proprio || clicavel;
+        const corpoBt = el(abre && !c.pendente ? "button" : "div", "pe-corpo");
+        if (abre && !c.pendente) { corpoBt.type = "button"; corpoBt.setAttribute("aria-label", `Ver o perfil de ${p.nome || "Usuário"}`); corpoBt.addEventListener("click", () => (c.cat === "duo" ? abrirDuo(c) : irPerfil(c.outro))); }
+        const av = el("div", "pe-av"); av.appendChild(novoAvatar(p.fotoPerfil, p.nome)); if (on) av.appendChild(el("i", "on"));
         const pb = petBolha(c.outro); if (pb) av.appendChild(pb);
         const nome = el("div", "pe-nome"); const b = el("b"); b.appendChild(el("span", null, p.nome || "Usuário"));
         if (p.verificado) b.appendChild(icone("selo", "i selo-v"));
-        nome.append(b, el("small", null, [TIPOS[c.tipo]?.[0] || "", cidadeDe(p)].filter(Boolean).join(" · ")));
-        const [texto, cls] = textoCartao(c);
-        const tags = el("div", "pe-tags"); tags.appendChild(el("span", "pe-tag", nomeGrupo(c.cat)));
-        const dC = deISO(c.conheceram);
-        if (c.pendente) tags.appendChild(el("span", "pe-tag neutra", recebido ? "Pedido recebido" : "Aguardando"));
-        else {
-          if (dC && c.frase) tags.appendChild(el("span", "pe-tag neutra", `Desde ${dC.getFullYear()}`));
-          if (online(p)) tags.appendChild(el("span", "pe-tag neutra", "Online"));
-        }
+        const sub = el("small");
+        sub.appendChild(el("span", "pe-papel", TIPOS[c.tipo]?.[0] || nomeGrupo(c.cat)));
+        const extra = c.pendente ? (rec ? "Quer entrar no seu social" : "Aguardando resposta") : vistoHa(p);
+        if (extra) sub.appendChild(el("span", "pe-visto" + (extra === "online" ? " on" : ""), extra));
+        else if (cidadeDe(p)) sub.appendChild(el("span", "pe-visto", cidadeDe(p)));
+        nome.append(b, sub);
+        corpoBt.append(av, nome);
         const pes = el("div", "pe-pes");
-        if (recebido && proprio) {
+        if (rec && proprio) {
           pes.append(botao("", "Recusar", (e) => responderPedido(c, false, e.currentTarget)), botao("aceitar", "Aceitar", (e) => responderPedido(c, true, e.currentTarget)));
         } else if (!c.pendente && c.outro !== eu.uid) {
-          // Mensagem (larga) + perfil e presente em ícones: cabem no cartão estreito do celular
-          const ver = botao("ic"); ver.setAttribute("aria-label", `Ver o perfil de ${primeiroNome(p.nome)}`); ver.title = "Ver perfil"; ver.appendChild(icone("perfil"));
-          if (proprio || clicavel) ver.addEventListener("click", () => irPerfil(c.outro)); else { ver.disabled = true; ver.title = "O dono deste social não liberou abrir os perfis"; }
-          const msg = botao("msg", null); msg.append(icone("chat"), el("span", null, "Mensagem")); msg.setAttribute("aria-label", `Mensagem para ${primeiroNome(p.nome)}`); msg.addEventListener("click", () => abrirConversa(c, msg));
-          const pr = botao("ic", null, () => irPresente(c.outro)); pr.setAttribute("aria-label", `Enviar um presente para ${primeiroNome(p.nome)}`); pr.title = "Enviar um presente"; pr.appendChild(icone("presente"));
-          pes.append(msg, ver, pr);
+          const msg = botao("msg"); msg.appendChild(icone("chat")); msg.setAttribute("aria-label", `Mensagem para ${primeiroNome(p.nome)}`); msg.title = "Mensagem"; msg.addEventListener("click", () => abrirConversa(c, msg));
+          pes.appendChild(msg);
+          if (!proprio) { const pr = botao("ic", null, () => irPresente(c.outro)); pr.setAttribute("aria-label", `Enviar um presente para ${primeiroNome(p.nome)}`); pr.title = "Enviar um presente"; pr.appendChild(icone("presente")); pes.appendChild(pr); }
         }
-        const topo = el("div", "pe-topo"); topo.append(av, nome);
-        art.append(topo, el("p", "pe-texto" + (cls ? " " + cls : ""), cls === "frase" ? `“${texto}”` : texto), tags, pes);
-        if (proprio) { art.classList.add("com-mais"); const mais = botao("mais"); mais.setAttribute("aria-label", "Mais opções"); mais.appendChild(icone("pontos")); mais.addEventListener("click", acaoPessoa(c)); art.appendChild(mais); }
+        if (proprio) { const mais = botao("mais"); mais.setAttribute("aria-label", "Mais opções"); mais.appendChild(icone("pontos")); mais.addEventListener("click", acaoPessoa(c)); pes.appendChild(mais); }
+        art.append(corpoBt, pes);
         box.appendChild(art);
       });
     }
 
-    // ---------- Akai Ito ----------
+    // ---------- Akai Ito (16/11/2026: uma linha compacta que abre o cartão do duo, duo-cartao.js) ----------
+    function abrirDuo(c) {
+      import("./duo-cartao.js?v=1").then(({ abrirCartaoDuo }) => abrirCartaoDuo({
+        fb, eu: eu.uid, dono: { uid: donoId, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
+        vinculo: { ...c, papel: TIPOS[c.tipo]?.[0] || "Duo" }, perfil: c.perfil, podeAbrir: proprio || clicavel, toast,
+        retrato: c.retrato ? lerRetrato(c) : null,
+        abrirPerfil: (u) => irPerfil(u)
+      })).catch(() => toast("Não foi possível abrir agora."));
+    }
     function desenharDuo() {
       const box = $("duo");
       const c = conexoes.find((x) => x.cat === "duo" && !x.pendente);
       box.hidden = !c;
       if (!c) return;
-      box.replaceChildren();
-      const cab = el("div", "ak-cab");
-      const rot = el("p", "ak-rot"); rot.style.margin = "0";
-      rot.append(icone("rosa"), document.createTextNode("Akai Ito"));
-      if (c.tipo !== "duo") rot.appendChild(el("small", null, TIPOS[c.tipo][0]));
-      cab.appendChild(rot);
-      if (proprio) { const ed = botao("ak-edit", null, () => abrirMemoria(c)); ed.id = "akEditar"; ed.append(icone("lapis"), document.createTextNode("Editar")); cab.appendChild(ed); }
-      box.appendChild(cab);
-      if (c.retrato) {
-        const rt = botao("ak-retrato"); rt.setAttribute("aria-label", "Ver o retrato de vocês");
-        box.appendChild(rt);
-        lerRetrato(c).then((u) => { if (!u) { rt.remove(); return; } const i = el("img"); i.src = u; i.alt = ""; rt.appendChild(i); rt.onclick = () => verFoto(u); });
-      }
-      const par = el("div", "akai-par");
-      const fio = svgEl("svg", { class: "akai-fio", viewBox: "0 0 200 50", preserveAspectRatio: "none" });
-      const onda = "M0 26 C25 8 45 44 70 26 S115 8 140 26 S180 44 200 26", onda2 = "M0 26 C25 44 45 8 70 26 S115 44 140 26 S180 8 200 26";
-      fio.append(svgEl("path", { class: "linha b", d: onda2 }), svgEl("path", { class: "linha", d: onda }), svgEl("path", { class: "brilho", d: onda }));
-      const cor = el("span", "akai-cor"); cor.appendChild(icone("rosa", ""));
-      const pessoa = (perfil, uid) => {
-        const b = el("button", "akai-pessoa"); b.type = "button";
-        const av = el("span", "ak-av"); av.appendChild(novoAvatar(perfil.fotoPerfil, perfil.nome));
-        const pb = petBolha(uid); if (pb) av.appendChild(pb);
-        b.append(av, el("strong", null, primeiroNome(perfil.nome)));
-        if (uid === donoId) b.disabled = true;
-        else if (proprio || clicavel) b.addEventListener("click", () => irPerfil(uid)); else b.disabled = true;
-        return b;
-      };
-      par.append(fio, cor, pessoa(dono, donoId), pessoa(c.perfil, c.outro));
-      box.append(par, el("p", "ak-frase", fraseDe(c)));
-      const dados = [];
+      box.replaceChildren(); box.classList.add("compacto");
+      const linha = botao("ak-linha", null, () => abrirDuo(c)); linha.id = "akAbrir";
+      linha.setAttribute("aria-label", `Abrir o cartão do duo com ${c.perfil.nome || "Usuário"}`);
+      const par = el("span", "ak-par2");
+      const no = el("span", "ak-no"); no.appendChild(icone("rosa", ""));
+      par.append(novoAvatar(dono.fotoPerfil, dono.nome), novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), no);
+      const tx = el("span", "ak-tx");
+      const rot = el("span", "ak-rot2"); rot.textContent = "Akai Ito" + (c.tipo !== "duo" ? " · " + (TIPOS[c.tipo]?.[0] || "") : "");
       const d = deISO(c.conheceram), desde = c.aceitoEm?.toDate?.();
-      if (d) dados.push(["Conheceram", dataCurta(d)], ["Juntos há", tempoDesde(d)]);
-      if (desde) dados.push(["No social", mesAno(desde)]);
-      if (dados.length) {
-        const g = el("div", "ak-dados"); g.style.setProperty("--n", String(dados.length));
-        dados.forEach(([k, v]) => { const x = el("div", "ak-dado"); x.append(el("small", null, k), el("b", null, v)); g.appendChild(x); });
-        box.appendChild(g);
-      }
-      if (proprio && !d && !c.retrato) {
-        const v = botao("ak-vazio", null, () => abrirMemoria(c)); v.id = "akMemoria";
-        v.append(icone("foto", "i"), el("span", null, "Adicione a data em que vocês se conheceram, uma frase e um retrato dos dois."));
-        box.appendChild(v);
+      const quem = (proprio ? "Você" : primeiroNome(dono.nome)) + " & " + primeiroNome(c.perfil.nome);
+      const quando = d || desde ? ` · desde ${mesAno(d || desde)}` : "";
+      rot.textContent += quando;
+      tx.append(rot, el("b", null, quem), el("small", null, `“${fraseDe(c)}”`));
+      linha.append(par, tx, icone("avancar", "i ak-seta"));
+      box.appendChild(linha);
+      if (proprio) {
+        const ed = botao("ak-edit2", null, () => abrirMemoria(c)); ed.id = "akEditar"; ed.setAttribute("aria-label", "Editar a memória de vocês"); ed.title = "Editar"; ed.appendChild(icone("lapis"));
+        box.appendChild(ed);
+        const faltam = [];
+        if (!d) faltam.push(["calendario", "Data em que se conheceram"]);
+        if (!c.retrato) faltam.push(["foto", "Retrato dos dois"]);
+        if (faltam.length) {
+          const t = el("div", "ak-todo"); t.id = "akMemoria";
+          faltam.forEach(([ic, txt]) => { const b = botao("", null, () => abrirMemoria(c)); b.append(icone(ic === "calendario" ? "lapis" : "foto"), el("span", null, txt)); t.appendChild(b); });
+          box.appendChild(t);
+        }
       }
     }
 
@@ -1230,10 +1222,10 @@
 
     // =====================================================================================
     // SALÃO (16/11/2026, ideia dele): a galeria onde a pessoa apresenta a vida dela.
-    // Destaques do Flash, Em exposição (fixados), o duo, Galeria (fotos) e Linha da vida (lembranças).
+    // Destaques do Flash, Em exposição (fixados), o duo e a Galeria (a Linha da vida saiu em 16/11/2026, pedido dele).
     // =====================================================================================
     let momentos = [], dqs = [], rel = { euSigo: false, meSegue: false }, socialOculto = false;
-    let catGal = "todas", galTudo = false, aba = "salao";
+    let catGal = "todas", galTudo = false, aba = "salao", modeloGal = "mosaico";
     const GAL_INICIO = 11; // 1 grande (2×2) + 7 pequenas fecham a grade de 3 colunas
     const estrela = (cls) => { const s = icone("estrela-c", cls || "i s"); return s; };
     const catIc = (k, tam = 14, fundo = false) => { const [, ic, cor] = catDe(k); return iconeEl(ic, { cor, tam, fundo }); };
@@ -1253,13 +1245,15 @@
 
     function desenharSalao() {
       const fotos = fotosDe(momentos);
-      $("stMom").textContent = String(momentos.length);
-      // barra do dono
+      $("stMom").textContent = String(fotos.length);
+      // barra do dono (16/11/2026: uma linha só com quanto cabe e o "Adicionar"; o "+" do topo também abre)
       const novo = $("slNovo"); novo.hidden = !proprio; novo.replaceChildren();
       if (proprio) {
-        const bt = (ic, cor, txt, fn, id) => { const b = botao("", null, fn); if (id) b.id = id; b.append(iconeEl(ic, { cor, tam: 18, fundo: true }), el("span", null, txt)); return b; };
-        const a = el("a"); a.href = "usuarios.html?acao=destaque"; a.id = "slNovoDq"; a.append(iconeEl("estrela", { cor: "#f5b301", tam: 18, fundo: true }), el("span", null, "Destaque do Flash"));
-        novo.append(bt("foto", "#00adee", "Momento com foto", () => abrirEditorMomento(null, "foto"), "slNovoFoto"), bt("linhaTempo", "#b066ff", "Lembrança", () => abrirEditorMomento(null, "lembranca"), "slNovoLemb"), a);
+        const n = contarSalao(momentos);
+        const medidor = (k, nome, cor) => { const d = el("span", "sl-med"); d.style.setProperty("--c", cor); d.style.setProperty("--p", Math.min(100, Math.round((n[k] / LIMITES_SALAO[k]) * 100)) + "%"); d.append(el("b", null, `${n[k]}/${LIMITES_SALAO[k]}`), el("small", null, nome), el("i")); d.title = `${nome}: ${n[k]} de ${LIMITES_SALAO[k]}`; return d; };
+        const meds = el("div", "sl-meds"); meds.append(medidor("fotos", "Fotos na galeria", "#00adee"), medidor("exposicao", "Em exposição", "#f5b301"));
+        const add = botao("sl-add", null, () => abrirCriar()); add.id = "slNovoFoto"; add.append(icone("mais", "i"), el("span", null, "Adicionar"));
+        novo.append(meds, add);
       }
       // destaques do Flash
       $("secDqf").hidden = !dqs.length;
@@ -1296,7 +1290,7 @@
         const pe = el("span", "ex-pe"); if (m.titulo) pe.appendChild(el("b", null, m.titulo)); const meta = metaMomento(m); if (meta) pe.appendChild(el("small", null, meta));
         b.append(i, topo, pe); ex.appendChild(b);
       });
-      // galeria
+      // galeria (16/11/2026: modelos escolhidos pelo dono e limite de fotos)
       $("secGaleria").hidden = !fotos.length && !proprio;
       const contas = {}; fotos.forEach((m) => { contas[m.categoria] = (contas[m.categoria] || 0) + 1; });
       if (catGal !== "todas" && !contas[catGal]) catGal = "todas";
@@ -1310,48 +1304,46 @@
       chip("todas", "Tudo", fotos.length);
       Object.keys(CATEGORIAS).filter((k) => contas[k]).forEach((k) => chip(k, catDe(k)[0], contas[k]));
       const daCat = fotos.filter((m) => catGal === "todas" || m.categoria === catGal);
-      $("galSub").textContent = fotos.length ? `${fotos.length} ${fotos.length === 1 ? "foto" : "fotos"} · os momentos que marcaram.` : "Suas fotos favoritas, organizadas por momento.";
+      $("galSub").textContent = proprio ? `${fotos.length}/${LIMITES_SALAO.fotos}` : fotos.length ? String(fotos.length) : "";
+      $("galModelo").hidden = !proprio || !fotos.length;
+      $("galModelo").onclick = abrirModelos;
+      $("galModelo").lastChild.textContent = MODELOS_GALERIA[modeloGal].nome;
       const g = $("galeria"); g.replaceChildren();
-      if (proprio) { const n = botao("g-tile novo", null, () => abrirEditorMomento(null, "foto")); n.id = "galNovo"; n.append(icone("mais", "i"), el("span", null, "Adicionar")); g.appendChild(n); }
-      const mostrar = galTudo ? daCat : daCat.slice(0, GAL_INICIO - (proprio ? 1 : 0));
+      g.className = "galeria mg-" + modeloGal;
+      const inicio = { mosaico: 11, grade: 9, revista: 7, polaroid: 6, filme: 99 }[modeloGal];
+      const cabe = fotos.length < LIMITES_SALAO.fotos;
+      const comNovo = proprio && cabe;
+      const mostrar = galTudo ? daCat : daCat.slice(0, inicio - (comNovo ? 1 : 0));
       mostrar.forEach((m, i) => {
-        const t = botao("g-tile" + (i === 0 && mostrar.length >= (proprio ? 4 : 3) ? " grande" : ""), null, () => abrirVisorMomentos(daCat, daCat.indexOf(m)));
+        const grande = modeloGal === "mosaico" && i === 0 && mostrar.length >= (comNovo ? 4 : 3);
+        const larga = modeloGal === "revista" && i % 3 === 0;
+        const t = botao("g-tile" + (grande ? " grande" : "") + (larga ? " larga" : ""), null, () => abrirVisorMomentos(daCat, daCat.indexOf(m)));
         t.setAttribute("aria-label", m.titulo || "Foto");
-        const im = el("img"); im.src = fotoOk(m.foto); im.alt = ""; im.loading = "lazy"; t.appendChild(im);
+        const quadro = el("span", "g-img");
+        const im = el("img"); im.src = fotoOk(m.foto); im.alt = ""; im.loading = "lazy"; quadro.appendChild(im); t.appendChild(quadro);
         const c = el("span", "g-cat"); c.appendChild(catIc(m.categoria, 12)); t.appendChild(c);
         if (m.fixado) { const f = el("span", "g-fix"); f.appendChild(estrela("")); t.appendChild(f); }
         if (proprio && m.ver !== "todos") { const tr = el("span", "g-tranca"); tr.title = VER_MOMENTO[m.ver]?.[0] || ""; tr.appendChild(icone("tranca", "")); t.appendChild(tr); }
+        if (["revista", "polaroid", "filme"].includes(modeloGal) && (m.titulo || m.data)) t.appendChild(el("span", "g-leg", m.titulo || dataMomento(m)));
         g.appendChild(t);
       });
+      if (comNovo) { const n = botao("g-tile novo", null, () => abrirEditorMomento(null, "foto")); n.id = "galNovo"; n.append(icone("mais", "i"), el("span", null, `Adicionar · ${LIMITES_SALAO.fotos - fotos.length}`)); g.appendChild(n); }
       const mais = $("galMais"); const sobra = daCat.length - mostrar.length;
       mais.hidden = galTudo || sobra <= 0; mais.textContent = `Ver todas as ${daCat.length} fotos`; mais.onclick = () => { galTudo = true; desenharSalao(); };
-      // linha da vida: lembranças + fotos com data
-      const vida = momentos.filter((m) => m.tipo === "lembranca" || m.data).sort((a, b) => quando(b) - quando(a));
-      $("secVida").hidden = !vida.length;
-      const v = $("vida"); v.replaceChildren(); let ano = null;
-      vida.forEach((m) => {
-        const d = deISO(m.data); const a = d ? String(d.getFullYear()) : "Sem data";
-        if (a !== ano) { ano = a; v.appendChild(el("div", "vida-ano", a)); }
-        const item = botao("vida-item", null, () => abrirVisorMomentos(vida, vida.indexOf(m))); item.style.setProperty("--cor", catDe(m.categoria)[2]);
-        const ponto = el("span", "vida-ponto"); ponto.appendChild(catIc(m.categoria, 18));
-        const cart = el("span", "vida-cartao"); const tx = el("span", "vt");
-        tx.appendChild(el("small", null, [d ? d.toLocaleDateString("pt-BR", { day: "numeric", month: "long" }) : "", catDe(m.categoria)[0]].filter(Boolean).join(" · ")));
-        tx.appendChild(el("b", null, m.titulo || catDe(m.categoria)[0]));
-        if (m.texto) tx.appendChild(el("p", null, m.texto));
-        if (m.local) tx.appendChild(el("em", null, m.local));
-        cart.appendChild(tx);
-        if (fotoOk(m.foto)) { const f = el("span", "vf"); const im = el("img"); im.src = fotoOk(m.foto); im.alt = ""; im.loading = "lazy"; f.appendChild(im); cart.appendChild(f); }
-        item.append(ponto, cart); v.appendChild(item);
-      });
       // vazio
-      const vazio = !momentos.length && !dqs.length;
+      const vazio = !fotos.length && !dqs.length;
       $("slVazio").hidden = !vazio;
       if (vazio) {
         const s = $("slVazio"); s.replaceChildren();
         const ic = el("div", "sv-ic"); ic.appendChild(icone("salao", "i"));
         s.append(ic, el("h4", null, proprio ? "Monte o seu salão" : `O salão de ${primeiroNome(dono.nome)} ainda está vazio`),
-          el("p", null, proprio ? "Aqui é onde você apresenta a sua vida: as fotos favoritas, as lembranças que marcaram e os destaques do Flash. Você escolhe quem vê cada um." : "Quando tiver momentos e lembranças para mostrar, eles aparecem aqui."));
-        if (proprio) $("secGaleria").hidden = true;
+          el("p", null, proprio ? `Suas ${LIMITES_SALAO.fotos} fotos favoritas, com a história de cada uma, e os destaques do Flash. Você escolhe quem vê cada foto.` : "Quando tiver momentos e lembranças para mostrar, eles aparecem aqui."));
+        if (proprio) {
+          $("secGaleria").hidden = true; $("slNovo").hidden = true;
+          const bs = el("div", "sv-bts");
+          const b1 = botao("btn pri", null, () => abrirEditorMomento(null, "foto")); b1.id = "slVazioFoto"; b1.append(icone("foto", "i s"), document.createTextNode("Primeira foto"));
+          bs.append(b1); s.appendChild(bs);
+        }
       }
     }
 
@@ -1407,7 +1399,7 @@
     }
     async function fixarMomento(m, sim) {
       const fixos = momentos.filter((x) => x.fixado && fotoOk(x.foto)).length;
-      if (sim && fixos >= 8) { toast("Até 8 momentos em exposição. Tire um para pôr outro."); return; }
+      if (sim && fixos >= LIMITES_SALAO.exposicao) { toast(`Até ${LIMITES_SALAO.exposicao} momentos em exposição. Tire um para pôr outro.`); return; }
       try { await fb.updateDoc(fb.doc(fb.db, "momentos", m.id), { fixado: sim, atualizadoEm: fb.serverTimestamp() }); m.fixado = sim; momentos = ordenar(momentos); desenharSalao(); toast(sim ? "Em exposição no seu salão" : "Saiu da exposição"); }
       catch { toast("Não foi possível mudar."); }
     }
@@ -1421,13 +1413,17 @@
     function abrirEditorMomento(m, tipoNovo) {
       const novo = !m;
       const d = { tipo: m?.tipo || tipoNovo || "foto", titulo: m?.titulo || "", texto: m?.texto || "", data: m?.data || "", local: m?.local || "", categoria: m?.categoria || "outro", foto: fotoOk(m?.foto) || "", fixado: !!m?.fixado, ver: m?.ver || "todos", com: [...(m?.com || [])] };
-      if (novo && d.tipo === "foto" && momentos.length >= MAX_MOMENTOS) { toast(`Seu salão já tem ${MAX_MOMENTOS} momentos. Apague algum para pôr outro.`); return; }
+      // limites do salão (16/11/2026): fotos, lembranças e exposição contadas no aparelho
+      const n0 = contarSalao(momentos.filter((x) => x !== m));
+      const cheioFoto = n0.fotos >= LIMITES_SALAO.fotos, cheioLemb = n0.lembrancas >= LIMITES_SALAO.lembrancas;
+      if (novo && d.tipo === "foto" && cheioFoto) { toast(`A galeria já tem ${LIMITES_SALAO.fotos} fotos. Apague uma para pôr outra.`); return; }
       abrirFolha(novo ? "Adicionar ao salão" : "Editar momento", (corpo, sair, pe) => {
         const f = el("div", "ed-m");
         // tipo
         const seg = el("div", "seg2"); seg.setAttribute("role", "radiogroup");
         const bTipo = (k, ic, txt) => { const b = botao(d.tipo === k ? "on" : "", null, () => { d.tipo = k; pintar(); }); b.dataset.tipo = k; b.append(iconeEl(ic, { tam: 15 }), document.createTextNode(txt)); return b; };
         seg.append(bTipo("foto", "foto", "Momento com foto"), bTipo("lembranca", "linhaTempo", "Lembrança"));
+        seg.hidden = novo || d.tipo !== "lembranca"; // 16/11/2026: o salão é só de fotos (a linha da vida saiu); lembrança antiga ainda dá para editar
         // foto
         const ret = botao("mem-ret"); ret.id = "edmFoto";
         const arq = el("input"); arq.type = "file"; arq.accept = "image/*"; arq.hidden = true; arq.id = "edmArquivo";
@@ -1462,7 +1458,7 @@
         const com = el("div", "ed-com"); com.id = "edmCom";
         pessoas.slice(0, 40).forEach((c) => { const b = botao(d.com.includes(c.outro) ? "on" : "", null, () => { const i = d.com.indexOf(c.outro); if (i >= 0) d.com.splice(i, 1); else if (d.com.length < 10) d.com.push(c.outro); else { toast("Até 10 pessoas."); return; } b.classList.toggle("on", d.com.includes(c.outro)); }); b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("span", null, primeiroNome(c.perfil.nome))); com.appendChild(b); });
         // exposição
-        const fixL = el("label", "ed-fix"); const fixTx = el("span", "tx"); fixTx.append(el("strong", null, "Pôr em exposição"), el("small", null, "Aparece grande no topo do seu salão (até 8)."));
+        const fixL = el("label", "ed-fix"); const fixTx = el("span", "tx"); fixTx.append(el("strong", null, "Pôr em exposição"), el("small", null, `Aparece grande no topo do seu salão (até ${LIMITES_SALAO.exposicao}).`));
         const ch = el("span", "chave"); const fixIn = el("input"); fixIn.type = "checkbox"; fixIn.id = "edmFixar"; fixIn.checked = d.fixado; fixIn.addEventListener("change", () => (d.fixado = fixIn.checked)); ch.append(fixIn, el("span"));
         fixL.append(fixTx, ch);
         f.append(seg, ret, arq, tirar, lTit, lTx, duas, lCat, cats, lVer, ver, verTx, lCom, com, fixL);
@@ -1484,10 +1480,12 @@
           const titulo = d.titulo.trim().slice(0, 60);
           if (d.tipo === "foto" && !d.foto) { toast("Escolha a foto do momento."); return; }
           if (d.tipo === "lembranca" && !titulo) { toast("Escreva o que aconteceu."); tit.focus(); return; }
+          if (d.foto && !fotoOk(m?.foto) && cheioFoto) { toast(`A galeria já tem ${LIMITES_SALAO.fotos} fotos. Tire a foto ou apague uma da galeria.`); return; }
+          if (!d.foto && d.tipo === "lembranca" && (novo || fotoOk(m?.foto)) && cheioLemb) { toast(`A linha da vida já tem ${LIMITES_SALAO.lembrancas} lembranças sem foto. Apague uma para pôr outra.`); return; }
           if (d.data && (!deISO(d.data) || d.data > hojeISO())) { toast("Escolha uma data até hoje."); return; }
           salvar.disabled = true;
           const dados = { uid: eu.uid, tipo: d.tipo, titulo, texto: d.texto.trim().slice(0, 400), data: d.data || "", local: d.local.trim().slice(0, 60), categoria: d.categoria, foto: d.foto || "", fixado: !!(d.fixado && d.foto), ver: d.ver, com: d.com.slice(0, 10), atualizadoEm: fb.serverTimestamp() };
-          if (dados.fixado && !m?.fixado && momentos.filter((x) => x.fixado && fotoOk(x.foto)).length >= 8) dados.fixado = false;
+          if (dados.fixado && !m?.fixado && momentos.filter((x) => x.fixado && fotoOk(x.foto)).length >= LIMITES_SALAO.exposicao) dados.fixado = false;
           try {
             if (novo) { const ref = await fb.addDoc(fb.collection(fb.db, "momentos"), { ...dados, criadoEm: fb.serverTimestamp() }); momentos.push({ id: ref.id, ...dados, criadoEm: fb.Timestamp.now(), atualizadoEm: fb.Timestamp.now() }); }
             else { await fb.updateDoc(fb.doc(fb.db, "momentos", m.id), dados); Object.assign(m, dados, { atualizadoEm: fb.Timestamp.now() }); }
@@ -1498,12 +1496,33 @@
       }, { grande: true, pe: true });
     }
 
+    // ---------- modelo da galeria (16/11/2026) ----------
+    function abrirModelos() {
+      abrirFolha("Modelo da galeria", (corpo, sair) => {
+        const g = el("div", "mg-escolha"); g.id = "mgEscolha";
+        Object.entries(MODELOS_GALERIA).forEach(([k, m]) => {
+          const b = botao(k === modeloGal ? "on" : "", null, async () => { sair(); await mudarModelo(k); });
+          b.dataset.modelo = k; b.setAttribute("aria-pressed", String(k === modeloGal));
+          const desenho = svgEl("svg", { viewBox: "0 0 46 34", "aria-hidden": "true" }); desenho.innerHTML = DESENHO_MODELO[k];
+          const tx = el("span", "tx"); tx.append(el("strong", null, m.nome), el("small", null, m.texto));
+          b.append(desenho, tx); g.appendChild(b);
+        });
+        corpo.append(g, el("p", "nota", "Quem visita o seu salão vê a galeria neste modelo."));
+      });
+    }
+    async function mudarModelo(k) {
+      modeloGal = modeloGaleria(k); galTudo = false; desenharSalao();
+      await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { salaoModelo: modeloGal }, { merge: true }).catch(() => {});
+      try { await fb.setDoc(fb.doc(fb.db, "pref_publicas", eu.uid), { salaoModelo: modeloGal, atualizadoEm: fb.serverTimestamp() }, { merge: true }); toast(`Modelo ${MODELOS_GALERIA[modeloGal].nome}`); }
+      catch (e) { toast(e?.code === "permission-denied" ? "Salvo para você. Quem visita vê o modelo depois da atualização das regras." : "Não foi possível salvar o modelo."); }
+    }
+
     // "+" do topo: o que adicionar
     function abrirCriar() {
       abrirFolha("Adicionar", (corpo, sair) => {
         const op = (ic, cor, tit, sub, fn, id) => { const b = botao("linha", null, () => { sair(); fn(); }); if (id) b.id = id; const tx = el("span", "tx"); tx.append(el("strong", null, tit), el("small", null, sub)); b.append(iconeEl(ic, { cor, tam: 18, fundo: true }), tx); corpo.appendChild(b); };
-        op("foto", "#00adee", "Momento com foto", "Uma foto que marcou, com a história dela", () => abrirEditorMomento(null, "foto"), "crFoto");
-        op("linhaTempo", "#b066ff", "Lembrança", "Uma conquista ou um fato na sua linha da vida", () => abrirEditorMomento(null, "lembranca"), "crLemb");
+        const n = contarSalao(momentos), resta = (k) => LIMITES_SALAO[k] - n[k];
+        op("foto", "#00adee", "Momento com foto", resta("fotos") > 0 ? `Uma foto que marcou · cabem mais ${resta("fotos")}` : `Galeria cheia (${LIMITES_SALAO.fotos} fotos)`, () => abrirEditorMomento(null, "foto"), "crFoto");
         op("estrela", "#f5b301", "Destaque do Flash", "Junte flashes que ficam no salão para sempre", () => { location.href = "usuarios.html?acao=destaque"; }, "crDq");
         op("pessoas", "#2fbf71", "Pessoa ao seu social", "Duo, família, amigos e colegas", () => abrirAdicionar(), "crPessoa");
       });
@@ -1513,7 +1532,6 @@
       desenharHero(); desenharDuo(); desenharSalao(); desenharDestaques(); desenharCuidado(); desenharControles(); desenharRede();
       $("nConAba").textContent = String(aceitas().length);
       if (proprio) desenharModosDuo();
-      $("redeSub").textContent = proprio && conexoes.some((c) => c.pendente && c.de !== eu.uid) ? "Você tem pedidos para responder." : "Organize e encontre rapidamente suas pessoas.";
     }
 
     async function iniciar() {
@@ -1581,6 +1599,7 @@
             $("nota").textContent = dono.socialVisibilidade === "amigos" ? "Os perfis abrem só para amigos (quem segue e é seguido)." : "Os perfis abrem só para seguidores.";
           }
           if (proprio) modoDuo = valorDuo(duoDaConta(conta?.duoCapa, dono.duoCapa));
+          modeloGal = modeloGaleria((proprio && conta?.salaoModelo) || (await fb.getDoc(fb.doc(fb.db, "pref_publicas", donoId)).then((d) => d.data()?.salaoModelo).catch(() => "")));
           if (socialOculto) { ["secDest", "secRede"].forEach((x) => ($(x).hidden = true)); $("notaOculto").hidden = false; }
           desenharTudo();
           if (socialOculto) $("secDest").hidden = true;

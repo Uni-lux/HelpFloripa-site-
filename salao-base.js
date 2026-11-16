@@ -17,7 +17,32 @@ export const VER_MOMENTO = {
   amigos: ["Amigos", "Quem você segue e segue você"],
   eu: ["Só eu", "Guardado só para você"]
 };
-export const MAX_MOMENTOS = 120;
+export const MAX_MOMENTOS = 80;
+// Limites do salão (16/11/2026, pedido dele): uma galeria escolhida a dedo, não um álbum sem fim.
+// Conferidos no aparelho (as regras não contam documentos). Lembrança com foto conta como foto.
+export const LIMITES_SALAO = { fotos: 24, lembrancas: 20, exposicao: 8 };
+export const contarSalao = (lista) => ({
+  fotos: lista.filter((m) => fotoOk(m.foto)).length,
+  lembrancas: lista.filter((m) => m.tipo === "lembranca" && !fotoOk(m.foto)).length,
+  exposicao: lista.filter((m) => m.fixado && fotoOk(m.foto)).length
+});
+// Modelos da galeria (16/11/2026): o dono escolhe e quem visita vê igual (pref_publicas.salaoModelo; conta guarda também).
+export const MODELOS_GALERIA = {
+  mosaico: { nome: "Mosaico", texto: "Uma foto grande e as outras em volta." },
+  grade: { nome: "Grade", texto: "Todas do mesmo tamanho, em quadrados." },
+  revista: { nome: "Revista", texto: "Uma larga, duas lado a lado, como num editorial." },
+  polaroid: { nome: "Polaroid", texto: "Fotos reveladas, com moldura e legenda." },
+  filme: { nome: "Filme", texto: "Uma faixa de cinema que desliza para o lado." }
+};
+export const modeloGaleria = (v) => (MODELOS_GALERIA[v] ? v : "mosaico");
+// Desenho pequeno de cada modelo (para os botões de escolher).
+export const DESENHO_MODELO = {
+  mosaico: '<rect x="1" y="1" width="27" height="21" rx="2.5"/><rect x="30" y="1" width="15" height="10" rx="2"/><rect x="30" y="12" width="15" height="10" rx="2"/><rect x="1" y="24" width="14" height="9" rx="2"/><rect x="17" y="24" width="28" height="9" rx="2"/>',
+  grade: '<rect x="1" y="1" width="14" height="10" rx="1.5"/><rect x="16" y="1" width="14" height="10" rx="1.5"/><rect x="31" y="1" width="14" height="10" rx="1.5"/><rect x="1" y="12" width="14" height="10" rx="1.5"/><rect x="16" y="12" width="14" height="10" rx="1.5"/><rect x="31" y="12" width="14" height="10" rx="1.5"/><rect x="1" y="23" width="14" height="10" rx="1.5"/><rect x="16" y="23" width="14" height="10" rx="1.5"/><rect x="31" y="23" width="14" height="10" rx="1.5"/>',
+  revista: '<rect x="1" y="1" width="44" height="15" rx="2.5"/><rect x="1" y="18" width="21" height="15" rx="2"/><rect x="24" y="18" width="21" height="15" rx="2"/>',
+  polaroid: '<g transform="rotate(-6 12 16)"><rect x="3" y="3" width="18" height="24" rx="1.5"/><rect x="5.5" y="5.5" width="13" height="13" rx=".8"/></g><g transform="rotate(5 34 16)"><rect x="25" y="4" width="18" height="24" rx="1.5"/><rect x="27.5" y="6.5" width="13" height="13" rx=".8"/></g>',
+  filme: '<rect x="0" y="3" width="46" height="2.5"/><rect x="0" y="28.5" width="46" height="2.5"/><rect x="2" y="8" width="12" height="18" rx="1.5"/><rect x="17" y="8" width="12" height="18" rx="1.5"/><rect x="32" y="8" width="12" height="18" rx="1.5"/>'
+};
 export const LIMITE_FOTO = 170000; // letras do JPEG em data: (a regra aceita até 240 mil)
 
 const ms = (t) => (t?.toMillis ? t.toMillis() : typeof t === "number" ? t : 0);
@@ -128,7 +153,7 @@ export async function salaoNoPerfil(fb, corpo, eu, uid, nome) {
   const ic = document.createElement("span"); ic.className = "ps-ic"; ic.innerHTML = svg(ICONE_SALAO);
   const tx = document.createElement("span"); tx.className = "ps-tx";
   const b = document.createElement("b"); b.textContent = meu ? "Seu salão" : `Salão de ${nome || "Usuário"}`;
-  const sm = document.createElement("small"); sm.textContent = partes.join(" · ") || (meu ? "Monte o seu: fotos favoritas, lembranças e destaques do Flash" : "");
+  const sm = document.createElement("small"); sm.textContent = partes.join(" · ") || (meu ? "Monte o seu: fotos favoritas e destaques do Flash" : "");
   tx.append(b, sm);
   const seta = document.createElement("span"); seta.className = "ps-seta"; seta.textContent = "›"; seta.setAttribute("aria-hidden", "true");
   cab.append(ic, tx, seta);

@@ -1,6 +1,6 @@
 // Como o duo (Akai Ito) aparece no perfil (14/11/2026, pedido dele). Sem dependências.
 // Um campo só, `duoCapa`, em usuarios/{uid} e em perfis_publicos/{uid}:
-//   gaveta       = tocar na rosinha abre a gaveta com a prévia do perfil do duo, que abre o perfil
+//   gaveta       = tocar na rosinha abre o CARTÃO do duo (duo-cartao.js, 16/11/2026), com Ver perfil
 //   gaveta-fixa  = a mesma gaveta, mas só para ver (não abre o perfil)
 //   clicavel     = a bolinha com a foto e o nome, como antes (abre o perfil)
 //   foto         = a bolinha só para ver (sem o nome; não abre o perfil)
@@ -10,7 +10,7 @@
 // mais parecido (gaveta → clicavel, gaveta-fixa → foto, rosa → foto) e a conta guarda o escolhido.
 
 export const ESTILOS_DUO = [
-  { id: "gaveta", nome: "Gaveta", texto: "Tocando na rosinha abre uma gaveta com a prévia do perfil do seu duo." },
+  { id: "gaveta", nome: "Cartão", texto: "Tocando na rosinha abre o cartão do duo: vocês dois, desde quando, a frase e as fotos." },
   { id: "bolinha", nome: "Bolinha", texto: "Tocando na rosinha aparece a fotinho do seu duo, como antes." },
   { id: "rosa", nome: "Só a rosinha", texto: "Só a rosinha na sua foto: ninguém vê a foto nem o nome do seu duo." },
   { id: "ocultar", nome: "Nada", texto: "Nada aparece no seu perfil: nem a rosinha." }
@@ -41,7 +41,7 @@ export function duoDaConta(conta, publico) {
 }
 export function textoModoDuo(v) {
   const { estilo, clique } = lerModoDuo(v);
-  if (estilo === "gaveta") return clique ? "Tocando na rosinha abre a gaveta com a prévia do seu duo; tocar nela abre o perfil." : "Tocando na rosinha abre a gaveta com a prévia do seu duo, só para ver (não abre o perfil).";
+  if (estilo === "gaveta") return clique ? "Tocando na rosinha abre o cartão do seu duo, com as fotos e o botão Ver perfil." : "Tocando na rosinha abre o cartão do seu duo, só para ver (sem o botão Ver perfil).";
   if (estilo === "bolinha") return clique ? "Tocando na rosinha aparecem a foto e o nome do seu duo, que abrem o perfil." : "Tocando na rosinha aparece só a fotinho do seu duo. Ninguém abre o perfil por ela.";
   return ESTILOS_DUO.find((e) => e.id === estilo).texto;
 }
