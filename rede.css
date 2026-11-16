@@ -4508,3 +4508,32 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .pf-duo-gaveta .dg-sem { grid-column: 1 / -1; padding: 10px 0 2px; font-size: 11.5px; color: rgba(238, 246, 251, .55); text-align: center; }
 .pf-duo-gaveta .dg-bio { -webkit-line-clamp: 2; }
 @media (prefers-reduced-motion: reduce) { .pf-duo-gaveta .dg-ft.vazio { animation: none; } }
+
+/* ===================================================================================================
+   Marca com a ponte (16/11/2026, pedido dele: "algo com o nome Help Floripa e essa ponte"): o símbolo da ponte
+   (as mesmas 2 máscaras do topo: ponte na cor do texto, ondas no azul da marca) à esquerda do nome e do slogan.
+   Vale no site (marketplace); a rede social tem nome próprio, The Diare.
+   =================================================================================================== */
+.marca { position: relative; grid-template-columns: auto auto; justify-content: center; justify-items: start; column-gap: 9px; row-gap: 5px; }
+.marca::before, .marca::after { content: ""; grid-column: 1; grid-row: 1 / span 2; align-self: center; width: 48px; height: 31px;
+  -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.marca::before { --m: url("logo-ponte-ondas.webp"); background: linear-gradient(90deg, #4fd2ff, var(--accent, #00adee) 55%, #0087c2); }
+.marca::after { --m: url("logo-ponte-estrutura.webp"); background: var(--text); }
+.marca strong, .marca small { grid-column: 2; }
+.marca strong { grid-row: 1; }
+.marca small { grid-row: 2; }
+.marca strong { white-space: nowrap; }
+@media (max-width: 400px) { .marca { column-gap: 6px; } .marca::before, .marca::after { width: 36px; height: 23px; }
+  .marca strong { font-size: 15.5px; letter-spacing: .05em; margin-right: -.05em; } .marca small { font-size: 6.2px; letter-spacing: .2em; margin-right: -.2em; gap: 4px; }
+  .marca small::before, .marca small::after { width: 7px; } }
+@media (max-width: 340px) { .marca::before, .marca::after { width: 30px; height: 19px; } .marca strong { font-size: 14px; } }
+
+/* ===================================================================================================
+   The Diare (16/11/2026, pedido dele): a rede social ganha nome próprio, escrito como o do Instagram (letra
+   cursiva Grand Hotel, SIL OFL, fonte-diare-OFL.txt). Fica no topo do Diário no lugar da ponte; tocar sobe.
+   =================================================================================================== */
+@font-face { font-family: "The Diare"; src: url("fonte-diare.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+.marca-ponte .marca-diare { display: block; font-family: "The Diare", "Brush Script MT", cursive; font-weight: 400; font-size: 33px; line-height: 1;
+  letter-spacing: .01em; color: var(--text); padding: 4px 6px 0; white-space: nowrap; transition: transform .18s ease; }
+.marca-ponte:active .marca-diare { transform: scale(.94); }
+.marca-ponte:focus-visible .marca-diare { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }

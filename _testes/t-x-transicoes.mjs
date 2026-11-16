@@ -19,7 +19,7 @@ const W = await p.evaluate(() => innerWidth);
 const f = feed();
 const info = await f.evaluate(() => {
   const fab = document.getElementById("btnComporFeed");
-  return { fab: fab.classList.contains("fab-hf"), lapis: !!document.querySelector(".topo #btnComporFeed"), ponte: !!document.querySelector(".topo .marca-ponte .mp") };
+  return { fab: fab.classList.contains("fab-hf"), lapis: !!document.querySelector(".topo #btnComporFeed"), ponte: !!document.querySelector(".topo .marca-ponte .marca-diare") };
 });
 ok(info.fab && !info.lapis, "o + fica do lado (como no X), fora do topo");
 ok(info.ponte, "topo com o símbolo da ponte");

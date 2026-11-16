@@ -48,7 +48,7 @@ ok(v.capa >= 140, "capa alta no perfil de quem visita (" + Math.round(v.capa) + 
 ok(v.neg.length >= 1 && v.neg.every((n) => n.nome && n.tipo), "negócios em bolinhas com nome e tipo (" + v.neg.map((n) => n.tipo).join(", ") + ")");
 ok(v.sw <= v.vw, "sem passar da largura");
 // Social, Configurações e Notificações: topo de app, sem a marca antiga
-for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "Configurações"], ["notificacoes.html", "Notificações"]]) {
+for (const [pg, tit] of [["social.html", "Meu diário"], ["configuracoes.html", "Configurações"], ["notificacoes.html", "Notificações"]]) {
   await p.goto("http://127.0.0.1:5057/" + pg); await p.waitForTimeout(3500);
   const t = await p.evaluate(() => ({ app: !!document.querySelector(".topo.topo-app"), marca: !!document.querySelector(".topo .marca"), tit: document.querySelector(".topo-tit")?.textContent || "",
     voltar: !!document.querySelector(".topo-app .icone-btn use[href='#i-voltar']"), sw: document.documentElement.scrollWidth, vw: innerWidth }));

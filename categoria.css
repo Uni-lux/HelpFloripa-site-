@@ -335,3 +335,22 @@ html { -webkit-tap-highlight-color: transparent; }
 :root[data-theme="dark"], :root[data-theme="dark"] body { background-color: #000; }
 /* o slogan da marca nunca quebra em 2 linhas (print de 14/11: "TUDO EM UM SÓ / LUGAR") */
 .marca small { white-space: nowrap; }
+
+/* ===================================================================================================
+   Marca com a ponte (16/11/2026, pedido dele: "algo com o nome Help Floripa e essa ponte"): o símbolo da ponte
+   (as mesmas 2 máscaras do topo: ponte na cor do texto, ondas no azul da marca) à esquerda do nome e do slogan.
+   Vale no site (marketplace); a rede social tem nome próprio, The Diare.
+   =================================================================================================== */
+.marca { position: relative; grid-template-columns: auto auto; justify-content: center; justify-items: start; column-gap: 9px; row-gap: 5px; }
+.marca::before, .marca::after { content: ""; grid-column: 1; grid-row: 1 / span 2; align-self: center; width: 48px; height: 31px;
+  -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.marca::before { --m: url("logo-ponte-ondas.webp"); background: linear-gradient(90deg, #4fd2ff, var(--accent, #00adee) 55%, #0087c2); }
+.marca::after { --m: url("logo-ponte-estrutura.webp"); background: var(--text); }
+.marca strong, .marca small { grid-column: 2; }
+.marca strong { grid-row: 1; }
+.marca small { grid-row: 2; }
+.marca strong { white-space: nowrap; }
+@media (max-width: 400px) { .marca { column-gap: 6px; } .marca::before, .marca::after { width: 36px; height: 23px; }
+  .marca strong { font-size: 15.5px; letter-spacing: .05em; margin-right: -.05em; } .marca small { font-size: 6.2px; letter-spacing: .2em; margin-right: -.2em; gap: 4px; }
+  .marca small::before, .marca small::after { width: 7px; } }
+@media (max-width: 340px) { .marca::before, .marca::after { width: 30px; height: 19px; } .marca strong { font-size: 14px; } }

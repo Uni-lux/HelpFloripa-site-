@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=166";
+} from "./rede.js?v=167";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -17,12 +17,12 @@ import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, mon
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=101";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, editarDestaquePorId } from "./stories.js?v=138";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=123";
+import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, editarDestaquePorId } from "./stories.js?v=139";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=124";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=3";
 import { lerModoDuo } from "./duo-modo.js?v=3";
-import { salaoNoPerfil } from "./salao-base.js?v=2";
+import { salaoNoPerfil } from "./salao-base.js?v=3";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -207,11 +207,11 @@ function renderizarMeuPerfil() {
 // ⋯ do seu perfil: tudo o que não precisa ficar à mostra.
 function menuMeuPerfil() {
   const ops = [
-    { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e o Salão", icone: "olho", fn: personalizarPerfil },
+    { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e o Meu diário", icone: "olho", fn: personalizarPerfil },
     { rotulo: "Redes e contatos", sub: "Instagram, WhatsApp, TikTok, X e YouTube", icone: "link", fn: () => abrirEditar("links") },
     { rotulo: "Estatísticas do perfil", sub: "Alcance, interações, seguidores e público", icone: "graf", fn: abrirInsightsPerfil },
-    { rotulo: "Salão e Social", sub: "Momentos, lembranças, duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
-    { rotulo: "Novo destaque", sub: "Junte flashes num destaque do seu Salão", icone: "estrela", fn: () => novoDestaque() },
+    { rotulo: "Meu diário", sub: "Momentos, lembranças, duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
+    { rotulo: "Novo destaque", sub: "Junte flashes num destaque do seu diário", icone: "estrela", fn: () => novoDestaque() },
     { rotulo: "Arquivo do Flash", sub: "Seus flashes que já saíram", icone: "relogio", fn: () => abrirArquivo() },
     { rotulo: meusNegocios.length ? "Meus negócios" : "Criar um negócio", sub: meusNegocios.length ? "Editar, planos e estatísticas" : "Serviços, delivery, loja, imóveis...", icone: "maleta", fn: () => { location.href = meusNegocios.length ? "negocios.html" : "negocios.html?novo=1"; } }
   ];
@@ -222,7 +222,7 @@ function menuMeuPerfil() {
 async function personalizarPerfil() {
   const pref = await prefPublicas(eu.uid);
   const itens = [
-    ["cidade", "Cidade", "pin"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Salão (momentos e destaques do Flash)", "raio"]
+    ["cidade", "Cidade", "pin"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Meu diário (momentos e destaques do Flash)", "raio"]
   ];
   abrirOpcoes("O que aparece no seu perfil", itens.map(([k, rot, ic]) => {
     const on = mostraNoPerfil(pref, k);
@@ -238,7 +238,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=130").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=131").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -287,7 +287,7 @@ function abrirFotoGrande({ uid, p, proprio }) {
        ["link", "Copiar link", copiar], ["lapis", "Editar perfil", () => { fechar(); abrirEditar(); }]]
     : [["chat", "Mensagem", () => { fechar(); iniciarConversa(uid); }], ["compartilhar", "Compartilhar perfil", () => compartilharPerfil(uid, p.nome)], ["link", "Copiar link", copiar],
        temFlash ? ["raio", "Ver flash", () => { fechar(); $("ppCabecalho").querySelector(".pf-anel .avatar")?.click(); }]
-                : ["teia", "Social", () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; }]];
+                : ["teia", "Diário", () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; }]];
   const barra = el("div", "fg-acoes");
   ops.forEach(([ic, rot, fn]) => {
     const b = el("button", "fg-acao"); b.type = "button";
@@ -698,7 +698,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=133").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=134").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -807,7 +807,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=133").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=134").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1434,7 +1434,7 @@ function botaoOpcoesPerfil(uid, p) {
     const bloq = meusBloqueios.has(uid);
     abrirOpcoes(p.nome || "Opções", [
       !bloq && !bloqueadoPor.has(uid) && { rotulo: "Adicionar ao meu social", sub: "Duo, família, amigos", icone: "fio", fn: () => abrirNovoVinculo({ uid, ...p }) },
-      p.comSocial && !bloq && { rotulo: "Ver o social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; } },
+      p.comSocial && !bloq && { rotulo: "Ver o diário", sub: "Momentos, duo, família e amigos", icone: "teia", fn: () => { location.href = `social.html?uid=${encodeURIComponent(uid)}`; } },
       !bloq && !bloqueadoPor.has(uid) && { rotulo: "Enviar um presente", sub: "Mimo, lanche, roupa, dinheiro ou corrida", icone: "coracao", fn: () => { try { (window.top || window).location.href = `presentes.html?para=${encodeURIComponent(uid)}`; } catch { location.href = `presentes.html?para=${encodeURIComponent(uid)}`; } } },
       { rotulo: "Compartilhar perfil", icone: "compartilhar", fn: () => compartilharPerfil(uid, p.nome) },
       !bloq && ppMeSegue && { rotulo: "Remover seguidor", sub: "Deixa de seguir você, sem aviso", icone: "pessoa-menos", fn: async () => { if (await removerSeguidor(uid, p.nome)) { ppMeSegue = false; abrirPerfilPublico(uid); } } },
@@ -1505,13 +1505,13 @@ function pintarMeuSocial() {
   const b = $("meuSocial");
   if (!b) return;
   const vis = dados.socialVisibilidade || "todos";
-  b.replaceChildren(icone(vis === "todos" ? "teia" : "cadeado", "i xs"), document.createTextNode("Social"));
+  b.replaceChildren(icone(vis === "todos" ? "teia" : "cadeado", "i xs"), document.createTextNode("Diário"));
   b.classList.toggle("restrito", vis !== "todos");
   b.title = {
     todos: "Todos podem abrir os perfis do seu social",
     seguidores: "Só seus seguidores abrem os perfis do seu social",
     amigos: "Só amigos (quem segue e é seguido) abrem os perfis do seu social",
-    ocultar: "O botão Social não aparece para os visitantes"
+    ocultar: "O botão Diário não aparece para os visitantes"
   }[vis] || "";
 }
 
@@ -1519,7 +1519,7 @@ function botaoSocial(uid) {
   const b = document.createElement("a");
   b.className = "btn sec";
   b.href = uid === eu.uid ? "social.html" : `social.html?uid=${encodeURIComponent(uid)}`;
-  b.append(icone("teia", "i xs"), document.createTextNode("Social"));
+  b.append(icone("teia", "i xs"), document.createTextNode("Diário"));
   return b;
 }
 
@@ -1555,7 +1555,7 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       btn.classList.remove("pulsa"); void btn.offsetWidth; btn.classList.add("pulsa"); navigator.vibrate?.(6);
-      avisoDono("Duo em \"Só a rosinha\": ninguém vê a foto nem o nome do seu duo. Mude no seu Social.");
+      avisoDono("Duo em \"Só a rosinha\": ninguém vê a foto nem o nome do seu duo. Mude no Meu diário.");
     });
     return;
   }
@@ -1574,7 +1574,7 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
       abrindo = true;
       btn.classList.add("ativa"); btn.setAttribute("aria-expanded", "true"); navigator.vibrate?.(6);
       try {
-        const [{ abrirPreviaDuo }, perfil] = await Promise.all([import("./duo-cartao.js?v=2"), obterPerfil(duo.outro).catch(() => null)]);
+        const [{ abrirPreviaDuo }, perfil] = await Promise.all([import("./duo-cartao.js?v=3"), obterPerfil(duo.outro).catch(() => null)]);
         const fimCartao = () => { btn.classList.remove("ativa"); btn.setAttribute("aria-expanded", "false"); };
         abrirPreviaDuo({
           fb, eu: eu.uid, dono: { uid, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
@@ -1605,7 +1605,7 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
     caixa.addEventListener("click", (e) => {
       e.stopPropagation();
       if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
-      else avisoDono("Bolinha só para ver: visitantes não abrem o perfil do seu duo por ela. Mude no seu Social.");
+      else avisoDono("Bolinha só para ver: visitantes não abrem o perfil do seu duo por ela. Mude no Meu diário.");
     });
   }
   let tempo = null;
