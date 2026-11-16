@@ -10,7 +10,7 @@ import {
   fb, authFns, eu, refUsuario, dados, perfis, meusBloqueios, restritos, obterPerfil, linhaPessoa,
   desbloquear, alternarRestricao, marcarPresenca, iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos, salvarPrivacidadeConta, confirmarHF, abrirOpcoes
 } from "./rede.js?v=164";
-import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=10";
+import { MOTIVOS_DESATIVAR, desativarConta, pedirExclusao, reautenticar, provedor } from "./conta.js?v=11";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
 import { senhaForte, primeiroProblema, ligarSenhaForte } from "./senha-forte.js?v=1";
 import { lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo } from "./duo-modo.js?v=1";

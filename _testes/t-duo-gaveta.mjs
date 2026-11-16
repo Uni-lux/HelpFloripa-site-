@@ -43,6 +43,8 @@ ok((await p.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "
 
 // 2) Social: radar e os modelos
 await p.goto(BASE + "social.html#duoModos"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(2500);
+ok(await p.locator(".folha.aberta #duoModos").count() === 1, "social.html#duoModos abre a gaveta de Configurações no duo");
+await p.locator(".folha.aberta [data-fechar]").click(); await p.waitForTimeout(500);
 ok(await p.locator("#hero .hs-stats .hs-stat").count() === 3 && await p.locator(".ceu, .orbita, #radar").count() === 0, "Social no modelo novo: cartão do perfil com 3 números (sem radar, gótico ou coração)");
 await p.waitForFunction(() => document.getElementById("stSeg").textContent !== "–", null, { timeout: 8000 }).catch(() => {});
 ok(/^\d+$/.test(await p.locator("#stCon").textContent()) && /^\d+$/.test(await p.locator("#stSeg").textContent()) && /^\d+$/.test(await p.locator("#stSig").textContent()), "números reais: conexões, seguidores e seguindo");
@@ -62,6 +64,7 @@ await p.keyboard.press("Escape"); await p.waitForTimeout(500);
 const larguraOk = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 ok(larguraOk, "Social sem rolagem para o lado");
 await p.locator("#conteudo").screenshot({ path: "saida/social-tema.png" });
+await p.locator("#btnConfig").tap(); await p.waitForSelector("#dmGrade .dm-op", { timeout: 10000 });
 ok(await p.locator("#dmGrade .dm-op").count() === 4 && await p.locator("#dmGrade .dm-op.on[data-estilo=gaveta]").count() === 1, "4 modelos com prévia, gaveta marcada");
 ok(await p.locator("#dmGrade .dm-op[data-estilo=gaveta] .dm-gav").count() === 1 && await p.locator("#dmGrade .dm-op[data-estilo=bolinha] .dm-bol").count() === 1, "prévias da gaveta e da bolinha");
 await p.locator("#duoModos").screenshot({ path: "saida/duo-modelos.png" });
@@ -72,7 +75,7 @@ ok((await db.doc(`usuarios/${ids.ana}`).get()).data().duoCapa === "foto" && (awa
 await p.goto(BASE + "usuarios.html"); await abrirRosa();
 ok(await p.locator("#meuPerfil .pf-duo-bolha.aberta.so-ver").count() === 1 && await p.locator("#meuPerfil .pf-duo-gaveta").count() === 0, "perfil: bolinha só para ver");
 // gaveta só para ver
-await p.goto(BASE + "social.html"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(1200);
+await p.goto(BASE + "social.html#duoModos"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(1200);
 await p.locator("#dmGrade .dm-op[data-estilo=gaveta]").tap(); await p.waitForTimeout(1500);
 ok((await db.doc(`usuarios/${ids.ana}`).get()).data().duoCapa === "gaveta-fixa", "gaveta mantém o toque desligado (gaveta-fixa)");
 await p.locator("#dmGrade .dm-op[data-estilo=rosa]").tap(); await p.waitForTimeout(1500);
@@ -80,7 +83,7 @@ ok(await p.locator("#dmCliqueIn").isDisabled(), "Só a rosinha: a chave do toque
 await p.locator("#dmGrade .dm-op[data-estilo=ocultar]").tap(); await p.waitForTimeout(1500);
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector("#meuPerfil .pf-nome", { timeout: 25000 }); await p.waitForTimeout(2500);
 ok(await p.locator("#meuPerfil .pf-rosa").count() === 0, "Nada: sem rosinha no perfil");
-await p.goto(BASE + "social.html"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(1200);
+await p.goto(BASE + "social.html#duoModos"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(1200);
 await p.locator("#dmGrade .dm-op[data-estilo=gaveta]").tap(); await p.waitForTimeout(1500);
 ok((await db.doc(`usuarios/${ids.ana}`).get()).data().duoCapa === "gaveta", "voltar para a gaveta: toque ligado de novo");
 // Configurações
@@ -99,7 +102,9 @@ ok(!(await tg.locator(".hf-tags-pop").isVisible()), "tocar de novo fecha");
 const B = await navegador({ mobile: false });
 await B.ctx.addInitScript(() => localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })));
 const q = await entrar(B.ctx, "ana", "social.html");
-await q.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await q.waitForTimeout(2500);
+await q.waitForSelector("#duo:not([hidden]) .akai-par", { timeout: 25000 }); await q.waitForTimeout(2500);
+await q.screenshot({ path: "saida/social-escuro-pc.png", fullPage: true });
+await q.locator("#btnConfig").click(); await q.waitForTimeout(700); await q.screenshot({ path: "saida/social-config-escuro.png" }); await q.keyboard.press("Escape"); await q.waitForTimeout(300);
 await q.screenshot({ path: "saida/social-radar-pc.png", fullPage: true });
 await q.goto(BASE + "usuarios.html"); await q.waitForSelector("#meuPerfil .pf-rosa", { timeout: 25000 }); await q.waitForTimeout(1200);
 await q.locator("#meuPerfil .pf-rosa").click(); await q.waitForTimeout(800);

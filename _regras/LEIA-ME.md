@@ -180,6 +180,10 @@
 >
 > **E-mail de contato no perfil (14/11/2026):** `contatos_perfil` aceita também `email` (minúsculo, ≤120); `redes` até 10.
 > Continuam **23 partes**, 1190 testes.
+>
+> **Social: memória do vínculo (16/11/2026):** `vinculos` aceita, de um dos dois e com o vínculo aceito, `conheceram`
+> ("AAAA-MM-DD" ou vazio), `frase` (≤90), `retrato` (sim/não), `memoriaEm` e `memoriaPor`. Coleção nova `vinculos_retrato/{id do vínculo}`
+> {foto JPEG ≤240 mil letras, por, em}: lê quem vê o vínculo, grava um dos dois, ninguém lista. Continuam **23 partes**, 1210 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

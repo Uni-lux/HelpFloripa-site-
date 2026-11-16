@@ -1980,6 +1980,37 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("links: o dono apaga", () => assertSucceeds(deleteDoc(doc(ctx("lk_a"), "contatos_perfil", "lk_a_instagram"))));
 }
 
+// ===================== Social: memória do vínculo (data, frase e retrato) =====================
+{
+  await semRegras(async (db) => {
+    for (const u of ["mva", "mvb", "mvc"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true });
+    await setDoc(doc(db, "vinculos", "mva_mvb"), { participantes: ["mva", "mvb"], de: "mva", para: "mvb", tipoDe: "duo", tipoPara: "duo", status: "aceito" });
+    await setDoc(doc(db, "vinculos", "mva_mvc"), { participantes: ["mva", "mvc"], de: "mva", para: "mvc", tipoDe: "amigo", tipoPara: "amigo", status: "pendente" });
+  });
+  const mem = (uid, extra) => updateDoc(doc(ctx(uid), "vinculos", "mva_mvb"), { conheceram: "2024-03-12", frase: "Desde aquele café.", retrato: false, memoriaEm: serverTimestamp(), memoriaPor: uid, ...extra });
+  await t("memória: um dos dois põe data e frase", () => assertSucceeds(mem("mva")));
+  await t("memória: o outro também muda", () => assertSucceeds(mem("mvb", { conheceram: "2023-12-01" })));
+  await t("memória: data vazia (apagar) vale", () => assertSucceeds(mem("mva", { conheceram: "" })));
+  await t("memória: quem não é do vínculo não muda", () => assertFails(mem("mvc")));
+  await t("memória: data inválida é recusada", () => assertFails(mem("mva", { conheceram: "12/03/2024" })));
+  await t("memória: frase com mais de 90 letras é recusada", () => assertFails(mem("mva", { frase: "x".repeat(91) })));
+  await t("memória: não muda o tipo junto", () => assertFails(mem("mva", { tipoDe: "amigo" })));
+  await t("memória: memoriaPor de outra pessoa é recusado", () => assertFails(mem("mva", { memoriaPor: "mvb" })));
+  await t("memória: pedido pendente não tem memória", () => assertFails(updateDoc(doc(ctx("mva"), "vinculos", "mva_mvc"), { conheceram: "2024-01-01", memoriaEm: serverTimestamp(), memoriaPor: "mva" })));
+  const foto = "data:image/jpeg;base64," + "A".repeat(2000);
+  const ret = (uid, id = "mva_mvb", extra) => setDoc(doc(ctx(uid), "vinculos_retrato", id), { foto, por: uid, em: serverTimestamp(), ...extra });
+  await t("retrato: um dos dois grava", () => assertSucceeds(ret("mva")));
+  await t("retrato: outra pessoa não grava", () => assertFails(ret("mvc")));
+  await t("retrato: PNG/link de fora é recusado", () => assertFails(ret("mva", "mva_mvb", { foto: "https://exemplo.com/x.jpg" })));
+  await t("retrato: maior que 240 mil letras é recusado", () => assertFails(ret("mva", "mva_mvb", { foto: "data:image/jpeg;base64," + "A".repeat(240001) })));
+  await t("retrato: pedido pendente não grava", () => assertFails(ret("mva", "mva_mvc")));
+  await t("retrato: qualquer pessoa com conta vê (vínculo aceito)", () => assertSucceeds(getDoc(doc(ctx("mvc"), "vinculos_retrato", "mva_mvb"))));
+  await t("retrato: ninguém lista a coleção", () => assertFails(getDocs(collection(ctx("mva"), "vinculos_retrato"))));
+  await t("retrato: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("mvc"), "vinculos_retrato", "mva_mvb"))));
+  await t("retrato: um dos dois apaga", () => assertSucceeds(deleteDoc(doc(ctx("mvb"), "vinculos_retrato", "mva_mvb"))));
+  await t("vínculo: aceitar continua igual", async () => { await semRegras((db) => setDoc(doc(db, "vinculos", "mvb_mvc"), { participantes: ["mvb", "mvc"], de: "mvb", para: "mvc", tipoDe: "amigo", tipoPara: "amigo", status: "pendente" })); await assertSucceeds(updateDoc(doc(ctx("mvc"), "vinculos", "mvb_mvc"), { status: "aceito", aceitoEm: serverTimestamp() })); });
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

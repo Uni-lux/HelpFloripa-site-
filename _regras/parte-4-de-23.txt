@@ -73,9 +73,39 @@
                     && request.resource.data.status == 'aceito'
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
 
+      // Memória do vínculo (Social, 16/11/2026): qualquer um dos dois põe a data em que se conheceram,
+      // uma frase curta e marca que há um retrato dos dois (a foto fica em vinculos_retrato/{id}).
+      allow update: if logado()
+                    && resource.data.status == 'aceito'
+                    && request.auth.uid in resource.data.participantes
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['conheceram', 'frase', 'retrato', 'memoriaEm', 'memoriaPor'])
+                    && request.resource.data.get('conheceram', '') is string
+                    && request.resource.data.get('conheceram', '').matches('^((19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))?$')
+                    && valorTextoAte(request.resource.data.get('frase', ''), 90)
+                    && request.resource.data.get('retrato', false) is bool
+                    && request.resource.data.memoriaEm == request.time
+                    && request.resource.data.memoriaPor == request.auth.uid;
+
       // Qualquer um dos dois pode cancelar, recusar ou desfazer.
       allow delete: if logado()
                     && request.auth.uid in resource.data.participantes;
+    }
+
+    // Retrato dos dois no Social (foto JPEG reduzida no documento, ou o link do Storage).
+    // Lê quem pode ver o vínculo; grava só um dos dois, com o vínculo aceito; apaga um dos dois (o id é uidA_uidB).
+    match /vinculos_retrato/{id} {
+      function vin() { return get(/databases/$(database)/documents/vinculos/$(id)).data; }
+      function existe() { return exists(/databases/$(database)/documents/vinculos/$(id)); }
+      allow get: if logado() && existe() && (vin().status == 'aceito' || request.auth.uid in vin().participantes);
+      allow list: if false;
+      allow create, update: if logado() && emailOk() && existe()
+                    && vin().status == 'aceito' && request.auth.uid in vin().participantes
+                    && request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
+                    && request.resource.data.foto is string && request.resource.data.foto.size() <= 240000
+                    && request.resource.data.foto.matches('^(data:image/jpeg;base64,|https://firebasestorage[.]googleapis[.]com/).*')
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time;
+      allow delete: if logado() && (request.auth.uid in id.split('_') || podeModerar());
     }
 
 
@@ -173,44 +203,5 @@
                     && contaVerificada()
                     && (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
                     && negocioOk();
-
-      allow update: if logado() && !ehEsqueleto()
-                    && emailOk()
-                    && resource.data.donoId == request.auth.uid
-                    && request.resource.data.donoId == resource.data.donoId
-                    && request.resource.data.tipo == resource.data.tipo
-                    && gravou().hasOnly(camposNegocio())
-                    && naoTocaCamposProtegidosNoUpdate()
-                    && travaModeracao()
-                    && negocioOk();
-
-      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
-      allow update: if logado() && (viraEsqueleto('negocios', id, 'donoId') || voltaDoGuardado('negocios', id));
-
-      allow delete: if logado()
-                    && resource.data.donoId == request.auth.uid;
-
-      // A equipe esconde (ocultoAte) o conteúdo de contas suspensas/banidas.
-      allow update: if podeModerar()
-                    && moderacaoOk();
-    }
-
-
-    // =====================================================
-    // ANÚNCIOS (vários imóveis por pessoa)
-    // Documento: anuncios/{id}
-    // =====================================================
-    match /anuncios/{id} {
-
-      function camposAnuncio() {
-        return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
-                'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
-                'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
-                'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
-                'categoriaPersonalizada',  // tipo escrito pela pessoa quando escolhe "Outro" (Chácara, Galpão...)
-                'geo',                     // ponto do endereço (Perto de você)
-                'busca',                   // palavras para a busca nacional (busca.js), até 100
-                'ocultoAte'];
-      }
 
 // ===== FIM DA PARTE 4 DE 23 =====
