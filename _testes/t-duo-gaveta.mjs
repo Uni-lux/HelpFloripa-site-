@@ -43,16 +43,25 @@ ok((await p.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "
 
 // 2) Social: radar e os modelos
 await p.goto(BASE + "social.html#duoModos"); await p.waitForSelector("#dmGrade .dm-op", { timeout: 25000 }); await p.waitForTimeout(2500);
-ok(await p.locator(".orbita .coracao").count() === 0 && await p.locator(".orbita .arco").count() === 2 && await p.locator(".orbita .rosacea").count() === 1, "Social: galeria gótica (arco ogival e rosácea)");
-ok(await p.locator(".orbita .astro:not(.centro)").count() >= 2 && await p.locator(".orbita .astro.duo .rosinha").count() === 1, "conexões no radar, o duo com a rosinha");
-const pos1 = await p.locator(".orbita .astro:not(.centro):not(.duo)").first().evaluate((e) => e.style.transform);
-await p.waitForTimeout(1500);
-const pos2 = await p.locator(".orbita .astro:not(.centro):not(.duo)").first().evaluate((e) => e.style.transform);
-ok(pos1 !== pos2, "as conexões flutuam");
-ok(/^[IVXLCDM]+ · [IVXLCDM]+ · [IVXLCDM]+$/.test(await p.locator("#hudData").textContent()), "data em algarismos romanos (" + await p.locator("#hudData").textContent() + ")");
+ok(await p.locator("#hero .hs-stats .hs-stat").count() === 3 && await p.locator(".ceu, .orbita, #radar").count() === 0, "Social no modelo novo: cartão do perfil com 3 números (sem radar, gótico ou coração)");
+await p.waitForFunction(() => document.getElementById("stSeg").textContent !== "–", null, { timeout: 8000 }).catch(() => {});
+ok(/^\d+$/.test(await p.locator("#stCon").textContent()) && /^\d+$/.test(await p.locator("#stSeg").textContent()) && /^\d+$/.test(await p.locator("#stSig").textContent()), "números reais: conexões, seguidores e seguindo");
+ok(await p.locator("#destaques .dest:not(.novo)").count() >= 2 && await p.locator("#destaques .dest.novo").count() === 1, "conexões em destaque (+ Adicionar)");
+ok(await p.locator("#rede .pessoa").count() >= 3 && await p.locator("#rede .pessoa .pe-pes button.msg").count() >= 3, "cartões das conexões com Ver perfil e Mensagem");
+const tema = await p.evaluate(() => ({ fonte: getComputedStyle(document.querySelector("#heroNome")).fontFamily, ceu: !!document.querySelector(".ceu") }));
+ok(/Manrope/.test(tema.fonte), "letra dos títulos (" + tema.fonte.slice(0, 30) + ")");
+await p.locator("#filtros button[data-cat=amizade]").tap(); await p.waitForTimeout(400);
+ok(await p.locator("#filtros button.on[data-cat=amizade]").count() === 1 && await p.locator("#rede .pessoa").count() === 1 && await p.locator("#rede .pessoa[data-cat=amizade]").count() === 1, "filtro Amizades mostra só o grupo");
+await p.locator("#filtros button[data-cat=amizade]").tap(); await p.waitForTimeout(300);
+await p.selectOption("#ordem", "nome").catch(() => {}); await p.waitForTimeout(300);
+const nomes = await p.locator("#rede .pessoa .pe-nome b span").allTextContents();
+ok(nomes.length >= 3 && [...nomes].sort((a, b) => a.localeCompare(b, "pt-BR")).join() === nomes.join(), "ordenar por nome A–Z (" + nomes.join(", ") + ")");
+await p.locator("#rede .pessoa .pe-pes button.msg").first().tap();
+ok(await p.waitForSelector(".hfc.aberto, .hfc-fundo.on", { timeout: 10000 }).then(() => true).catch(() => false), "Mensagem abre a conversa na gaveta");
+await p.keyboard.press("Escape"); await p.waitForTimeout(500);
 const larguraOk = await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 ok(larguraOk, "Social sem rolagem para o lado");
-await p.locator(".ceu").screenshot({ path: "saida/social-gotico.png" });
+await p.locator("#conteudo").screenshot({ path: "saida/social-tema.png" });
 ok(await p.locator("#dmGrade .dm-op").count() === 4 && await p.locator("#dmGrade .dm-op.on[data-estilo=gaveta]").count() === 1, "4 modelos com prévia, gaveta marcada");
 ok(await p.locator("#dmGrade .dm-op[data-estilo=gaveta] .dm-gav").count() === 1 && await p.locator("#dmGrade .dm-op[data-estilo=bolinha] .dm-bol").count() === 1, "prévias da gaveta e da bolinha");
 await p.locator("#duoModos").screenshot({ path: "saida/duo-modelos.png" });

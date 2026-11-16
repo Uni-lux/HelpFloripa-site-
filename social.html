@@ -22,7 +22,7 @@
   <title>Social | Help Floripa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" />
   <script>
     (function () {
       var c = {};
@@ -34,9 +34,10 @@
   </script>
   <style>
     /* =====================================================================================================
-       Social (14/11/2026, 4ª versão, pedido dele: "elegante, clássico, estilo gótico/vampiro"): uma galeria de veludo vinho sob
-       um arco dourado com a pessoa num medalhão, as conexões em volta, filtros com contagem, o link do duo (Akai Ito: NÃO mexer,
-       ele aprovou), os grupos em cartões e, para o dono, a escolha de como o duo aparece no perfil com a prévia de cada modelo.
+       Social (16/11/2026, 6ª versão, pedido dele com um modelo em HTML: "usa algo assim"): cartão do perfil com os números,
+       o link do duo (Akai Ito: NÃO mexer, ele aprovou), conexões em destaque (fileira), filtros com contagem + ordenação,
+       cartões das conexões (Ver perfil · Mensagem) e, para o dono, como o duo aparece no perfil. Cores e letras da rede.
+       NÃO voltar a gótico/radar/coração/sistema solar.
        ===================================================================================================== */
     :root {
       --accent: #00adee; --accent-ink: #001a24; --danger: #e5484d;
@@ -78,103 +79,90 @@
     .estado { padding: 80px 20px; text-align: center; color: var(--muted); }
     .estado strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
 
-    /* ---------- a galeria gótica (14/11/2026, 4ª versão, pedido dele: "elegante, clássico, estilo gótico/vampiro, chique") ----
-       Um salão de veludo vinho sob um arco ogival dourado; atrás da pessoa, uma rosácea de catedral girando bem devagar; a pessoa
-       num medalhão de moldura dupla dourada; as conexões em medalhões menores em volta, ligadas por correntinhas de ouro com uma
-       brasa que corre; brasas subindo e, de vez em quando, uma pétala de rosa caindo. Letras Cinzel e Cormorant (Google Fonts,
-       com Georgia de reserva). Escuro também no tema claro. */
-    .ceu { padding-bottom: 46px !important; --ouro: #c9a45c; --ouro-claro: #f1dca2; --ouro-escuro: #8a6a2e; --vinho: #6e0f22; --sangue: #b3122e;
-      --serif: "Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif; --italico: "Cormorant Garamond", Georgia, serif;
-      position: relative; overflow: hidden; color: #f3e6c8; background: #070103; padding: 40px 0 26px; isolation: isolate; }
-    @media (min-width: 700px) { .ceu { margin: 14px 14px 0; border-radius: 6px; } }
-    .ceu-fundo { position: absolute; inset: -40px; z-index: -4; background: center / cover no-repeat; filter: blur(48px) saturate(.7) sepia(.5) hue-rotate(-25deg); opacity: .12; transform: scale(1.1); }
-    /* veludo: brilho vinho no meio, treliça bem fina em losangos e vinheta escura */
-    .ceu::before { content: ""; position: absolute; inset: 0; z-index: -3; pointer-events: none;
-      background:
-        radial-gradient(60% 42% at 50% 36%, rgba(150, 18, 44, .42), transparent 72%),
-        radial-gradient(40% 30% at 50% 92%, rgba(201, 164, 92, .10), transparent 70%),
-        repeating-linear-gradient(45deg, rgba(201, 164, 92, .035) 0 1px, transparent 1px 26px),
-        repeating-linear-gradient(-45deg, rgba(201, 164, 92, .035) 0 1px, transparent 1px 26px),
-        linear-gradient(180deg, #0d0206, #1a040b 50%, #080104); }
-    .ceu::after { content: ""; position: absolute; inset: 0; z-index: 30; pointer-events: none;
-      background: radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(0, 0, 0, .7)); }
-    .ceu-estrelas { position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; }
-    /* arabescos dourados nos 4 cantos */
-    .orn { position: absolute; z-index: 6; width: 46px; height: 46px; color: var(--ouro); opacity: .85; pointer-events: none; }
-    .orn.a { left: 8px; top: 8px; } .orn.b { right: 8px; top: 8px; transform: scaleX(-1); }
-    .orn.c { left: 8px; bottom: 8px; transform: scaleY(-1); } .orn.d { right: 8px; bottom: 8px; transform: scale(-1, -1); }
-    .orn path { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
-    .orn circle { fill: currentColor; }
-    .hud-txt { position: absolute; top: 16px; z-index: 6; font: 600 9.5px/1 var(--serif); letter-spacing: 2.4px; text-transform: uppercase; color: rgba(241, 220, 162, .7); pointer-events: none; white-space: nowrap; }
-    .hud-txt.esq { left: 0; right: 0; text-align: center; }
-    .hud-txt.dir { top: auto; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 9px; letter-spacing: 2.6px; color: rgba(241, 220, 162, .5); }
-    @media (max-width: 380px) { .hud-txt { font-size: 8.5px; letter-spacing: 1.8px; } }
-    .orbita { position: relative; width: min(100%, 440px); margin: 0 auto; touch-action: pan-y; }
-    .orbita > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-    .orbita .arco { fill: none; stroke: var(--ouro); stroke-width: 1.3; opacity: .75; }
-    .orbita .arco.dentro { stroke-width: .7; opacity: .4; }
-    .orbita .rosacea { fill: none; stroke: var(--ouro); stroke-width: .9; opacity: .32; }
-    .orbita .rosacea .vitral { fill: rgba(150, 18, 44, .16); stroke: none; }
-    .orbita .rosacea .vitral.b { fill: rgba(201, 164, 92, .07); }
-    .orbita .moldura { fill: none; stroke: var(--ouro); }
-    .orbita .moldura.a { stroke-width: 1.6; opacity: .9; }
-    .orbita .moldura.b { stroke-width: .8; opacity: .55; stroke-dasharray: 1 4; stroke-linecap: round; }
-    .orbita .joia { fill: var(--ouro-claro); }
-    .orbita .fio { stroke-width: 1.1; stroke-linecap: round; stroke-dasharray: .5 5; transition: opacity .25s; }
-    .orbita .fio.duo { stroke-width: 1.7; stroke-dasharray: none; filter: drop-shadow(0 0 3px rgba(220, 30, 60, .9)); }
-    .orbita .fio.pend { opacity: .4; }
-    .orbita .fio.apagado, .orbita .pacote.apagado { opacity: .06; }
-    .orbita .pacote { filter: drop-shadow(0 0 5px #ffcf7a); }
-    .astro { position: absolute; left: 0; top: 0; z-index: 5; display: grid; justify-items: center; gap: 5px; width: 70px; padding: 0; border: 0; background: none; color: #fff;
-      cursor: pointer; will-change: transform; transition: opacity .25s; }
-    .astro[disabled] { cursor: default; }
-    .astro .no { position: relative; display: block; }
-    .astro .avatar { width: 42px; height: 42px; font: 600 13px/1 var(--serif); background: linear-gradient(135deg, #3a0a16, #7a1428); color: var(--ouro-claro);
-      box-shadow: 0 0 0 2px #120207, 0 0 0 3.4px var(--ouro), 0 0 0 5.6px #120207, 0 0 0 6.4px rgba(201, 164, 92, .45), 0 6px 18px rgba(0, 0, 0, .7); }
-    .astro .gema { position: absolute; left: 50%; bottom: -6px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); background: var(--cor); box-shadow: 0 0 0 1.5px #120207, 0 0 6px var(--cor); }
-    .astro .rot { max-width: 70px; padding: 2px 7px 1px; font: 600 8.5px/1.4 var(--serif); letter-spacing: 1.4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      color: var(--ouro-claro); background: linear-gradient(180deg, rgba(40, 6, 14, .92), rgba(18, 3, 7, .92)); border-top: 1px solid rgba(201, 164, 92, .55); border-bottom: 1px solid rgba(201, 164, 92, .55); }
-    .astro.duo .avatar { width: 48px; height: 48px; box-shadow: 0 0 0 2px #120207, 0 0 0 3.6px var(--sangue), 0 0 0 5.8px #120207, 0 0 0 6.8px rgba(201, 164, 92, .7), 0 0 24px rgba(179, 18, 46, .75); }
-    .astro.duo .rot { color: #ffb8c4; border-color: rgba(179, 18, 46, .7); }
-    .astro.duo .rosinha { position: absolute; right: -5px; bottom: -4px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #e0243b; box-shadow: 0 0 0 1.5px var(--ouro), 0 0 10px rgba(179, 18, 46, .9); }
-    .astro.duo .rosinha svg { width: 12px; height: 12px; }
-    .astro.pend { opacity: .5; }
-    .astro.pend .avatar { filter: grayscale(.7) sepia(.3); }
-    .astro.apagado { opacity: .1 !important; pointer-events: none; }
-    .astro.centro { width: 100px; cursor: default; z-index: 20; }
-    .astro.centro .avatar { position: relative; width: 78px; height: 78px; font-size: 24px;
-      box-shadow: 0 0 0 3px #120207, 0 0 0 5px var(--ouro), 0 0 0 8px #120207, 0 0 0 9px rgba(201, 164, 92, .5), 0 0 40px rgba(179, 18, 46, .6); }
-    .vela { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; z-index: 0; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
-      background: radial-gradient(circle, rgba(255, 190, 110, .2), rgba(179, 18, 46, .12) 40%, transparent 68%); }
-    .ceu-id { text-align: center; margin-top: 4px; padding: 0 16px; }
-    .ceu-id h2 { margin: 0; font: 700 27px/1.15 var(--serif); letter-spacing: 1.2px;
-      background: linear-gradient(180deg, #fff3cf 0%, var(--ouro-claro) 35%, var(--ouro) 70%, var(--ouro-escuro)); -webkit-background-clip: text; background-clip: text; color: transparent;
-      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .8)); }
-    .ceu-id p { margin: 4px 0 0; font: italic 500 17px/1.2 var(--italico); letter-spacing: .3px; color: #d8b9a0; }
-    .divisor { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px auto 0; width: min(70%, 260px); color: var(--ouro); }
-    .divisor::before, .divisor::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--ouro)); }
-    .divisor::after { background: linear-gradient(90deg, var(--ouro), transparent); }
-    .divisor svg { width: 16px; height: 16px; color: #e0243b; }
-    .leituras { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 14px; margin: 12px 16px 0; }
-    .leituras span { display: inline-flex; align-items: center; gap: 6px; font: 600 10px/1 var(--serif); letter-spacing: 1.6px; text-transform: uppercase; color: rgba(241, 220, 162, .72); }
-    .leituras span i { width: 6px; height: 6px; transform: rotate(45deg); background: var(--cor); box-shadow: 0 0 6px var(--cor); }
-    .leituras span b { color: #fff3cf; font-weight: 700; }
-    .ceu-total { position: relative; display: flex; align-items: center; gap: 9px; margin: 18px auto 0; padding: 11px 26px; border: 1px solid rgba(201, 164, 92, .7); border-radius: 2px; color: #fff3cf;
-      background: linear-gradient(180deg, rgba(110, 15, 34, .55), rgba(30, 4, 10, .85)); font: 600 12px/1 var(--serif); letter-spacing: 2.2px; text-transform: uppercase; cursor: pointer;
-      box-shadow: inset 0 0 0 3px rgba(18, 2, 7, .9), inset 0 0 0 4px rgba(201, 164, 92, .35), 0 8px 26px rgba(0, 0, 0, .6); }
-    .ceu-total svg { color: var(--ouro); }
-    .ceu-total b { font: 700 16px/1 var(--serif); color: var(--ouro-claro); letter-spacing: 0; }
-    @media (hover: hover) { .ceu-total:hover { background: linear-gradient(180deg, rgba(150, 18, 44, .6), rgba(40, 6, 14, .9)); } }
-    .ceu-vazio { position: absolute; left: 0; right: 0; bottom: 4%; margin: 0; text-align: center; color: #d8b9a0; font: italic 500 16px/1.4 var(--italico); padding: 0 24px; z-index: 6; }
-
-    /* ---------- filtros ---------- */
-    .filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 14px; scrollbar-width: none; }
-    .filtros::-webkit-scrollbar { display: none; }
-    .filtros button { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
-      font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
-    .filtros button i { width: 7px; height: 7px; border-radius: 1px; transform: rotate(45deg); background: var(--cor, var(--text)); box-shadow: 0 0 6px var(--cor, transparent); }
-    .filtros button b { font: 800 11.5px/1 var(--mono); color: var(--text); opacity: .7; }
-    .filtros button.on { color: var(--text); border-color: var(--cor, var(--text)); background: color-mix(in srgb, var(--cor, var(--text)) 12%, var(--panel)); }
+    /* ---------- cartão do perfil, destaques, filtros e conexões (modelo dele, 16/11) ---------- */
+    :root { --head: "Manrope", var(--font); }
+    h1, h2, h3, .hs-stats b, .ceu-total { font-family: var(--head); }
+    .hero-social { position: relative; overflow: hidden; margin: 10px 10px 0; padding: 18px; border-radius: 22px; isolation: isolate;
+      border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line));
+      background: linear-gradient(115deg, color-mix(in srgb, var(--accent) 15%, var(--panel)) 0%, var(--panel) 56%, color-mix(in srgb, #a65a9a 9%, var(--panel)) 100%); }
+    .hero-social::before { content: ""; position: absolute; z-index: -1; width: 320px; height: 320px; right: -110px; top: -190px; border-radius: 50%; pointer-events: none;
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); box-shadow: 0 0 0 24px color-mix(in srgb, var(--accent) 5%, transparent), 0 0 0 54px color-mix(in srgb, var(--accent) 3%, transparent); }
+    @media (min-width: 700px) { .hero-social { margin: 14px 14px 0; padding: 22px; } }
+    .hs-topo { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .hs-av { width: 72px; height: 72px; border-radius: 22px; font-size: 24px; border: 2px solid color-mix(in srgb, var(--accent) 75%, #fff); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 12%, transparent); }
+    .hs-info { min-width: 0; flex: 1; }
+    .hs-info h2 { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 800; letter-spacing: -.5px; line-height: 1.2; }
+    .hs-info h2 span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .selo-v { width: 17px; height: 17px; flex: none; color: #1d9bf0; fill: currentColor; stroke: none; }
+    .hs-nick { margin-top: 3px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hs-bio { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: color-mix(in srgb, var(--text) 78%, var(--muted)); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .hs-bio:empty { display: none; }
+    .hs-acoes { display: flex; gap: 8px; margin-top: 14px; }
+    .hs-acoes button, .hs-acoes a { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 11px; text-decoration: none;
+      border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--text); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    @media (hover: hover) { .hs-acoes button:hover, .hs-acoes a:hover { background: var(--hover); } }
+    .hs-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .hs-stat { display: grid; gap: 2px; justify-items: center; padding: 0 4px; }
+    .hs-stat + .hs-stat { border-left: 1px solid var(--line); }
+    .hs-stat b { font-size: 19px; font-weight: 800; line-height: 1.2; }
+    .hs-stat span { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 16px 10px; }
+    .sec-cab h3 { margin: 0; font-size: 16.5px; font-weight: 800; letter-spacing: -.3px; }
+    .sec-cab p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+    .sec-cab button { border: 0; background: none; color: var(--accent); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 6px 0; white-space: nowrap; }
+    .destaques { display: flex; gap: 12px; overflow-x: auto; padding: 2px 16px 6px; scrollbar-width: none; scroll-padding: 16px; }
+    .destaques::-webkit-scrollbar { display: none; }
+    .dest { flex: none; width: 72px; display: grid; justify-items: center; gap: 2px; padding: 0; border: 0; background: none; color: var(--text); text-align: center; cursor: pointer; }
+    .dest[disabled] { cursor: default; }
+    .dest .anel { width: 62px; height: 62px; margin-bottom: 5px; padding: 3px; border-radius: 20px; background: linear-gradient(140deg, var(--cor), color-mix(in srgb, var(--cor) 40%, #6b4fb0)); }
+    .dest .anel .avatar { width: 100%; height: 100%; border-radius: 17px; font-size: 16px; box-shadow: 0 0 0 3px var(--bg); }
+    .dest strong { max-width: 72px; font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dest small { max-width: 72px; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dest.pend { opacity: .55; }
+    .dest.novo .anel { background: none; border: 1.5px dashed color-mix(in srgb, var(--accent) 70%, transparent); display: grid; place-items: center; color: var(--accent); padding: 0; }
+    .dest.novo .anel svg { width: 24px; height: 24px; }
+    @media (hover: hover) { .dest:not([disabled]):hover .anel { transform: translateY(-2px); } }
+    .dest .anel { transition: transform .15s; }
+    .controles { display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+    .chips { flex: 1; min-width: 0; display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chips button { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+      font-size: 12px; font-weight: 750; white-space: nowrap; cursor: pointer; }
+    .chips button i { width: 7px; height: 7px; border-radius: 50%; background: var(--cor); }
+    .chips button b { font-size: 11.5px; font-weight: 800; color: var(--text); opacity: .7; }
+    .chips button.on { color: var(--text); border-color: color-mix(in srgb, var(--cor, var(--accent)) 60%, transparent); background: color-mix(in srgb, var(--cor, var(--accent)) 13%, var(--panel)); }
+    .ordem { flex: none; max-width: 120px; height: 34px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: 12px; font-weight: 650; }
+    .rede { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px 12px 0; }
+    @media (max-width: 380px) { .rede { grid-template-columns: minmax(0, 1fr); } }
+    .pessoa { position: relative; min-width: 0; display: flex; flex-direction: column; padding: 13px 12px 12px; border-radius: 17px; border: 1px solid var(--line); background: var(--panel); transition: transform .15s, border-color .15s; }
+    .pessoa::before { content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--cor); opacity: .85; }
+    @media (hover: hover) { .pessoa:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cor) 45%, var(--line)); } }
+    .pessoa.pend { opacity: .85; border-style: dashed; }
+    .pessoa.pend::before { background: repeating-linear-gradient(90deg, var(--cor) 0 5px, transparent 5px 9px); }
+    .pe-topo { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .pe-av { position: relative; flex: none; }
+    .pe-av .avatar { width: 40px; height: 40px; font-size: 14px; box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--cor); }
+    .pe-av .on { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; border-radius: 50%; background: #40d6a0; box-shadow: 0 0 0 2.5px var(--panel); }
+    .pe-nome { min-width: 0; flex: 1; }
+    .pe-nome b { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 800; line-height: 1.25; }
+    .pe-nome b span { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+    .pe-nome small { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pe-texto { margin: 10px 0 0; min-height: 31px; font-size: 11.5px; line-height: 1.4; color: color-mix(in srgb, var(--text) 70%, var(--muted)); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .pe-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .pe-tag { padding: 3px 8px; border-radius: 7px; font-size: 10px; font-weight: 700; color: color-mix(in srgb, var(--cor) 78%, var(--text)); background: color-mix(in srgb, var(--cor) 13%, transparent); }
+    .pe-tag.neutra { color: var(--muted); background: var(--panel-2); }
+    .pe-pes { display: flex; gap: 6px; margin-top: auto; padding-top: 12px; }
+    .pe-pes button { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 34px; padding: 0 6px; border-radius: 10px; font-size: 11.5px; font-weight: 750; cursor: pointer;
+      border: 1px solid var(--line); background: var(--panel-2); color: var(--text); white-space: nowrap; }
+    .pe-pes button svg { width: 15px; height: 15px; }
+    .pe-pes button.msg { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+    .pessoa > button.mais { display: grid; place-items: center; cursor: pointer; position: absolute; right: 8px; top: 9px; flex: none; width: 28px; height: 28px; padding: 0; border: 0; background: none; color: var(--muted); }
+    .pessoa.com-mais .pe-nome { padding-right: 18px; }
+    .pe-pes button[disabled] { opacity: .45; cursor: default; }
+    .vazio-rede { grid-column: 1 / -1; padding: 30px 16px; text-align: center; color: var(--muted); font-size: 13.5px; border: 1px dashed var(--line); border-radius: 17px; }
+    .vazio-rede a { color: var(--accent); font-weight: 700; }
+    .ceu-total { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .nota { margin: 0 16px; text-align: center; color: var(--muted); font-size: 13px; }
 
     /* ---------- Akai Ito: o link do duo, um feixe de energia vermelho entre as duas fotos ---------- */
     .akai { position: relative; margin: 0 14px; padding: 16px 16px 14px; border-radius: 4px 20px 4px 20px; overflow: hidden; color: #fff; isolation: isolate;
@@ -201,39 +189,6 @@
     .akai-pessoa strong { max-width: 96px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .akai-pessoa em { margin-top: -4px; font: 700 10px/1 var(--mono); font-style: normal; color: #ff8fa3; text-transform: uppercase; letter-spacing: .8px; }
     .akai-desde { margin: 0; text-align: center; font: 600 11px/1.4 var(--mono); letter-spacing: .4px; color: rgba(255, 220, 228, .62); }
-
-    /* ---------- grupos em cartões-retrato ---------- */
-    .grupos { display: grid; gap: 22px; }
-    .grupo-cab { display: flex; align-items: baseline; gap: 8px; margin: 0 16px 10px; }
-    .grupo-cab h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
-    .grupo-cab small { color: var(--muted); font-size: 13px; font-weight: 600; }
-    .grupo-cab i { align-self: center; width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg); background: var(--cor); box-shadow: 0 0 8px var(--cor); }
-    .grupo-cab small { font-family: var(--mono); font-size: 11.5px; letter-spacing: .5px; }
-    .trilho { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x proximity; scroll-padding: 16px; scrollbar-width: none; }
-    .trilho::-webkit-scrollbar { display: none; }
-    .retrato { position: relative; flex: none; width: calc((100% - 24px) / 4); min-width: 0; max-width: 140px; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 11px 4px 9px; border: 1px solid var(--line);
-      border-radius: 18px; background: linear-gradient(180deg, color-mix(in srgb, var(--cor) 9%, var(--panel)), var(--panel) 70%); color: var(--text); cursor: pointer;
-      scroll-snap-align: start; text-align: center; overflow: hidden; transition: transform .15s; }
-    .retrato[disabled] { cursor: default; }
-    .retrato::before { content: ""; position: absolute; left: 0; width: 46%; top: 0; height: 2px; background: var(--cor); box-shadow: 0 0 10px var(--cor); }
-    .retrato:not(.add) { border-radius: 4px 16px 4px 16px; }
-    .retrato:not(.add)::after { content: ""; position: absolute; right: 6px; bottom: 6px; width: 7px; height: 7px; border: 0 solid color-mix(in srgb, var(--cor) 70%, transparent); border-width: 0 1.5px 1.5px 0; }
-    .retrato .avatar { width: 46px; height: 46px; font-size: 15px; box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px var(--cor), 0 6px 16px color-mix(in srgb, var(--cor) 30%, transparent); }
-    .retrato strong { max-width: 100%; margin-top: 3px; font-size: 12px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .retrato small { max-width: 100%; padding: 2px 5px; border-radius: 3px; font: 700 8.5px/1.2 var(--mono); letter-spacing: .5px; text-transform: uppercase; color: color-mix(in srgb, var(--cor) 80%, var(--text));
-      background: color-mix(in srgb, var(--cor) 14%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .retrato.pend { opacity: .8; }
-    .retrato.pend .avatar { box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4.5px color-mix(in srgb, var(--cor) 45%, transparent); filter: grayscale(.4); }
-    .retrato.pend small { color: var(--muted); background: var(--panel-2); }
-    .retrato.pend::before { background: repeating-linear-gradient(90deg, var(--cor) 0 5px, transparent 5px 9px); box-shadow: none; }
-    @media (hover: hover) { .retrato:not([disabled]):hover { transform: translateY(-2px); } }
-    .retrato:not([disabled]):active { transform: scale(.97); }
-    .retrato.add { text-decoration: none; background: transparent; border-style: dashed; color: var(--muted); }
-    .retrato.add::before { display: none; }
-    .retrato.add span.mais { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; border: 1.5px dashed var(--cor); color: var(--cor); }
-    .retrato.add strong { font-size: 12px; color: var(--text); }
-    .retrato.add small { color: var(--muted); background: none; padding: 0; }
-    .nota { margin: 0 16px; text-align: center; color: var(--muted); font-size: 13px; }
 
     /* ---------- painel do dono ---------- */
     .painel-dono { margin: 0 14px; padding: 16px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 12px; }
@@ -316,7 +271,6 @@
     .linha.perigo { color: var(--danger); }
     .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 3000; background: var(--text); color: var(--panel); padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; width: max-content; max-width: min(calc(100% - 32px), 440px); text-align: center; line-height: 1.35; text-wrap: balance; }
     @media (min-width: 700px) { .folha-fundo { place-items: center; } .folha { border-radius: 22px; } }
-    @media (max-width: 380px) { .astro { width: 62px; } .astro .avatar { width: 36px; height: 36px; } .astro.duo .avatar { width: 42px; height: 42px; } .astro.centro .avatar { width: 66px; height: 66px; } }
     @media (prefers-reduced-motion: reduce) { .akai-fio path.brilho { animation: none; } }
   </style>
   <script type="module" src="firebase.js"></script>
@@ -338,6 +292,11 @@
     <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-teia" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><path d="M9.8 10.6L6.5 7.2M14.2 10.6l3.3-3.4M9.8 13.4l-3.3 3.4M14.2 13.4l3.3 3.4"/></symbol>
     <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 017 0v3"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 012 2v8a2 2 0 01-2 2h-6l-5 4v-4H5a2 2 0 01-2-2V7a2 2 0 012-2z"/></symbol>
+    <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-compartilhar" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"/></symbol>
+    <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-selo" viewBox="0 0 24 24"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="currentColor" stroke="none"/><path d="M8.3 12.2l2.5 2.5 5-5.2" stroke="#fff" stroke-width="2.2"/></symbol>
   </svg>
 
   <header class="topo topo-app">
@@ -350,21 +309,23 @@
   <main class="pg">
     <div class="estado" id="estado">Carregando...</div>
     <div id="conteudo" hidden>
-      <section class="ceu" aria-label="Suas conexões">
-        <div class="ceu-fundo" id="ceuFundo"></div>
-        <canvas class="ceu-estrelas" id="ceuEstrelas" aria-hidden="true"></canvas>
-        <svg class="orn a" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn b" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn c" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg><svg class="orn d" viewBox="0 0 46 46" aria-hidden="true"><path d="M3 43V14C3 7 7 3 14 3h29"/><path d="M8 38V17c0-5 4-9 9-9h21"/><path d="M14 3c0 6-4 9-9 9M3 14c6 0 9 4 9 9"/><path d="M20 8c2 4 6 5 9 3M8 20c4 2 5 6 3 9"/><circle cx="14" cy="14" r="1.8"/></svg>
-        <span class="hud-txt esq" aria-hidden="true">Help Floripa · Social</span>
-        <span class="hud-txt dir" id="hudData" aria-hidden="true"></span>
-        <div class="orbita" id="orbita"><i class="vela" id="vela" aria-hidden="true"></i><svg id="orbitaSvg" aria-hidden="true"></svg></div>
-        <div class="ceu-id"><h2 id="heroNome"></h2><p id="heroNick"></p></div>
-        <div class="divisor" aria-hidden="true"><svg class="i s"><use href="#i-rosa"/></svg></div>
-        <div class="leituras" id="leituras" aria-hidden="true"></div>
-        <button type="button" class="ceu-total" id="ceuTotal"></button>
+      <section class="hero-social" id="hero" aria-label="Perfil">
+        <div class="hs-topo"><div class="avatar hs-av" id="hsAv"></div>
+          <div class="hs-info"><h2><span id="heroNome"></span><svg class="i selo-v" id="heroSelo" hidden aria-label="Perfil verificado"><use href="#i-selo"/></svg></h2><div class="hs-nick" id="heroNick"></div><p class="hs-bio" id="heroBio"></p></div></div>
+        <div class="hs-acoes" id="hsAcoes"></div>
+        <div class="hs-stats"><div class="hs-stat"><b id="stCon">0</b><span>Conexões</span></div><div class="hs-stat"><b id="stSeg">–</b><span>Seguidores</span></div><div class="hs-stat"><b id="stSig">–</b><span>Seguindo</span></div></div>
       </section>
-      <nav class="filtros" id="filtros" aria-label="Mostrar um grupo"></nav>
       <section class="akai" id="duo" hidden aria-label="Duo"></section>
-      <section class="grupos" id="grupos" aria-label="Conexões por grupo"></section>
+      <section id="secDest" hidden aria-label="Conexões em destaque">
+        <div class="sec-cab"><div><h3>Conexões em destaque</h3><p>Atalhos para quem está mais perto de você.</p></div><button type="button" id="btnTodas">Ver todas</button></div>
+        <div class="destaques" id="destaques"></div>
+      </section>
+      <section aria-label="Sua rede de conexões">
+        <div class="sec-cab"><div><h3 id="redeTit">Sua rede de conexões</h3><p>Organize e encontre rapidamente suas pessoas.</p></div></div>
+        <div class="controles"><nav class="chips" id="filtros" aria-label="Mostrar um grupo"></nav>
+          <select class="ordem" id="ordem" aria-label="Ordenar"><option value="recentes">Recentes</option><option value="nome">Nome A–Z</option><option value="ativos">Ativos agora</option></select></div>
+        <div class="rede" id="rede"></div>
+      </section>
       <p class="nota" id="nota" hidden></p>
       <section class="painel-dono duo-modos" id="duoModos" hidden aria-labelledby="duoModosTit">
         <h3 id="duoModosTit"><svg class="i s"><use href="#i-rosa"/></svg>Seu duo no perfil</h3>
@@ -409,7 +370,6 @@
       { cat: "familia", nome: "Família", centro: 180, vagas: 4 }
     ];
     // posição de cada vaga: deslocamento em graus e distância do centro (fração do raio), em zigue-zague
-    const VAGAS = { 1: [[0, 0.74]], 4: [[-34, 0.9], [-12, 0.6], [12, 0.9], [34, 0.6]] };
     const nomeGrupo = (cat) => GRUPOS.find((g) => g.cat === cat)?.nome || "";
 
     const urlSegura = (u) => fotoSegura(u);
@@ -516,187 +476,136 @@
 
     function escolherFiltro(cat) {
       filtro = filtro === cat || cat === "todos" ? "todos" : cat;
-      desenharFiltros(); desenharCeu(); desenharDuo(); desenharGrupos();
+      desenharControles(); desenharDuo(); desenharRede();
     }
     const aceitas = () => conexoes.filter((c) => !c.pendente);
     const ordemGrupo = (c) => GRUPOS.findIndex((g) => g.cat === c.cat);
+    const cidadeDe = (p) => [p.cidade, p.uf].filter(Boolean).join("/");
+    const online = (p) => (p.ultimoAcesso?.toMillis?.() ?? 0) > Date.now() - 10 * 60000;
+    const puroNome = (c) => String(c.perfil.nome || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    let ordem = "recentes";
 
-    // ---------- o céu: a pessoa no centro e as conexões em órbita ----------
-    function desenharCabecalho() {
-      const capa = urlSegura(dono.fotoCapa) || urlSegura(dono.fotoPerfil);
-      if (capa) $("ceuFundo").style.backgroundImage = `url(${JSON.stringify(capa)})`;
+    // ---------- cartão do perfil (números reais) ----------
+    function desenharHero() {
+      pintarAvatar($("hsAv"), dono.fotoPerfil, dono.nome);
       $("heroNome").textContent = dono.nome || "Usuário";
-      $("heroNick").textContent = dono.nickname ? "@" + dono.nickname : "";
-      const n = aceitas().length;
-      const t = $("ceuTotal"); t.replaceChildren(icone("teia"), el("b", null, String(n)), document.createTextNode(n === 1 ? "conexão" : "conexões"));
-      t.onclick = listaDeNomes;
-      const lei = $("leituras"); lei.replaceChildren();
-      GRUPOS.forEach((g) => {
-        const q = aceitas().filter((c) => c.cat === g.cat).length;
-        const sp = el("span"); sp.dataset.cat = g.cat;
-        sp.append(el("i"), document.createTextNode(g.nome), el("b", null, String(q)));
-        lei.appendChild(sp);
+      $("heroSelo").toggleAttribute("hidden", !dono.verificado);
+      $("heroNick").textContent = [dono.nickname ? "@" + dono.nickname : "", cidadeDe(dono)].filter(Boolean).join(" · ");
+      $("heroBio").textContent = dono.bio || "";
+      $("stCon").textContent = String(aceitas().length);
+      const box = $("hsAcoes"); box.replaceChildren();
+      const compartilhar = el("button"); compartilhar.type = "button"; compartilhar.append(icone("compartilhar"), document.createTextNode("Compartilhar"));
+      compartilhar.addEventListener("click", async () => {
+        const url = location.href.split("#")[0];
+        try { if (navigator.share) { await navigator.share({ title: `Social de ${primeiroNome(dono.nome)} | Help Floripa`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+        try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast("Não foi possível copiar o link."); }
       });
-    }
-    // Galeria gótica (14/11/2026): a pessoa num medalhão sob um arco ogival, com a rosácea girando devagar atrás; as conexões
-    // em medalhões em volta (o duo no alto), ligadas por correntinhas de ouro com uma brasa que corre; flutuam de leve.
-    // Tudo por requestAnimationFrame (vale com "remover animações").
-    const TAU = Math.PI * 2;
-    const giro = { planetas: [], quadro: 0, centro: null, estrelas: null, cx: 0, cy: 0, rosacea: null, vela: null };
-    const ROMANOS = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
-    const romano = (n) => ROMANOS.reduce((t, [v, l]) => { while (n >= v) { t += l; n -= v; } return t; }, "");
-    function desenharCeu() {
-      const box = $("orbita"), svg = $("orbitaSvg");
-      box.querySelectorAll(".astro, .ceu-vazio").forEach((x) => x.remove());
-      svg.replaceChildren();
-      giro.planetas = [];
-      const W = box.clientWidth; if (!W) return;
-      const hoje = new Date();
-      $("hudData").textContent = `${romano(hoje.getDate())} · ${romano(hoje.getMonth() + 1)} · ${romano(hoje.getFullYear())}`;
-      const lista = conexoes.filter((c) => proprio || !c.pendente).sort((a, b) => ordemGrupo(a) - ordemGrupo(b) || Number(a.pendente) - Number(b.pendente));
-      const H = Math.round(W * 1.04);
-      box.style.height = H + "px";
-      const cx = W / 2, cy = H * 0.53;
-      Object.assign(giro, { cx, cy });
-      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      const vela = $("vela"); vela.style.left = cx + "px"; vela.style.top = cy + "px"; giro.vela = vela;
-      // arco ogival (dois arcos que se encontram na ponta), duas linhas
-      const arco = (m, cls) => {
-        const L = 10 + m, R = W - 10 - m, span = R - L, r = span * 0.62, topo = 6 + m * 1.6;
-        const sobe = Math.sqrt(r * r - (span / 2 - r) ** 2), mola = topo + sobe;
-        svg.appendChild(svgEl("path", { class: "arco" + cls, d: `M ${L} ${H} L ${L} ${mola.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${cx} ${topo} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${R} ${mola.toFixed(1)} L ${R} ${H}` }));
-      };
-      arco(0, ""); arco(7, " dentro");
-      // rosácea de catedral atrás da pessoa
-      const RW = Math.min(W, H) * 0.33;
-      const ros = svgEl("g", { class: "rosacea" });
-      [1, 0.82, 0.42, 0.3].forEach((f) => ros.appendChild(svgEl("circle", { cx, cy, r: (RW * f).toFixed(1) })));
-      for (let k = 0; k < 12; k++) {
-        const a1 = (k / 12) * TAU, a2 = ((k + 0.5) / 12) * TAU;
-        const p = (r, a) => `${(cx + Math.cos(a) * r).toFixed(1)} ${(cy + Math.sin(a) * r).toFixed(1)}`;
-        // pétala (lanceta) do miolo até a borda
-        const ri = RW * 0.42, re = RW * 0.8, lado = 0.2;
-        ros.appendChild(svgEl("path", { class: "vitral" + (k % 2 ? " b" : ""), d: `M ${p(ri, a1 - lado)} Q ${p(re * 1.05, a1 - lado * 0.6)} ${p(re, a1)} Q ${p(re * 1.05, a1 + lado * 0.6)} ${p(ri, a1 + lado)} Z` }));
-        ros.appendChild(svgEl("path", { d: `M ${p(ri, a1 - lado)} Q ${p(re * 1.05, a1 - lado * 0.6)} ${p(re, a1)} Q ${p(re * 1.05, a1 + lado * 0.6)} ${p(ri, a1 + lado)}` }));
-        ros.appendChild(svgEl("circle", { cx: (cx + Math.cos(a2) * RW * 0.91).toFixed(1), cy: (cy + Math.sin(a2) * RW * 0.91).toFixed(1), r: (RW * 0.075).toFixed(1) }));
+      if (proprio) {
+        const cfg = el("button"); cfg.type = "button"; cfg.append(icone("ajustes"), document.createTextNode("Configurar"));
+        cfg.addEventListener("click", () => ($("duoModos").hidden ? $("donoBox") : $("duoModos")).scrollIntoView({ behavior: "smooth", block: "start" }));
+        box.append(cfg, compartilhar);
+      } else {
+        const ver = el("a"); ver.href = `usuarios.html?perfil=${encodeURIComponent(donoId)}`; ver.append(icone("perfil"), document.createTextNode("Ver perfil"));
+        box.append(ver, compartilhar);
       }
-      svg.appendChild(ros); giro.rosacea = ros;
-      // moldura do medalhão do meio, com 8 joias
-      const rc = W < 381 ? 40 : 46;
-      svg.appendChild(svgEl("circle", { class: "moldura a", cx, cy, r: rc + 8 }));
-      svg.appendChild(svgEl("circle", { class: "moldura b", cx, cy, r: rc + 15 }));
-      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU - Math.PI / 2; svg.appendChild(svgEl("circle", { class: "joia", cx: (cx + Math.cos(a) * (rc + 8)).toFixed(1), cy: (cy + Math.sin(a) * (rc + 8)).toFixed(1), r: k % 2 ? 1.4 : 2.4 })); }
-      // lugares: o duo no alto; os outros espalhados em volta (e num círculo menor se não couberem)
-      const RX = W * 0.37, RY = H * 0.36;
-      const duo = lista.find((c) => c.cat === "duo" && !c.pendente);
-      const resto = lista.filter((c) => c !== duo);
-      const cabe = Math.max(1, Math.floor((TAU * Math.min(RX, RY)) / 66));
-      const fora = resto.slice(0, cabe - (duo ? 1 : 0)), dentro = resto.slice(fora.length, fora.length + 8);
-      const lugares = [];
-      const total = fora.length + (duo ? 1 : 0);
-      if (duo) lugares.push({ c: duo, a: -Math.PI / 2, f: 1 });
-      fora.forEach((c, i) => lugares.push({ c, a: -Math.PI / 2 + ((i + (duo ? 1 : 0.5)) / Math.max(total, 1)) * TAU, f: 1 }));
-      dentro.forEach((c, i) => lugares.push({ c, a: -Math.PI / 2 + ((i + 0.5) / dentro.length) * TAU, f: 0.62 }));
-      const raiz = getComputedStyle(document.documentElement);
-      lugares.forEach(({ c, a, f }, idx) => {
-        const x = cx + Math.cos(a) * RX * f, y = cy + Math.sin(a) * RY * f;
-        const ap = filtro !== "todos" && filtro !== c.cat;
-        const cor = c.cat === "duo" ? "#e0243b" : raiz.getPropertyValue(`--${c.cat}`).trim() || "#00adee";
-        const extra = (ap ? " apagado" : "") + (c.pendente ? " pend" : "");
-        const ehDuo = c === duo;
-        const fio = svgEl("line", { class: "fio" + (ehDuo ? " duo" : "") + extra, stroke: ehDuo ? "#c4183a" : "#c9a45c" });
-        const pacote = svgEl("circle", { class: "pacote" + extra, r: ehDuo ? "2.4" : "1.9", fill: ehDuo ? "#ff6b83" : "#ffd98a" });
-        svg.append(fio, pacote);
-        const b = el("button", "astro" + (ehDuo ? " duo" : "") + (c.pendente ? " pend" : "") + (ap ? " apagado" : ""));
-        b.type = "button"; b.dataset.cat = c.cat;
-        const no = el("span", "no");
-        no.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome));
-        if (ehDuo) { const r = el("i", "rosinha"); r.appendChild(icone("rosa", "")); no.appendChild(r); } else no.appendChild(el("i", "gema"));
-        b.append(no, el("span", "rot", primeiroNome(c.perfil.nome)));
-        b.title = `${c.perfil.nome || "Usuário"} · ${TIPOS[c.tipo]?.[0] || ""}${c.pendente ? " (pendente)" : ""}`;
-        const fn = acaoPessoa(c); if (fn) b.addEventListener("click", fn); else b.disabled = true;
-        box.appendChild(b);
-        giro.planetas.push({ b, fio, pacote, x, y, fase: idx * 1.9, atraso: (idx * 0.83) % 4.5 });
-      });
-      const centro = el("div", "astro centro");
-      centro.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
-      centro.append(novoAvatar(dono.fotoPerfil, dono.nome));
-      box.appendChild(centro); giro.centro = centro;
-      if (!lista.length) box.appendChild(el("p", "ceu-vazio", proprio ? "O salão ainda está vazio: convide quem é importante para você." : "Ainda sem conexões por aqui."));
-      prepararEstrelas();
-      posicionar(performance.now());
-      if (!giro.quadro) giro.quadro = requestAnimationFrame(girar);
     }
-    // brasas douradas subindo e, de vez em quando, uma pétala de rosa caindo
-    function prepararEstrelas() {
-      const cv = $("ceuEstrelas"), ceu = cv.parentElement;
-      const w = ceu.clientWidth, h = ceu.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
-      if (!w || !h) return;
-      cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + "px"; cv.style.height = h + "px";
-      let semente = 13; const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
-      const lista = Array.from({ length: Math.round((w * h) / 5200) }, () => ({ x: rnd() * w, y: rnd() * h, r: 0.5 + rnd() * 1.1, v: 4 + rnd() * 10, f: 0.8 + rnd() * 2, o: rnd() * 6.3, d: 6 + rnd() * 14 }));
-      giro.estrelas = { cv, ctx: cv.getContext("2d"), w, h, dpr, lista, petalas: [], proxima: performance.now() + 1500 };
-    }
-    function pintarEstrelas(t) {
-      const e = giro.estrelas; if (!e) return;
-      const { ctx, w, h, dpr } = e;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      const s = t / 1000;
-      for (const p of e.lista) {
-        const y = (((p.y - s * p.v) % h) + h) % h, x = p.x + Math.sin(s * 0.6 + p.o) * p.d * 0.3;
-        const a = 0.25 + 0.6 * (0.5 + 0.5 * Math.sin(s * p.f + p.o)) * Math.min(1, y / (h * 0.25));
-        const g = ctx.createRadialGradient(x, y, 0, x, y, p.r * 3);
-        g.addColorStop(0, `rgba(255,214,140,${a.toFixed(3)})`); g.addColorStop(1, "rgba(255,150,60,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, p.r * 3, 0, TAU); ctx.fill();
-      }
-      if (e.petalas.length < 3 && t > e.proxima) { e.petalas.push({ x: w * (0.08 + Math.random() * 0.84), t0: t, d: 11000 + Math.random() * 6000, r: 4 + Math.random() * 3, o: Math.random() * 6, giro: (Math.random() - 0.5) * 3 }); e.proxima = t + 3500 + Math.random() * 4000; }
-      e.petalas = e.petalas.filter((c) => {
-        const k = (t - c.t0) / c.d; if (k >= 1) return false;
-        const y = -12 + k * (h + 24), x = c.x + Math.sin(k * 7 + c.o) * 18;
-        ctx.save(); ctx.translate(x, y); ctx.rotate(c.o + k * c.giro * 6); ctx.scale(1, 0.55 + 0.45 * Math.abs(Math.sin(k * 9 + c.o)));
-        const g = ctx.createLinearGradient(-c.r, 0, c.r, 0);
-        g.addColorStop(0, "rgba(120,6,24,.0)"); g.addColorStop(0.5, `rgba(196,24,58,${(Math.sin(k * Math.PI) * 0.75).toFixed(3)})`); g.addColorStop(1, "rgba(120,6,24,.0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, c.r, c.r * 0.6, 0, 0, TAU); ctx.fill(); ctx.restore();
-        return true;
-      });
-    }
-    function posicionar(t) {
-      const s = t / 1000, cx = giro.cx, cy = giro.cy;
-      for (const p of giro.planetas) {
-        const x = p.x + Math.sin(s * 0.5 + p.fase) * 2.2, y = p.y + Math.sin(s * 0.7 + p.fase * 1.3) * 3;
-        p.b.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -26px)`;
-        p.fio.setAttribute("x1", cx.toFixed(1)); p.fio.setAttribute("y1", cy.toFixed(1)); p.fio.setAttribute("x2", x.toFixed(1)); p.fio.setAttribute("y2", y.toFixed(1));
-        // brasa: sai da pessoa e chega na conexão em 1,8 s, a cada 4,5 s
-        const k = ((s + p.atraso) % 4.5) / 1.8;
-        if (k <= 1) {
-          p.pacote.setAttribute("cx", (cx + (x - cx) * k).toFixed(1)); p.pacote.setAttribute("cy", (cy + (y - cy) * k).toFixed(1));
-          p.pacote.style.display = ""; p.pacote.style.opacity = (Math.sin(k * Math.PI) * 0.95).toFixed(2);
-        } else p.pacote.style.display = "none";
-      }
-      if (giro.rosacea) giro.rosacea.setAttribute("transform", `rotate(${((s * 2.4) % 360).toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})`);
-      // luz de vela: tremula de leve
-      if (giro.vela) { const v = 0.82 + 0.1 * Math.sin(s * 7.3) + 0.06 * Math.sin(s * 13.1 + 1) + 0.04 * Math.sin(s * 23.7); giro.vela.style.opacity = v.toFixed(3); }
-    }
-    function girar(t) {
-      if (!document.body.contains($("orbita"))) { giro.quadro = 0; return; }
-      if (!document.hidden) { posicionar(t); pintarEstrelas(t); }
-      giro.quadro = requestAnimationFrame(girar);
+    // seguidores e seguindo (só a contagem, 2 leituras)
+    async function contarRede() {
+      const n = (campo) => fb.getCountFromServer(fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where(campo, "==", donoId))).then((r) => String(r.data().count)).catch(() => "–");
+      const [seg, sig] = await Promise.all([n("alvoId"), n("seguidorId")]);
+      $("stSeg").textContent = seg; $("stSig").textContent = sig;
     }
 
-    // ---------- filtros com contagem ----------
-    function desenharFiltros() {
+    // ---------- conexões em destaque (fileira) ----------
+    function desenharDestaques() {
+      const lista = aceitas().sort((a, b) => Number(b.cat === "duo") - Number(a.cat === "duo") || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0)).slice(0, 12);
+      $("secDest").hidden = !lista.length && !proprio;
+      const box = $("destaques"); box.replaceChildren();
+      if (proprio) {
+        const a = el("a", "dest novo"); a.href = "usuarios.html?acao=social";
+        const an = el("span", "anel"); an.appendChild(icone("mais", "i"));
+        a.append(an, el("strong", null, "Adicionar"), el("small", null, "Nova conexão"));
+        box.appendChild(a);
+      }
+      lista.forEach((c) => {
+        const b = el("button", "dest"); b.type = "button"; b.dataset.cat = c.cat; b.style.setProperty("--cor", corDe(c.cat));
+        const an = el("span", "anel"); an.appendChild(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome));
+        b.append(an, el("strong", null, primeiroNome(c.perfil.nome)), el("small", null, online(c.perfil) ? "Online" : (TIPOS[c.tipo]?.[0] || "")));
+        if (proprio || clicavel) b.addEventListener("click", () => irPerfil(c.outro)); else b.disabled = true;
+        box.appendChild(b);
+      });
+      $("btnTodas").onclick = listaDeNomes;
+    }
+    const corDe = (cat) => ({ duo: "#ff4d6d", familia: "#f5b301", amizade: "#00adee", trabalho: "#2fbf71" }[cat] || "#00adee");
+
+    // ---------- filtros com contagem + ordenação ----------
+    function desenharControles() {
       const box = $("filtros"); box.replaceChildren();
       const chip = (cat, nome, n) => {
         const b = el("button", filtro === cat ? "on" : ""); b.type = "button";
-        if (cat !== "todos") { b.dataset.cat = cat; b.appendChild(el("i")); }
+        if (cat !== "todos") { b.dataset.cat = cat; b.style.setProperty("--cor", corDe(cat)); b.appendChild(el("i")); }
         b.append(document.createTextNode(nome), el("b", null, String(n)));
         b.setAttribute("aria-pressed", String(filtro === cat));
         b.addEventListener("click", () => escolherFiltro(cat));
         box.appendChild(b);
       };
-      chip("todos", "Todos", aceitas().length);
-      GRUPOS.forEach((g) => chip(g.cat, g.nome, aceitas().filter((c) => c.cat === g.cat).length));
+      chip("todos", "Todas", conexoes.filter((c) => proprio || !c.pendente).length);
+      GRUPOS.forEach((g) => chip(g.cat, g.nome, conexoes.filter((c) => c.cat === g.cat && (proprio || !c.pendente)).length));
+      $("ordem").value = ordem;
+    }
+    $("ordem").addEventListener("change", (e) => { ordem = e.target.value; desenharRede(); });
+
+    // ---------- cartões das conexões ----------
+    async function abrirConversa(c, b) {
+      b.disabled = true;
+      try {
+        const { garantirConversa } = await import("./conversa-acesso.js?v=1");
+        const id = await garantirConversa(fb, eu.uid, c.outro);
+        const m = await import("./chat-gaveta.js?v=4");
+        m.abrirChat(`mensagens.html?conversa=${encodeURIComponent(id)}`);
+      } catch (e) { toast(e?.message && e.name === "ConversaFechada" ? e.message : "Não foi possível abrir a conversa."); }
+      b.disabled = false;
+    }
+    function desenharRede() {
+      const box = $("rede"); box.replaceChildren();
+      let lista = conexoes.filter((c) => (proprio || !c.pendente) && (filtro === "todos" || filtro === c.cat));
+      lista.sort((a, b) => ordem === "nome" ? puroNome(a).localeCompare(puroNome(b))
+        : ordem === "ativos" ? Number(online(b.perfil)) - Number(online(a.perfil)) || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0)
+        : Number(a.pendente) - Number(b.pendente) || (b.aceitoEm?.toMillis?.() ?? 0) - (a.aceitoEm?.toMillis?.() ?? 0));
+      if (!lista.length) {
+        const v = el("div", "vazio-rede");
+        v.append(document.createTextNode(filtro === "todos" ? (proprio ? "Você ainda não tem conexões. " : "Ainda sem conexões por aqui.") : `Nenhuma conexão em ${nomeGrupo(filtro)}. `));
+        if (proprio) { const a = el("a", null, "Adicionar pessoa"); a.href = "usuarios.html?acao=social"; v.appendChild(a); }
+        box.appendChild(v); return;
+      }
+      lista.forEach((c) => {
+        const p = c.perfil, eu_ = c.outro === eu.uid;
+        const art = el("article", "pessoa" + (c.pendente ? " pend" : "")); art.dataset.cat = c.cat; art.style.setProperty("--cor", corDe(c.cat));
+        const av = el("div", "pe-av"); av.appendChild(novoAvatar(p.fotoPerfil, p.nome)); if (online(p) && !c.pendente) av.appendChild(el("i", "on"));
+        const nome = el("div", "pe-nome"); const b = el("b"); b.appendChild(el("span", null, eu_ ? "Você" : (p.nome || "Usuário")));
+        if (p.verificado) { const sv = icone("selo", "i selo-v"); b.appendChild(sv); }
+        nome.append(b, el("small", null, [TIPOS[c.tipo]?.[0] || "", cidadeDe(p)].filter(Boolean).join(" · ")));
+        const desde = c.aceitoEm?.toDate?.();
+        const texto = c.pendente ? (c.de === eu.uid ? "Pedido enviado. Aguardando a resposta." : "Quer entrar no seu social. Responda pelas notificações.")
+          : (p.bio || (desde ? `Conectados desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}.` : "Uma conexão da sua rede."));
+        const tags = el("div", "pe-tags"); tags.appendChild(el("span", "pe-tag", nomeGrupo(c.cat)));
+        if (c.pendente) tags.appendChild(el("span", "pe-tag neutra", c.de === eu.uid ? "Aguardando" : "Pedido recebido"));
+        else if (online(p)) tags.appendChild(el("span", "pe-tag neutra", "Online"));
+        const pes = el("div", "pe-pes");
+        if (!c.pendente && !eu_) {
+          const ver = el("button"); ver.type = "button"; ver.textContent = "Ver perfil";
+          if (proprio || clicavel) ver.addEventListener("click", () => irPerfil(c.outro)); else { ver.disabled = true; ver.title = "O dono deste social não liberou abrir os perfis"; }
+          const msg = el("button", "msg"); msg.type = "button"; msg.textContent = "Mensagem";
+          msg.addEventListener("click", () => abrirConversa(c, msg));
+          pes.append(ver, msg);
+        }
+        let mais = null;
+        if (proprio) { art.classList.add("com-mais"); mais = el("button", "mais"); mais.type = "button"; mais.setAttribute("aria-label", "Mais opções"); mais.appendChild(icone("pontos")); mais.addEventListener("click", acaoPessoa(c)); }
+        art.append(el("div", "pe-topo"), el("p", "pe-texto", texto), tags, pes);
+        art.firstChild.append(av, nome);
+        if (mais) art.appendChild(mais);
+        box.appendChild(art);
+      });
     }
 
     // ---------- Akai Ito ----------
@@ -725,37 +634,6 @@
       par.append(fio, cor, pessoa(dono, donoId, ""), pessoa(c.perfil, c.outro, c.tipo === "duo" ? "" : TIPOS[c.tipo][0]));
       const desde = c.aceitoEm?.toDate?.();
       box.append(tit, par, el("p", "akai-desde", desde ? `Conectados pelo fio vermelho desde ${desde.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}` : "Conectados pelo fio vermelho"));
-    }
-
-    // ---------- grupos: cartões-retrato ----------
-    function desenharGrupos() {
-      const box = $("grupos"); box.replaceChildren();
-      GRUPOS.forEach((g) => {
-        if (filtro !== "todos" && filtro !== g.cat) return;
-        const lista = conexoes.filter((c) => c.cat === g.cat && (proprio || !c.pendente))
-          .sort((a, b) => Number(a.pendente) - Number(b.pendente) || String(a.perfil.nome).localeCompare(String(b.perfil.nome)));
-        const vagas = g.vagas - lista.filter((c) => !c.pendente).length;
-        if (!lista.length && !(proprio && filtro === g.cat)) return;
-        const sec = el("div", "grupo"); sec.dataset.cat = g.cat;
-        const cab = el("div", "grupo-cab"); cab.append(el("i"), el("h3", null, g.nome), el("small", null, `${lista.filter((c) => !c.pendente).length} de ${g.vagas}`));
-        const tr = el("div", "trilho");
-        lista.forEach((c) => {
-          const b = el("button", "retrato" + (c.pendente ? " pend" : "")); b.type = "button"; b.dataset.cat = c.cat;
-          b.append(novoAvatar(c.perfil.fotoPerfil, c.perfil.nome), el("strong", null, primeiroNome(c.perfil.nome) || "Usuário"),
-            el("small", null, c.pendente ? (c.de === eu.uid ? "Aguardando" : "Pedido recebido") : (TIPOS[c.tipo]?.[0] || "")));
-          b.title = c.perfil.nome || "Usuário";
-          const f = acaoPessoa(c); if (f) b.addEventListener("click", f); else b.disabled = true;
-          tr.appendChild(b);
-        });
-        if (proprio && vagas > 0) {
-          const a = el("a", "retrato add"); a.href = "usuarios.html?acao=social"; a.dataset.cat = g.cat;
-          const m = el("span", "mais"); m.appendChild(icone("mais", "i"));
-          a.append(m, el("strong", null, "Adicionar"), el("small", null, `${vagas} ${vagas === 1 ? "vaga" : "vagas"}`));
-          tr.appendChild(a);
-        }
-        sec.append(cab, tr);
-        box.appendChild(sec);
-      });
     }
 
     // ---------- Seu duo no perfil: os 4 modelos com prévia ----------
@@ -816,7 +694,7 @@
     }
 
     function desenharTudo() {
-      desenharCabecalho(); desenharFiltros(); desenharCeu(); desenharDuo(); desenharGrupos();
+      desenharHero(); desenharDestaques(); desenharControles(); desenharDuo(); desenharRede();
       if (proprio && !$("duoModos").hidden) desenharModosDuo();
     }
 
@@ -888,9 +766,7 @@
           }
           desenharTudo();
           if (proprio) prepararModosDuo();
-          let t = null;
-          let largura = $("orbita").clientWidth;
-          new ResizeObserver(() => { const w = $("orbita").clientWidth; if (w === largura) return; largura = w; clearTimeout(t); t = setTimeout(desenharCeu, 100); }).observe($("orbita"));
+          contarRede();
         } catch (e) {
           console.error(e);
           estado("Não foi possível carregar", "Tente novamente em instantes.");
