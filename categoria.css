@@ -337,17 +337,15 @@ html { -webkit-tap-highlight-color: transparent; }
 .marca small { white-space: nowrap; }
 
 /* ===================================================================================================
-   Marca com a ponte (16/11/2026, pedido dele: o nome HELP FLORIPA em cima e a ponte embaixo, "casada" com o nome,
-   no lugar da frase). A ponte são as 2 máscaras do topo (ponte na cor do texto, ondas no azul da marca), entre os
-   dois filetes ciano. A frase continua no aria-label do link. Vale no site (marketplace); a rede social é o Diário.
+   Marca só com a ponte (16/11/2026, pedido dele: "deixa só o ícone da ponte"): o topo do site mostra só o símbolo da
+   ponte (2 máscaras: ponte na cor do texto, ondas no azul da marca). O nome HELP FLORIPA e a frase ficam escondidos
+   da tela, mas continuam para o leitor de tela (e no aria-label do link). Vale no site (marketplace).
    =================================================================================================== */
-.marca { position: relative; display: grid; grid-template-columns: auto; justify-items: center; align-content: center; row-gap: 1px; }
-.marca strong { grid-row: 1; grid-column: 1; white-space: nowrap; }
-.marca small { grid-row: 2; grid-column: 1; font-size: 0; letter-spacing: 0; margin: 0; gap: 50px; align-self: center; }
-.marca small::before, .marca small::after { width: 22px; }
-.marca::before, .marca::after { content: ""; grid-row: 2; grid-column: 1; align-self: center; width: 40px; height: 25px;
-  -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; pointer-events: none; }
+.marca { position: relative; display: grid; place-items: center; align-content: center; min-height: 44px; }
+.marca strong, .marca small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+.marca::before, .marca::after { content: ""; grid-area: 1 / 1; width: 72px; height: 46px;
+  -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; pointer-events: none; transition: transform .18s ease; }
 .marca::before { --m: url("logo-ponte-ondas.webp"); background: linear-gradient(90deg, #4fd2ff, var(--accent, #00adee) 55%, #0087c2); }
 .marca::after { --m: url("logo-ponte-estrutura.webp"); background: var(--text); }
-@media (max-width: 360px) { .marca strong { font-size: 17px; } .marca::before, .marca::after { width: 36px; height: 22px; }
+.marca:active::before, .marca:active::after { transform: scale(.92); }
   .marca small { gap: 44px; } .marca small::before, .marca small::after { width: 16px; } }
