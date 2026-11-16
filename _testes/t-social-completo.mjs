@@ -25,15 +25,15 @@ const erros = [];
 const A = await navegador({ mobile: true });
 const p = await entrar(A.ctx, "ana", "social.html");
 p.on("pageerror", (e) => erros.push(e.message));
-await p.waitForSelector("#duo:not([hidden]) .akai-par", { timeout: 25000 }); await p.waitForTimeout(2500);
+await p.waitForSelector("#duo:not([hidden]) .ak-linha", { timeout: 25000 }); await p.waitForTimeout(2500);
 await p.screenshot({ path: "saida/social-completo.png", fullPage: true });
 
 const topo = await p.evaluate(() => { const r = document.querySelector("#btnAdd").getBoundingClientRect(); return { dentro: r.right <= innerWidth && r.left >= 0, tag: document.querySelector("#btnAdd").tagName, sw: document.documentElement.scrollWidth, vw: innerWidth }; });
 ok(topo.dentro && topo.tag === "BUTTON", "\"+\" do topo dentro da tela e é um botão (não sai da página)");
 ok(topo.sw <= topo.vw, "sem passar da largura");
 ok(!(await p.locator("text=Conectados pelo fio vermelho").count()), "sem a frase \"Conectados pelo fio vermelho\"");
-ok(await p.locator("#duo .ak-frase").count() === 1, "cartão do duo com uma frase");
-ok(await p.locator("#duo .akai-pessoa .pet-bol").count() === 2, "pets ao lado de cada um no cartão do duo (Thor do Bruno e Mia da Ana)");
+ok(await p.locator("#duo .ak-tx small").count() === 1, "linha do duo com uma frase");
+ok(await p.locator("#rede .pessoa .pet-bol").count() >= 1 && await p.locator("#hsAvw .pet-bol").count() === 1, "pets ao lado das pessoas (Thor do Bruno na lista, Mia da Ana no topo)");
 ok(await p.locator("#hsAvw .pet-bol").count() === 1, "seu pet (mesmo fora das buscas) ao lado da sua foto");
 ok(await p.locator("#cuidado .cd").count() === 3, "Cuidado e proteção: SOS, Pets e Presentes");
 await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
@@ -70,9 +70,11 @@ const r = await db.doc(`vinculos_retrato/${par(ids.ana, ids.bruno)}`).get();
 ok(v.conheceram === "2023-02-14" && v.frase === "Desde aquele café na Lagoa." && v.retrato === true, "memória gravada no vínculo");
 ok(r.exists && r.data().foto.startsWith("data:image/jpeg") && r.data().foto.length <= 240000, "retrato gravado (" + (r.data()?.foto.length || 0) + " letras)");
 await p.waitForTimeout(800);
-ok(await p.locator("#duo .ak-retrato img").count() === 1, "retrato no cartão do duo");
-ok((await p.locator("#duo .ak-frase").textContent()).includes("Lagoa"), "frase de vocês no cartão");
-ok((await p.locator("#duo .ak-dados").textContent()).includes("Conheceram"), "data em que se conheceram + tempo juntos");
+await p.locator("#akAbrir").click(); ok(await p.waitForSelector(".dc-hero.com-retrato", { timeout: 8000 }).then(() => true).catch(() => false), "retrato no cartão do duo");
+ok((await p.locator(".dc-desde").textContent()).includes("Juntos desde"), "data em que se conheceram + tempo juntos");
+await p.keyboard.press("Escape"); await p.waitForTimeout(400);
+ok((await p.locator("#duo .ak-tx small").textContent()).includes("Lagoa"), "frase de vocês na linha do duo");
+ok(await p.locator("#duo .ak-todo").count() === 0 && (await p.locator("#duo .ak-rot2").textContent()).includes("desde"), "memória completa: sem os lembretes e com o \"desde\"");
 await p.locator("#duo").screenshot({ path: "saida/social-duo.png" });
 
 // Adicionar pessoa sem sair da página
@@ -97,10 +99,11 @@ await A.browser.close();
 // Visitante (Bruno no social da Ana) vê a memória, sem botão de editar
 const B = await navegador({ mobile: true });
 const q = await entrar(B.ctx, "bruno", `social.html?uid=${ids.ana}`);
-await q.waitForSelector("#duo:not([hidden]) .akai-par", { timeout: 25000 }); await q.waitForTimeout(2500);
-ok(await q.locator("#duo .ak-retrato img").count() === 1 && (await q.locator("#duo .ak-frase").textContent()).includes("Lagoa"), "visitante vê o retrato e a frase");
+await q.waitForSelector("#duo:not([hidden]) .ak-linha", { timeout: 25000 }); await q.waitForTimeout(2500);
+ok((await q.locator("#duo .ak-tx small").textContent()).includes("Lagoa"), "visitante vê a frase");
+await q.locator("#akAbrir").click(); ok(await q.waitForSelector(".dc-hero.com-retrato", { timeout: 8000 }).then(() => true).catch(() => false), "visitante vê o retrato no cartão do duo"); await q.keyboard.press("Escape"); await q.waitForTimeout(400);
 ok(await q.locator("#akEditar, #btnConfig, #secCuidado:not([hidden])").count() === 0, "visitante não tem Editar, Configurar nem Cuidado");
-ok(await q.locator("#hsAcoes button").filter({ hasText: "Presente" }).count() === 1, "visitante pode mandar um presente");
+ok(await q.locator("#hsAcoes button[aria-label='Enviar um presente']").count() === 1, "visitante pode mandar um presente");
 await q.screenshot({ path: "saida/social-visitante.png", fullPage: true });
 await B.browser.close();
 await db.doc(`vinculos/${pf.join("_")}`).delete();

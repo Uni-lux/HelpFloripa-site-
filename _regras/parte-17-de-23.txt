@@ -21,7 +21,9 @@
     match /pref_publicas/{uid} {
       allow read: if logado();
       allow create, update: if logado() && uid == request.auth.uid
-                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao', 'redes'])
+                    && request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao', 'redes', 'salaoModelo'])
+                    // modelo da galeria do Salão (16/11/2026)
+                    && request.resource.data.get('salaoModelo', 'mosaico') in ['mosaico', 'grade', 'revista', 'polaroid', 'filme']
                     // quais redes a pessoa tem no perfil (14/11/2026; só os nomes, os valores ficam em contatos_perfil)
                     && (!('redes' in request.resource.data) || (request.resource.data.redes is list && request.resource.data.redes.size() <= 10
                         && request.resource.data.redes.join(',').matches('^((instagram|whatsapp|email|telegram|tiktok|kwai|x|youtube|facebook|linkedin)(,|$))*$')))

@@ -21,8 +21,8 @@ import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, edi
 import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=122";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=3";
-import { lerModoDuo } from "./duo-modo.js?v=1";
-import { salaoNoPerfil } from "./salao-base.js?v=1";
+import { lerModoDuo } from "./duo-modo.js?v=2";
+import { salaoNoPerfil } from "./salao-base.js?v=2";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -1558,64 +1558,23 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
   }
   let caixa;
   if (estilo === "gaveta") {
-    // Gaveta: sai da rosinha para a direita, por cima dos números, com a prévia do perfil do duo.
-    faixa.classList.add("com-gaveta");
-    caixa = document.createElement("div");
-    caixa.className = "pf-duo-gaveta" + (podeAbrir ? "" : " so-ver");
-    caixa.hidden = true;
-    caixa.setAttribute("role", "dialog");
-    const av = el("div", "avatar");
-    const nome = el("strong", "dg-nome");
-    const selo = icone("selo", "i dg-selo"); selo.style.display = "none";
-    const nmLinha = el("span", "dg-nm"); nmLinha.append(nome, selo);
-    const sub = el("span", "dg-sub");
-    const bio = el("span", "dg-bio");
-    const tx = el("span", "dg-tx"); tx.append(nmLinha, sub, bio);
-    const topo = el("span", "dg-rot"); topo.append(icone("rosa", "i"), document.createTextNode(rotulo));
-    const fechar = el("button", "dg-fechar"); fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar"); fechar.appendChild(icone("fechar", "i"));
-    const corpo = el(podeAbrir ? "button" : "div", "dg-corpo");
-    if (podeAbrir) corpo.type = "button";
-    corpo.append(av, tx);
-    if (podeAbrir) { const ir = el("span", "dg-ir"); ir.append(document.createTextNode("Ver perfil"), icone("avancar", "i")); tx.appendChild(ir); }
-    // fotos recentes do duo (lidas só na 1ª vez que a gaveta abre)
-    const fotos = el("div", "dg-fotos");
-    caixa.append(el("i", "dg-luz"), topo, fechar, corpo, fotos);
-    caixa._fotos = () => {
-      if (caixa._lidas) return; caixa._lidas = true;
-      fotos.classList.add("lendo");
-      fotos.replaceChildren(...Array.from({ length: 4 }, () => el("i", "dg-ft vazio")));
-      fotosDoDuo(duo.outro).then((lista) => {
-        fotos.classList.remove("lendo");
-        if (!lista.length) { fotos.replaceChildren(el("span", "dg-sem", "Ainda sem fotos publicadas")); return; }
-        fotos.className = "dg-fotos q" + Math.min(lista.length, 4);
-        fotos.replaceChildren(...lista.slice(0, 4).map((p) => {
-          const b = el(podeAbrir ? "button" : "span", "dg-ft");
-          if (podeAbrir) { b.type = "button"; b.setAttribute("aria-label", "Abrir a publicação"); }
-          const img = document.createElement("img"); img.src = p.foto; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
-          b.appendChild(img);
-          if (p.varias) b.appendChild(el("i", "dg-mais"));
-          if (podeAbrir) b.addEventListener("click", (e) => { e.stopPropagation(); esconder(); abrirPostPorLink(p.id); });
-          return b;
-        }));
-      }).catch(() => { fotos.classList.remove("lendo"); fotos.replaceChildren(); caixa._lidas = false; });
-    };
-    faixa.appendChild(caixa);
-    obterPerfil(duo.outro).then((o) => {
-      pintarAvatar(av, o.fotoPerfil, o.nome);
-      nome.textContent = o.nome || "Usuário";
-      selo.style.display = o.verificado ? "" : "none";
-      sub.textContent = [o.nickname ? "@" + o.nickname : "", nomeCidade(o.cidade || "")].filter(Boolean).join(" · ");
-      bio.textContent = o.bio || "";
-      bio.hidden = !o.bio;
-      btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`);
-      caixa.setAttribute("aria-label", `${rotulo}: ${o.nome || "Usuário"}`);
-    });
-    fechar.addEventListener("click", (e) => { e.stopPropagation(); esconder(); });
-    corpo.addEventListener("click", (e) => {
+    // Cartão do duo (16/11/2026, pedido dele): a gaveta apertada por cima dos números virou um cartão inteiro
+    // (duo-cartao.js) com os dois, o fio, desde quando, a frase, quem é, as fotos, os números e as ações.
+    btn.setAttribute("aria-haspopup", "dialog");
+    obterPerfil(duo.outro).then((o) => btn.setAttribute("aria-label", `${papel}: ${o.nome || "Usuário"}`));
+    btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      if (podeAbrir) { esconder(); abrirPerfilPublico(duo.outro); }
-      else avisoDono("Gaveta só para ver: visitantes não abrem o perfil do seu duo por ela. Mude no seu Social.");
+      btn.classList.add("ativa"); btn.setAttribute("aria-expanded", "true"); navigator.vibrate?.(6);
+      const [{ abrirCartaoDuo }, perfil] = await Promise.all([import("./duo-cartao.js?v=1"), obterPerfil(duo.outro).catch(() => null)]);
+      abrirCartaoDuo({
+        fb, eu: eu.uid, dono: { uid, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
+        vinculo: { ...duo, papel }, perfil, podeAbrir: podeAbrir || proprio, fotosDoPost, toast,
+        retrato: duo.retrato ? fb.getDoc(fb.doc(fb.db, "vinculos_retrato", duo.id)).then((r) => (r.exists() ? r.data().foto : "")).catch(() => "") : null,
+        abrirPerfil: (u) => abrirPerfilPublico(u), abrirPost: (id) => abrirPostPorLink(id),
+        aoFechar: () => { btn.classList.remove("ativa"); btn.setAttribute("aria-expanded", "false"); }
+      });
     });
+    return;
   } else {
     // Bolinha (como antes): a fotinho redonda do duo no lugar da rosinha.
     caixa = document.createElement("button");
@@ -1659,20 +1618,6 @@ function desenharDuoCapa(cab, uid, dono, vinculos = []) {
     document.addEventListener("pointerdown", fora, true); document.addEventListener("keydown", tecla);
     clearTimeout(tempo); if (estilo === "bolinha") tempo = setTimeout(esconder, 5000);
   });
-}
-
-// Fotos recentes do duo para a gaveta: só publicações com foto, para todos (sem público escolhido), já no ar.
-const fotosDuoCache = new Map();
-function fotosDoDuo(uid) {
-  if (!fotosDuoCache.has(uid)) {
-    fotosDuoCache.set(uid, fb.getDocs(fb.query(fb.collection(fb.db, "diario"), fb.where("autorId", "==", uid), fb.orderBy("criadoEm", "desc"), fb.limit(12)))
-      .then((snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((p) => !p.publico && !p.guardado && !((p.ocultoAte?.toMillis?.() ?? 0) > Date.now()) && !((p.agendadoPara?.toMillis?.() ?? 0) > Date.now()))
-        .map((p) => { const f = fotosDoPost(p); return f.length ? { id: p.id, foto: f[0], varias: f.length > 1 } : null; })
-        .filter(Boolean))
-      .catch((e) => { fotosDuoCache.delete(uid); throw e; }));
-  }
-  return fotosDuoCache.get(uid);
 }
 
 // ======================================================

@@ -27,11 +27,11 @@ p.on("pageerror", (e) => erros.push(e.message));
 await p.waitForSelector("#painelSalao:not([hidden])", { timeout: 25000 }); await p.waitForTimeout(2500);
 ok(await p.locator("#abaSalao[aria-selected=true]").count() === 1 && await p.locator("#painelConexoes[hidden]").count() === 1, "abre na aba Salão");
 ok(await p.locator("#dqf a[href*='destaque=dq_salao']").count() === 1, "destaque do Flash no Salão");
-ok(await p.locator("#slNovo button, #slNovo a").count() === 3, "barra do dono: Momento com foto, Lembrança, Destaque do Flash");
+ok(await p.locator("#slNovo .sl-add").count() === 1 && await p.locator("#slNovo .sl-med").count() === 2, "barra do dono: quanto cabe (fotos, exposição) + Adicionar");
 
 // "+" do topo: escolher o que adicionar
 await p.locator("#btnAdd").click(); await p.waitForTimeout(400);
-ok(await p.locator(".folha.aberta #crFoto, .folha.aberta #crLemb, .folha.aberta #crDq, .folha.aberta #crPessoa").count() === 4, "\"+\" mostra as 4 opções");
+ok(await p.locator(".folha.aberta #crFoto, .folha.aberta #crDq, .folha.aberta #crPessoa").count() === 3 && await p.locator("#crLemb").count() === 0, "\"+\" mostra as opções");
 await p.locator("#crFoto").click(); await p.waitForTimeout(400);
 // momento com foto, em exposição
 await p.locator("#edmArquivo").setInputFiles("saida/retrato.jpg"); await p.waitForTimeout(1200);
@@ -48,23 +48,22 @@ let ms = (await db.collection("momentos").where("uid", "==", ids.ana).get()).doc
 ok(ms.length === 1 && ms[0].fixado === true && ms[0].categoria === "viagem" && ms[0].data === "2024-07-12" && ms[0].foto.startsWith("data:image/jpeg"), "momento gravado (exposição, viagem, data, foto)");
 ok(await p.locator("#expo .expo-card").count() === 1 && (await p.locator("#expo").textContent()).includes("Gramado"), "Em exposição");
 ok(await p.locator("#galeria .g-tile:not(.novo)").count() === 1, "na galeria");
-ok(await p.locator("#vida .vida-item").count() === 1 && (await p.locator("#vida .vida-ano").first().textContent()) === "2024", "na linha da vida, no ano certo");
 // lembrança só para seguidores e um momento "só eu"
-await p.locator("#slNovoLemb").click(); await p.waitForTimeout(400);
+await p.locator("#btnAdd").click(); await p.waitForTimeout(300); await p.locator("#crFoto").click(); await p.waitForTimeout(400);
+await p.locator("#edmArquivo").setInputFiles("saida/retrato.jpg"); await p.waitForTimeout(1000);
 await p.locator("#edmTitulo").fill("Primeiro emprego");
 await p.locator('#edmCats button[data-cat="trabalho"]').click();
 await p.locator('#edmVer button[data-v="seguidores"]').click();
 await p.evaluate(() => { const d = document.querySelector("#edmData"); d.value = "2019-03-01"; d.dispatchEvent(new Event("change", { bubbles: true })); });
 await p.locator("#edmSalvar").click(); await p.waitForTimeout(1500);
-await p.locator("#slNovoFoto").click(); await p.waitForTimeout(400);
+await p.locator("#slNovoFoto").click(); await p.waitForTimeout(300); await p.locator("#crFoto").click(); await p.waitForTimeout(400);
 await p.locator("#edmArquivo").setInputFiles("saida/retrato.jpg"); await p.waitForTimeout(1000);
 await p.locator("#edmTitulo").fill("Só minha");
 await p.locator('#edmVer button[data-v="eu"]').click();
 await p.locator("#edmSalvar").click(); await p.waitForTimeout(1500);
 ms = (await db.collection("momentos").where("uid", "==", ids.ana).get()).docs.map((d) => d.data());
-ok(ms.length === 3 && ms.some((m) => m.tipo === "lembranca" && m.ver === "seguidores") && ms.some((m) => m.ver === "eu"), "lembrança (seguidores) e foto (só eu) gravadas");
-ok(await p.locator("#vida .vida-ano").count() === 2, "linha da vida por ano (2024, 2019; foto sem data fica só na galeria)");
-ok(await p.locator("#galeria .g-tranca").count() === 1, "cadeado na foto que não é para todos");
+ok(ms.length === 3 && ms.some((m) => m.categoria === "trabalho" && m.ver === "seguidores") && ms.some((m) => m.ver === "eu"), "fotos para seguidores e só eu gravadas");
+ok(await p.locator("#galeria .g-tranca").count() === 2, "cadeado na foto que não é para todos");
 ok(await p.locator("#stMom").textContent() === "3", "número de momentos no topo");
 // visor
 await p.locator("#expo .expo-card").first().click(); await p.waitForTimeout(500);
@@ -109,7 +108,8 @@ const C = await navegador({ mobile: true });
 const r = await entrar(C.ctx, "bruno", `social.html?uid=${ids.ana}`);
 await r.waitForSelector("#painelSalao:not([hidden])", { timeout: 25000 }); await r.waitForTimeout(2500);
 const t2 = await r.locator("#painelSalao").textContent();
-ok(t2.includes("Primeiro emprego") && !t2.includes("Só minha"), "seguidor vê também o \"seguidores\" (e nunca o \"só eu\")");
+const rot2 = (await r.locator("#galeria .g-tile").evaluateAll((l) => l.map((e) => e.getAttribute("aria-label")))).join("|");
+ok(rot2.includes("Primeiro emprego") && !rot2.includes("Só minha") && !t2.includes("Só minha"), "seguidor vê também o \"seguidores\" (e nunca o \"só eu\")");
 await C.browser.close();
 await db.doc(`relacoes/${ids.bruno}_${ids.ana}`).delete();
 ok(!erros.length, "sem erros " + erros.join(" | "));

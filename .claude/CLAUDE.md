@@ -2758,6 +2758,24 @@ chat da equipe).
   (aviao, livro, maleta, casa, bola, vela, foto, linhaTempo). Conta apagada: conta.js e limpeza-conta apagam `momentos`. Também:
   faltava o estilo base `.btn` no social.html (o Salvar da memória do PR #229 aparecia como botão do navegador). Testes
   `t-salao.mjs` (27); `t-social-completo`, `t-perfil-social`, `t-flash-destaques` atualizados.
+- **Cartão do duo, Salão enxuto, Social compacto e Nova conversa (16/11/2026, PR depois do #230, MUDA 1 REGRA — não publicada):**
+  pedido dele (protótipo HTML + prints marcados). `duo-cartao.js` (sem rede.js): `abrirCartaoDuo({fb, eu, dono, vinculo, perfil,
+  podeAbrir, retrato, abrirPerfil, abrirPost, fotosDoPost})` = gaveta de baixo `.dc-fundo` (voltar.js fecha): topo escuro com o
+  retrato dos dois de fundo (se tiver), as duas fotos ligadas pelo fio (SEM a rosinha no meio, pedido dele), "Ana & Bruno", desde
+  quando + dias/meses de fio, frase, quem é (nome, selo, @, cidade, bio), fotos (Salão primeiro, depois Diário; até 5), números
+  Momentos · Conexões · Seguidores e Ver perfil · Mensagem · Presente. Abre pela rosinha do perfil (estilo "gaveta" agora se chama
+  **Cartão**; a gaveta apertada por cima dos números saiu, `fotosDoDuo` apagada) e pelo Akai Ito do Social. **Social:** topo numa
+  linha (foto, nome, @, Configurar/Compartilhar em ícones; sem bio), números numa faixa fina, abas NÃO grudam por cima das fotos,
+  Akai Ito numa linha (`.akai.compacto`, `#akAbrir` abre o cartão; lembretes "Data"/"Retrato" em pílulas), conexões em lista
+  compacta (`.pessoa` em linha: anel do grupo, bolinha verde, papel + "visto há"/online, mensagem, ⋯; ordem: pedidos, online,
+  último acesso; o seletor de ordem SAIU, pedido dele), Cuidado e proteção em 3 atalhos baixos. **Salão:** a Linha da vida SAIU
+  (pedido dele) e criar lembrança também (antiga ainda se edita); `LIMITES_SALAO` {fotos 24, exposicao 8} (salao-base.js,
+  conferidos no aparelho; as regras não contam documentos), barra do dono com Fotos 24 e Exposição 8 + "Adicionar";
+  `MODELOS_GALERIA` mosaico | grade | revista | polaroid | filme (`.galeria.mg-*`, botão "Modelo" `#galModelo` → `abrirModelos`),
+  guardado em `usuarios.salaoModelo` + `pref_publicas.salaoModelo` (regra nova; sem ela só o dono vê o modelo). **Nova conversa**
+  (mensagens-app.js): a fileira "Online agora" saiu; lista única com online primeiro (bolinha verde, "N online"), depois por último
+  acesso com "visto há X" (`vistoHa`), sem repetir pessoa. Teste `t-duo-salao.mjs` (fotos JPEG de verdade via PIL);
+  `t-salao`, `t-social-completo`, `t-perfil-social`, `t-duo-gaveta`, `t-perfil` atualizados.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2767,7 +2785,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1238 testes; inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1241 testes; inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
