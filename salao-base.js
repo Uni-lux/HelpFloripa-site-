@@ -152,7 +152,7 @@ export async function salaoNoPerfil(fb, corpo, eu, uid, nome) {
   const cab = document.createElement("span"); cab.className = "ps-cab";
   const ic = document.createElement("span"); ic.className = "ps-ic"; ic.innerHTML = svg(ICONE_SALAO);
   const tx = document.createElement("span"); tx.className = "ps-tx";
-  const b = document.createElement("b"); b.textContent = meu ? "Seu salão" : `Salão de ${nome || "Usuário"}`;
+  const b = document.createElement("b"); b.textContent = meu ? "Meu diário" : `Diário de ${nome || "Usuário"}`;
   const sm = document.createElement("small"); sm.textContent = partes.join(" · ") || (meu ? "Monte o seu: fotos favoritas e destaques do Flash" : "");
   tx.append(b, sm);
   const seta = document.createElement("span"); seta.className = "ps-seta"; seta.textContent = "›"; seta.setAttribute("aria-hidden", "true");

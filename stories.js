@@ -14,7 +14,7 @@ import {
   salvarImagem, mandarMensagem, ganchos, confirmarHF, nomeCidade, blocoEnquete, refUsuario, podeMarcar, registrarEnquete, blocoCaixa,
   fotosDoPost, urlSegura, lerResumosEstrelas, escolherLocal as escolherLugar, CORES_FIG, temaFig, comMencoes, uidsMencionados,
   responderNoChat, cartaoRespostaCaixa, fecharFolha, ajudaPublico, votosDaEnquete
-} from "./rede.js?v=166";
+} from "./rede.js?v=167";
 import { FILTROS, semFiltro, aplicarFiltro, imagemFiltrada, FiltroGL } from "./filtros-foto.js?v=3";
 import { lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { combinaPublico, leitorDe, temPublico, resumoPublico, publicoParaGravar } from "./publico-alvo.js?v=1";
@@ -5160,7 +5160,7 @@ function adicionarAoDestaque(s, aoFechar) {
   const corpo = abrirLista("Destacar no Salão");
   const f = $("folhaLista"); const volta = () => { f?.removeEventListener("fechada", volta); aoFechar?.(); }; f?.addEventListener("fechada", volta);
   const fila = el("div", "dq-fila"); const form = el("div", "dq-form"); form.hidden = true;
-  corpo.append(fila, form, el("p", "dq-nota", "Os destaques ficam no seu Salão (Social), mesmo depois das 24 horas. Toque de novo para tirar."));
+  corpo.append(fila, form, el("p", "dq-nota", "Os destaques ficam no Meu diário, mesmo depois das 24 horas. Toque de novo para tirar."));
   fila.appendChild(el("div", "lista-vazia", "Carregando..."));
   const mini = miniaturaFlash(s.tipo === "video" ? "" : s.midia);
   const pintar = async () => {

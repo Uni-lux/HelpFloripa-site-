@@ -80,7 +80,7 @@ ok(await p.locator("#rede .pessoa").count() >= 2 && await p.locator("#painelSala
 // perfil: cartão do Salão no lugar da fileira de destaques
 await p.goto(BASE + "usuarios.html"); await p.waitForSelector("#meuPerfil .pf-salao:not([hidden])", { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(800);
 const pf = await p.evaluate(() => ({ cartao: document.querySelector("#meuPerfil .pf-salao")?.textContent || "", fileira: document.querySelectorAll("#meuPerfil .pf-destaques:not([hidden])").length, fotos: document.querySelectorAll("#meuPerfil .pf-salao .ps-fotos i").length }));
-ok(pf.cartao.includes("Seu salão") && pf.cartao.includes("3 momentos") && /\d destaques? do Flash/.test(pf.cartao), "perfil: cartão \"Seu salão\" com os números (" + pf.cartao + ")");
+ok(pf.cartao.includes("Meu diário") && pf.cartao.includes("3 momentos") && /\d destaques? do Flash/.test(pf.cartao), "perfil: cartão \"Meu diário\" com os números (" + pf.cartao + ")");
 ok(pf.fileira === 0 && pf.fotos >= 2, "perfil sem a fileira de destaques e com a prévia");
 await p.locator("#meuPerfil .pf-salao").screenshot({ path: "saida/salao-perfil.png" });
 ok(!erros.length, "sem erro na página " + erros.join(" | "));
@@ -96,7 +96,7 @@ ok(t.includes("Gramado") && !t.includes("Primeiro emprego") && !t.includes("Só 
 ok(await q.locator("#slNovo:not([hidden]), #galNovo, .mv-acoes").count() === 0, "visitante sem botões de editar");
 ok(await q.locator("#stMom").textContent() === "1", "visitante: 1 momento");
 await q.goto(BASE + `usuarios.html?perfil=${ids.ana}`); await q.waitForTimeout(3500);
-ok((await q.locator("#ppCabecalho .pf-salao").textContent().catch(() => "")).includes("Salão de Ana"), "perfil da Ana: \"Salão de Ana\" para quem visita");
+ok((await q.locator("#ppCabecalho .pf-salao").textContent().catch(() => "")).includes("Diário de Ana"), "perfil da Ana: \"Diário de Ana\" para quem visita");
 // destaque abre o visor do Flash
 await q.goto(BASE + `social.html?uid=${ids.ana}`); await q.waitForSelector("#dqf a", { timeout: 20000 }); await q.waitForTimeout(800);
 await q.locator("#dqf a").first().click();

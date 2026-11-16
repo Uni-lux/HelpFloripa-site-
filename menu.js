@@ -135,7 +135,7 @@ const SECOES_MENU = [
     ["usuarios.html", "perfil", "Meu perfil"],
     ["notificacoes.html", "sino", "Notificações"],
     ["mensagens.html", "chat", "Mensagens", null, "menuBadge"],
-    ["social.html", "social", "Social e conexões"],
+    ["social.html", "social", "Meu diário"],
     ["notas.html", "nota", "Notas", "#00adee", null, "Anotações, listas e estratégias · só você vê"],
     ["presentes.html", "presente", "Presentes", "#e5487f", null, "Mimos, lanches, Pix e corridas para quem você gosta"],
     ["alertas.html?aba=pets", "coracao", "Meus pets (RG)", null, null, "Cadastro para achar o seu pet se ele sumir"],

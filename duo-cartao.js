@@ -5,7 +5,7 @@
 // Ver perfil · Mensagem · Presente. Substitui a gaveta apertada que saía por cima dos números do perfil.
 // Sem dependências do rede.js: quem chama passa o fb e as funções de abrir.
 // =====================================================
-import { lerMomentos, contarMomentos, relacaoCom, fotoOk } from "./salao-base.js?v=2";
+import { lerMomentos, contarMomentos, relacaoCom, fotoOk } from "./salao-base.js?v=3";
 
 const FRASES = [
   "O fio pode esticar e se enrolar, mas nunca se rompe.",
