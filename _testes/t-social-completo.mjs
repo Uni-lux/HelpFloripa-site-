@@ -36,7 +36,9 @@ ok(await p.locator("#duo .ak-frase").count() === 1, "cartão do duo com uma fras
 ok(await p.locator("#duo .akai-pessoa .pet-bol").count() === 2, "pets ao lado de cada um no cartão do duo (Thor do Bruno e Mia da Ana)");
 ok(await p.locator("#hsAvw .pet-bol").count() === 1, "seu pet (mesmo fora das buscas) ao lado da sua foto");
 ok(await p.locator("#cuidado .cd").count() === 3, "Cuidado e proteção: SOS, Pets e Presentes");
-ok(await p.locator(`#rede .pessoa[data-id="${pf.join("_")}"] .aceitar`).count() === 1, "pedido recebido com Aceitar no cartão");
+await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
+ok(await p.locator(`#rede .pessoa[data-id="${pf.join("_")}"] .aceitar`).count() === 1, "pedido recebido com Aceitar no cartão (aba Conexões)");
+await p.locator("#abaSalao").click(); await p.waitForTimeout(300);
 
 // Configurar abre a gaveta (não rola a página)
 const y0 = await p.evaluate(() => scrollY);
@@ -74,6 +76,7 @@ ok((await p.locator("#duo .ak-dados").textContent()).includes("Conheceram"), "da
 await p.locator("#duo").screenshot({ path: "saida/social-duo.png" });
 
 // Adicionar pessoa sem sair da página
+await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
 await p.locator("#btnAdd").click(); await p.waitForTimeout(500);
 ok(p.url().includes("social.html") && await p.locator(".folha.aberta #addBusca").count() === 1, "\"+\" abre a gaveta Adicionar na própria página");
 await p.locator("#addBusca").fill("Gui"); await p.waitForTimeout(1800);

@@ -2741,6 +2741,23 @@ chat da equipe).
   Presente · compartilhar. Gavetas `.folha.aberta` + `[data-fechar]` (voltar do celular fecha), z 5000. Desfazer vínculo apaga o
   retrato; conta.js e limpeza-conta apagam `vinculos_retrato`. Teste `t-social-completo.mjs` (28); `t-duo-gaveta` atualizado.
   Interpretado "o restrito deles" como **retrato** (foto dos dois) — confirmar com ele.
+- **Salão (16/11/2026, PR depois do #229, MUDA REGRAS — não publicadas; 23 partes, 1238 testes):** ideia dele: o Social vira
+  também a galeria onde a pessoa apresenta a vida. social.html com abas **Salão | Conexões** (`#abasSocial`, `irAba`,
+  `?aba=conexoes`; números do topo Momentos · Conexões · Seguidores tocáveis). Salão (`desenharSalao`): barra do dono (Momento com
+  foto · Lembrança · Destaque do Flash), **Destaques do Flash** (`#dqf`, saíram do perfil; tocar = `feed.html?destaque=ID` →
+  `abrirDestaquePorId` em stories.js, fechar volta; segurar = `usuarios.html?acao=editarDestaque&id=` → `editarDestaquePorId`;
+  "Novo"/Arquivo = `usuarios.html?acao=destaque|arquivo`), **Em exposição** (fixados com foto, até 8, cartões grandes), o duo
+  (Akai Ito), **Galeria** (fotos em grade, 1ª grande, filtro por categoria, cadeado no que não é para todos, "Ver todas") e
+  **Linha da vida** (lembranças + fotos com data, por ano). Visor em tela cheia `.mv.foto-grande` (desliza, Expor/Editar/Apagar
+  do dono). Editor `abrirEditorMomento` (tipo, foto ≤170 mil letras, título, história, quando, onde, 12 categorias com ícone,
+  quem vê, com quem do social ≤10, pôr em exposição). "+" do topo no Salão = `abrirCriar` (4 opções), nas Conexões = Adicionar.
+  `salao-base.js` (sem deps: `CATEGORIAS`, `VER_MOMENTO`, `relacaoCom`, `lerMomentos` uma consulta por "ver" permitido,
+  `contarMomentos`, `lerDestaquesFlash`, `reduzirFotoSalao`, `salaoNoPerfil` = cartão "Seu salão"/"Salão de X" com 4 miniaturas
+  no lugar da fileira de destaques do perfil; "O que aparece" → "Salão"). `salao.css`. Regra `momentos/{id}` (`podeVerMomento`,
+  `momentoOk`). "Ninguém" no Social esconde só as conexões (o Salão segue o "ver" de cada momento). Ícones novos no icones-hf.js
+  (aviao, livro, maleta, casa, bola, vela, foto, linhaTempo). Conta apagada: conta.js e limpeza-conta apagam `momentos`. Também:
+  faltava o estilo base `.btn` no social.html (o Salvar da memória do PR #229 aparecia como botão do navegador). Testes
+  `t-salao.mjs` (27); `t-social-completo`, `t-perfil-social`, `t-flash-destaques` atualizados.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2750,7 +2767,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1210 testes; inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1238 testes; inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

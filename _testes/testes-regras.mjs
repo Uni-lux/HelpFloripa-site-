@@ -2011,6 +2011,47 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("vínculo: aceitar continua igual", async () => { await semRegras((db) => setDoc(doc(db, "vinculos", "mvb_mvc"), { participantes: ["mvb", "mvc"], de: "mvb", para: "mvc", tipoDe: "amigo", tipoPara: "amigo", status: "pendente" })); await assertSucceeds(updateDoc(doc(ctx("mvc"), "vinculos", "mvb_mvc"), { status: "aceito", aceitoEm: serverTimestamp() })); });
 }
 
+// ===================== Salão: momentos e lembranças =====================
+{
+  await semRegras(async (db) => {
+    for (const u of ["slo", "slv", "slf", "slb"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true });
+    await setDoc(doc(db, "relacoes", "slf_slo"), { tipo: "seguir", seguidorId: "slf", alvoId: "slo" });
+    await setDoc(doc(db, "relacoes", "slo_slf"), { tipo: "seguir", seguidorId: "slo", alvoId: "slf" });
+    await setDoc(doc(db, "relacoes", "slv_slo"), { tipo: "seguir", seguidorId: "slv", alvoId: "slo" });
+    await setDoc(doc(db, "bloqueios", "slo_slb"), { bloqueadorId: "slo", bloqueadoId: "slb" });
+  });
+  const foto = "data:image/jpeg;base64," + "A".repeat(3000);
+  const mo = (extra) => ({ uid: "slo", tipo: "foto", titulo: "Formatura", texto: "Dia lindo", data: "2024-12-10", local: "UFSC", categoria: "conquista", foto, fixado: true, ver: "todos", com: [], criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("salão: cria momento com foto", () => assertSucceeds(setDoc(doc(ctx("slo"), "momentos", "m1"), mo())));
+  await t("salão: cria lembrança sem foto", () => assertSucceeds(setDoc(doc(ctx("slo"), "momentos", "m2"), mo({ tipo: "lembranca", foto: "", ver: "seguidores", categoria: "trabalho", titulo: "Primeiro emprego" }))));
+  await t("salão: amigos e só eu", async () => { await assertSucceeds(setDoc(doc(ctx("slo"), "momentos", "m3"), mo({ ver: "amigos" }))); await assertSucceeds(setDoc(doc(ctx("slo"), "momentos", "m4"), mo({ ver: "eu" }))); });
+  await t("salão: foto sem imagem é recusada", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ foto: "" }))));
+  await t("salão: lembrança sem título é recusada", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ tipo: "lembranca", foto: "", titulo: "" }))));
+  await t("salão: imagem de fora é recusada", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ foto: "https://exemplo.com/a.jpg" }))));
+  await t("salão: categoria inventada é recusada", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ categoria: "x" }))));
+  await t("salão: data inválida é recusada", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ data: "10/12/2024" }))));
+  await t("salão: mais de 10 marcados é recusado", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ com: Array(11).fill("x") }))));
+  await t("salão: não cria no nome de outra pessoa", () => assertFails(setDoc(doc(ctx("slv"), "momentos", "m5"), mo())));
+  await t("salão: campo a mais é recusado", () => assertFails(setDoc(doc(ctx("slo"), "momentos", "m5"), mo({ extra: 1 }))));
+  await t("salão: qualquer um com conta vê o 'todos'", () => assertSucceeds(getDoc(doc(ctx("slx"), "momentos", "m1"))));
+  await t("salão: quem não segue não vê o 'seguidores'", () => assertFails(getDoc(doc(ctx("slx"), "momentos", "m2"))));
+  await t("salão: seguidor vê o 'seguidores'", () => assertSucceeds(getDoc(doc(ctx("slv"), "momentos", "m2"))));
+  await t("salão: só seguidor não vê o 'amigos'", () => assertFails(getDoc(doc(ctx("slv"), "momentos", "m3"))));
+  await t("salão: amigo vê o 'amigos'", () => assertSucceeds(getDoc(doc(ctx("slf"), "momentos", "m3"))));
+  await t("salão: 'só eu' ninguém mais vê", () => assertFails(getDoc(doc(ctx("slf"), "momentos", "m4"))));
+  await t("salão: bloqueado não vê nem o 'todos'", () => assertFails(getDoc(doc(ctx("slb"), "momentos", "m1"))));
+  await t("salão: lista do 'todos' de alguém", () => assertSucceeds(getDocs(query(collection(ctx("slx"), "momentos"), where("uid", "==", "slo"), where("ver", "==", "todos")))));
+  await t("salão: lista do 'seguidores' (quem segue)", () => assertSucceeds(getDocs(query(collection(ctx("slv"), "momentos"), where("uid", "==", "slo"), where("ver", "==", "seguidores")))));
+  await t("salão: lista do 'seguidores' recusada a quem não segue", () => assertFails(getDocs(query(collection(ctx("slx"), "momentos"), where("uid", "==", "slo"), where("ver", "==", "seguidores")))));
+  await t("salão: lista sem filtro de quem vê é recusada", () => assertFails(getDocs(query(collection(ctx("slx"), "momentos"), where("uid", "==", "slo")))));
+  await t("salão: o dono lista tudo", () => assertSucceeds(getDocs(query(collection(ctx("slo"), "momentos"), where("uid", "==", "slo")))));
+  await t("salão: dono edita", () => assertSucceeds(updateDoc(doc(ctx("slo"), "momentos", "m1"), { titulo: "Formatura!", fixado: false, atualizadoEm: serverTimestamp() })));
+  await t("salão: não muda a data de criação", () => assertFails(updateDoc(doc(ctx("slo"), "momentos", "m1"), { criadoEm: antigo, atualizadoEm: serverTimestamp() })));
+  await t("salão: outra pessoa não edita", () => assertFails(updateDoc(doc(ctx("slf"), "momentos", "m1"), { titulo: "x", atualizadoEm: serverTimestamp() })));
+  await t("salão: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("slf"), "momentos", "m1"))));
+  await t("salão: dono apaga", () => assertSucceeds(deleteDoc(doc(ctx("slo"), "momentos", "m4"))));
+}
+
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
 console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);

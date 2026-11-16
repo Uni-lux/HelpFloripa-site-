@@ -184,6 +184,11 @@
 > **Social: memória do vínculo (16/11/2026):** `vinculos` aceita, de um dos dois e com o vínculo aceito, `conheceram`
 > ("AAAA-MM-DD" ou vazio), `frase` (≤90), `retrato` (sim/não), `memoriaEm` e `memoriaPor`. Coleção nova `vinculos_retrato/{id do vínculo}`
 > {foto JPEG ≤240 mil letras, por, em}: lê quem vê o vínculo, grava um dos dois, ninguém lista. Continuam **23 partes**, 1210 testes.
+>
+> **Salão (16/11/2026):** coleção nova `momentos/{id}` {uid, tipo foto|lembranca, titulo ≤60, texto ≤400, data "AAAA-MM-DD" ou
+> vazio, local ≤60, categoria (12), foto JPEG ≤240 mil (obrigatória na foto), fixado, ver todos|seguidores|amigos|eu, com ≤10,
+> criadoEm, atualizadoEm}. Lê quem o "ver" deixa (seguidores = segue; amigos = os dois se seguem; bloqueio esconde); a lista
+> precisa filtrar `uid` e `ver`. Só o dono grava. Continuam **23 partes**, 1238 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

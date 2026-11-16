@@ -8,7 +8,7 @@ import {
   removerSeguidor, bloquear, desbloquear, alternarRestricao, compartilharPerfil,
   barraInteracao, montarComentarios, abrirCompositor, montarBarraRede, pintarBarraRede, ouvirAvisos, editarImagem, conferirEmail,
   fotosDoPost, carrosselFotos, idsSalvos, listaColecoes, gravarColecoes, novaColecao, escolherColecao, alternarSalvo, contadorEstrelas, silenciado, alternarSilenciar, marcarVista, definirOrigem, lerResumosEstrelas, contarComentarios, blocoEnquete, blocoCaixa, atualizarMinhasPublicacoes, apagarFlashesDaPublicacao
-} from "./rede.js?v=164";
+} from "./rede.js?v=165";
 import { buscarPessoas, palavrasBusca } from "./pessoas.js?v=6";
 import { abrirDenuncia } from "./denuncias.js?v=7";
 import { camposEndereco, gravarComLocal, NOVOS, textoCidade } from "./endereco.js?v=1";
@@ -17,11 +17,12 @@ import { lerLinks, pintarLinks, pintarProfissao, gravarLinks, esquecerLinks, mon
 import { abrirDetalhe as abrirPerfilNegocio, prepararConversa } from "./vitrine.js?v=100";
 import { anelNegocio, esquecerFlashesNegocio } from "./flash-negocio.js?v=23";
 import { semPausados } from "./planos-base.js?v=16";
-import { anelNoPerfil, novoFlash, destaquesNoPerfil, voltarAoFlash, novoDestaque, abrirArquivo } from "./stories.js?v=136";
-import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=121";
+import { anelNoPerfil, novoFlash, voltarAoFlash, novoDestaque, abrirArquivo, editarDestaquePorId } from "./stories.js?v=137";
+import { abrirVerificacao, explicarSelo } from "./verificacao.js?v=122";
 import { completarGuardados, apagarComGuardado, motivoTexto } from "./guardar.js?v=1";
 import { partesDoTexto, rodapeHashtags } from "./texto-pub.js?v=3";
 import { lerModoDuo } from "./duo-modo.js?v=1";
+import { salaoNoPerfil } from "./salao-base.js?v=1";
 
 // ======================================================
 // Estado desta página (o resto vem de rede.js)
@@ -67,6 +68,11 @@ async function salvarPref(campos) {
     toast(e?.code === "permission-denied" ? "Essa escolha passa a valer depois da publicação das regras novas." : "Não foi possível salvar agora.");
     return false;
   }
+}
+function salaoAqui(h, uid, nome) {
+  const corpo = h?.raiz.querySelector(".pf-corpo");
+  salaoNoPerfil(fb, corpo, eu.uid, uid, String(nome || "").split(" ")[0]).catch(() => {});
+  if (corpo && !corpo._salaoOuve) { corpo._salaoOuve = true; addEventListener("hf:destaques", () => { if (corpo.isConnected) salaoNoPerfil(fb, corpo, eu.uid, uid, String(nome || "").split(" ")[0]).catch(() => {}); }); }
 }
 // Cidade, avaliação e destaques seguem a escolha (também no seu perfil: você vê como os outros veem).
 function aplicarPref(h, pref) {
@@ -148,8 +154,9 @@ function renderizarMeuPerfil() {
     segurarFoto(meuCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid: eu.uid, p: dados, proprio: true }));
     anelNoPerfil(meuCab.el("avatar"), eu.uid);
     voltarAoFlash(); // voltou de um link aberto de dentro de um flash
-    // Destaques do Flash (embaixo dos números, como no Instagram)
-    destaquesNoPerfil(meuCab.raiz.querySelector(".pf-corpo"), eu.uid);
+    // Salão (16/11/2026, ideia dele): os destaques do Flash, os momentos e as lembranças moram no Social;
+    // aqui fica o cartão com a prévia que leva até lá.
+    salaoAqui(meuCab, eu.uid, dados.nome);
     // Ações
     const acoes = meuCab.el("acoes");
     const bEditar = document.createElement("button");
@@ -200,11 +207,11 @@ function renderizarMeuPerfil() {
 // ⋯ do seu perfil: tudo o que não precisa ficar à mostra.
 function menuMeuPerfil() {
   const ops = [
-    { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e destaques", icone: "olho", fn: personalizarPerfil },
+    { rotulo: "O que aparece no perfil", sub: "Cidade, negócios e o Salão", icone: "olho", fn: personalizarPerfil },
     { rotulo: "Redes e contatos", sub: "Instagram, WhatsApp, TikTok, X e YouTube", icone: "link", fn: () => abrirEditar("links") },
     { rotulo: "Estatísticas do perfil", sub: "Alcance, interações, seguidores e público", icone: "graf", fn: abrirInsightsPerfil },
-    { rotulo: "Social", sub: "Duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
-    { rotulo: "Novo destaque", sub: "Junte flashes num destaque do perfil", icone: "estrela", fn: () => novoDestaque() },
+    { rotulo: "Salão e Social", sub: "Momentos, lembranças, duo, família e amigos", icone: "teia", fn: () => { location.href = "social.html"; } },
+    { rotulo: "Novo destaque", sub: "Junte flashes num destaque do seu Salão", icone: "estrela", fn: () => novoDestaque() },
     { rotulo: "Arquivo do Flash", sub: "Seus flashes que já saíram", icone: "relogio", fn: () => abrirArquivo() },
     { rotulo: meusNegocios.length ? "Meus negócios" : "Criar um negócio", sub: meusNegocios.length ? "Editar, planos e estatísticas" : "Serviços, delivery, loja, imóveis...", icone: "maleta", fn: () => { location.href = meusNegocios.length ? "negocios.html" : "negocios.html?novo=1"; } }
   ];
@@ -215,7 +222,7 @@ function menuMeuPerfil() {
 async function personalizarPerfil() {
   const pref = await prefPublicas(eu.uid);
   const itens = [
-    ["cidade", "Cidade", "pin"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Destaques do Flash", "raio"]
+    ["cidade", "Cidade", "pin"], ["negocios", "Atalhos dos negócios", "maleta"], ["destaques", "Salão (momentos e destaques do Flash)", "raio"]
   ];
   abrirOpcoes("O que aparece no seu perfil", itens.map(([k, rot, ic]) => {
     const on = mostraNoPerfil(pref, k);
@@ -231,7 +238,7 @@ async function personalizarPerfil() {
 }
 
 function abrirInsightsPerfil() {
-  import("./insights.js?v=128").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
+  import("./insights.js?v=129").then((m) => m.abrirInsights()).catch((e) => toast("Não foi possível abrir as estatísticas: " + erroAmigavel(e)));
 }
 
 // ======================================================
@@ -691,7 +698,7 @@ function opcoesPublicacao(post, art, i) {
           if (post.guardado) { toast(`${motivoTexto(post)}: enquanto isso não dá para editar.`); return; }
           editarPublicacao(post, () => { const novo = itemFeed(post, i); art.replaceWith(novo); feedPerfil.obs?.observe(novo); renderizarGrade($("gradePosts"), meusPosts, { proprio: true, autor: dados, uid: eu.uid, barra: $("abasMeuPerfil") }); });
         } },
-        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=131").then((m) => m.abrirEstatisticas(post)) },
+        { rotulo: "Estatísticas", icone: "estrela", fn: () => import("./estatisticas-post.js?v=132").then((m) => m.abrirEstatisticas(post)) },
         { rotulo: "Comentários", icone: "chat", fn: () => abrirPost(lista, i, opcoes) },
         { rotulo: "Copiar link", icone: "link", fn: async () => { try { await navigator.clipboard.writeText(linkPub(post.id)); toast("Link da publicação copiado"); } catch { toast("Não foi possível copiar."); } } },
         { rotulo: "Apagar", icone: "lixo", perigo: true, fn: async () => { if (await apagarPublicacao(post)) { art.remove(); lista.splice(lista.indexOf(post), 1); if (!lista.length) fecharFolha("folhaFeed"); } } }
@@ -800,7 +807,7 @@ function mostrarPost() {
     ja.addEventListener("click", async () => { try { if (post._agendada) { ja.disabled = true; const m = await import("./agendadas.js?v=2"); await m.publicarAgendada(fb, eu.uid, post.id, { perfil: dados }); delete post._agendada; post.agendadoPara = null; post.criadoEm = { toMillis: () => Date.now() }; toast("Publicada agora"); fecharFolha("folhaPost"); carregarMeusPosts(); return; } await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { agendadoPara: fb.serverTimestamp() }); post.agendadoPara = { toMillis: () => Date.now() }; toast("Publicada agora"); mostrarPost(); carregarMeusPosts(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } });
     a.appendChild(ja); extra.appendChild(a);
   }
-  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=131").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
+  if (proprio) { const st = el("button", "btn sec mini"); st.type = "button"; st.append(icone("estrela", "i xs"), document.createTextNode("Estatísticas")); st.addEventListener("click", () => import("./estatisticas-post.js?v=132").then((m) => m.abrirEstatisticas(post))); extra.appendChild(st); }
   extra.hidden = !extra.children.length;
   if (!proprio) marcarVista({ ...post, autorId: post.autorId || autor?.uid });
   $("postAnterior").disabled = indice <= 0;
@@ -1340,7 +1347,7 @@ async function abrirPerfilPublico(uid) {
   pintarLinksPerfil(ppCab, uid);
   anelNoPerfil(ppCab.el("avatar"), uid);
   voltarAoFlash();
-  destaquesNoPerfil(ppCab.raiz.querySelector(".pf-corpo"), uid);
+  salaoAqui(ppCab, uid, p.nome);
   segurarFoto(ppCab.raiz.querySelector(".pf-avatar-wrap"), () => ({ uid, p, proprio: false }));
   // Topo do perfil de outra pessoa (como nos apps): voltar · @nome (e o selo) · compartilhar.
   const tp = $("tPerfilPublico"); tp.replaceChildren();
@@ -1910,6 +1917,10 @@ async function iniciar() {
   // Links antigos de negócio agora vão para a página Meus negócios.
   if (params.get("acao") === "negocio") { location.replace("negocios.html" + (params.get("tipo") ? `?tipo=${encodeURIComponent(params.get("tipo"))}` : "")); return; }
   if (params.get("acao") === "social") { history.replaceState(history.state, "", "usuarios.html"); abrirNovoVinculo(null); }
+  // Vindo do Salão (social.html): criar um destaque do Flash ou abrir o arquivo.
+  if (params.get("acao") === "destaque") { history.replaceState(history.state, "", "usuarios.html"); novoDestaque(); }
+  if (params.get("acao") === "editarDestaque" && /^[A-Za-z0-9_-]{1,64}$/.test(params.get("id") || "")) { const id = params.get("id"); history.replaceState(history.state, "", "usuarios.html"); editarDestaquePorId(id); }
+  if (params.get("acao") === "arquivo") { history.replaceState(history.state, "", "usuarios.html"); abrirArquivo(); }
   if (params.get("acao") === "editar") { history.replaceState(history.state, "", "usuarios.html"); abrirEditar(); }
   const avaliarPedido = params.get("avaliar");
   if (avaliarPedido) { history.replaceState(history.state, "", "usuarios.html"); avaliarPorLink(avaliarPedido); }

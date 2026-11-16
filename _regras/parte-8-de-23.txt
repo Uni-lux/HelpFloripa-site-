@@ -1,3 +1,15 @@
+        allow create: if logado()
+                      && emailOk()
+                      && participante()
+                      && semBloqueio()
+                      && pedidoLibera()
+                      && outroAtivo()
+                      && ritmoOk('msg')
+                      && request.resource.data.remetenteId == request.auth.uid
+                      && request.resource.data.criadoEm == request.time
+                      && textoAte('texto', 4000)
+                      && mensagemOk();
+
         // Editar (só quem enviou): o texto novo e, na lista "edicoes", a versão anterior (quem
         // conversa pode ver o original). Cartões de pedido/avaliação e mensagens apagadas não se editam.
         // Editar e apagar só até 10 minutos depois de enviar.
@@ -172,22 +184,6 @@
         return !('pedidoId' in d)
             || (get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.clienteId == cliente
                 && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
-      }
-
-      function doCliente() {
-        let d = request.resource.data;
-        let dono = donoDoNegocio(d.negocioId);
-        let eu = request.auth.uid;
-        return id == 'n_' + d.negocioId + '_' + eu
-            && d.alvoId == dono
-            && dono != eu
-            && d.chaves == ['neg_' + d.negocioId]
-            && contaAntiga(eu)
-            && falou(eu, dono, eu)
-            && falou(eu, dono, dono)
-            && !bloqueioEntre(eu, dono)
-            && pedidoOk(d, eu, d.negocioId)
-            && resumoAtualizado('neg_' + d.negocioId);
       }
 
 // ===== FIM DA PARTE 8 DE 23 =====

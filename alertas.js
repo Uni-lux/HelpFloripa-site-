@@ -5,7 +5,7 @@
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=164";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=165";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {
@@ -14,7 +14,7 @@ import {
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=1";
 import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=5";
-import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=1";
+import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=2";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).

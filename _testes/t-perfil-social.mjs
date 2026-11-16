@@ -54,6 +54,8 @@ for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "
     voltar: !!document.querySelector(".topo-app .icone-btn use[href='#i-voltar']"), sw: document.documentElement.scrollWidth, vw: innerWidth }));
   ok(t.app && !t.marca && t.tit.startsWith(tit) && t.voltar && t.sw <= t.vw, `${pg}: topo voltar · ${tit} (${t.tit})`);
   if (pg === "social.html") {
+    ok(await p.locator("#duo:not([hidden]) .akai-par").count() === 1, "Social: cartão do duo (Akai Ito) no Salão");
+    await p.locator("#abaConexoes").click(); await p.waitForTimeout(300);
     const ceu = await p.evaluate(() => ({ destaques: document.querySelectorAll("#destaques .dest:not(.novo)").length, cartoes: document.querySelectorAll("#rede .pessoa").length,
       filtros: document.querySelectorAll("#filtros button").length }));
     ok(ceu.destaques === 3 && ceu.cartoes === 3 && ceu.filtros === 5, `Social: 3 destaques, 3 cartões e 5 filtros (${JSON.stringify(ceu)})`);
@@ -61,7 +63,6 @@ for (const [pg, tit] of [["social.html", "Meu social"], ["configuracoes.html", "
     ok(await p.locator("#rede .pessoa").count() === 1 && await p.locator("#duo").isHidden(), "Social: filtro Família mostra só o grupo");
     await p.locator('#filtros button:not([data-cat])').click(); await p.waitForTimeout(300);
   }
-  if (pg === "social.html") ok(await p.locator("#duo:not([hidden]) .akai-par").count() === 1, "Social: cartão do duo (Akai Ito)");
 }
 ok(!erros.length, "sem erros" + (erros.length ? ": " + erros.join(" | ") : ""));
 await A.browser.close();

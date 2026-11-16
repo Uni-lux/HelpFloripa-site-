@@ -46,7 +46,16 @@ const P = {
   equipe: '<path d="M12 3l7 3v5.5c0 4.3-2.9 7.9-7 9.5-4.1-1.6-7-5.2-7-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
   relogio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   loja: '<path d="M4 9.5V20h16V9.5M3 9.5l2-5h14l2 5c0 1.5-1.2 2.5-2.6 2.5S16 11 16 9.5c0 1.5-1.4 2.5-3 2.5S10 11 10 9.5c0 1.5-1.4 2.5-3 2.5S3 11 3 9.5z"/><path d="M10 20v-5h4v5"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  // Salão (Social): categorias dos momentos e lembranças
+  aviao: '<path d="M2.5 12.5l18.5-8-5.5 15.5-4-6.5z"/><path d="M11.5 13.5L21 4.5"/>',
+  livro: '<path d="M4 5.5A2 2 0 0 1 6 3.5h13v14H6a2 2 0 0 0-2 2z"/><path d="M4 19.5v-14M8 7.5h7"/>',
+  maleta: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8.5 7V5a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 1 15.5 5v2M3 12.5h18"/>',
+  casa: '<path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5M10 20v-5h4v5"/>',
+  bola: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5l4 3-1.5 4.5h-5L8 10.5z"/>',
+  vela: '<path d="M9 10h6v10.5H9z"/><path d="M12 10V7.5M12 3c1.5 1.6 1.8 3 0 4.5-1.8-1.5-1.5-2.9 0-4.5z"/>',
+  foto: '<rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 5.5l1.2-2h4.6l1.2 2"/>',
+  linhaTempo: '<path d="M6 3.5v17"/><circle cx="6" cy="7" r="2"/><circle cx="6" cy="16" r="2"/><path d="M10.5 7h9M10.5 16h6"/>'
 };
 export const NOMES_ICONES = Object.keys(P);
 
