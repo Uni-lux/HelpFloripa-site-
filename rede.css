@@ -4537,15 +4537,22 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .post-cab .quem .local-post { font-weight: 600; color: var(--text); }
 .post-cab .quem .local-post svg { width: 13px; height: 13px; color: var(--accent); stroke-width: 2.2; }
 
-/* Marca do topo (17/11/2026, pedido dele): a ponte do logo (só a estrutura, sem a parte azul) + "Ponte" em cursiva.
+/* Marca do topo (17/11/2026, pedido dele): a ponte do logo com a água (preta ou branca, nunca azul) + "Ponte" em cursiva.
    A ponte fica na cor do texto, encostada no "P", e um fio fino continua o tabuleiro dela por baixo da palavra. */
 .marca-ponte .mp-arte { position: relative; display: inline-flex; align-items: flex-end; gap: 3px; padding: 2px 6px 4px; transition: transform .18s ease; }
-.marca-ponte .mp-ic { display: block; flex: none; width: 54px; height: 29px; margin-bottom: 6px; background: var(--text);
+.marca-ponte .mp-ic { display: block; flex: none; width: 52px; height: 34px; margin-bottom: 3px; background: var(--text);
   -webkit-mask: url("logo-ponte-marca.webp") center / contain no-repeat; mask: url("logo-ponte-marca.webp") center / contain no-repeat; }
 .marca-ponte .mp-arte .marca-diare { padding: 0; font-size: 34px; transition: none; }
-.marca-ponte .mp-arte::after { content: ""; position: absolute; left: 62px; right: 8px; bottom: 5px; height: 1.5px; border-radius: 2px;
+.marca-ponte .mp-arte::after { content: ""; position: absolute; left: 60px; right: 8px; bottom: 5px; height: 1.5px; border-radius: 2px;
   background: linear-gradient(90deg, var(--text), color-mix(in srgb, var(--text) 0%, transparent)); opacity: .55; }
 .marca-ponte:active .mp-arte { transform: scale(.94); }
 .marca-ponte:active .mp-arte .marca-diare { transform: none; }
 .marca-ponte:focus-visible .mp-arte { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 .marca-ponte:focus-visible .mp-arte .marca-diare { outline: none; }
+
+/* Rosinha do duo na bolinha do perfil das publicações (17/11/2026, pedido dele): mesma bolinha branca com a flor
+   vermelha do perfil (NÃO mudar o desenho), pequena, no canto de baixo da foto. */
+.post-cab .pc-av { position: relative; flex: none; display: block; line-height: 0; }
+.post-cab .pc-rosa { position: absolute; right: -4px; bottom: -3px; width: 19px; height: 19px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+  background: #fff; color: #e0243b; border: 2px solid var(--panel, #fff); box-shadow: 0 1px 5px rgba(224, 36, 59, .4); cursor: pointer; }
+.post-cab .pc-rosa .i { width: 11px; height: 11px; }

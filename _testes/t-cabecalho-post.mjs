@@ -13,6 +13,8 @@ await db.doc("diario/cab_local").set({ ...base, texto: "Ponte linda hoje", tipo:
 await db.doc("diario/cab_enq").set({ ...base, texto: "", tipo: "enquete", criadoEm: ts(40), enquete: { pergunta: "Melhor praia?", opcoes: ["Joaquina", "Campeche"] } });
 await db.doc(`relacoes/${U.ana}_${U.bruno}`).set({ seguidor: U.ana, seguido: U.bruno, criadoEm: ts(500) }, { merge: true });
 const conv = [U.ana, U.bruno].sort().join("_");
+await db.doc(`vinculos/${conv}`).set({ participantes: [U.ana, U.bruno], de: U.bruno, para: U.ana, tipoDe: "duo", tipoPara: "duo", status: "aceito", criadoEm: ts(900) });
+await db.doc(`perfis_publicos/${U.bruno}`).set({ duoCapa: "gaveta" }, { merge: true });
 await db.doc("chamadas/cab_lig").set({ de: U.bruno, para: U.ana, conv, tipo: "audio", status: "encerrada", criadoEm: ts(20), aceitaEm: ts(19.9), fimEm: Timestamp.fromMillis(agora - 19.9 * 60000 + 65000) });
 
 for (const tema of ["claro", "escuro"]) {
@@ -22,7 +24,7 @@ for (const tema of ["claro", "escuro"]) {
   await p.waitForSelector(".post-card .pc-l1", { timeout: 20000 }).catch(() => {});
   await p.waitForTimeout(2500);
   const r = await p.evaluate(() => {
-    const card = [...document.querySelectorAll(".post-card")].find((c) => c.querySelector(".local-post"));
+    const card = [...document.querySelectorAll(".post-card")].find((c) => c._post?.id === "cab_local");
     if (!card) return null;
     const q = card.querySelector(".quem"), n = q.querySelector(".pc-nome").getBoundingClientRect(), k = q.querySelector(".pc-nick").getBoundingClientRect();
     const selo = q.querySelector(".pc-selo"), pin = q.querySelector(".local-post svg").getBoundingClientRect();
@@ -33,6 +35,8 @@ for (const tema of ["claro", "escuro"]) {
   ok(r?.selo, `${tema}: selo de verificado ao lado do nome`);
   ok(r && /@brunoreparos/.test(r.l2) && /Ponte Hercílio/.test(r.l2), `${tema}: linha 2 com @ e local (${r?.l2.replace(/\n/g, " ")})`);
   ok(r?.pin, `${tema}: alfinete do local à mostra`);
+  const rosa = await p.evaluate(() => { const x = document.querySelector(".post-card .pc-av .pc-rosa"); if (!x) return null; const a = x.closest(".pc-av").getBoundingClientRect(), b = x.getBoundingClientRect(); return { canto: b.right > a.right - 8 && b.bottom > a.bottom - 8, cor: getComputedStyle(x).color }; });
+  ok(rosa?.canto && /224, 36, 59/.test(rosa.cor), `${tema}: rosinha do duo no canto da foto (${JSON.stringify(rosa)})`);
   ok(r && r.alinhado < 1, `${tema}: nome e @ começam no mesmo ponto (${r?.alinhado})`);
   await p.waitForTimeout(400);
   await p.screenshot({ path: `saida/cab-${tema}.png` });

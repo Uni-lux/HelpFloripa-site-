@@ -2810,11 +2810,12 @@ chat da equipe).
 - **Cabeçalho da publicação, marca Ponte com a ponte e filtros (17/11/2026, PR depois do #234, sem regra nova):** prints dele.
   Cabeçalho (`cartaoPost` em feed.js): linha 1 = nome (`.pc-nome`) + selo de verificado (`.pc-selo`, `perfis_publicos.verificado`)
   + "· 3 h" (`.pc-tempo`); linha 2 (`.pc-l2`) = "@nick" (`.pc-nick`) e, com local, "· alfinete Local" (o local encurta, o @ fica).
-  `.sub-linha` saiu. Topo do Diário (`#marcaTopo`): `.mp-arte` = ponte do logo SEM a parte azul (`logo-ponte-marca.webp`, máscara
-  engrossada da `logo-ponte-estrutura.webp`, na cor do texto) + "Ponte" em cursiva + fio fino embaixo (`::after`; cópia do topo
+  `.sub-linha` saiu. Topo do Diário (`#marcaTopo`): `.mp-arte` = ponte do logo COM a água, preta no claro e branca no escuro, NUNCA azul (pedido dele; `logo-ponte-marca.webp` =
+  estrutura + ondas engrossadas numa máscara só, na cor do texto) + "Ponte" em cursiva + fio fino embaixo (`::after`; cópia do topo
   no rede.html). Filtros: Textos, enquetes e perguntas numa classe só (`TIPOS_FEED` tudo/reels/textos "Textos e enquetes").
   Chamadas: duração em cronômetro "1:05" (`cronometro` em mensagens-app.js; "1 min 05 s" era cortado pelo botão de ligar).
-  Teste `t-cabecalho-post.mjs` (14). `t-auditoria-diario` para na linha 113 (# dentro do texto, foram para o rodapé no #226).
+  Rosinha do duo na bolinha da foto das publicações (`.pc-av .pc-rosa`, `temDuo` em feed.js: 1 consulta de `vinculos` aceitos por
+  autor, 30 min em sessionStorage; não aparece com `duoCapa: "ocultar"`). Teste `t-cabecalho-post.mjs` (16). `t-auditoria-diario` para na linha 113 (# dentro do texto, foram para o rodapé no #226).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

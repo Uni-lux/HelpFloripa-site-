@@ -701,6 +701,20 @@ const vigiaVideo = "IntersectionObserver" in window ? new IntersectionObserver((
   const v = e.target;
   if (e.isIntersecting && e.intersectionRatio >= 0.6) v.play().catch(() => {}); else v.pause();
 }), { threshold: [0, 0.6] }) : null;
+// Tem duo aceito? (vínculo duo/namoro/casamento). Uma consulta por pessoa, guardada 30 min no aparelho.
+const TIPOS_DUO_FEED = ["duo", "namoro", "casamento"];
+const duoCache = new Map();
+function temDuo(uid) {
+  if (!uid) return Promise.resolve(false);
+  if (duoCache.has(uid)) return duoCache.get(uid);
+  const chave = "hf-tem-duo-" + uid;
+  try { const g = JSON.parse(sessionStorage.getItem(chave) || "null"); if (g && Date.now() - g.em < 30 * 60000) { const pr = Promise.resolve(!!g.sim); duoCache.set(uid, pr); return pr; } } catch {}
+  const pr = fb.getDocs(fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", uid), fb.where("status", "==", "aceito"), fb.limit(60)))
+    .then((sn) => sn.docs.some((d) => { const v = d.data(); const tipo = uid === v.de ? v.tipoDe : v.tipoPara; const outro = (v.participantes || []).find((x) => x !== uid); return TIPOS_DUO_FEED.includes(tipo) && !escondido(outro); }))
+    .catch(() => false)
+    .then((sim) => { try { sessionStorage.setItem(chave, JSON.stringify({ sim, em: Date.now() })); } catch {} return sim; });
+  duoCache.set(uid, pr); return pr;
+}
 function cartaoPost(post) {
   const c = el("article", "post-card");
   c.dataset.autor = post.autorId; c._post = post;
@@ -767,7 +781,9 @@ function cartaoPost(post) {
       catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
     } }
   ]));
-  cab.append(av, quem, mais);
+  // A foto fica num invólucro para a rosinha do duo poder ficar no canto dela (como no perfil).
+  const avW = el("span", "pc-av"); avW.appendChild(av);
+  cab.append(avW, quem, mais);
   c.appendChild(cab);
   // Sua publicação com público escolhido: só você vê este aviso (toque para mudar).
   if (post.autorId === eu.uid && temPublico(post)) {
@@ -780,6 +796,13 @@ function cartaoPost(post) {
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
+    // Rosinha do duo na bolinha do perfil (17/11/2026, pedido dele): só se a pessoa tem duo e não escondeu ("ocultar").
+    if (p.duoCapa !== "ocultar") temDuo(post.autorId).then((sim) => {
+      if (!sim || avW.querySelector(".pc-rosa")) return;
+      const r = el("button", "pc-rosa"); r.type = "button"; r.title = "Tem duo · Akai Ito"; r.setAttribute("aria-label", "Tem duo · Akai Ito");
+      r.appendChild(icone("rosa", "i")); r.addEventListener("click", (e) => { e.stopPropagation(); verAutor(); });
+      avW.appendChild(r);
+    });
     if (p.verificado) selo.style.display = "";
     if (p.nickname) { nick.textContent = "@" + p.nickname; nick.hidden = false; l2.hidden = false; }
   });
