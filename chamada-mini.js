@@ -47,7 +47,25 @@ const CSS = `
 .hfm-bt.rec { background: none; width: 30px; color: rgba(255, 255, 255, .7); }
 .hfm-bt svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hfm-bt.fim svg { transform: rotate(135deg); }
-.hfm.bolha .hfm-bt { display: none; }`;
+.hfm.bolha .hfm-bt { display: none; }
+/* Chamada de vídeo minimizada (17/11/2026, refeito): janelinha do vídeo da outra pessoa, como nos apps de mensagem.
+   Arrasta para qualquer lugar e gruda no canto mais perto (sem cobrir o topo nem a barra de baixo). Sem vídeo, mostra a foto. */
+.hfm.janela { left: auto; right: auto; top: auto; transform: none; width: 112px; max-width: none; height: 150px; padding: 0; gap: 0; display: block;
+  border-radius: 18px; overflow: hidden; background: #0d1317; border: 1px solid rgba(255, 255, 255, .16); box-shadow: 0 14px 34px rgba(0, 0, 0, .55); animation: hfmBolha .22s ease; }
+.hfm.janela .hfm-av { position: absolute; inset: 0; width: auto; height: auto; border-radius: 0; font-size: 26px; background: linear-gradient(160deg, #0a4a63, #04141c); }
+.hfm.janela .hfm-av > img { object-fit: cover; }
+.hfm.janela .hfm-av.video { width: auto; height: auto; border-radius: 0; }
+.hfm.janela .hfm-av.foto-so > img { width: 64px; height: 64px; border-radius: 50%; }
+.hfm.janela .hfm-anel { display: none; }
+.hfm.janela .hfm-tx { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 7px; background: linear-gradient(transparent, rgba(0, 0, 0, .72)); justify-items: start; }
+.hfm.janela .hfm-tx b { font-size: 11.5px; max-width: 100%; }
+.hfm.janela .hfm-tx small { font-size: 11px; color: #fff; }
+.hfm.janela .hfm-bt { display: none; }
+.hfm.janela .hfm-mudo { display: none; position: absolute; top: 7px; left: 7px; width: 24px; height: 24px; border-radius: 50%; place-items: center; background: rgba(0, 0, 0, .55); color: #ffcf70; }
+.hfm.janela.mudo .hfm-mudo { display: grid; }
+.hfm-mudo svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.hfm.janela.anda { transition: left .22s cubic-bezier(.2, .8, .2, 1), top .22s cubic-bezier(.2, .8, .2, 1); }
+@media (prefers-reduced-motion: reduce) { .hfm.janela.anda { transition: none; } }`;
 const ICONE = {
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/>',
   micOff: '<path d="M3 3l18 18M9 9v2a3 3 0 005 2.2M15 9.3V6a3 3 0 00-6-.3M5.5 11a6.5 6.5 0 0010.6 5M18.5 11a6.4 6.4 0 01-.6 2.7M12 17.5V21"/>',
@@ -60,7 +78,7 @@ const CH = "hf-lig-mini";
 const lerPos = () => { try { return JSON.parse(sessionStorage.getItem(CH)) || {}; } catch { return {}; } };
 const gravarPos = (o) => { try { sessionStorage.setItem(CH, JSON.stringify({ ...lerPos(), ...o })); } catch {} };
 
-export function criarMini(doc, { nome = "", foto = "", video = null, mudo = false, aoAbrir, aoMic, aoEncerrar } = {}) {
+export function criarMini(doc, { nome = "", foto = "", video = null, mudo = false, tipo = "audio", aoAbrir, aoMic, aoEncerrar } = {}) {
   if (!doc.getElementById("hfm-css")) { const s = doc.createElement("style"); s.id = "hfm-css"; s.textContent = CSS; doc.head.appendChild(s); }
   doc.querySelectorAll(".hfm").forEach((x) => x.remove());
   const win = doc.defaultView || window;
@@ -70,9 +88,11 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
   const av = el("span", "hfm-av");
   const pintarFoto = () => {
     av.replaceChildren(); av.classList.remove("video");
+    av.classList.toggle("foto-so", !!foto);
     if (foto) { const i = el("img"); i.src = foto; i.alt = ""; i.dataset.semSuave = "1"; av.appendChild(i); } else av.textContent = iniciais(nome);
     av.appendChild(el("span", "hfm-anel"));
   };
+  const mudoEl = el("span", "hfm-mudo"); mudoEl.innerHTML = svg("micOff"); mudoEl.setAttribute("aria-hidden", "true");
   pintarFoto();
   const tx = el("span", "hfm-tx"); const b = el("b"); b.textContent = nome; const sm = el("small"); sm.textContent = "Em ligação"; tx.append(b, sm);
   const bMic = el("button", "hfm-bt"); bMic.type = "button";
@@ -87,6 +107,7 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
   const limitarY = (y) => Math.max(6, Math.min((win.innerHeight || 600) - (p.offsetHeight || 60) - 6, y));
   // Bolha no canto (esquerdo ou direito); pílula no meio.
   const modo = (bolha) => {
+    if (p.classList.contains("janela")) return;
     p.classList.toggle("bolha", bolha);
     p.style.left = p.style.right = "";
     const pos = lerPos();
@@ -97,6 +118,26 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
     gravarPos({ bolha });
   };
   bRec.addEventListener("click", (e) => { e.stopPropagation(); modo(true); });
+  // Janela do vídeo: fica num dos 4 cantos (guardado), acima da barra de baixo e abaixo do topo.
+  const M = 10, TOPO = 66, BAIXO = 76;
+  const cantoXY = (c) => {
+    const w = p.offsetWidth || 112, h = p.offsetHeight || 150, W = win.innerWidth || 360, H = win.innerHeight || 640;
+    return { x: c.endsWith("e") ? M : W - w - M, y: c.startsWith("t") ? TOPO : H - h - BAIXO };
+  };
+  const irCanto = (c, anda) => {
+    const { x, y } = cantoXY(c);
+    p.classList.toggle("anda", !!anda);
+    p.style.right = "auto"; p.style.left = x + "px"; p.style.top = y + "px";
+    if (anda) setTimeout(() => p.classList.remove("anda"), 260);
+    gravarPos({ canto: c });
+  };
+  const janela = (sim) => {
+    if (sim === p.classList.contains("janela")) return;
+    p.classList.toggle("janela", sim);
+    if (sim) { p.classList.remove("bolha", "esq"); irCanto(lerPos().canto || "td"); p.setAttribute("aria-label", `Chamada de vídeo com ${nome}. Toque para voltar à chamada`); }
+    else { p.style.left = p.style.top = p.style.right = ""; modo(!!lerPos().bolha); }
+  };
+  win.addEventListener("resize", () => { if (p.classList.contains("janela")) irCanto(lerPos().canto || "td"); });
 
   // Arrastar: a pílula só sobe/desce; a bolha anda livre e gruda no canto mais perto ao soltar.
   let arr = null, arrastou = false;
@@ -106,6 +147,11 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
     const dx = e.clientX - arr.x0, dy = e.clientY - arr.y0;
     if (!arrastou && Math.hypot(dx, dy) < 6) return;
     if (!arrastou) { arrastou = true; p.classList.add("solto"); p.classList.remove("gruda"); try { p.setPointerCapture(e.pointerId); } catch {} }
+    if (p.classList.contains("janela")) {
+      p.style.left = Math.max(4, Math.min(win.innerWidth - p.offsetWidth - 4, arr.l0 + dx)) + "px";
+      p.style.top = Math.max(4, Math.min(win.innerHeight - p.offsetHeight - 4, arr.t0 + dy)) + "px";
+      return;
+    }
     p.style.top = limitarY(arr.t0 + dy) + "px";
     if (p.classList.contains("bolha")) { p.style.right = "auto"; p.style.left = Math.max(4, Math.min(win.innerWidth - p.offsetWidth - 4, arr.l0 + dx)) + "px"; }
   });
@@ -113,7 +159,11 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
     if (arr && arrastou) {
       p.classList.remove("solto");
       const top = parseFloat(p.style.top) || 74;
-      if (p.classList.contains("bolha")) {
+      if (p.classList.contains("janela")) {
+        const r = p.getBoundingClientRect();
+        const c = (r.top + r.height / 2 < win.innerHeight / 2 ? "t" : "b") + (r.left + r.width / 2 < win.innerWidth / 2 ? "e" : "d");
+        irCanto(c, true);
+      } else if (p.classList.contains("bolha")) {
         const r = p.getBoundingClientRect(); const esq = r.left + r.width / 2 < win.innerWidth / 2;
         p.classList.add("gruda");
         p.style.left = esq ? "10px" : (win.innerWidth - r.width - 10) + "px";
@@ -126,17 +176,20 @@ export function criarMini(doc, { nome = "", foto = "", video = null, mudo = fals
   p.addEventListener("pointerup", soltar); p.addEventListener("pointercancel", soltar);
   p.addEventListener("click", () => { if (arrastou) { arrastou = false; return; } aoAbrir?.(); });
   p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); aoAbrir?.(); } });
-  p.append(av, tx, bMic, bFim, bRec);
+  p.append(av, mudoEl, tx, bMic, bFim, bRec);
   doc.body.appendChild(p);
   modo(!!lerPos().bolha);
+  if (tipo === "video") janela(true);
   const api = {
     atualizar(texto) { if (texto) sm.textContent = texto; },
     mic(m) { pintarMic(m); },
     video(stream) {
-      if (!stream) { pintarFoto(); return; }
+      if (!stream) { pintarFoto(); if (tipo !== "video") janela(false); return; }
+      janela(true);
       try { const v = el("video"); v.muted = true; v.playsInline = true; v.autoplay = true; v.srcObject = stream; av.replaceChildren(v, el("span", "hfm-anel")); av.classList.add("video"); v.play?.().catch(() => {}); }
       catch { pintarFoto(); }
     },
+    euCam() {},
     fechar() { p.remove(); }
   };
   if (video) api.video(video);

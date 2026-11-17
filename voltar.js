@@ -12,7 +12,7 @@ const CAMADAS = [
   ".story-visor", ".fn-visor", ".flash-criar", ".hfe-fundo", ".esc-lista", ".vt-modal", ".vt-local-fundo", ".foto-grande", ".pv-fundo", ".pl-fundo", ".cm-modal", ".pa-pagina", ".ent-folha" /* entregas e corridas */, ".lv-tela" /* localização no chat */, ".cr-fundo" /* corretor de texto */, ".nt-ed", ".nt-folha-fundo" /* notas */, ".plr-fundo" /* redes do perfil */, ".pp-previa" /* prévia ao segurar uma publicação */, ".dc-fundo" /* cartão do duo */, ".hp-fundo" /* rede de Help */, ".pc-fundo" /* cadastro de pet */,
   "body.selecionando #barraSelecao" /* seleção de conversas no Mensagens: voltar sai da seleção */,
   "#painelEmoji.aberto", ".pe-menu", ".fg-ed",
-  "#menuMsg.aberto" /* menu ⋮ / segurar mensagem no Mensagens: voltar fecha só o menu */
+  "#menuMsg.aberto" /* menu ⋮ / segurar mensagem no Mensagens: voltar fecha só o menu */, "#visualizador:not([hidden])" /* foto do chat: voltar fecha só a foto */
 ].map((x) => x + ":not([data-sem-voltar])").join(", ");
 const pilha = [];
 let saindo = false, ligado = false;

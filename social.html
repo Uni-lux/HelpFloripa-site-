@@ -359,6 +359,11 @@
     .folha-topo { display: flex; align-items: center; gap: 8px; padding: 12px 10px 12px 18px; border-bottom: 1px solid var(--line); }
     .folha-topo h3 { flex: 1; margin: 0; font-size: 16px; }
     .folha-corpo { overflow-y: auto; padding: 6px 0 calc(12px + env(safe-area-inset-bottom)); }
+    /* Gaveta aberta (17/11/2026, pedido dele): a página de trás não rola junto ao arrastar o dedo dentro da gaveta. */
+    html:has(:is(.folha-fundo, .pc-fundo, .dc-fundo, .hp-fundo)), html:has(:is(.folha-fundo, .pc-fundo, .dc-fundo, .hp-fundo)) body { overflow: hidden !important; overscroll-behavior: none; }
+    .folha-corpo, .folha .grande-corpo { overscroll-behavior: contain; }
+    .folha-fundo { overscroll-behavior: contain; touch-action: none; }
+    .folha-fundo .folha { touch-action: pan-y; }
     .folha-corpo .grupo-t { padding: 12px 18px 4px; font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--cor, var(--muted)); }
     .linha { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 18px; border: 0; background: transparent; text-align: left; cursor: pointer; }
     @media (hover: hover) { .linha:hover { background: var(--hover); } }
@@ -462,7 +467,7 @@
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=167";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=168";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -940,7 +945,7 @@
       }, { pe: true });
     }
     function editarPetAqui(p) {
-      import("./pet-cadastro.js?v=1").then(({ abrirCadastroPet }) => abrirCadastroPet({
+      import("./pet-cadastro.js?v=2").then(({ abrirCadastroPet }) => abrirCadastroPet({
         fb, uid: eu.uid, dados: { ...dono, ...(conta || {}) }, pet: p, toast,
         aoSalvar: (novo) => { const l = (pets.get(eu.uid) || []).filter((x) => x.id !== novo.id); l.unshift(novo); pets.set(eu.uid, l); desenharTudo(); }
       })).catch(() => toast("Não foi possível abrir agora."));

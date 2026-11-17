@@ -16,14 +16,14 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=9";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=10";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=20";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
 import { codigoPix, tipoChavePix } from "./pix.js?v=1";
 import { semPausados, lerPlano, nivelPlano } from "./planos-base.js?v=16";
 import { comRitmo } from "./ritmo.js?v=4";
-import { criarPlayerAudio } from "./audio-ondas.js?v=5";
+import { criarPlayerAudio } from "./audio-ondas.js?v=6";
 import { lerConversa, guardarConversa, juntar, maisRecente, FOLGA_MS, CHEIO_MS } from "./cache-msgs.js?v=1";
 import { EMOJI_CATS, buscarEmojis, listaDa, emojisRecentes, usarEmoji, soEmojis } from "./emojis.js?v=1";
 import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFigurinha, apagarFigurinha, usarFigurinha, jaGuardada, pacoteHelp, paraDataUrl, prepararArquivo, criarFigurinha } from "./figurinhas.js?v=2";
@@ -305,7 +305,37 @@ function criarAudioMsg(m, url) {
   const foto = document.createElement("div");
   if (minha) pintarAvatar(foto, meuPerfil.fotoPerfil, meuPerfil.nome || eu?.displayName || "");
   else pintarAvatar(foto, ativa?.foto, ativa?.nome || "");
-  return criarPlayerAudio({ chave: "m:" + m.id, fonte: url, carregarJa: true, foto, lado: minha ? "dir" : "esq", aoErro: () => toast("Não foi possível tocar o áudio.") });
+  return criarPlayerAudio({ chave: "m:" + m.id, fonte: url, carregarJa: true, foto, lado: minha ? "dir" : "esq", aoErro: () => toast("Não foi possível tocar o áudio."),
+    aoTocar: () => { if (!minha) marcarOuvido(m.id); } });
+}
+// Áudio ouvido (17/11/2026, como no WhatsApp): quem recebe toca o áudio → o id vai para conversas.ouvidos.{eu} (últimos
+// 50; cada um só mexe na própria lista, regra soMinhaChave). Quem mandou vê o microfone azul. Com a confirmação de
+// leitura desligada, o aviso não é mandado (fica só no aparelho, para o meu microfone deixar de ser "novo").
+const OUVIDOS_LOCAL = () => "hf-ouvidos-" + (eu?.uid || "");
+function ouvidosLocais() { try { return new Set(JSON.parse(localStorage.getItem(OUVIDOS_LOCAL()) || "[]")); } catch { return new Set(); } }
+function marcarOuvido(id) {
+  const loc = ouvidosLocais();
+  if (!loc.has(id)) { loc.add(id); try { localStorage.setItem(OUVIDOS_LOCAL(), JSON.stringify([...loc].slice(-400))); } catch {} }
+  pintarOuvidos();
+  if (!ativa || config.confirmacaoLeitura === false || restritos.has(ativa.outroId)) return;
+  const atual = ativa.dados?.ouvidos?.[eu.uid] || [];
+  if (atual.includes(id)) return;
+  const lista = [...atual, id].slice(-50);
+  ativa.dados = { ...(ativa.dados || {}), ouvidos: { ...(ativa.dados?.ouvidos || {}), [eu.uid]: lista } };
+  fb.setDoc(refConversa(ativa.id), { ouvidos: { [eu.uid]: lista } }, { merge: true }).catch(() => {}); // sem a regra nova: só não avisa
+}
+// Microfone de cada áudio: os que EU mandei ficam azuis quando a outra pessoa ouviu; os que eu recebi ficam azuis até eu ouvir.
+function pintarOuvidos() {
+  if (!ativa) return;
+  const dele = new Set(ativa.dados?.ouvidos?.[ativa.outroId] || []), meus = new Set([...(ativa.dados?.ouvidos?.[eu.uid] || []), ...ouvidosLocais()]);
+  document.querySelectorAll("#msgs .linha-msg").forEach((linha) => {
+    const b = linha.querySelector(".bolha.so-audio, .bolha:has(> .hf-audio)"); if (!b) return;
+    const id = linha.dataset.id, minha = linha.classList.contains("minha");
+    const ouvido = minha ? dele.has(id) && verLeituraDosOutros() : meus.has(id);
+    b.classList.toggle("audio-ouvido", minha && ouvido);
+    b.classList.toggle("audio-novo", !minha && !ouvido);
+    const mic = b.querySelector(".hf-audio-mic"); if (mic) mic.setAttribute("aria-label", minha ? (ouvido ? "Ouvido" : "Ainda não ouvido") : (ouvido ? "Você já ouviu" : "Áudio novo"));
+  });
 }
 
 // ---------- status do pedido (delivery e lojinha) ----------
@@ -1757,6 +1787,7 @@ function ouvirConversas() {
       }
       ultimaAtualizacaoVista.set(c.id, agora);
       if (c.naoLida) contarNaoLidas(c);
+      marcarEntregue(c);
     });
 
     primeiraCarga = false;
@@ -2031,6 +2062,18 @@ async function alternarRestricao() {
   }
 }
 
+// ✓✓ entregue: a conversa chegou a este aparelho com uma mensagem nova da outra pessoa → conversas.entregueEm.{eu}.
+// Uma gravação por mensagem nova (não a cada mudança da lista). Solicitação recebida não avisa (como a leitura).
+const entregaGravada = new Map();
+function marcarEntregue(c) {
+  const d = c.dados || {};
+  if (!d.ultimaMensagemRemetenteId || d.ultimaMensagemRemetenteId === eu.uid || c.pedido || bloqueado(c.outroId)) return;
+  const quando = ms(d.atualizadoEm);
+  if (!quando || ms(d.entregueEm?.[eu.uid]) >= quando || ms(d.lidoEm?.[eu.uid]) >= quando || (entregaGravada.get(c.id) || 0) >= quando) return;
+  entregaGravada.set(c.id, quando);
+  fb.setDoc(refConversa(c.id), { entregueEm: { [eu.uid]: fb.serverTimestamp() } }, { merge: true }).catch(() => {}); // sem a regra nova: fica pela presença
+}
+
 function marcarComoLida() {
   if (!ativa || escondida() || !calcularNaoLida(ativa.dados || {})) return;
   if (solicitacaoParaMim(ativa.dados, eu.uid)) return; // solicitação: quem pediu não sabe que você viu até aceitar
@@ -2067,6 +2110,7 @@ function ouvirPresenca() {
     }
     aplicarBloqueio();
     atualizarStatusTopo();
+    atualizarChecks();
     pintarAtendimento();
   }, () => {});
 }
@@ -2169,11 +2213,18 @@ function irParaFim(suave = false) {
 
 function statusCheck(m) {
   if (m.pendente) return { icone: "relogio", lida: false, rotulo: "Enviando" };
-  const lida = verLeituraDosOutros() && ms(ativa?.dados?.lidoEm?.[ativa.outroId]) >= ms(m.criadoEm);
-  return lida ? { icone: "check2", lida: true, rotulo: "Lida" } : { icone: "check", lida: false, rotulo: "Enviada" };
+  const quando = ms(m.criadoEm);
+  const lida = verLeituraDosOutros() && ms(ativa?.dados?.lidoEm?.[ativa.outroId]) >= quando;
+  if (lida) return { icone: "check2", lida: true, rotulo: "Lida" };
+  // Entregue (✓✓ cinza): o aparelho da outra pessoa recebeu (conversas.entregueEm.{outro}, gravado pelo app dela) ou ela
+  // esteve no site depois do envio (presença, para quem ainda está com a versão antiga ou sem a regra nova).
+  const entregue = ms(ativa?.dados?.entregueEm?.[ativa?.outroId]) >= quando || ms(ativa?.dados?.vistoEm?.[ativa?.outroId]) >= quando
+    || ms(perfilOutroAtual?.ultimoAcesso) >= quando;
+  return entregue ? { icone: "check2", lida: false, rotulo: "Entregue" } : { icone: "check", lida: false, rotulo: "Enviada" };
 }
 
 function atualizarChecks() {
+  pintarOuvidos();
   document.querySelectorAll(".linha-msg.minha").forEach((linha) => {
     const m = mensagens.find((x) => x.id === linha.dataset.id);
     const alvo = linha.querySelector(".meta .check");
@@ -4360,7 +4411,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=9");
+  const { ligar } = await import("./chamadas.js?v=10");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }
@@ -4669,6 +4720,8 @@ function fecharVisualizador() {
   $("visualizadorImg").removeAttribute("src");
 }
 $("visualizadorFechar").addEventListener("click", fecharVisualizador);
+// Voltar do celular (voltar.js manda Esc) e a tecla Esc fecham só a foto, a conversa continua aberta.
+$("visualizador").addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); fecharVisualizador(); } });
 $("visualizador").addEventListener("click", (e) => { if (e.target.id === "visualizador") fecharVisualizador(); });
 
 // ======================================================

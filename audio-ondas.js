@@ -142,12 +142,18 @@ function css() {
 .hf-audio.wa .hf-audio-onda { cursor: default; }
 .hf-audio.wa .hf-audio-rodape { font-size: 11.5px; }
 .hf-audio.wa .hf-audio-tempo { font-weight: 500; letter-spacing: 0; opacity: .8; }
+/* Alinhamento (17/11/2026): o play fica na altura da ONDA (antes centralizava com onda + tempo e ficava baixo) e a bolinha
+   no começo não encosta no play. O tempo fica embaixo do começo da onda. */
+.hf-audio.wa .hf-audio-corpo { padding-top: 15px; }
+.hf-audio.wa .hf-audio-onda { margin: 0 7px; }
+.hf-audio.wa .hf-audio-rodape { padding-left: 7px; height: 15px; }
+.hf-audio.wa .hf-audio-play { height: 34px; }
 @media (prefers-reduced-motion: reduce) { .hf-audio-onda i, .hf-audio-ponto { transition: none; } .hf-audio.carregando .hf-audio-play svg, .hf-audio.tocando .hf-audio-play { animation: none; } }
 `;
   document.head.appendChild(st);
 }
 
-export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false, aoErro = null, foto = null, lado = "esq" } = {}) {
+export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false, aoErro = null, foto = null, lado = "esq", aoTocar = null } = {}) {
   css();
   const box = document.createElement("div"); box.className = "hf-audio";
   const bPlay = document.createElement("button"); bPlay.type = "button"; bPlay.className = "hf-audio-play"; bPlay.setAttribute("aria-label", "Tocar áudio");
@@ -255,6 +261,7 @@ export function criarPlayerAudio({ chave, fonte, duracao = 0, carregarJa = false
       await audio.play();
       box.classList.add("tocando"); icone(ICONE_PAUSA); bPlay.setAttribute("aria-label", "Pausar áudio");
       comecarSeguir();
+      try { aoTocar?.(); } catch {}
     } catch (e) {
       // Baixou o áudio depois do toque e o navegador bloqueou: o próximo toque já toca.
       console.warn("Não tocou:", e?.message || e);

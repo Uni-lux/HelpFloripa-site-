@@ -2816,6 +2816,24 @@ chat da equipe).
   Chamadas: duração em cronômetro "1:05" (`cronometro` em mensagens-app.js; "1 min 05 s" era cortado pelo botão de ligar).
   Rosinha do duo na bolinha da foto das publicações (`.pc-av .pc-rosa`, `temDuo` em feed.js: 1 consulta de `vinculos` aceitos por
   autor, 30 min em sessionStorage; não aparece com `duoCapa: "ocultar"`). Teste `t-cabecalho-post.mjs` (16). `t-auditoria-diario` para na linha 113 (# dentro do texto, foram para o rodapé no #226).
+- **Chamada, ✓✓ entregue, áudio ouvido, fotos do chat e RG do pet (17/11/2026, PR depois do #235, MUDA REGRA — não publicada;
+  23 partes, 1246 testes):** prints dele. Chamada (chamadas.js): câmera desligada na chamada de vídeo mostra a MINHA foto no
+  quadradinho (`.hfl-eu`, "Câmera off"); minimizar chamada de vídeo = janelinha do vídeo (chamada-mini.js v=3 `.hfm.janela`
+  112×150, arrasta e gruda no canto mais perto acima da barra/abaixo do topo, `canto` em `hf-lig-mini`; sem vídeo mostra a foto;
+  voz continua pílula/bolha); nome curto no topo (`nomeCurto`). Volume baixo de quem atende (não reproduzido aqui): quem atende
+  espera a campainha (AudioContext) fechar antes de pedir o microfone (`pararCampainha` devolve a promessa) e o `<audio>` vai com
+  volume 1. **✓✓ entregue:** `conversas.entregueEm.{uid}` gravado pelo app de quem recebe ao ver a conversa com mensagem nova
+  (`marcarEntregue`), e reserva pela presença (`perfis_publicos.ultimoAcesso` depois do envio); status Enviada ✓ / Entregue ✓✓
+  cinza / Lida ✓✓ azul. **Áudio ouvido:** `conversas.ouvidos.{uid}` = últimos 50 ids (`marcarOuvido` no 1º play, `aoTocar` do
+  criarPlayerAudio; não manda com confirmação de leitura desligada/restrito) + `hf-ouvidos-<uid>` no aparelho; `pintarOuvidos`:
+  meu áudio ouvido = microfone azul (`.audio-ouvido`), recebido não ouvido = azul (`.audio-novo`). Regra: `entregueEm`/`ouvidos`
+  no hasOnly + `soMinhaChave`, lista ≤50. Áudio: play na altura da onda e bolinha sem encostar (audio-ondas.js). Foto do chat:
+  largura fixa, hora em pílula no canto da foto; o visor (`#visualizador`) está nas CAMADAS do voltar.js (voltar fecha só a foto).
+  **RG do pet** (pet-cadastro.js v=2): cartão do RG no topo (foto com RECORTE quadrado pelo editor-imagem.js, "Ajustar foto"/"Tirar",
+  nome, resumo e barra de completo), seções Identificação · Características (sexo/porte em cartões com ✓ azul, porte com kg, cores
+  em grade "N de 4") · Para achar se ele sumir; página de trás travada (`html.pc-travado`). Social: gaveta aberta trava a rolagem
+  da página de trás (`html:has(.folha-fundo...)`). Testes `t-chat-ouvido.mjs` (11), `t-ligacao5.mjs` (13), `t-pet-cadastro.mjs` (7).
+  `t-help-pets`, `t-social-completo` e `t-mensagens-cache` já falhavam antes (dados/abas que mudaram).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2825,7 +2843,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1241 testes; inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1246 testes; inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

@@ -8,7 +8,7 @@
 // =====================================================
 import { C, D, h, toast, dataHora, abrirFicha, TIPOS_NEG } from "./admin-base.js?v=30";
 import { lerComGuardado, CAMPO_DONO } from "./guardar.js?v=1";
-import { criarPlayerAudio } from "./audio-ondas.js?v=5";
+import { criarPlayerAudio } from "./audio-ondas.js?v=6";
 
 const TITULOS = { perfil: "Perfil denunciado", publicacao: "Publicação denunciada", comentario: "Comentário denunciado", mensagem: "Mensagem denunciada", negocio: "Negócio denunciado", comunidade: "Anúncio da Comunidade denunciado" };
 const CAT_COMUNIDADE = { doacao: "Doação", troca: "Troca", pedido: "Pedido de ajuda", quarto: "Quarto compartilhado", achados: "Achados e perdidos" };

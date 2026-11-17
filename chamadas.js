@@ -11,7 +11,7 @@
 // =====================================================
 import { collection, doc, setDoc, updateDoc, getDoc, onSnapshot, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=3";
-import { criarMini } from "./chamada-mini.js?v=2";
+import { criarMini } from "./chamada-mini.js?v=3";
 
 // Servidores que ajudam os aparelhos a se acharem (grátis). O TURN vem do servidor (servidoresIce).
 export const ICE = {
@@ -89,6 +89,13 @@ const CSS = `
 .hfl-remoto[hidden] { display: none; }
 .hfl-local { position: absolute !important; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 92px); right: 14px; width: 104px; aspect-ratio: 3 / 4; border-radius: 18px; object-fit: cover; background: #111; border: 2px solid rgba(255, 255, 255, .5); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); transform: scaleX(-1); touch-action: none; }
 .hfl-local[hidden] { display: none; }
+/* Câmera desligada na chamada de vídeo (17/11/2026, pedido dele): no lugar da minha imagem fica a minha foto, como no WhatsApp. */
+.hfl-eu { position: absolute; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 92px); right: 14px; width: 104px; aspect-ratio: 3 / 4; border-radius: 18px; overflow: hidden;
+  display: grid; place-items: center; align-content: center; gap: 8px; background: #141a1f; border: 2px solid rgba(255, 255, 255, .5); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); }
+.hfl-eu[hidden] { display: none; }
+.hfl-eu-ft { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, #0a4a63, #00adee) center / cover; font-weight: 800; font-size: 19px; color: #fff; }
+.hfl-eu-off { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: rgba(255, 255, 255, .78); }
+.hfl-eu-off svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .hfl-topo { display: grid; grid-template-columns: 48px 1fr 48px; align-items: start; gap: 6px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 14px; background: linear-gradient(rgba(0, 0, 0, .55), transparent); }
 .hfl-min { width: 46px; height: 46px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer; backdrop-filter: blur(10px); }
 .hfl-min svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
@@ -196,6 +203,8 @@ function botao(cls, icone, rotulo, fn) {
   b.addEventListener("click", fn); return b;
 }
 function trocarBotao(b, icone, rotulo) { b.querySelector("i").innerHTML = svg(icone); b.lastChild.textContent = rotulo; b.setAttribute("aria-label", rotulo); }
+// Nome e sobrenome (pula da/de/dos): "Bianca suelane da Silva Dantas" → "Bianca Dantas" (o nome inteiro cortava no topo).
+const nomeCurto = (n) => { const ps = String(n || "").trim().split(/\s+/).filter(Boolean); return ps.length <= 2 ? ps.join(" ") : `${ps[0]} ${ps[ps.length - 1]}`; };
 const iniciais = (n) => String(n || "?").trim().split(/\s+/).slice(0, 2).map((p) => p[0] || "").join("").toUpperCase();
 const relogio = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(s / 3600); const mm = String(Math.floor(s / 60) % 60).padStart(2, "0"), ss = String(s % 60).padStart(2, "0"); return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`; };
 
@@ -207,13 +216,19 @@ function montarTela({ nome, foto, tipo, recebendo }) {
   t.dataset.semVoltar = "1";
   const fundo = el("div", "hfl-fundo"); if (foto) fundo.style.setProperty("--foto", `url("${foto}")`);
   const remoto = el("video", "hfl-remoto"); remoto.autoplay = true; remoto.playsInline = true; remoto.muted = true; remoto.hidden = true; // o som vai pelo <audio>
-  const somRemoto = el("audio"); somRemoto.autoplay = true;
+  const somRemoto = el("audio"); somRemoto.autoplay = true; somRemoto.volume = 1; somRemoto.muted = false;
   const local = el("video", "hfl-local"); local.autoplay = true; local.playsInline = true; local.muted = true; local.hidden = true; // aparece com a câmera ligada
+  // Minha foto no lugar da minha imagem quando a câmera está desligada (só na chamada de vídeo).
+  const eu = el("div", "hfl-eu"); eu.hidden = true; eu.setAttribute("aria-label", "Sua câmera está desligada");
+  const euFt = el("div", "hfl-eu-ft"); const euOff = el("span", "hfl-eu-off"); euOff.innerHTML = svg("camOff"); euOff.append("Câmera off");
+  eu.append(euFt, euOff);
+  const meuUid = auth()?.currentUser?.uid;
+  if (meuUid) nomeDe(meuUid).then((q) => (q.depois || Promise.resolve(q))).then((q) => { if (q?.foto) { euFt.style.backgroundImage = `url("${q.foto}")`; euFt.textContent = ""; } else euFt.textContent = iniciais(q?.nome || "Você"); }).catch(() => {});
   const topo = el("div", "hfl-topo");
   const bMin = el("button", "hfl-min"); bMin.type = "button"; bMin.innerHTML = svg("minimizar"); bMin.setAttribute("aria-label", "Minimizar a ligação"); bMin.title = "Minimizar"; bMin.hidden = true;
   const cab = el("div", "hfl-cab");
   const rotTipo = el("small", null, tipo === "video" ? "Chamada de vídeo" : "Chamada de voz");
-  const nomeEl = el("b", null, nome);
+  const nomeEl = el("b", null, nomeCurto(nome)); nomeEl.title = nome;
   const situacao = el("span", "hfl-sit", recebendo ? "Chamando você…" : "Chamando…");
   const cripto = el("span", "hfl-cripto"); cripto.innerHTML = svg("cadeado"); cripto.append("Criptografada de aparelho a aparelho");
   cab.append(rotTipo, nomeEl, situacao, cripto);
@@ -225,9 +240,9 @@ function montarTela({ nome, foto, tipo, recebendo }) {
   meio.append(ft, aviso);
   const rodape = el("div", "hfl-rodape"); const bts = el("div", "hfl-bts"); rodape.appendChild(bts);
   if (recebendo) t.classList.add("recebendo");
-  t.append(fundo, remoto, somRemoto, local, topo, outro, meio, rodape);
+  t.append(fundo, remoto, somRemoto, local, eu, topo, outro, meio, rodape);
   document.body.appendChild(t);
-  return { t, remoto, somRemoto, local, situacao, bts, aviso, outro, bMin, nome, foto, ft, nomeEl, fundo, rodape };
+  return { t, remoto, somRemoto, local, eu, situacao, bts, aviso, outro, bMin, nome, foto, ft, nomeEl, fundo, rodape };
 }
 
 // Tela de quem RECEBE: Mensagem · Silenciar o toque em cima e, embaixo, a bola para arrastar: direita atende,
@@ -387,7 +402,11 @@ function campainha(recebendo) {
     });
   };
   tocar(); timer = setInterval(tocar, recebendo ? 2200 : 3000);
-  return () => { clearInterval(timer); removeEventListener("pointerdown", liberar, true); try { navigator.vibrate?.(0); } catch {} try { if (ctx && ctx.state !== "closed") ctx.close().catch(() => {}); } catch {} };
+  // Devolve a promessa do fechamento: quem atende espera o som da campainha soltar o alto-falante ANTES de pedir o
+  // microfone (no Android, o som da campainha ainda aberto deixava a voz de quem ligou mais baixa para quem atende).
+  let fechou = null;
+  return () => { if (fechou) return fechou; clearInterval(timer); removeEventListener("pointerdown", liberar, true); try { navigator.vibrate?.(0); } catch {}
+    fechou = (async () => { try { if (ctx && ctx.state !== "closed") await ctx.close(); } catch {} })(); return fechou; };
 }
 
 function erroMidia(e, tipo) {
@@ -438,6 +457,7 @@ function iniciarConexao(ref, eu, ctx, midia, turn = [], quemLiga = false) {
   pc.ontrack = (ev) => {
     (ev.streams[0]?.getTracks() || [ev.track]).forEach((tr) => { if (tr && !remota.getTracks().includes(tr)) remota.addTrack(tr); });
     if (tela.somRemoto.srcObject !== remota) tela.somRemoto.srcObject = remota;
+    tela.somRemoto.volume = 1; tela.somRemoto.muted = false;
     tela.somRemoto.play?.().catch(() => {}); // o autoplay sozinho falha no iPhone quando a trilha chega depois
     if (ev.track.kind === "video") {
       if (tela.remoto.srcObject !== remota) tela.remoto.srcObject = remota;
@@ -518,6 +538,8 @@ function controles(ctx, encerrar) {
     cam.setAttribute("aria-label", c ? "Desligar a câmera" : "Ligar a câmera"); cam.setAttribute("aria-pressed", c ? "true" : "false");
     virar.hidden = !c;
     tela.local.hidden = !c; tela.local.style.opacity = "1";
+    tela.eu.hidden = c || ctx.tipo !== "video";
+    ctx.mini?.euCam?.(c);
     ctx.mini?.mic(!m);
   };
   ctx.alternarMic = () => { const tr = midiaRef.m.getAudioTracks()[0]; if (!tr) return; tr.enabled = !tr.enabled; pintar(); ctx.enviarEstado(); };
@@ -576,7 +598,7 @@ function minimizar(ctx) {
   if (ctx.mini || !ctx.tela) return;
   const tela = ctx.tela;
   const dados = {
-    nome: tela.nome, foto: tela.foto, mudo: ctx.midia?.m?.getAudioTracks()[0]?.enabled === false,
+    nome: tela.nome, foto: tela.foto, tipo: ctx.tipo, mudo: ctx.midia?.m?.getAudioTracks()[0]?.enabled === false,
     aoAbrir: () => expandir(ctx), aoMic: () => ctx.alternarMic?.(), aoEncerrar: () => ctx.encerrarJa?.()
   };
   let mini = null;
@@ -742,7 +764,7 @@ async function receber(id, d) {
   ctx.tela = montarTela({ nome: quem.nome, foto: quem.foto, tipo: ctx.tipo, recebendo: true });
   quem.depois?.then((q) => {
     if (atual !== ctx || !ctx.tela) return;
-    ctx.tela.nomeEl.textContent = q.nome; ctx.tela.nome = q.nome; ctx.tela.t.setAttribute("aria-label", `Chamada com ${q.nome}`);
+    ctx.tela.nomeEl.textContent = nomeCurto(q.nome); ctx.tela.nomeEl.title = q.nome; ctx.tela.nome = q.nome; ctx.tela.t.setAttribute("aria-label", `Chamada com ${q.nome}`);
     if (q.foto) ctx.tela.foto = q.foto;
     if (q.foto) { ctx.tela.t.querySelector(".hfl-fundo").style.setProperty("--foto", `url("${q.foto}")`); const ft = ctx.tela.t.querySelector(".hfl-foto"); ft.textContent = ""; ft.style.backgroundImage = `url("${q.foto}")`; }
   });
@@ -762,7 +784,8 @@ async function receber(id, d) {
   const atender = async () => {
     if (atendendo || fim) return; atendendo = true;
     entrada.travar(); entrada.fechar(); ctx.tela.t.classList.remove("recebendo");
-    ctx.pararCampainha(); ctx.tela.t.classList.remove("tocando"); ctx.tela.situacao.textContent = "Conectando…";
+    ctx.tela.t.classList.remove("tocando"); ctx.tela.situacao.textContent = "Conectando…";
+    await Promise.race([ctx.pararCampainha(), new Promise((ok) => setTimeout(ok, 400))]);
     let m;
     try { m = await pedirMidia(ctx.tipo); }
     catch (e) { if (fim) return; ctx.tela.aviso.textContent = erroMidia(e, ctx.tipo); setTimeout(() => encerrar("recusada"), 2500); return; }
