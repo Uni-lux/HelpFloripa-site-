@@ -348,4 +348,3 @@ html { -webkit-tap-highlight-color: transparent; }
 .marca::before { --m: url("logo-ponte-ondas.webp"); background: linear-gradient(90deg, #4fd2ff, var(--accent, #00adee) 55%, #0087c2); }
 .marca::after { --m: url("logo-ponte-estrutura.webp"); background: var(--text); }
 .marca:active::before, .marca:active::after { transform: scale(.92); }
-  .marca small { gap: 44px; } .marca small::before, .marca small::after { width: 16px; } }

@@ -1,4 +1,4 @@
-// Topo da rede: no Diário o nome "O Diário" (16/11/2026, letra cursiva como a do Instagram; a rede se chama The Diare), sem a marca Help Floripa;
+// Topo da rede: no Diário o nome da rede, "Ponte" (16/11/2026, letra cursiva como a do Instagram), sem a marca Help Floripa;
 // no Explorar, Comunidade e Perfil a marca sai. Tocar no nome sobe para o começo do Diário.
 // Uso: node seed.mjs | tail -1 > saida/seed-ids.json && node t-marca-ponte.mjs
 import { navegador, entrar } from "./nav.mjs";
@@ -18,12 +18,12 @@ const topo = (f) => f.evaluate(() => {
   const h = document.querySelector(".topo").getBoundingClientRect();
   return { escrita: !!document.querySelector(".topo .marca"), texto: /HELP|FLORIPA|LUGAR/.test(document.querySelector(".topo").innerText),
     ponte: !!pt && getComputedStyle(pt).visibility === "visible" && r.width > 30,
-    centro: r ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : 99, cabo: svg ? getComputedStyle(svg).color + "|" + getComputedStyle(svg).fontFamily + "|" + svg.textContent + "|" + document.fonts.check('33px "The Diare"') : "", gear: !!document.querySelector('.topo a[href="configuracoes.html"]'), sino: !!document.querySelector('.topo a[href="notificacoes.html"]'), fab: !!document.querySelector("body > .fab-hf") && getComputedStyle(document.querySelector("body > .fab-hf")).display !== "none" };
+    centro: r ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : 99, cabo: svg ? getComputedStyle(svg).color + "|" + getComputedStyle(svg).fontFamily + "|" + svg.textContent + "|" + document.fonts.check('33px "HF Cursiva"') : "", gear: !!document.querySelector('.topo a[href="configuracoes.html"]'), sino: !!document.querySelector('.topo a[href="notificacoes.html"]'), fab: !!document.querySelector("body > .fab-hf") && getComputedStyle(document.querySelector("body > .fab-hf")).display !== "none" };
 });
 const d = await topo(feed);
-ok(d.ponte && !d.escrita && !d.texto, "Diário: só o nome O Diário na letra cursiva, sem HELP FLORIPA e slogan");
+ok(d.ponte && !d.escrita && !d.texto, "Diário: só o nome Ponte na letra cursiva, sem HELP FLORIPA e slogan");
 ok(d.centro < 3, "Diário: nome no meio do topo (" + d.centro.toFixed(1) + " px)");
-ok(/"The Diare".*\|O Diário\|true/.test(d.cabo) && /rgb\(2[0-9]{2}/.test(d.cabo), "Diário: nome na letra cursiva e na cor do texto (" + d.cabo + ")");
+ok(/"HF Cursiva".*\|Ponte\|true/.test(d.cabo) && /rgb\(2[0-9]{2}/.test(d.cabo), "Diário: nome na letra cursiva e na cor do texto (" + d.cabo + ")");
 ok(!d.gear && d.sino, "Diário: sem engrenagem, com o sino");
 ok(d.fab, "Diário: + do lado");
 await p.screenshot({ path: "saida/mp-diario.png" });

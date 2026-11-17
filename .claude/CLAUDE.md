@@ -2797,12 +2797,13 @@ chat da equipe).
   fora; resolvido = "Avisar que está tudo bem". Textos SOS → Help (página, menu, Mensagens, Mural, Configurações, Ajuda).
   **Presentes:** `abrirPresentes` no Social (Datas para lembrar = aniversário de quando se conheceram e marcos de dias, Esperando
   você, Enviar para), presentes.js com Ocasião (`OCASIOES`, `?ocasiao=`) e `?aba=enviar`. Teste `t-help-pets.mjs` (28).
-- **Marca do site com a ponte + rede social "The Diare" + "Meu diário" (16/11/2026, PR depois do #232, sem regra nova):**
+- **Marca do site com a ponte + rede social "Ponte" + "Meu diário" (16/11/2026, PR depois do #232, sem regra nova):**
   pedido dele. Site (marketplace): `.marca` = SÓ o ícone da ponte (72×46, as 2 máscaras `logo-ponte-estrutura/ondas.webp` em
   `.marca::before/::after`; ele riscou o nome no print): HELP FLORIPA e a frase ficam escondidos da tela (só leitor de tela e
-  aria-label), nas 28 páginas com `.marca` (bloco "Marca só com a ponte" no fim do categoria.css e do rede.css). **A rede social se chama The Diare** (nome da rede: título do rede.html); o feed continua
-  **Diário** (corrigido por ele): topo do Diário (`#marcaTopo`) = "O Diário" (pedido dele) em letra cursiva como o do Instagram (Grand Hotel, SIL OFL, `fonte-diare.woff2` + `fonte-diare-OFL.txt`, `.marca-diare`; @font-face também no
-  rede.html para a cópia do topo); título do feed.html "Diário | The Diare" e do rede.html "The Diare". **Social/Salão virou "Meu diário"** (pedido dele):
+  aria-label), nas 28 páginas com `.marca` (bloco "Marca só com a ponte" no fim do categoria.css e do rede.css). **A rede social se chama Ponte** (decidido por ele, 16/11; antes "The Diare"/"O Diário"): topo do Diário (`#marcaTopo`) =
+  "Ponte" em letra cursiva como o nome do Instagram (Grand Hotel, SIL OFL, `fonte-diare.woff2` + `fonte-diare-OFL.txt`, família
+  "HF Cursiva", `.marca-diare`; @font-face também no rede.html para a cópia do topo); a aba do feed continua **Diário**; títulos:
+  feed.html "Diário | Ponte", rede.html "Ponte", social.html "Meu diário | Ponte". **Social/Salão virou "Meu diário"** (pedido dele):
   título da página social.html, aba Salão → "Diário", textos "salão" → "diário", cartão do perfil "Meu diário"/"Diário de X", botão
   "Diário" no perfil de quem visita, menu/Configurações/rodapé/404. Nomes internos (social.html, `momentos`, `salao-base.js`, classes
   `pf-salao`) não mudaram. "Social" nos textos do Help/SOS ("pessoas do seu Social"), presentes e notificações ficou — perguntado a ele.
