@@ -19,7 +19,7 @@
   <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png" />
   <link rel="icon" href="favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <title>Meu diário | The Diare</title>
+  <title>Meu diário | Ponte</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" />
@@ -822,7 +822,7 @@
       const box = $("hsAcoes"); box.replaceChildren();
       const compartilhar = async () => {
         const url = location.href.split("#")[0];
-        try { if (navigator.share) { await navigator.share({ title: `Diário de ${primeiroNome(dono.nome)} | The Diare`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+        try { if (navigator.share) { await navigator.share({ title: `Diário de ${primeiroNome(dono.nome)} | Ponte`, url }); return; } } catch (e) { if (e?.name === "AbortError") return; }
         try { await navigator.clipboard.writeText(url); toast("Link copiado"); } catch { toast("Não foi possível copiar o link."); }
       };
       // 16/11/2026: ações em ícones no canto do cartão (o topo ficou numa linha só)

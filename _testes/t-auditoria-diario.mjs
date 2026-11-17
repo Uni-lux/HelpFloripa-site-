@@ -33,7 +33,7 @@ async function rodar(mobile) {
   const fecharFolhas = async () => { for (let i = 0; i < 3 && await p.locator(".folha.aberta").count(); i++) { await p.locator(".folha.aberta [data-fechar]").last().click().catch(() => {}); await p.waitForTimeout(300); } };
   // ---- topo ----
   A("topo: casinha leva ao Início", (await p.locator(".topo a.icone-btn").first().getAttribute("href")) === "index.html");
-  A("topo: só o nome The Diare", (await p.locator(".topo .marca-ponte .marca-diare").count()) === 1 && (await p.locator(".topo .marca").count()) === 0);
+  A("topo: só o nome Ponte", (await p.locator(".topo .marca-ponte .marca-diare").count()) === 1 && (await p.locator(".topo .marca").count()) === 0);
   A("topo: sino leva às notificações", (await p.locator('.topo a[href="notificacoes.html"]').count()) === 1);
   A("topo: sem engrenagem no Diário (só no Perfil)", (await p.locator('.topo a[href="configuracoes.html"]').count()) === 0);
   await p.locator("#btnComporFeed").click(); await p.waitForTimeout(500);
