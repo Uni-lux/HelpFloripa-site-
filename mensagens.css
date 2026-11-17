@@ -1332,7 +1332,8 @@ body.selecionando .conv-item.marcada .avatar { transform: scale(.92); }
 .rc-ponto { opacity: .6; }
 .rc-hora { font-variant-numeric: tabular-nums; }
 .rc-dur { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2);
-  font-size: 11.5px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  font-size: 11.5px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; flex: none; }
+.rc-linha .rc-sit { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .rc-dur svg { flex: none; width: 11px; height: 11px; opacity: .7; }
 .rc-resumo { display: flex; gap: 5px; flex-wrap: wrap; }
 .rc-etq { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--panel-2); }

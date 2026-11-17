@@ -72,12 +72,12 @@ ok(/Resultado final · 3 votos/.test(rod) && pcts.join() === "33%,67%", `enquete
 await pb.screenshot({ path: "saida/cs-enquete-velha.png" });
 
 // ---------- 5) local numa linha só ----------
-await pb.goto(BASE + "feed.html?post=csLocal"); await pb.waitForSelector(".visor-exp .post-card .sub-linha", { timeout: 30000 }); await pb.waitForTimeout(1200);
+await pb.goto(BASE + "feed.html?post=csLocal"); await pb.waitForSelector(".visor-exp .post-card .pc-l2 .local-post", { timeout: 30000 }); await pb.waitForTimeout(1200);
 const cab = await pb.locator(".visor-exp .post-card .post-cab").first().evaluate((c) => {
-  const n = c.querySelector(".quem > button"), l = c.querySelector(".sub-linha");
+  const n = c.querySelector(".pc-nome"), l = c.querySelector(".pc-l2");
   return { nomeAlt: n.getBoundingClientRect().height, linhaAlt: l.getBoundingClientRect().height, cabe: l.scrollWidth <= l.clientWidth + 1, txt: l.textContent };
 });
-ok(cab.nomeAlt < 26 && cab.linhaAlt < 22 && cab.cabe && /Tapera/.test(cab.txt) && /·/.test(cab.txt), "local: o nome numa linha e '📍 Local · tempo' numa linha só → " + JSON.stringify(cab));
+ok(cab.nomeAlt < 26 && cab.linhaAlt < 22 && cab.cabe && /Tapera/.test(cab.txt), "local: o nome numa linha e '@nick · 📍 Local' numa linha só → " + JSON.stringify(cab));
 await pb.screenshot({ path: "saida/cs-local.png" });
 
 // ---------- 6) publicação com marcados no Flash ----------

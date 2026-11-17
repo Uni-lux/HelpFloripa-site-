@@ -50,7 +50,7 @@ async function rodar(mobile) {
   await p.locator("#opcoesCorpo button", { hasText: "Amigos" }).click(); await p.waitForTimeout(2000);
   A("filtro: Amigos mostra quem você segue e segue você", (await p.locator(".post-card").allTextContents()).some((x) => x.includes("Bruno")));
   await p.locator("#filtroFeedBtn").click(); await p.locator("#opcoesCorpo button", { hasText: "Principais" }).click(); await p.waitForTimeout(2000);
-  for (const [k, nome] of [["textos", "Textos"], ["enquetes", "Enquetes"], ["tudo", "Tudo"]]) {
+  for (const [k, nome] of [["textos", "Textos e enquetes"], ["tudo", "Tudo"]]) {
     await p.locator(`#tiposFeed [data-tipo="${k}"]`).click(); await p.waitForTimeout(400);
     A(`filtro ${nome}: aceso e com publicações`, await p.locator(`#tiposFeed [data-tipo="${k}"][aria-selected="true"]`).count() === 1 && await p.locator(".post-card").count() > 0);
   }
@@ -61,7 +61,7 @@ async function rodar(mobile) {
   const card = p.locator(".post-card", { hasText: "Reforma completa" }).first();
   await card.scrollIntoViewIfNeeded();
   // Com local (como no Instagram): o nome e, embaixo, "📍 Local · tempo" numa linha (o @ fica para quando não há local).
-  A("publicação: nome do autor e a linha do local com o tempo", (await card.locator(".post-cab").textContent()).includes("Bruno") && await card.locator(".post-cab .sub-linha small").count() === 1);
+  A("publicação: nome do autor e a linha do local com o tempo", (await card.locator(".post-cab").textContent()).includes("Bruno") && await card.locator(".post-cab .pc-tempo").count() === 1 && await card.locator(".post-cab .pc-l2 .local-post").count() === 1);
   A("publicação: local clicável", await card.locator(".local-post").count() === 1);
   A("publicação: 'com Ana' (marcados)", (await card.locator(".post-com").textContent().catch(() => "")).includes("Ana"));
   A("publicação: #hashtag vira link", await card.locator(':is(.post-texto, .post-tags) a[href*="tag=reforma"]').count() >= 1);
