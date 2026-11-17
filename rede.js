@@ -635,6 +635,9 @@ export function botaoSeguir(uid, { meSegue = false, mini = true } = {}) {
   });
   return b;
 }
+// Nome e sobrenome em listas e publicações (17/11/2026, pedido dele): "Bianca suelane da Silva Dantas" → "Bianca Dantas".
+// O nome inteiro continua no perfil e no title (passar o dedo/mouse mostra).
+export const nomeCurto = (n) => { const ps = String(n || "").trim().split(/\s+/).filter(Boolean); return ps.length <= 2 ? ps.join(" ") : `${ps[0]} ${ps[ps.length - 1]}`; };
 export function linhaPessoa({ uid, nome, foto, sub, quando, nova, meSegue, aoClicar, semSeguir, acoes }) {
   const l = document.createElement("div");
   l.className = "linha" + (nova ? " nova" : "");
@@ -646,7 +649,7 @@ export function linhaPessoa({ uid, nome, foto, sub, quando, nova, meSegue, aoCli
   const t = document.createElement("div");
   t.className = "txt";
   const s = document.createElement("strong");
-  s.textContent = nome || "Usuário";
+  s.textContent = nome === "Você" ? nome : nomeCurto(nome) || "Usuário"; if (nome) s.title = nome;
   t.appendChild(s);
   if (sub) { const sm = document.createElement("small"); sm.textContent = sub; t.appendChild(sm); }
   l.append(av, t);
@@ -1608,7 +1611,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=140").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=141").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -2206,7 +2209,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
     av.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     const col = el("div", "col");
     const topo = el("div", "coment-topo");
-    const nm = el("button", "coment-nome", c.nome || "Usuário"); nm.type = "button"; nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
+    const nm = el("button", "coment-nome", nomeCurto(c.nome) || "Usuário"); nm.title = c.nome || ""; nm.type = "button"; nm.addEventListener("click", () => ganchos.abrirPerfil(c.autorId));
     topo.appendChild(nm);
     if (c.autorId === post.autorId) topo.appendChild(el("span", "selo-autor", "Autor"));
     if (paraQuem) topo.appendChild(el("span", "para", `↪ ${paraQuem.nome || "usuário"}`));
@@ -2379,7 +2382,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=140").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=141").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

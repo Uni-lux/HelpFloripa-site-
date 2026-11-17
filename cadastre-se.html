@@ -45,7 +45,7 @@
   </script>
   <link rel="stylesheet" href="acesso.css?v=8" />
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="cadastro.js?v=8"></script>
+  <script type="module" src="cadastro.js?v=9"></script>
 </head>
 <body>
   <div class="acesso">
@@ -74,7 +74,7 @@
           <h1>Criar conta grátis</h1>
           <p class="sub">Leva menos de um minuto.</p>
           <form class="form" id="formCadastro" novalidate>
-            <div class="campo"><label for="nome">Nome completo ou nome da empresa</label><input id="nome" autocomplete="name" maxlength="80" required /></div>
+            <div class="campo"><label for="nome">Nome completo</label><input id="nome" autocomplete="name" maxlength="80" placeholder="Nome e sobrenome" required /><small class="ajuda">No perfil aparece o nome inteiro; nas publicações e listas, só o nome e o sobrenome.</small></div>
             <div class="campo">
               <label for="nick">Nome de usuário</label>
               <input id="nick" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: joaosilva" required />

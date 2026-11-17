@@ -46,6 +46,15 @@ export const DICAS_OCORRENCIA = {
 export const ESPECIES = { cao: ["Cachorro", "🐕"], gato: ["Gato", "🐈"], ave: ["Ave", "🦜"], outro: ["Outro", "🐾"] };
 export const CORES_PET = ["preto", "branco", "marrom", "caramelo", "cinza", "dourado", "creme", "tigrado", "malhado", "tricolor", "laranja", "rajado"];
 export const PORTES = { P: "Pequeno", M: "Médio", G: "Grande" };
+// Porte de cada espécie (17/11/2026, pedido dele: "não é todo animal que tem os mesmos pesos"). O valor gravado continua
+// P/M/G (a comparação de pets perdidos/achados não muda); só o nome e a explicação mudam por espécie.
+export const PORTES_ESPECIE = {
+  cao: [["P", "Pequeno", "até 10 kg"], ["M", "Médio", "10 a 25 kg"], ["G", "Grande", "mais de 25 kg"]],
+  gato: [["P", "Pequeno", "até 3 kg"], ["M", "Médio", "3 a 5 kg"], ["G", "Grande", "mais de 5 kg"]],
+  ave: [["P", "Pequena", "periquito, canário"], ["M", "Média", "calopsita, agapornis"], ["G", "Grande", "papagaio, arara"]],
+  outro: [["P", "Pequeno", "hamster, porquinho-da-índia"], ["M", "Médio", "coelho, furão"], ["G", "Grande", "maior que um coelho"]]
+};
+export const nomePorte = (especie, p) => (PORTES_ESPECIE[especie] || PORTES_ESPECIE.cao).find((x) => x[0] === p)?.[1] || PORTES[p] || "";
 export const STATUS_PET = { casa: ["Em casa", "verde"], perdido: ["Perdido", "vermelho"] };
 export const rgPet = (id) => "HF-PET-" + String(id || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase();
 const sem = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();

@@ -22,6 +22,7 @@ const fotoSeg = (u) => (typeof u === "string" && /^(data:image\/(jpeg|png|webp);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const svg = (d, cls = "") => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("aria-hidden", "true"); if (cls) s.setAttribute("class", cls); s.innerHTML = d; return s; };
 const IC = {
+  camera: '<path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.6"/>',
   fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
   rosa: '<path d="M12 13.2c-2.7 0-4.6-2-4.6-4.5 0-1.6.8-2.9 1.9-3.7.3 1.1 1.3 1.9 2.7 1.9s2.4-.8 2.7-1.9c1.1.8 1.9 2.1 1.9 3.7 0 2.5-1.9 4.5-4.6 4.5z" fill="currentColor" stroke="none"/><path d="M12 13.2V21M12 17.2c-1.4-1.9-3.4-2.2-5-1.6 1 1.9 3.1 2.5 5 1.6zM12 16.2c1.2-1.5 2.9-1.7 4.2-1.2-.8 1.5-2.5 2-4.2 1.2z"/>',
   chat: '<path d="M4 5.5h16v10.5H9l-5 4z"/>',
@@ -38,13 +39,16 @@ function avatar(foto, nome, cls) {
   if (u) { const i = el("img"); i.src = u; i.alt = ""; i.decoding = "async"; d.appendChild(i); } else d.textContent = iniciais(nome);
   return d;
 }
+// Nome e sobrenome (17/11/2026, pedido dele): "Bianca suelane da Silva Dantas" → "Bianca Dantas" (o inteiro fica no title).
+export const nomeCurto = (n) => { const ps = String(n || "").trim().split(/\s+/).filter(Boolean); return ps.length <= 2 ? ps.join(" ") : `${ps[0]} ${ps[ps.length - 1]}`; };
 function tempoJuntos(d) {
+  // [número, unidade] — "Juntos há 49 dias" (17/11/2026, pedido dele: no lugar de "49 dias de fio")
   const dias = Math.max(1, Math.floor((Date.now() - d.getTime()) / 864e5));
-  if (dias < 60) return [String(dias), dias === 1 ? "dia de fio" : "dias de fio"];
+  if (dias < 60) return [String(dias), dias === 1 ? "dia" : "dias"];
   const meses = Math.floor(dias / 30.44);
-  if (meses < 24) return [String(meses), "meses de fio"];
+  if (meses < 24) return [String(meses), "meses"];
   const anos = Math.floor(meses / 12);
-  return [String(anos), anos === 1 ? "ano de fio" : "anos de fio"];
+  return [String(anos), anos === 1 ? "ano" : "anos"];
 }
 const mesAno = (d) => d.toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(/\./g, "").replace(" de ", " ");
 
@@ -188,7 +192,7 @@ export async function abrirCartaoDuo(op) {
   nomes.append(el("span", null, primeiro(dono.nome)), el("em", null, "&"), nmOutro);
   const desde = el("div", "dc-desde");
   const d = deISO(v.conheceram) || v.aceitoEm?.toDate?.() || null;
-  if (d) { const [n, txt] = tempoJuntos(d); const a = el("span"); a.append(document.createTextNode(deISO(v.conheceram) ? "Juntos desde " : "No social desde "), el("b", null, mesAno(d))); const b = el("span"); b.append(el("b", null, n), document.createTextNode(" " + txt)); desde.append(a, b); }
+  if (d) { const [n, txt] = tempoJuntos(d); const a = el("span"); a.append(document.createTextNode(deISO(v.conheceram) ? "Juntos desde " : "No social desde "), el("b", null, mesAno(d))); const b = el("span"); b.append(el("b", null, n), document.createTextNode(" " + txt + " juntos")); desde.append(a, b); }
   const frase = el("p", "dc-frase", v.frase || FRASES[hash(v.id || "") % FRASES.length]);
 
   const quem = el("div", "dc-quem");
@@ -313,11 +317,26 @@ function cssPrevia() {
 .dp-grade div:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.1)}
 .dp-grade b{font-size:15px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
 .dp-grade span{font-size:10px;font-weight:600;color:rgba(255,230,236,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-toca{cursor:pointer;-webkit-tap-highlight-color:transparent}.dp-av.dp-toca:active{transform:scale(.96)}.dp-fotos{margin-bottom:2px}
 .dp-acoes{display:grid;grid-template-columns:1fr 38px;gap:6px;margin-top:10px}
 .dp-acoes.so-um{grid-template-columns:1fr}
 .dp-acoes button{height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#fff;font:inherit;font-size:12.5px;font-weight:750;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:0 8px}
 .dp-acoes .pri{border:0;background:linear-gradient(135deg,#ff4d6d,#c9184a);box-shadow:0 6px 18px rgba(201,24,74,.35)}
-@media (prefers-reduced-motion:reduce){.dp,.dp.saindo{transition:opacity .15s}}
+.dp-fotos{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:14px;overflow:hidden}
+.dp-ft{position:relative;display:block;aspect-ratio:1;padding:0;border:0;background:rgba(255,255,255,.06);cursor:pointer;overflow:hidden}
+.dp-ft img{width:100%;height:100%;object-fit:cover;display:block}
+.dp-ft.vaga{cursor:default;background:rgba(255,255,255,.035)}
+.dp-fotos.carregando .dp-ft{animation:dpPisca 1.1s ease-in-out infinite alternate}
+@keyframes dpPisca{to{background:rgba(255,255,255,.12)}}
+.dp-fotos.vazia{display:block;border:1px dashed rgba(255,255,255,.18)}
+.dp-vazio{display:grid;justify-items:center;gap:3px;padding:16px 8px;text-align:center}
+.dp-vazio i{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.75);margin-bottom:4px}
+.dp-vazio i svg{width:20px;height:20px}
+.dp-vazio b{font-size:13px;font-weight:800}
+.dp-vazio span{font-size:11px;color:rgba(255,230,236,.6)}
+.dp-nums{display:flex;justify-content:center;flex-wrap:wrap;gap:3px 8px;margin-top:8px;font-size:10.5px;color:rgba(255,230,236,.66)}
+.dp-nums b{color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.dp,.dp.saindo{transition:opacity .15s}.dp-fotos.carregando .dp-ft{animation:none}}
 `;
   document.head.appendChild(s);
 }
@@ -358,17 +377,28 @@ export function abrirPreviaDuo(op) {
   quem.append(avBox, nome, sub);
   const fio = el("div", "dp-fio");
   const d = deISO(v.conheceram) || v.aceitoEm?.toDate?.() || null;
-  if (d) { const [n, txt] = tempoJuntos(d); fio.append(el("span")); fio.lastChild.append(el("b", null, n), document.createTextNode(" " + txt)); }
+  if (d) { const [n, txt] = tempoJuntos(d); const sp = el("span"); sp.append(document.createTextNode("Juntos há "), el("b", null, n), document.createTextNode(" " + txt)); sp.title = "Desde " + mesAno(d); fio.append(sp); }
   else fio.append(el("span", null, "Ligados pelo fio"));
-  const grade = el("div", "dp-grade");
-  const num = (rotulo, val = "–") => { const dv = el("div"); const b = el("b", null, val); dv.append(b, el("span", null, rotulo)); grade.appendChild(dv); return b; };
-  num(d ? (deISO(v.conheceram) ? "Juntos desde" : "No social desde") : "Desde", d ? mesAno(d) : "–");
-  const nMom = num("Momentos"), nCon = num("Conexões"), nSeg = num("Seguidores");
+  // As 4 casas mostram as fotos da pessoa (17/11/2026, pedido dele): as do Salão primeiro, depois as mais recentes do
+  // Diário. Sem nenhuma, um aviso como no Instagram.
+  const grade = el("div", "dp-fotos carregando");
+  for (let i = 0; i < 4; i++) grade.appendChild(el("span", "dp-ft"));
+  const linhaNum = el("div", "dp-nums");
+  const num = (rotulo) => { const b = el("b", null, "–"); const sp = el("span"); sp.append(b, document.createTextNode(" " + rotulo)); linhaNum.appendChild(sp); return b; };
+  const nMom = num("momentos"), nCon = num("conexões"), nSeg = num("seguidores");
+  const pnum = (b, n, um, varios) => { b.textContent = n == null ? "–" : String(n); if (b.nextSibling) b.nextSibling.textContent = " " + (n === 1 ? um : varios); };
   const acoes = el("div", "dp-acoes" + (op.podeAbrir ? "" : " so-um"));
   const btn = (cls, ic, txt, fn, rotulo) => { const b = el("button", cls); b.type = "button"; if (ic) b.appendChild(svg(ic)); if (txt) b.append(document.createTextNode(txt)); if (rotulo) { b.setAttribute("aria-label", rotulo); b.title = rotulo; } b.addEventListener("click", fn); return b; };
   if (op.podeAbrir) acoes.appendChild(btn("pri", null, "Ver perfil", () => sair(() => op.abrirPerfil?.(v.outro))));
   acoes.appendChild(btn(op.podeAbrir ? "" : "pri", IC.seta, op.podeAbrir ? "" : "Ver o cartão do duo", () => sair(() => abrirCartaoDuo({ ...op, aoFechar: op.aoFecharCartao })), "Abrir o cartão completo do duo"));
-  c.append(topo, quem, fio, grade, acoes);
+  // 17/11/2026 (pedido dele): sem números e sem botões. Tocar na foto (ou no nome) abre o perfil; tocar no
+  // "Juntos há" abre o cartão completo do duo.
+  const abrirPerfilDuo = () => sair(() => (op.podeAbrir ? op.abrirPerfil?.(v.outro) : abrirCartaoDuo({ ...op, aoFechar: op.aoFecharCartao })));
+  [avBox, nome].forEach((alvo) => { alvo.classList.add("dp-toca"); alvo.setAttribute("role", "button"); alvo.tabIndex = 0; alvo.setAttribute("aria-label", op.podeAbrir ? "Abrir o perfil" : "Abrir o cartão do duo"); alvo.addEventListener("click", abrirPerfilDuo); alvo.addEventListener("keydown", (e) => { if (e.key === "Enter") abrirPerfilDuo(); }); });
+  fio.classList.add("dp-toca"); fio.setAttribute("role", "button"); fio.tabIndex = 0; fio.setAttribute("aria-label", "Abrir o cartão completo do duo");
+  fio.addEventListener("click", () => sair(() => abrirCartaoDuo({ ...op, aoFechar: op.aoFecharCartao })));
+  void linhaNum; void acoes;
+  c.append(topo, quem, fio, grade);
 
   // ---- posição: encaixada no cartão do perfil, à direita da foto, saindo da rosinha ----
   const r = (caixa || document.body).getBoundingClientRect(), a = ancora?.getBoundingClientRect?.();
@@ -392,14 +422,34 @@ export function abrirPreviaDuo(op) {
   const perfilP = op.perfil?.nome ? Promise.resolve(op.perfil) : fb.getDoc(fb.doc(fb.db, "perfis_publicos", v.outro)).then((s) => (s.exists() ? s.data() : {})).catch(() => ({}));
   perfilP.then((p) => {
     const nm = p.nome || "Usuário";
-    nmTx.textContent = nm;
+    nmTx.textContent = nomeCurto(nm); nmTx.title = nm;
     if (p.verificado && !nome.querySelector("svg")) nome.appendChild(Object.assign(svg(IC.selo), { role: "img" }));
     sub.textContent = [p.nickname ? "@" + p.nickname : "", [p.cidade, p.uf].filter(Boolean).join("/")].filter(Boolean).join(" · ") || " ";
     const novo = avatar(p.fotoPerfil, nm); av.replaceWith(novo); av = novo;
     c.setAttribute("aria-label", `${v.papel || "Duo"}: ${nm}`);
   });
-  relacaoCom(fb, eu, v.outro).catch(() => ({ euSigo: false, meSegue: false })).then((rel) => contarMomentos(fb, eu, v.outro, rel)).then((n) => { nMom.textContent = String(n); }).catch(() => {});
-  contar(fb, fb.query(fb.collection(fb.db, "vinculos"), fb.where("participantes", "array-contains", v.outro), fb.where("status", "==", "aceito"))).then((n) => { nCon.textContent = n == null ? "–" : String(n); });
-  contar(fb, fb.query(fb.collection(fb.db, "relacoes"), fb.where("tipo", "==", "seguir"), fb.where("alvoId", "==", v.outro))).then((n) => { nSeg.textContent = n == null ? "–" : String(n); });
+  const relP = relacaoCom(fb, eu, v.outro).catch(() => ({ euSigo: false, meSegue: false }));
+  void pnum; void nMom; void nCon; void nSeg;
+  relP.then((rel) => lerFotos(fb, eu, v.outro, rel, op.fotosDoPost)).catch(() => []).then((lista) => {
+    grade.classList.remove("carregando");
+    const quatro = lista.slice(0, 4);
+    if (!quatro.length) {
+      grade.classList.add("vazia");
+      const vz = el("div", "dp-vazio"); const ci = el("i"); ci.appendChild(svg(IC.camera));
+      vz.append(ci, el("b", null, "Nenhuma foto ainda"), el("span", null, "Quando publicar, aparece aqui"));
+      grade.replaceChildren(vz); return;
+    }
+    grade.replaceChildren(...[0, 1, 2, 3].map((i) => {
+      const f = quatro[i];
+      if (!f) return el("span", "dp-ft vaga");
+      const b = el("button", "dp-ft"); b.type = "button"; b.setAttribute("aria-label", f.tipo === "diario" ? "Ver a publicação" : "Ver no cartão do duo");
+      const im = el("img"); im.src = f.foto; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; b.appendChild(im);
+      b.addEventListener("click", () => sair(() => (f.tipo === "diario" && op.abrirPost ? op.abrirPost(f.id) : abrirCartaoDuo({ ...op, aoFechar: op.aoFecharCartao }))));
+      return b;
+    }));
+    // o tamanho mudou: se passar do fim da tela, sobe
+    const alto2 = c.offsetHeight, max2 = (window.visualViewport?.height || innerHeight) - 10;
+    if (c.getBoundingClientRect().top + alto2 > max2) c.style.top = Math.max(10, max2 - alto2) + "px";
+  });
   return { fechar: sair };
 }

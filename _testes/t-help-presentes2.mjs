@@ -1,0 +1,40 @@
+// Pedido de 17/11/2026: prévia do duo com fotos ("Juntos há"), porte por espécie, sem listas do celular no Help/pets,
+// perguntar antes de sair de um formulário mexido e presentes com passos e resumo.
+// Uso: node seed.mjs | tail -1 > saida/seed-ids.json && FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 node dados-perfil.mjs && node t-help-presentes2.mjs
+import { navegador, entrar, BASE } from "./nav.mjs";
+const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
+const A = await navegador({ mobile: true });
+await A.ctx.grantPermissions(["geolocation"]); await A.ctx.setGeolocation({ latitude: -27.5954, longitude: -48.548 });
+const erros = [];
+const p = await entrar(A.ctx, "ana", "usuarios.html");
+p.on("pageerror", (e) => erros.push(e.message));
+await p.waitForSelector("#meuPerfil .pf-rosa", { timeout: 25000 }); await p.waitForTimeout(1500);
+await p.locator("#meuPerfil .pf-rosa").tap(); await p.waitForTimeout(2500);
+ok(/Juntos há \d+ (dia|dias|meses|ano|anos)/.test(await p.locator(".dp-fio").textContent()), "prévia diz Juntos há N dias");
+ok(await p.locator(".dp-grade").count() === 0 && (await p.locator(".dp-fotos .dp-ft").count() === 4 || await p.locator(".dp-vazio").count() === 1), "4 quadrados de fotos (ou sem fotos, como no Instagram)");
+await p.goto(BASE + "alertas.html"); await p.waitForSelector("#alSos", { timeout: 20000 }); await p.waitForTimeout(2000);
+ok(await p.locator("select[data-nativo]").count() === 0, "alertas sem lista nativa do celular");
+await p.locator('[data-aba="pets"]').click(); await p.waitForTimeout(1200);
+await p.locator(".al-acoes-topo .ent-btn").first().click(); await p.waitForSelector("#alPetPorte");
+ok((await p.locator("#alPetPorte").textContent()).includes("10 a 25 kg"), "cão: porte em kg de cão");
+await p.locator('.ent-folha [data-especie="gato"]').click(); await p.waitForTimeout(300);
+ok((await p.locator("#alPetPorte").textContent()).includes("3 a 5 kg"), "gato: porte em kg de gato");
+await p.locator('.ent-folha [data-especie="ave"]').click(); await p.waitForTimeout(300);
+ok((await p.locator("#alPetPorte").textContent()).includes("calopsita"), "ave: porte por exemplo de ave");
+await p.locator("#alPetNome").fill("Mimi");
+await p.locator(".ent-folha [data-fechar]").click(); await p.waitForTimeout(600);
+ok(await p.locator(".hf-confirma-fundo").count() === 1, "formulário mexido pergunta antes de sair");
+await p.locator(".hf-confirma-fundo button", { hasText: "Continuar" }).click(); await p.waitForTimeout(400);
+ok(await p.locator(".ent-folha").count() === 1 && (await p.locator("#alPetNome").inputValue()) === "Mimi", "Continuar mantém o que foi escrito");
+await p.goto(BASE + "presentes.html?aba=enviar"); await p.waitForSelector(".pr-passo", { timeout: 20000 }); await p.waitForTimeout(1500);
+ok(await p.locator(".pr-passo-n").count() >= 2, "presente em passos numerados");
+await p.locator("#prBusca").fill("brunoreparos"); await p.waitForSelector("[data-achado]", { timeout: 10000 }); await p.locator("[data-achado]").first().click(); await p.waitForTimeout(1200);
+const x = await p.locator(".ent-quem .x").evaluate((b) => { const s = getComputedStyle(b); return { r: s.borderRadius, w: b.getBoundingClientRect().width }; });
+ok(x.r === "50%" && x.w === 36, "botão de trocar a pessoa redondo (sem o quadrado branco)");
+await p.locator('[data-tipo="pix"]').click(); await p.waitForTimeout(400);
+await p.locator(".ent-folha .ent-chip").first().click(); await p.waitForTimeout(300);
+ok(!(await p.locator("#prResumo").isHidden()) && (await p.locator("#prResumo").textContent()).includes("R$"), "resumo antes de enviar");
+const cores = await p.evaluate(() => [...document.querySelectorAll(".ent-folha .hf-ic")].map((i) => getComputedStyle(i).color));
+ok(new Set(cores).size <= 1, `ícones numa cor só (${new Set(cores).size})`);
+ok(!erros.length, "sem erros: " + erros.join(" | "));
+process.exit(process.exitCode || 0);

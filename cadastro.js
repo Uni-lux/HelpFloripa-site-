@@ -21,6 +21,7 @@ $("telefone").addEventListener("input", () => {
 });
 
 // ---------- senha forte (lista de requisitos ao vivo) ----------
+const nomeCompletoOk = (n) => { const ps = String(n || "").trim().split(/\s+/).filter((p) => /\p{L}{2,}/u.test(p)); return ps.length >= 2; };
 const dadosSenha = () => ({ nome: $("nome").value, nick: $("nick").value, email: $("email").value, telefone: $("telefone").value, nascimento: $("nascimento").value });
 const regrasSenha = ligarSenhaForte({ campo: $("senha"), lista: $("senhaRegras"), dados: dadosSenha });
 ["nome", "nick", "email", "telefone", "nascimento"].forEach((id) => $(id).addEventListener("input", () => { if ($("senha").value) regrasSenha.atualizar(); }));
@@ -81,7 +82,8 @@ window.addEventListener("beforeunload", (e) => { if (comecou() && !podeSair) { e
     const erro = (t, foco) => { aviso("avisoCadastro", t, "erro"); foco?.focus(); };
     const nome = $("nome").value.trim(), nick = normalizar($("nick").value), email = $("email").value.trim().toLowerCase();
     const telefone = $("telefone").value.trim(), senha = $("senha").value, nasc = $("nascimento").value;
-    if (nome.length < 2) return erro("Informe seu nome ou o nome da empresa.", $("nome"));
+    // Nome completo (17/11/2026, pedido dele): pelo menos nome e sobrenome; para os outros aparecem só os dois.
+    if (!nomeCompletoOk(nome)) return erro("Escreva o seu nome completo (nome e sobrenome).", $("nome"));
     if (nick.length < 3 || !nickLivre) return erro("Escolha um @usuário válido e disponível.", $("nick"));
     if (!email) return erro("Informe seu e-mail.", $("email"));
     if (telefone.replace(/\D/g, "").length < 10) return erro("Informe um telefone com DDD.", $("telefone"));

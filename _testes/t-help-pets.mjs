@@ -25,7 +25,7 @@ ok(await p.locator(".dp-fundo .dp").count() === 1 && await p.locator(".dc .dc-he
 await p.waitForTimeout(1200);
 const g = await p.evaluate(() => { const d = document.querySelector(".dp").getBoundingClientRect(), c = document.querySelector("#meuPerfil .pf-capa")?.getBoundingClientRect(), av = document.querySelector("#meuPerfil .pf-avatar-wrap").getBoundingClientRect(); return { d: { l: d.left, t: d.top, r: d.right, b: d.bottom }, capaTop: c?.top, avR: av.right, vw: innerWidth }; });
 ok(g.d.r <= g.vw && g.d.l >= g.avR - 30 && Math.abs(g.d.t - (g.capaTop ?? g.d.t)) < 40, `gavetinha ao lado da foto, sobre a capa (${JSON.stringify(g.d)})`);
-ok((await p.locator(".dp-nome").textContent()).includes("Bruno") && await p.locator(".dp-grade > div").count() === 4, "nome do duo e grade 2×2");
+ok((await p.locator(".dp-nome").textContent()).includes("Bruno") && (await p.locator(".dp-fio").textContent()).includes("Juntos há"), "nome do duo e Juntos há");
 await p.screenshot({ path: "saida/duo-gavetinha.png" });
 // toque fora: fecha e NÃO cai na página
 const url0 = p.url();
@@ -36,11 +36,11 @@ await p.locator("#meuPerfil .pf-rosa").tap(); await p.locator("#meuPerfil .pf-ro
 ok(await p.locator(".dp-fundo").count() <= 1 && p.url() === url0 && await p.locator(".foto-grande").count() === 0, "toque duplo na rosinha não leva a outro lugar");
 await p.keyboard.press("Escape"); await p.waitForTimeout(400);
 await p.locator("#meuPerfil .pf-rosa").tap(); await p.waitForSelector(".dp.aberta");
-await p.locator(".dp-acoes button:last-child").tap(); await p.waitForTimeout(900);
+await p.locator(".dp-fio").tap(); await p.waitForTimeout(900);
 ok(await p.locator(".dc .dc-hero").count() === 1, "seta da gavetinha abre o cartão completo");
 await p.keyboard.press("Escape"); await p.waitForTimeout(400);
 await p.locator("#meuPerfil .pf-rosa").tap(); await p.waitForSelector(".dp.aberta");
-await p.locator(".dp-acoes .pri").tap();
+await p.locator(".dp-av").tap();
 await p.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});
 ok((await p.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "Ver perfil abre o perfil do duo");
 
@@ -75,17 +75,21 @@ ok(await p.locator('.pet-card').count() >= 1 && (await p.locator(".pet-card .pet
 await p.locator(".folha.aberta [data-fechar]").first().tap(); await p.waitForTimeout(300);
 
 // 4) Rede de Help
-await p.locator("#cdHelpRede").tap(); await p.waitForSelector(".hp-fundo #hpNome");
+await p.locator("#cdHelpRede").tap(); await p.waitForSelector(".hp-fundo #hpNovoContato");
+ok(await p.locator(".hp-fundo select").count() === 0, "Rede de Help sem listas do celular");
+ok((await p.locator(".hp-anel b").textContent()).includes("/4"), "situação da rede com o que falta");
 ok(await p.locator(".hp-l.sel").count() >= 2, "Social na lista da rede");
 await p.locator(".hp-l.sel").first().tap();
-await p.locator("#hpNome").fill("Mãe"); await p.locator("#hpTel").fill("48999990000"); await p.locator("#hpAdd").tap();
-ok((await p.locator("#hpTel").count()) === 1 && (await p.locator('.hp-l[data-contato="0"]').textContent()).includes("(48) 99999-0000"), "contato de fora com telefone formatado");
-await p.locator("#hpLigar").selectOption("190"); await p.locator("#hpMsg").fill("Tenho asma.");
+await p.locator("#hpNovoContato").tap(); await p.locator("#hpNome").fill("Mãe"); await p.locator('.hp-novo .hp-chips button', { hasText: "Mãe" }).tap(); await p.locator("#hpTel").fill("48999990000"); await p.locator("#hpAdd").tap();
+ok((await p.locator('.hp-l[data-contato="0"]').textContent()).includes("(48) 99999-0000") && (await p.locator('.hp-l[data-contato="0"]').textContent()).includes("Mãe ·"), "contato de fora com parentesco e telefone formatado");
+await p.locator('#hpSangue [data-v="O+"]').tap(); await p.locator("#hpAlergias").fill("dipirona");
+await p.locator('#hpLigar [data-v="190"]').click(); await p.locator("#hpMsg").fill("Tenho asma.");
 ok((await p.locator("#hpPrevia").textContent()).includes("maps.google.com") && (await p.locator("#hpPrevia").textContent()).includes("Tenho asma"), "prévia da mensagem com mapa e recado");
+ok((await p.locator("#hpPrevia").textContent()).includes("Tipo sanguíneo O+"), "ficha de emergência entra na mensagem");
 await p.screenshot({ path: "saida/help-rede.png" });
 await p.locator("#hpSalvar").tap(); await p.waitForTimeout(1200);
 const conta = (await db.doc(`usuarios/${ids.ana}`).get()).data();
-ok(conta.help?.contatos?.[0]?.tel === "48999990000" && conta.help.ligar === "190" && Array.isArray(conta.help.social) && conta.help.msg === "Tenho asma.", "rede salva na conta (contatos, ligar, social escolhido, recado)");
+ok(conta.help?.contatos?.[0]?.tel === "48999990000" && conta.help.ligar === "190" && Array.isArray(conta.help.social) && conta.help.msg === "Tenho asma." && conta.help.contatos[0].rel === "Mãe" && conta.help.ficha?.sangue === "O+" && conta.help.ficha?.alergias === "dipirona", "rede salva na conta (contatos, ligar, social escolhido, recado)");
 ok((await p.locator("#cdSos small").textContent()).includes("1 contato"), "resumo da rede no Social");
 
 // 5) Help rápido

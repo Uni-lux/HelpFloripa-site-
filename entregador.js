@@ -6,7 +6,7 @@
 // A posição vai para o pedido a cada poucos segundos: é ela que move o carrinho no mapa de quem pediu.
 // Parâmetros: ?convite=NICK (quem convidou), ?pedido=ID (abrir um chamado vindo do Mensagens).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=168";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=169";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=10";
 import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
@@ -15,7 +15,7 @@ import {
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=5";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=6";
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;
@@ -65,7 +65,7 @@ async function telaCadastro(editar = false) {
   // Conta verificada (selo) é obrigatória para levar pessoas e encomendas.
   if (!dados.verificado && !cad) {
     const n = h("div", "ent-nota alerta"); n.append(ic("alerta"), h("span", null, "Para fazer entregas e corridas, sua conta precisa ser verificada (documento com foto e selfie). A equipe confere e libera."));
-    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=125"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
+    frag.append(n, botao("Verificar minha conta", "ent-btn", async () => { const m = await import("./verificacao.js?v=126"); m.abrirVerificacao({ aoMudar: () => location.reload() }); }));
     frag.appendChild(botao("Pedir uma entrega", "ent-btn sec", () => irPara("entregas.html")));
     p.replaceChildren(frag);
     return;
@@ -102,7 +102,7 @@ async function telaCadastro(editar = false) {
       const pl = campo("Placa", f.placa ? formatarPlaca(f.placa) : "", (v) => (f.placa = normalizarPlaca(v)), 8, "egPlaca");
       pl.querySelector("input").style.textTransform = "uppercase"; pl.querySelector("input").autocapitalize = "characters";
       const cnhL = h("label", "ent-campo"); cnhL.appendChild(h("span", null, "Categoria da CNH"));
-      const sel = h("select"); sel.id = "egCnh"; sel.dataset.nativo = "";
+      const sel = h("select"); sel.id = "egCnh";
       sel.appendChild(new Option("Escolha", ""));
       CNH.forEach((c) => sel.appendChild(new Option(c, c, false, f.cnh === c)));
       sel.addEventListener("change", () => (f.cnh = sel.value));

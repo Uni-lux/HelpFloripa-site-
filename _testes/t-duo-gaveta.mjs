@@ -28,12 +28,12 @@ await abrirRosa();
 await p.waitForSelector(".dp.aberta", { timeout: 8000 }).catch(() => {});
 ok(await p.locator(".dp-fundo .dp").count() === 1, "padrão: tocar na rosinha abre a prévia do duo (gavetinha)");
 ok((await p.locator(".dp-nome").textContent()).includes("Bruno") && (await p.locator(".dp-rot").textContent()).includes("Akai Ito"), "prévia mostra o nome do duo e o Akai Ito");
-ok(await p.locator(".dp-acoes .pri").count() === 1, "prévia com \"Ver perfil\"");
+ok(await p.locator(".dp-acoes").count() === 0 && await p.locator(".dp-av.dp-toca").count() === 1, "prévia sem botões: foto abre o perfil");
 await p.screenshot({ path: "saida/duo-gaveta.png" });
 await p.keyboard.press("Escape"); await p.waitForTimeout(500);
 ok(await p.locator(".dc-fundo").count() === 0, "Esc fecha a prévia");
 await p.locator("#meuPerfil .pf-rosa").tap(); await p.waitForSelector(".dp.aberta");
-await p.locator(".dp-acoes .pri").tap();
+await p.locator(".dp-av").tap();
 await p.waitForSelector("#folhaPerfil.aberta", { timeout: 10000 }).catch(() => {});
 ok((await p.locator("#ppCabecalho .pf-nome").textContent()).includes("Bruno"), "Ver perfil abre o perfil do duo");
 

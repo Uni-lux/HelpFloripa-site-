@@ -12,8 +12,8 @@ import {
   $, el, icone, ms, toast, pintarAvatar, urlSegura, nomeCidade, fb, eu, dados, meusSeguindo, escondido, silenciado, ganchos,
   obterPerfil, linhaPessoa, botaoSeguir, fotosDoPost, lerResumosEstrelas, minhaRede, jaVisto, definirOrigem, origemAtual, pilha,
   abrirCompositor
-} from "./rede.js?v=168";
-import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=140";
+} from "./rede.js?v=169";
+import { flashesCarregados, mapaDoLugar, abrirFlashPorId } from "./stories.js?v=141";
 import { afinidade } from "./gosto.js?v=2";
 import { buscarNoServidor } from "./busca.js?v=1";
 import { postsDoEstado, pesoRegiao, RECENTES_PAIS } from "./regiao.js?v=5";
@@ -879,7 +879,7 @@ function cartaoSugestao(s, linha, aoTirar) {
   foto.appendChild(av);
   if (estaOn(p)) foto.appendChild(el("i", "sug-on"));
   foto.addEventListener("click", abrir);
-  const nome = el("strong", "sug-nome"); nome.append(document.createTextNode(p.nome || "Usuário"));
+  const nome = el("strong", "sug-nome"); nome.title = p.nome || ""; nome.append(document.createTextNode(String(p.nome || "Usuário").trim().split(/\s+/).filter((x, i, a) => i === 0 || i === a.length - 1).join(" ")));
   if (p.verificado) { const v = icone("selo", "i xs sug-selo"); v.setAttribute("aria-label", "Verificado"); nome.appendChild(v); }
   nome.addEventListener("click", abrir);
   const nick = el("small", "sug-nick", p.nickname ? "@" + p.nickname : nomeCid(p.cidade || p.cidadeNome) || "Help Floripa");
@@ -971,7 +971,7 @@ function tilePost(p, r, grande) {
   a.addEventListener("click", (e) => {
     if (!cartaoPost || e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault();
     // Vídeo abre nos Reels (tela cheia, deslizando para os próximos), como no Instagram.
-    if (tipo === "videos") { import("./reels.js?v=87").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
+    if (tipo === "videos") { import("./reels.js?v=88").then((m) => m.abrirReels({ lista: postsDestaque, oculto: postOculto, comecarEm: p.id })).catch(() => abrirVisor(p)); return; }
     abrirVisor(p);
   });
   a.setAttribute("aria-label", `Publicação de ${p.nome || "alguém"}`);

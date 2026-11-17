@@ -5,11 +5,11 @@
 // Parâmetros: ?para=UID (enviar para alguém), ?id=PRESENTE (abrir), ?gorjeta=CORRIDA (gorjeta para quem levou),
 // ?negocio=ID (enviar um produto desse negócio), ?aba=enviados.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=168";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=169";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
 import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=2";
-import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=5";
+import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=6";
 import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=2";
 const OCASIOES = {
   aniversario: ["Aniversário", "Feliz aniversário! Que esse ano seja incrível."],
@@ -135,24 +135,29 @@ async function perfil(uid) {
   try { const p = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)); return p.exists() ? { uid, ...p.data() } : null; } catch { return null; }
 }
 async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "", valor = 0 }) {
-  const { corpo: c, fechar } = abrirTela(corridaId ? "Dar uma gorjeta" : "Enviar um presente");
+  const { corpo: c, fechar, folha } = abrirTela(corridaId ? "Dar uma gorjeta" : "Enviar um presente");
+  folha.classList.add("pr-folha");
   const S = { para: null, tipo: tipo || (negocio ? "produto" : ""), mimo: "coracao", valor: valor || 0, negocio: null, qtd: {}, mensagem: "", corridaId };
   const passoPara = h("div"), passoTipo = h("div"), passoDetalhe = h("div"), passoMsg = h("div");
   const enviar = botao("Enviar presente", "ent-btn", () => mandar());
   enviar.id = "prMandar";
   c.append(passoPara, passoTipo, passoDetalhe, passoMsg, enviar);
+  let pintarResumo = null;
+  const titPasso = (n, t) => { const d = h("div", "pr-passo"); d.append(h("span", "pr-passo-n", String(n)), h("h3", null, t)); return d; };
   const atualizar = () => {
     let falta = !S.para ? "Escolha para quem" : !S.tipo ? "Escolha o presente" : "";
     if (!falta && ["pix", "corrida", "entrega"].includes(S.tipo) && !(S.valor >= 1)) falta = "Escolha o valor";
     if (!falta && S.tipo === "produto" && !Object.values(S.qtd).some((q) => q > 0)) falta = "Escolha os itens";
     if (!falta && S.tipo === "vale" && !S.negocio) falta = "Escolha o negócio";
     if (!falta && S.tipo === "vale" && !(S.valor >= 1)) falta = "Escolha o valor";
+    if (S.para || S.tipo) folha.marcarMexido?.();
+    pintarResumo?.();
     enviar.disabled = !!falta;
     enviar.textContent = falta || (corridaId ? `Enviar gorjeta de ${reaisP(S.valor)}` : `Enviar para ${S.para.nome?.split(" ")[0] || "a pessoa"}`);
   };
   // 1) Para quem
   const pintarPara = async () => {
-    passoPara.replaceChildren(h("h3", null, "Para quem"));
+    passoPara.replaceChildren(titPasso(1, "Para quem"));
     if (S.para) {
       const b = h("div", "ent-quem");
       const av = h("span", "avatar"); avatar(av, S.para.fotoPerfil, S.para.nome);
@@ -206,7 +211,7 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
   // 2) Tipo
   const pintarTipo = () => {
     if (corridaId) { passoTipo.replaceChildren(); return; }
-    passoTipo.replaceChildren(h("h3", null, "O presente"));
+    passoTipo.replaceChildren(titPasso(2, "O presente"));
     const ops = h("div", "ent-ops");
     for (const [k, t] of Object.entries(TIPOS_PRESENTE)) {
       const b = h("button", "ent-op"); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(S.tipo === k)); b.dataset.tipo = k;
@@ -222,36 +227,36 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
   const chipsValor = (valores) => {
     const box = h("div");
     const chips = h("div", "ent-chips");
-    const campo = h("input"); campo.inputMode = "decimal"; campo.placeholder = "Outro valor"; campo.id = "prValor"; campo.className = "pr-valor";
+    const campo = h("input"); campo.inputMode = "decimal"; campo.placeholder = "Outro"; campo.id = "prValor"; campo.className = "pr-valor"; campo.setAttribute("aria-label", "Outro valor em reais");
     valores.forEach((v) => { const b = h("button", "ent-chip", reaisP(v)); b.type = "button"; b.setAttribute("aria-pressed", String(S.valor === v)); b.addEventListener("click", () => { S.valor = v; campo.value = ""; chips.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); atualizar(); }); chips.appendChild(b); });
     campo.addEventListener("input", () => { const v = Number(campo.value.replace(/[^\d,]/g, "").replace(",", ".")); S.valor = Number.isFinite(v) ? Math.min(VALOR_MAX_PRESENTE, Math.round(v * 100) / 100) : 0; chips.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false")); atualizar(); });
-    chips.appendChild(campo);
+    const lv = h("label", "pr-valor-box"); lv.append(h("span", null, "R$"), campo);
+    chips.appendChild(lv);
     box.appendChild(chips);
     return box;
   };
   const pintarDetalhe = async () => {
     passoDetalhe.replaceChildren();
     if (!S.tipo) return;
+    passoDetalhe.appendChild(titPasso(corridaId ? 2 : 3, { mimo: "Escolha o mimo", pix: corridaId ? "Valor da gorjeta" : "Quanto", corrida: "Valor máximo da corrida", entrega: "Valor máximo da entrega", produto: "Da loja ou delivery", vale: "Em qual negócio" }[S.tipo] || "Detalhes"));
     if (S.tipo === "mimo") {
-      passoDetalhe.appendChild(h("h3", null, "Escolha o mimo"));
       const g = h("div", "pr-mimos");
       for (const [k, [, nome]] of Object.entries(MIMOS)) {
         const b = h("button", "pr-mimo"); b.type = "button"; b.dataset.mimo = k; b.setAttribute("aria-pressed", String(S.mimo === k)); b.setAttribute("aria-label", nome);
         const [icn, cor] = iconeMimo(k);
         b.append(iconeEl(icn, { cor, tam: 26, fundo: true, redondo: true }), h("small", null, nome.replace(/^Uma? /, "")));
-        b.addEventListener("click", () => { S.mimo = k; g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); });
+        b.addEventListener("click", () => { S.mimo = k; g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); atualizar(); });
         g.appendChild(b);
       }
       passoDetalhe.appendChild(g);
     } else if (S.tipo === "pix") {
-      passoDetalhe.append(h("h3", null, corridaId ? "Valor da gorjeta" : "Quanto"), chipsValor(corridaId ? [3, 5, 10, 20] : [10, 20, 50, 100]),
+      passoDetalhe.append(chipsValor(corridaId ? [3, 5, 10, 20] : [10, 20, 50, 100]),
         nota(corridaId ? "Depois que a pessoa aceitar e mandar a chave Pix, você paga pelo app do banco." : "Se a pessoa aceitar, ela manda a chave Pix no chat e você paga pelo app do seu banco. O Help Floripa não toca no dinheiro."));
     } else if (S.tipo === "corrida" || S.tipo === "entrega") {
-      passoDetalhe.append(h("h3", null, "Valor máximo"), chipsValor([20, 30, 50, 100]),
+      passoDetalhe.append(chipsValor([20, 30, 50, 100]),
         nota(`A pessoa pede a ${S.tipo} quando quiser (até esse valor) e você paga direto para quem levar. Você acompanha no mapa.`));
     } else if (S.tipo === "produto" || S.tipo === "vale") {
       const vale = S.tipo === "vale";
-      passoDetalhe.appendChild(h("h3", null, vale ? "Em qual negócio" : "De qual loja ou delivery"));
       if (S.negocio) return vale ? pintarVale() : pintarItens();
       const campo = h("input"); campo.type = "search"; campo.placeholder = vale ? "Nome, área ou cidade do negócio" : "Nome da lanchonete ou loja"; campo.id = "prLoja";
       const l = h("label", "ent-campo"); l.append(h("span", null, vale ? "Salão, oficina, consulta, aula, restaurante, loja..." : "Lanches, roupas, flores, presentes..."), campo);
@@ -338,7 +343,20 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
     b.addEventListener("click", () => { const sug = Object.values(OCASIOES).map((o) => o[1]); if (!area.value.trim() || sug.includes(area.value.trim())) { area.value = recado; S.mensagem = recado; } marcarOc(k); });
     ocs.appendChild(b);
   });
-  passoMsg.append(h("h3", null, "Ocasião"), ocs, h("h3", null, "Recado"), lm);
+  const resumo = h("div", "pr-resumo"); resumo.id = "prResumo";
+  passoMsg.append(titPasso(corridaId ? 3 : 4, "Ocasião e recado"), ocs, lm, resumo);
+  // Resumo antes de enviar: confere tudo de uma vez.
+  pintarResumo = () => {
+    if (!S.para || !S.tipo) { resumo.hidden = true; return; }
+    resumo.hidden = false;
+    const linhas = [["Para", S.para.nome || "Pessoa"], ["Presente", corridaId ? "Gorjeta por Pix" : TIPOS_PRESENTE[S.tipo]?.nome || ""]];
+    if (S.tipo === "mimo") linhas.push(["Mimo", (MIMOS[S.mimo]?.[1] || "").replace(/^Uma? /, "")]);
+    if (S.negocio) linhas.push([S.tipo === "vale" ? "Negócio" : "Loja", S.negocio.nome || ""]);
+    if (S.valor >= 1) linhas.push([["corrida", "entrega"].includes(S.tipo) ? "Até" : S.tipo === "produto" ? "Total" : "Valor", reaisP(S.valor)]);
+    if (S.mensagem.trim()) linhas.push(["Recado", `“${S.mensagem.trim().slice(0, 60)}${S.mensagem.trim().length > 60 ? "…" : ""}”`]);
+    resumo.replaceChildren(h("b", "pr-resumo-t", "Resumo"), ...linhas.map(([k, v]) => { const d = h("div"); d.append(h("span", null, k), h("b", null, v)); return d; }));
+  };
+  area.addEventListener("input", () => pintarResumo());
   const oc = params.get("ocasiao");
   if (OCASIOES[oc] && !corridaId) { area.value = OCASIOES[oc][1]; S.mensagem = area.value; marcarOc(oc); if (!S.tipo) S.tipo = "mimo"; }
 
@@ -390,7 +408,6 @@ async function abrirPresente(id) {
     if (!p) { c.appendChild(h("p", "ent-vazio", "Presente não encontrado.")); return; }
     const recebi = p.para === eu.uid;
     const cart = h("div", "pr-cartao");
-    cart.style.setProperty("--pc", TIPOS_PRESENTE[p.tipo]?.cor || "#00adee");
     const [icn, cor] = iconePresente(p);
     cart.append(iconeEl(icn, { cor, tam: 40, fundo: true, redondo: true }), h("small", null, recebi ? `${p.deNome || "Alguém"} enviou para você` : `Você enviou para ${p.paraNome || "a pessoa"}`), h("h2", null, resumoPresente(p)));
     if (p.mensagem) cart.appendChild(h("p", "pr-cartao-msg", `“${p.mensagem}”`));

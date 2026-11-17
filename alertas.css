@@ -103,3 +103,44 @@
 .al-rapido-agora { margin-top: 14px; border: 0; background: #fff; color: #b3161c; }
 .al-rapido-cancelar { border: 1.5px solid rgba(255, 255, 255, .5); background: transparent; color: #fff; }
 .hp-fora { margin: 14px 0; }
+
+/* ---------- 17/11/2026: Help e alertas mais sóbrio (pedido dele: "estamos mexendo com vidas") ----------
+   Vermelho só no que é emergência (botão HELP, telefones, "Enviar Help"); o resto na cor do texto. */
+.al-hero { background: var(--panel); border-color: var(--line); grid-template-columns: 1fr auto; }
+.al-hero h1 { font-size: 21px; letter-spacing: -.01em; }
+.al-hero p { font-size: 13.5px; }
+.al-tels { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; }
+.al-tel { min-width: 0; padding: 8px 6px; border-radius: 12px; background: var(--panel-2); }
+.al-tel b { font-size: 17px; font-variant-numeric: tabular-nums; color: var(--text); }
+.al-tel small { font-size: 10.5px; }
+.al-abas { position: sticky; top: calc(var(--topo-h, 56px) - var(--topo-desl, 0px)); z-index: 5; background: var(--bg); padding: 6px 0; margin-bottom: 8px; }
+.al-sec h3 { font-size: 15.5px; margin: 0 0 2px; }
+.al-tipo, .al-tipo[aria-pressed="true"] { background: var(--panel); }
+.al-tipo[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.al-urgente { background: var(--panel-2); border-color: color-mix(in srgb, #e5484d 35%, var(--line)); }
+.al-urgente > b { color: #ff6b6f; }
+.al-rg { background: var(--panel); }
+.al-rg-cab { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.al-foto.sem-foto { background: var(--panel-2); }
+body:has(.al-pagina) .ent-folha .hf-ic, .al-pagina .hf-ic { --c: var(--text) !important; }
+body:has(.al-pagina) .ent-folha .hf-ic.fundo, .al-pagina .hf-ic.fundo { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+.al-falta { color: var(--text); }
+/* aviso único quando parte da área ainda não foi liberada (regras novas não publicadas) */
+.al-liberando { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; margin: 0 0 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+.al-liberando > div { display: grid; gap: 2px; }
+.al-liberando b { font-size: 14px; }
+.al-liberando small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.al-indisp { font-size: 13px; padding: 10px 0; }
+/* escolhas em cartões (porte e sexo do pet) */
+.al-esc-box { display: grid; gap: 6px; margin: 12px 0 4px; }
+.al-rot { font-size: 13px; font-weight: 700; color: var(--muted); }
+.al-esc { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.al-op { position: relative; display: grid; gap: 2px; align-content: center; min-height: 52px; padding: 8px 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.al-op b { font-size: 14px; }
+.al-op small { font-size: 11.5px; color: var(--muted); line-height: 1.25; }
+.al-op[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+.ent-chip .hf-ic { margin-right: 6px; vertical-align: -3px; }
+.al-tels { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.al-tel { padding: 8px 2px; }
+.al-tel small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.al-esc { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }

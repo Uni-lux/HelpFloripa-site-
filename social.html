@@ -467,7 +467,7 @@
   <script type="module" src="auth-guard.js"></script>
   <script type="module">
     // Barra inferior, menu lateral e contadores (os mesmos das outras páginas da rede).
-    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=168";
+    import { iniciarRede, montarBarraRede, pintarBarraRede, ouvirAvisos } from "./rede.js?v=169";
     iniciarRede().then(() => { montarBarraRede(""); pintarBarraRede(); ouvirAvisos({ notificarNovos: false }); }).catch(() => {});
   </script>
 </head>
@@ -875,7 +875,7 @@
       return aceitas().map((c) => ({ uid: c.outro, nome: c.perfil.nome || "Usuário", foto: urlSegura(c.perfil.fotoPerfil) || "", papel: TIPOS[c.tipo]?.[0] || nomeGrupo(c.cat) }));
     }
     function abrirRedeHelp() {
-      import("./help-rede.js?v=1").then(({ abrirConfigHelp }) => abrirConfigHelp({ fb, uid: eu.uid, dados: conta || (conta = {}), social: socialDoHelp(), toast, aoSalvar: () => desenharCuidado() }))
+      import("./help-rede.js?v=2").then(({ abrirConfigHelp }) => abrirConfigHelp({ fb, uid: eu.uid, dados: conta || (conta = {}), social: socialDoHelp(), toast, aoSalvar: () => desenharCuidado() }))
         .catch(() => toast("Não foi possível abrir agora."));
     }
     function desenharCuidado() {
@@ -892,7 +892,7 @@
       const pedir = el("a", "hlp-pedir"); pedir.href = "alertas.html?sos=novo"; pedir.id = "cdHelpPedir"; pedir.textContent = "Pedir ajuda";
       const rede = botao("hlp-rede", "Rede", () => abrirRedeHelp()); rede.id = "cdHelpRede";
       help.append(tx, pedir, rede);
-      import("./help-rede.js?v=1").then(({ lerHelp, resumoHelp }) => {
+      import("./help-rede.js?v=2").then(({ lerHelp, resumoHelp }) => {
         const h = lerHelp(conta || {});
         const n = aceitas().length;
         sub.textContent = n || h.contatos.length ? resumoHelp(h, n) : "Monte a sua rede: quem recebe quando você pedir ajuda";
@@ -945,7 +945,7 @@
       }, { pe: true });
     }
     function editarPetAqui(p) {
-      import("./pet-cadastro.js?v=2").then(({ abrirCadastroPet }) => abrirCadastroPet({
+      import("./pet-cadastro.js?v=3").then(({ abrirCadastroPet }) => abrirCadastroPet({
         fb, uid: eu.uid, dados: { ...dono, ...(conta || {}) }, pet: p, toast,
         aoSalvar: (novo) => { const l = (pets.get(eu.uid) || []).filter((x) => x.id !== novo.id); l.unshift(novo); pets.set(eu.uid, l); desenharTudo(); }
       })).catch(() => toast("Não foi possível abrir agora."));
@@ -1111,7 +1111,7 @@
 
     // ---------- Akai Ito (16/11/2026: uma linha compacta que abre o cartão do duo, duo-cartao.js) ----------
     function abrirDuo(c) {
-      import("./duo-cartao.js?v=3").then(({ abrirCartaoDuo }) => abrirCartaoDuo({
+      import("./duo-cartao.js?v=4").then(({ abrirCartaoDuo }) => abrirCartaoDuo({
         fb, eu: eu.uid, dono: { uid: donoId, nome: dono.nome, fotoPerfil: dono.fotoPerfil },
         vinculo: { ...c, papel: TIPOS[c.tipo]?.[0] || "Duo" }, perfil: c.perfil, podeAbrir: proprio || clicavel, toast,
         retrato: c.retrato ? lerRetrato(c) : null,

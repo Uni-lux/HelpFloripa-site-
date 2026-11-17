@@ -5,17 +5,17 @@
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=168";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=169";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {
   TIPOS_SOS, EMERGENCIAS, STATUS_SOS, sosVivo, TIPOS_OCORRENCIA, OBJETOS, normalizarId, identificadorOk, DICAS_OCORRENCIA,
-  ESPECIES, CORES_PET, PORTES, STATUS_PET, rgPet, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, MOSTRAR_A_PARTIR,
+  ESPECIES, CORES_PET, PORTES, PORTES_ESPECIE, nomePorte, STATUS_PET, rgPet, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, MOSTRAR_A_PARTIR,
   distKm, geohash, vizinhos, RAIOS_ALERTA
-} from "./alertas-base.js?v=1";
-import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=5";
+} from "./alertas-base.js?v=2";
+import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=6";
 import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=2";
-import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=1";
+import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).
@@ -73,6 +73,16 @@ function pintarAba() {
 }
 const perto = () => (pos ? vizinhos(pos.lat, pos.lng, 4) : null);
 function vazio(t) { return h("p", "ent-vazio", t); }
+// Leitura recusada (as regras novas ainda não foram publicadas): UM aviso no topo da página, e a lista diz só "Indisponível".
+function semLiberacao() {
+  if (!document.getElementById("alLiberando")) {
+    const a = h("div", "al-liberando"); a.id = "alLiberando"; a.setAttribute("role", "status");
+    a.append(iconeEl("alerta", { tam: 18 }), h("div"));
+    a.lastChild.append(h("b", null, "Parte desta área está em atualização"), h("small", null, "Algumas listas aparecem assim que a atualização terminar. O botão HELP e os telefones de emergência funcionam normalmente."));
+    corpo().prepend(a);
+  }
+  return h("p", "ent-vazio al-indisp", "Indisponível no momento.");
+}
 function secao(titulo, sub) { const s = h("section", "al-sec"); s.appendChild(h("h3", null, titulo)); if (sub) s.appendChild(h("p", "ent-sub", sub)); corpo().appendChild(s); return s; }
 async function perfil(uid) { try { const p = await fb.getDoc(fb.doc(fb.db, "perfis_publicos", uid)); return p.exists() ? p.data() : {}; } catch { return {}; } }
 
@@ -92,7 +102,7 @@ function abaSos() {
       vistos = new Set(l.map((x) => x.id)); primeira = false;
       l.filter((x) => x.uid === eu.uid).forEach((x) => { if (precisaEscalar(x)) escalarSos(x, "auto"); else if (x.status === "aberto" && !x.publico && x.escalarMin > 0) setTimeout(() => { if (precisaEscalar(x)) escalarSos(x, "auto"); }, fimSocial(x) - Date.now() + 500); });
       lista.replaceChildren(...(l.length ? l.map(linhaSos) : [vazio(vazioTxt)]));
-    }, () => lista.replaceChildren(vazio("Esta função ainda está sendo liberada."))));
+    }, () => lista.replaceChildren(semLiberacao())));
   };
   const col = fb.collection(fb.db, "sos");
   listar(meus, fb.query(col, fb.where("uid", "==", eu.uid), fb.limit(10)), (s) => sosVivo(s), "Nenhum pedido de ajuda aberto.");
@@ -312,7 +322,7 @@ async function abrirSos(id) {
         botao("Cancelar o pedido", "ent-btn sec", () => mudar({ status: "cancelado", fimEm: fb.serverTimestamp() }, "Pedido cancelado")));
       if (s.ajudanteId) acoes.appendChild(botao(`Conversar com ${(s.ajudanteNome || "quem ajuda").split(" ")[0]}`, "ent-btn sec", () => conversar(s.ajudanteId, { tipo: "sos", id: s.id })));
       // Rede de Help: contatos de fora do app (1 toque cada), feito uma vez para não perder o "enviado" a cada atualização.
-      if (!foraBox) foraBox = blocoAvisarFora(lerHelp(dados), textoHelp({ nome: dados.nome, tipo: t[0], msg: s.texto, lat: s.lat, lng: s.lng, precisao: s.precisao, id: s.id }), { titulo: enviadosAgora.has(s.id) ? "Agora avise quem está fora do app" : "Avisar quem está fora do app" }) || h("span");
+      if (!foraBox) foraBox = blocoAvisarFora(lerHelp(dados), textoHelp({ nome: dados.nome, tipo: t[0], msg: s.texto, lat: s.lat, lng: s.lng, precisao: s.precisao, id: s.id, ficha: lerHelp(dados).ficha }), { titulo: enviadosAgora.has(s.id) ? "Agora avise quem está fora do app" : "Avisar quem está fora do app" }) || h("span");
       frag.push(foraBox);
       // Atualiza a posição de quem pediu enquanto esta tela estiver aberta.
       if (vigia == null && navigator.geolocation) vigia = navigator.geolocation.watchPosition((p) => {
@@ -442,7 +452,7 @@ function abaPets() {
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "pets"), fb.where("donoId", "==", eu.uid), fb.limit(20)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() }));
     lm.replaceChildren(...(l.length ? l.map((p) => linhaPet(p, true)) : [vazio("Cadastre o seu pet: se ele sumir, quem encontrar acha você pelo RG e pelas características.")]));
-  }, () => lm.replaceChildren(vazio("Esta função ainda está sendo liberada."))));
+  }, () => lm.replaceChildren(semLiberacao())));
   if (!cfg.petsArea) return;
   const perdidos = secao("Perdidos perto de você", "Viu algum? Toque e avise o dono.");
   const encontrados = secao("Encontrados perto de você", "É o seu? Toque para ver e falar com quem encontrou.");
@@ -464,7 +474,7 @@ function fotoOuEmoji(foto, especie) {
   else { const [icn, cor] = iconeEspecie(especie); f.classList.add("sem-foto"); f.style.setProperty("--c", cor); f.appendChild(iconeEl(icn, { cor, tam: 26 })); }
   return f;
 }
-const descricaoPet = (p) => [ESPECIES[p.especie]?.[0], p.raca, (p.cores || []).join(" e "), PORTES[p.porte]].filter(Boolean).join(" · ");
+const descricaoPet = (p) => [ESPECIES[p.especie]?.[0], p.raca, (p.cores || []).join(" e "), nomePorte(p.especie, p.porte)].filter(Boolean).join(" · ");
 function linhaPet(p, meu) {
   const b = h("button", "ent-item al-item"); b.type = "button"; b.dataset.pet = p.id;
   const lin = h("div", "lin");
@@ -508,26 +518,35 @@ function reduzirFoto(arquivo) {
 // Campos comuns de pet (cadastro e animal encontrado).
 function camposPet(c, v, { comNome = true } = {}) {
   const st = { especie: v.especie || "cao", cores: new Set(v.cores || []), porte: v.porte || "", sexo: v.sexo || "", foto: v.foto || "" };
+  let trocouEspecie = () => {}, pintarPrev = null;
   const campo = (rot, val, id, max) => { const l = h("label", "ent-campo"); const i = h("input"); i.value = val || ""; i.id = id; i.maxLength = max; l.append(h("span", null, rot), i); c.appendChild(l); return i; };
   const nome = comNome ? campo("Nome do pet", v.nome, "alPetNome", 40) : null;
   c.appendChild(h("h3", null, "Espécie"));
   const es = h("div", "ent-chips");
-  for (const [k, [n, e]] of Object.entries(ESPECIES)) { const b = h("button", "ent-chip", `${e} ${n}`); b.type = "button"; b.dataset.especie = k; b.setAttribute("aria-pressed", String(st.especie === k)); b.addEventListener("click", () => { st.especie = k; es.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }); es.appendChild(b); }
+  for (const [k, [n, e]] of Object.entries(ESPECIES)) { const b = h("button", "ent-chip"); b.append(iconeEl(iconeEspecie(k)[0], { tam: 16 }), document.createTextNode(n)); b.type = "button"; b.dataset.especie = k; b.setAttribute("aria-pressed", String(st.especie === k)); b.addEventListener("click", () => { st.especie = k; es.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); trocouEspecie(); pintarPrev?.(); }); es.appendChild(b); }
   c.appendChild(es);
   c.appendChild(h("h3", null, "Cores (até 4)"));
   const cs = h("div", "ent-chips");
   CORES_PET.forEach((cor) => { const b = h("button", "ent-chip", cor); b.type = "button"; b.dataset.cor = cor; b.setAttribute("aria-pressed", String(st.cores.has(cor))); b.addEventListener("click", () => { if (st.cores.has(cor)) st.cores.delete(cor); else if (st.cores.size < 4) st.cores.add(cor); else toast("Até 4 cores."); b.setAttribute("aria-pressed", String(st.cores.has(cor))); }); cs.appendChild(b); });
   c.appendChild(cs);
-  const linha = h("div", "ent-duplo");
-  const sel = (rot, opcoes, val, aoMudar, id) => { const l = h("label", "ent-campo"); const s = h("select"); s.id = id; s.dataset.nativo = ""; opcoes.forEach(([k, n]) => s.appendChild(new Option(n, k, false, k === val))); s.addEventListener("change", () => aoMudar(s.value)); l.append(h("span", null, rot), s); linha.appendChild(l); };
-  sel("Porte", [["", "Não sei"], ...Object.entries(PORTES)], st.porte, (x) => (st.porte = x), "alPetPorte");
-  sel("Sexo", [["", "Não sei"], ["m", "Macho"], ["f", "Fêmea"]], st.sexo, (x) => (st.sexo = x), "alPetSexo");
-  c.appendChild(linha);
+  // Porte e sexo em cartões (17/11/2026: sem a lista do celular). O porte muda com a espécie (pesos de cão ≠ gato).
+  const escolha = (rot, id, opcoes, val, aoMudar) => {
+    const box = h("div", "al-esc-box"); box.appendChild(h("span", "al-rot", rot));
+    const g = h("div", "al-esc"); g.id = id; g.setAttribute("role", "radiogroup"); g.setAttribute("aria-label", rot);
+    const pintar = (v) => g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === v)));
+    opcoes.forEach(([k, n, sub]) => { const b = h("button", "al-op"); b.type = "button"; b.dataset.v = k; b.setAttribute("role", "radio"); b.appendChild(h("b", null, n)); if (sub) b.appendChild(h("small", null, sub)); b.addEventListener("click", () => { aoMudar(k); pintar(k); }); g.appendChild(b); });
+    pintar(val); box.appendChild(g); return box;
+  };
+  const portes = () => [...(PORTES_ESPECIE[st.especie] || PORTES_ESPECIE.cao), ["", "Não sei", ""]];
+  let boxPorte = escolha("Porte", "alPetPorte", portes(), st.porte, (x) => (st.porte = x));
+  c.appendChild(boxPorte);
+  c.appendChild(escolha("Sexo", "alPetSexo", [["m", "Macho"], ["f", "Fêmea"], ["", "Não sei"]], st.sexo, (x) => (st.sexo = x)));
+  trocouEspecie = () => { const n = escolha("Porte", "alPetPorte", portes(), st.porte, (x) => (st.porte = x)); boxPorte.replaceWith(n); boxPorte = n; };
   const raca = campo("Raça (ou SRD / vira-lata)", v.raca, "alPetRaca", 40);
   const sinais = campo("Sinais particulares (coleira, manchas, cicatriz...)", v.sinais, "alPetSinais", 300);
   const chip = campo("Microchip (se tiver)", v.microchip, "alPetChip", 24);
   c.appendChild(h("h3", null, "Foto"));
-  const prev = h("div", "al-foto-prev"); const pintarPrev = () => prev.replaceChildren(fotoOuEmoji(st.foto, st.especie)); pintarPrev();
+  const prev = h("div", "al-foto-prev"); pintarPrev = () => prev.replaceChildren(fotoOuEmoji(st.foto, st.especie)); pintarPrev();
   const inp = h("input"); inp.type = "file"; inp.accept = "image/*"; inp.id = "alPetFoto";
   inp.addEventListener("change", async () => { const f = inp.files?.[0]; if (!f) return; try { st.foto = await reduzirFoto(f); pintarPrev(); } catch { toast("Não foi possível usar essa foto."); } });
   const lf = h("label", "ent-btn sec al-foto-bt"); lf.append(document.createTextNode("Escolher foto"), inp);
@@ -576,7 +595,7 @@ function cartaoRg(p) {
   const meio = h("div", "al-rg-meio");
   const dadosRg = h("div");
   const lin = (a, b) => { if (b) { const d = h("div"); d.append(h("small", null, a), h("b", null, b)); dadosRg.appendChild(d); } };
-  lin("Nome", p.nome); lin("Espécie", ESPECIES[p.especie]?.[0]); lin("Raça", p.raca); lin("Cores", (p.cores || []).join(", ")); lin("Porte", PORTES[p.porte]); lin("Sexo", p.sexo === "m" ? "Macho" : p.sexo === "f" ? "Fêmea" : ""); lin("Microchip", p.microchip); lin("Sinais", p.sinais); lin("Tutor", (p.donoNome || "").split(" ")[0]);
+  lin("Nome", p.nome); lin("Espécie", ESPECIES[p.especie]?.[0]); lin("Raça", p.raca); lin("Cores", (p.cores || []).join(", ")); lin("Porte", nomePorte(p.especie, p.porte)); lin("Sexo", p.sexo === "m" ? "Macho" : p.sexo === "f" ? "Fêmea" : ""); lin("Microchip", p.microchip); lin("Sinais", p.sinais); lin("Tutor", (p.donoNome || "").split(" ")[0]);
   meio.append(fotoOuEmoji(p.foto, p.especie), dadosRg);
   const qr = h("div", "al-rg-qr");
   import("./qr.js?v=1").then(async (m) => { const svg = await m.qrSvg(`https://helpfloripa.com.br/alertas.html?pet=${p.id}`, "QR do RG do pet"); if (svg) { qr.innerHTML = ""; qr.appendChild(typeof svg === "string" ? Object.assign(document.createElement("div"), { innerHTML: svg }).firstChild : svg); } }).catch(() => {});
@@ -739,7 +758,7 @@ function abaRoubos() {
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("geo4", "in", perto()), fb.limit(60)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => Date.now() - ms(o.quando) < 30 * 864e5 && (distKm(pos, o) ?? 0) <= Math.max(cfg.raio, 5)).sort((a, b) => ms(b.quando) - ms(a.quando));
     la.replaceChildren(...(l.length ? l.map((o) => linhaOcorrencia(o, false)) : [vazio("Nenhum alerta perto nos últimos 30 dias.")]));
-  }, () => la.replaceChildren(vazio("Esta função ainda está sendo liberada."))));
+  }, () => la.replaceChildren(semLiberacao())));
 }
 function linhaOcorrencia(o, minha) {
   const b = h("button", "ent-item al-item"); b.type = "button"; b.dataset.ocorrencia = o.id;
@@ -768,9 +787,16 @@ function registrarOcorrencia() {
   rotuloId();
   const desc = h("textarea"); desc.id = "alOcDesc"; desc.maxLength = 500; desc.placeholder = "Como foi, marca/modelo, cor, características. Não coloque dados pessoais de ninguém.";
   const ld = h("label", "ent-campo"); ld.append(h("span", null, "Descrição"), desc); c.appendChild(ld);
-  const quando = h("input"); quando.type = "datetime-local"; quando.id = "alOcQuando"; quando.dataset.nativo = "";
-  const agora = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); quando.value = agora.toISOString().slice(0, 16); quando.max = quando.value;
-  const lq = h("label", "ent-campo"); lq.append(h("span", null, "Quando"), quando); c.appendChild(lq);
+  // Quando: dia e hora em campos separados (campos.js abre o calendário e o relógio do site, sem a tela do celular).
+  const dois = (n) => String(n).padStart(2, "0");
+  const hoje = new Date(), diaTxt = (d) => `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+  const dia = h("input"); dia.type = "date"; dia.id = "alOcDia"; dia.value = diaTxt(hoje); dia.max = dia.value; dia.min = diaTxt(new Date(Date.now() - 60 * 864e5));
+  const horaI = h("input"); horaI.type = "time"; horaI.id = "alOcHora"; horaI.value = `${dois(hoje.getHours())}:${dois(hoje.getMinutes())}`;
+  const lq = h("div", "ent-duplo");
+  const ld1 = h("label", "ent-campo"); ld1.append(h("span", null, "Dia"), dia);
+  const ld2 = h("label", "ent-campo"); ld2.append(h("span", null, "Hora (aproximada)"), horaI);
+  lq.append(ld1, ld2); c.appendChild(lq);
+  const quando = { get value() { return `${dia.value}T${horaI.value || "12:00"}`; } };
   const bairro = h("input"); bairro.id = "alOcBairro"; bairro.maxLength = 60; bairro.value = dados.bairro || "";
   const lb = h("label", "ent-campo"); lb.append(h("span", null, "Bairro"), bairro); c.appendChild(lb);
   c.appendChild(h("p", "ent-sub", "O ponto no mapa é aproximado (cerca de 100 m), a partir da sua localização."));

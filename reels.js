@@ -10,7 +10,7 @@ import { ligarPuxar } from "./puxar-atualizar.js?v=7";
 import {
   el, icone, ms, pintarAvatar, obterPerfil, barraInteracao, botaoSeguir, comMencoes, marcarVista, definirOrigem, origemAtual, pessoasEmPilha,
   contadorEstrelas, ganchos, eu, fb, toast, urlSegura, escondido, tempoRelativo, paraData, meusSeguindo, storageFns
-} from "./rede.js?v=168";
+} from "./rede.js?v=169";
 
 let aberto = null;
 let somLigado = false;
@@ -123,7 +123,7 @@ function reel(post) {
   const quem = el("div", "reel-quem");
   const av = el("button", "avatar"); av.type = "button"; av.setAttribute("aria-label", "Ver perfil");
   pintarAvatar(av, post.fotoPerfil, post.nome);
-  const nome = el("button", "reel-nome", post.nome || "Usuário"); nome.type = "button";
+  const nome = el("button", "reel-nome", String(post.nome || "Usuário").trim().split(/\s+/).filter((x, i, a) => i === 0 || i === a.length - 1).join(" ")); nome.type = "button"; nome.title = post.nome || "";
   const verPerfil = () => ganchos.abrirPerfil(post.autorId);
   av.addEventListener("click", verPerfil); nome.addEventListener("click", verPerfil);
   quem.append(av, nome);

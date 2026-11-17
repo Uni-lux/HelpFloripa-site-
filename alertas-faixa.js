@@ -2,7 +2,7 @@
 // Faixa "SOS · Pets · Alertas" no Mural da Comunidade: quantos pedidos de ajuda, pets perdidos e alertas de
 // roubo há perto agora (leva para alertas.html). Lê só quando há posição guardada (GPS do aparelho).
 // =====================================================
-import { vizinhos, sosVivo } from "./alertas-base.js?v=1";
+import { vizinhos, sosVivo } from "./alertas-base.js?v=2";
 import { posicaoGuardada } from "./perto.js?v=3";
 const ms = (t) => (t?.toMillis ? t.toMillis() : 0);
 (async () => {

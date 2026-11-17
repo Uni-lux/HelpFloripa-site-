@@ -1,5 +1,5 @@
 // Código da página (saiu de dentro do HTML para ficar guardado no aparelho pelo service worker: a página abre mais rápido).
-import { TIPOS_SOS, STATUS_SOS, sosVivo, ESPECIES as ESPECIES_PET, textoSemelhanca } from "./alertas-base.js?v=1";
+import { TIPOS_SOS, STATUS_SOS, sosVivo, ESPECIES as ESPECIES_PET, textoSemelhanca } from "./alertas-base.js?v=2";
 import { DURACOES as DURACOES_VIVO, compartilharAoVivo, pararCompartilhar, ouvirLocalVivo, encerrado as vivoEncerrado, textoRestante as vivoRestante } from "./local-vivo.js?v=1";
 import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximoPasso } from "./presentes-base.js?v=2";
 import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
