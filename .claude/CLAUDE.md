@@ -2798,9 +2798,8 @@ chat da equipe).
   **Presentes:** `abrirPresentes` no Social (Datas para lembrar = aniversário de quando se conheceram e marcos de dias, Esperando
   você, Enviar para), presentes.js com Ocasião (`OCASIOES`, `?ocasiao=`) e `?aba=enviar`. Teste `t-help-pets.mjs` (28).
 - **Marca do site com a ponte + rede social "Ponte" + "Meu diário" (16/11/2026, PR depois do #232, sem regra nova):**
-  pedido dele. Site (marketplace): `.marca` = SÓ o ícone da ponte (72×46, as 2 máscaras `logo-ponte-estrutura/ondas.webp` em
-  `.marca::before/::after`; ele riscou o nome no print): HELP FLORIPA e a frase ficam escondidos da tela (só leitor de tela e
-  aria-label), nas 28 páginas com `.marca` (bloco "Marca só com a ponte" no fim do categoria.css e do rede.css). **A rede social se chama Ponte** (decidido por ele, 16/11; antes "The Diare"/"O Diário"): topo do Diário (`#marcaTopo`) =
+  pedido dele. Site (marketplace): a `.marca` testou só o ícone da ponte e **VOLTOU** (17/11, pedido dele) ao original: HELP
+  FLORIPA (Sora) + "TUDO EM UM SÓ LUGAR" entre filetes ciano, sem a ponte. **A rede social se chama Ponte** (decidido por ele, 16/11; antes "The Diare"/"O Diário"): topo do Diário (`#marcaTopo`) =
   "Ponte" em letra cursiva como o nome do Instagram (Grand Hotel, SIL OFL, `fonte-diare.woff2` + `fonte-diare-OFL.txt`, família
   "HF Cursiva", `.marca-diare`; @font-face também no rede.html para a cópia do topo); a aba do feed continua **Diário**; títulos:
   feed.html "Diário | Ponte", rede.html "Ponte", social.html "Meu diário | Ponte". **Social/Salão virou "Meu diário"** (pedido dele):
