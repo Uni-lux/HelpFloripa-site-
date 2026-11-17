@@ -7,7 +7,7 @@
 // Parâmetros: ?modo=entrega|corrida, ?id=PEDIDO (acompanhar), ?para=UID (quem recebe, do Mensagens),
 // ?conversa=ID, ?entregador=UID (chamar uma pessoa específica).
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=168";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=169";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { ligar } from "./chamadas.js?v=10";
 import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
@@ -16,7 +16,7 @@ import {
   modalidadesDe, modalidadesDoVeiculo, textoStatus, passo, pinEm, expirada, faixaValor, valorSugerido, minutosAte, distanciaKm, kmPelaRua,
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=5";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=6";
 
 const params = new URLSearchParams(location.search);
 const S = {

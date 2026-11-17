@@ -2834,6 +2834,25 @@ chat da equipe).
   em grade "N de 4") · Para achar se ele sumir; página de trás travada (`html.pc-travado`). Social: gaveta aberta trava a rolagem
   da página de trás (`html:has(.folha-fundo...)`). Testes `t-chat-ouvido.mjs` (11), `t-ligacao5.mjs` (13), `t-pet-cadastro.mjs` (7).
   `t-help-pets`, `t-social-completo` e `t-mensagens-cache` já falhavam antes (dados/abas que mudaram).
+- **Duo com fotos, Rede de Help e Help e alertas profissionais, presentes sem cores, porte por espécie, sair sem salvar e
+  nome curto (17/11/2026, PR depois do #236, sem regra nova):** prints dele. Prévia do duo (rosinha): "Juntos há N dias" e os 4
+  quadrados = fotos do duo (Diário/Salão; sem fotos = "Nenhuma foto ainda", como no Instagram); números numa linha com
+  singular/plural. **Nada de lista do celular** (`data-nativo`) no Help: Rede de Help (`abrirConfigHelp` em help-rede.js v=2)
+  refeita em cartões: situação da rede (anel N/4 + o que falta), Quem recebe (Social com Marcar todos + contatos de fora com
+  parentesco `contatos[].rel` — `PARENTESCOS`), Como avisar (WhatsApp/SMS, "Depois de enviar, ligar para" em cartões
+  `#hpLigar [data-v]`), Se ninguém responder (`#hpPerto`), Help rápido (`#hpTipoRapido`), **ficha de emergência**
+  `usuarios.help.ficha {sangue, alergias, condicoes, remedios, incluir}` (`SANGUE`, `textoFicha`; vai no `textoHelp`),
+  recado com contador, prévia em balão; fechar mexido pergunta. alertas.js: porte/sexo do pet em cartões (`#alPetPorte
+  [data-v]`), porte por espécie (`PORTES_ESPECIE`/`nomePorte` em alertas-base.js: cão/gato em kg, ave/outros por exemplo;
+  valores continuam P/M/G), dia + hora da ocorrência (`#alOcDia`/`#alOcHora` com o calendário/relógio do site), aviso ÚNICO
+  `.al-liberando` quando a leitura é recusada (antes "Esta função ainda está sendo liberada" repetido), página sóbria (ícones na
+  cor do texto, vermelho só no HELP), aba "Roubos". CNH do entregador sem `data-nativo`. **`abrirTela` (entregas-comum.js
+  v=6) pergunta "Sair sem salvar?"** se a pessoa digitou algo (X, Esc, voltar do celular); `fechar()` de quem salvou não
+  pergunta; `folha.marcarMexido()` para escolhas sem campo. Presentes: passos numerados `.pr-passo`, resumo `#prResumo`, "R$
+  Outro", ícones numa cor só, X redondo em `.ent-quem .x` (era o quadrado branco do navegador). Nome: `nomeCurto` (rede.js e
+  duo-cartao.js) = 1ª + última palavra nas publicações, comentários, listas, Vídeos e sugestões (nome inteiro no `title`);
+  cadastro e Editar perfil exigem nome e sobrenome ("Nome completo"). Prévia do duo SEM números e SEM botões (pedido dele): tocar na foto ou no nome abre o perfil; tocar no "Juntos há" abre o cartão completo. Testes `t-help-presentes2.mjs` (15), `t-help-pets`
+  (Rede de Help nova), `t-sos-pets` (cartões).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

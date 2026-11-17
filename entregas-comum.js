@@ -94,12 +94,28 @@ export function abrirTela(titulo, { busca = false, placeholder = "" } = {}) {
   const corpo = h("div", "ent-folha-corpo");
   f.append(topo, corpo);
   document.body.appendChild(f);
-  let fechada = false;
+  let fechada = false, mexeu = false, perguntando = false;
   const fechar = () => { if (fechada) return; fechada = true; f.remove(); f.dispatchEvent(new Event("fechada")); };
-  x.addEventListener("click", fechar);
-  f.addEventListener("keydown", (e) => { if (e.key === "Escape") fechar(); });
+  // 17/11/2026: tela com campos que a pessoa mexeu pergunta antes de sair (X, Esc ou o voltar do celular).
+  // Quem salvou chama fechar() direto e não é perguntado.
+  corpo.addEventListener("input", (e) => { if (e.target.matches?.("input:not([type=search]),textarea")) mexeu = true; });
+  corpo.addEventListener("change", (e) => { if (e.target.matches?.("input[type=file],input[type=checkbox]")) mexeu = true; });
+  const tentar = async () => {
+    if (fechada || perguntando) return;
+    if (mexeu && !f.dataset.semPerguntar) {
+      perguntando = true;
+      let ok = true;
+      try { const { confirmarHF } = await import("./confirmar.js?v=6"); ok = await confirmarHF({ titulo: "Sair sem salvar?", texto: "O que você escreveu nesta tela não será guardado.", ok: "Sair sem salvar", cancelar: "Continuar", icone: "alerta" }); } catch {}
+      perguntando = false;
+      if (!ok) return;
+    }
+    fechar();
+  };
+  x.addEventListener("click", tentar);
+  f.addEventListener("keydown", (e) => { if (e.key === "Escape" && !document.querySelector(".hf-confirma-fundo")) tentar(); });
   // voltar.js fecha a camada de cima clicando no [data-fechar]; aqui o clique já remove.
   f.fechar = fechar;
+  f.marcarMexido = () => { mexeu = true; };
   setTimeout(() => (campo || x).focus({ preventScroll: true }), 50);
   return { folha: f, corpo, campo, fechar };
 }

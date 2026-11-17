@@ -68,7 +68,7 @@ await pa.goto(BASE + "alertas.html?aba=pets"); await pa.waitForSelector("text=Ca
 await pa.click("text=Cadastrar meu pet (RG)");
 await pa.fill("#alPetNome", "Pipoca");
 await pa.click('.ent-folha [data-cor="caramelo"]'); await pa.click('.ent-folha [data-cor="branco"]');
-await pa.selectOption("#alPetPorte", "M"); await pa.selectOption("#alPetSexo", "f");
+await pa.click('#alPetPorte [data-v="M"]'); await pa.click('#alPetSexo [data-v="f"]');
 await pa.fill("#alPetRaca", "SRD"); await pa.fill("#alPetSinais", "Coleira vermelha e mancha na orelha");
 await pa.click("#alPetSalvar"); await pa.waitForTimeout(2000);
 const pet = (await db.collection("pets").where("donoId", "==", U.ana).get()).docs[0];
@@ -85,7 +85,7 @@ ok((await db.doc(`pets/${pet.id}`).get()).data().status === "perdido", "Pipoca m
 await pf.goto(BASE + "alertas.html?aba=pets"); await pf.waitForSelector(`[data-pet="${pet.id}"]`, { timeout: 15000 });
 ok(true, "Fabi vê a Pipoca em Perdidos perto");
 await pf.click("text=Encontrei um animal");
-await pf.click('.ent-folha [data-cor="caramelo"]'); await pf.selectOption("#alPetPorte", "M");
+await pf.click('.ent-folha [data-cor="caramelo"]'); await pf.click('#alPetPorte [data-v="M"]');
 await pf.fill("#alPetSinais", "coleira vermelha"); await pf.fill("#alAchouOnde", "Perto da Praça XV");
 await pf.click("#alAchouOk"); await pf.waitForTimeout(4000);
 ok(/Muito parecido|Parecido/.test(await pf.textContent(".ent-folha")), "possíveis tutores com a semelhança: " + ((await pf.textContent(".ent-folha")).match(/(Muito parecido|Parecido)[^·]*· \d+%/) || [""])[0]);

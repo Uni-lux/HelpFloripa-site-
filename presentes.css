@@ -46,3 +46,36 @@
 /* 12/11/2026: ícones no lugar dos emojis; cartão do presente centralizado */
 .pr-cartao > .hf-ic { margin: 0 auto 8px; }
 .ent-op > .hf-ic { flex: none; }
+
+/* ---------- 17/11/2026: presentes e alertas sem "monte de cores" (pedido dele) ----------
+   Ícones na cor do texto, escolha marcada pela borda azul do site; cor só no que é estado (pendente, aceito...). */
+body:has(.pr-pagina) .hf-ic { --c: var(--text) !important; }
+body:has(.pr-pagina) .hf-ic.fundo { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+.pr-hero { background: var(--panel); border: 1px solid var(--line); }
+.pr-hero-ic { color: var(--text); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+.pr-mimo[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+.pr-cartao { background: var(--panel-2); border: 1px solid var(--line); }
+.pr-n { background: var(--accent); color: #001a24; }
+/* trocar a pessoa / a loja: botão redondo de verdade (antes aparecia o quadrado branco do navegador) */
+.ent-quem .x { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); display: grid; place-items: center; padding: 0; cursor: pointer; font: inherit; -webkit-appearance: none; appearance: none; }
+.ent-quem .x svg { width: 16px; height: 16px; }
+.ent-quem .x:hover { color: var(--text); }
+/* passos numerados */
+.pr-folha .ent-folha-corpo > div:not(:empty) + div:not(:empty) { margin-top: 6px; }
+.pr-passo { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; }
+.pr-passo h3 { margin: 0; font-size: 15.5px; }
+.pr-passo-n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); font-variant-numeric: tabular-nums; flex: none; }
+.pr-folha .ent-op .hf-ic.fundo { width: 44px; height: 44px; }
+/* valor: "R$ Outro" em pílula */
+.pr-valor-box { display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--panel); }
+.pr-valor-box:focus-within { border-color: var(--accent); }
+.pr-valor-box span { font-weight: 700; color: var(--muted); font-size: 14px; }
+.pr-valor-box .pr-valor { width: 76px; padding: 0; border: 0; background: none; border-radius: 0; outline: none; }
+/* resumo antes de enviar */
+.pr-resumo { margin: 14px 0 4px; padding: 12px 14px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); display: grid; gap: 7px; }
+.pr-resumo[hidden] { display: none; }
+.pr-resumo-t { font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.pr-resumo > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.pr-resumo > div span { color: var(--muted); flex: none; }
+.pr-resumo > div b { text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-ocasioes { margin-bottom: 10px; }

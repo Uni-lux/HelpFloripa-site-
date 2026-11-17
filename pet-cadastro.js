@@ -3,7 +3,8 @@
 // nessa página") — o mesmo documento `pets/{id}` da página de alertas (mesmas regras, sem campo novo; `idade` já existia).
 // Sem dependências do rede.js: quem chama passa o fb, o uid, a conta e o toast.
 // =====================================================
-import { ESPECIES, CORES_PET, rgPet, normalizarId, geohash } from "./alertas-base.js?v=1";
+import { ESPECIES, CORES_PET, PORTES_ESPECIE, nomePorte, rgPet, normalizarId, geohash } from "./alertas-base.js?v=2";
+import { confirmarHF } from "./confirmar.js?v=6";
 import { iconeEl, iconeEspecie } from "./icones-hf.js?v=2";
 
 const COR_HEX = { preto: "#1b1b1b", branco: "#f5f5f0", marrom: "#6b4226", caramelo: "#c98a3c", cinza: "#8a8f96", dourado: "#d9a53b", creme: "#efe0bf", tigrado: "linear-gradient(135deg,#8a5a2b 0 30%,#2b1b10 30% 45%,#8a5a2b 45% 70%,#2b1b10 70%)", malhado: "radial-gradient(circle at 30% 30%,#222 0 22%,#f3f3f3 23%)", tricolor: "conic-gradient(#1b1b1b 0 33%,#c98a3c 0 66%,#f5f5f0 0)", laranja: "#e98a2b", rajado: "repeating-linear-gradient(45deg,#9a9a9a 0 4px,#4a4a4a 4px 8px)" };
@@ -91,7 +92,7 @@ function css() {
 .pc-opcoes{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:8px}
 .pc-op{position:relative;display:grid;justify-items:center;align-content:center;gap:3px;min-height:58px;padding:9px 6px;border-radius:14px;border:1.5px solid var(--line,rgba(255,255,255,.12));background:var(--panel-2,#182029);color:var(--text,#fff);font:inherit;cursor:pointer;text-align:center}
 .pc-op b{font-size:13.5px;font-weight:800}
-.pc-op small{font-size:11px;color:var(--muted,#9aa7b4);font-weight:600}
+.pc-op small{font-size:11px;color:var(--muted,#9aa7b4);font-weight:600;line-height:1.25;text-align:center;overflow-wrap:anywhere}
 .pc-op .sx{font-size:18px;line-height:1;font-weight:800;color:var(--muted,#9aa7b4)}
 .pc-op[aria-pressed=true]{border-color:var(--accent,#00adee);background:color-mix(in srgb,var(--accent,#00adee) 14%,var(--panel-2,#182029))}
 .pc-op[aria-pressed=true] .sx{color:var(--accent,#00adee)}
@@ -142,10 +143,23 @@ export function abrirCadastroPet(op) {
   fundo.appendChild(c);
   document.documentElement.classList.add("pc-travado");
   const sair = () => { fundo.remove(); document.removeEventListener("keydown", tecla); if (!document.querySelector(".pc-fundo")) document.documentElement.classList.remove("pc-travado"); };
-  const tecla = (e) => { if (e.key === "Escape") sair(); };
+  // Fechar (X, tocar fora, Esc ou o voltar do celular) com algo preenchido pergunta antes (17/11/2026, pedido dele).
+  let estadoInicial = "", perguntando = false;
+  const retrato = () => JSON.stringify([st, [...st.cores], c.querySelector("#pcNome")?.value, c.querySelector("#pcIdade")?.value, c.querySelector("#pcRaca")?.value, c.querySelector("#pcSinais")?.value, c.querySelector("#pcChip")?.value, c.querySelector("#pcVisivel")?.checked]);
+  const tentarSair = async () => {
+    if (perguntando) return;
+    if (estadoInicial && retrato() !== estadoInicial) {
+      perguntando = true;
+      const ok = await confirmarHF({ titulo: "Sair sem salvar?", texto: "O que você preencheu no RG do pet vai se perder.", ok: "Sair sem salvar", cancelar: "Continuar editando", icone: "alerta" });
+      perguntando = false;
+      if (!ok) return;
+    }
+    sair();
+  };
+  const tecla = (e) => { if (e.key === "Escape" && !document.querySelector(".hf-confirma-fundo")) tentarSair(); };
   document.addEventListener("keydown", tecla);
-  fundo.addEventListener("click", (e) => { if (e.target === fundo) sair(); });
-  const topo = el("div", "pc-topo"); const x = el("button", "pc-x"); x.type = "button"; x.dataset.fechar = ""; x.setAttribute("aria-label", "Fechar"); x.appendChild(svg(IC.fechar)); x.addEventListener("click", sair);
+  fundo.addEventListener("click", (e) => { if (e.target === fundo) tentarSair(); });
+  const topo = el("div", "pc-topo"); const x = el("button", "pc-x"); x.type = "button"; x.dataset.fechar = ""; x.setAttribute("aria-label", "Fechar"); x.appendChild(svg(IC.fechar)); x.addEventListener("click", tentarSair);
   topo.append(el("h3", null, p ? `Editar ${p.nome || "pet"}` : "RG do pet"), x);
   const corpo = el("div", "pc-corpo");
   const titulo = (tx, ic, extra) => { const h = el("h4"); h.append(svg(IC[ic] || IC.pata), el("span", null, tx)); if (extra) h.appendChild(extra); return h; };
@@ -200,7 +214,7 @@ export function abrirCadastroPet(op) {
   for (const [k, [n]] of Object.entries(ESPECIES)) {
     const b = el("button", "pc-esp"); b.type = "button"; b.dataset.especie = k; b.setAttribute("aria-pressed", String(st.especie === k));
     const [ic, cor] = iconeEspecie(k); b.append(iconeEl(ic, { cor, tam: 22, fundo: true }), el("span", null, n));
-    b.addEventListener("click", () => { st.especie = k; esp.querySelectorAll("button").forEach((y) => y.setAttribute("aria-pressed", String(y === b))); if (!st.foto) pintarFoto(); pintarSug(); pintarResumo(); });
+    b.addEventListener("click", () => { st.especie = k; esp.querySelectorAll("button").forEach((y) => y.setAttribute("aria-pressed", String(y === b))); if (!st.foto) pintarFoto(); pintarSug(); if (typeof trocarPorte === "function") trocarPorte(); pintarResumo(); });
     esp.appendChild(b);
   }
   lEsp.appendChild(esp);
@@ -220,9 +234,11 @@ export function abrirCadastroPet(op) {
     });
     l.appendChild(g); return l;
   };
-  sCar.append(
-    opcoes("Sexo", [["m", "Macho", "", "♂"], ["f", "Fêmea", "", "♀"]], st.sexo, (x) => (st.sexo = x), "pcSexo"),
-    opcoes("Porte", [["P", "Pequeno", "até 10 kg"], ["M", "Médio", "10 a 25 kg"], ["G", "Grande", "mais de 25 kg"]], st.porte, (x) => (st.porte = x), "pcPorte"));
+  const portePara = () => opcoes("Porte", PORTES_ESPECIE[st.especie] || PORTES_ESPECIE.cao, st.porte, (x) => (st.porte = x), "pcPorte");
+  let lPorte = portePara();
+  sCar.append(opcoes("Sexo", [["m", "Macho", "", "♂"], ["f", "Fêmea", "", "♀"]], st.sexo, (x) => (st.sexo = x), "pcSexo"), lPorte);
+  // trocar a espécie troca o porte (cada animal tem o seu peso/tamanho)
+  const trocarPorte = () => { const novo = portePara(); lPorte.replaceWith(novo); lPorte = novo; };
   const lRaca = el("label", "pc-l"); lRaca.appendChild(el("span", null, "Raça"));
   const raca = el("input"); raca.type = "text"; raca.id = "pcRaca"; raca.maxLength = 40; raca.placeholder = "Raça ou SRD (vira-lata)"; raca.value = v.raca || ""; raca.autocomplete = "off";
   raca.addEventListener("input", () => pintarResumo());
@@ -263,7 +279,7 @@ export function abrirCadastroPet(op) {
   // Resumo vivo no cartão do RG + quanto do cadastro está completo
   const pintarResumo = () => {
     nmv.textContent = nome.value.trim() || "Nome do pet";
-    const partes = [ESPECIES[st.especie]?.[0], raca.value.trim(), { m: "macho", f: "fêmea" }[st.sexo], { P: "pequeno", M: "médio", G: "grande" }[st.porte]].filter(Boolean);
+    const partes = [ESPECIES[st.especie]?.[0], raca.value.trim(), { m: "macho", f: "fêmea" }[st.sexo], nomePorte(st.especie, st.porte).toLowerCase()].filter(Boolean);
     sub.textContent = partes.join(" · ") || "Preencha os dados abaixo";
     const itens = [st.foto, nome.value.trim(), idade.value.trim(), st.sexo, st.porte, raca.value.trim(), st.cores.size, sinais.value.trim()];
     const pct = Math.round(itens.filter(Boolean).length / itens.length * 100);
@@ -302,6 +318,7 @@ export function abrirCadastroPet(op) {
   pintarFoto();
   c.append(topo, corpo, pe);
   document.body.appendChild(fundo);
+  estadoInicial = retrato();
   setTimeout(() => { if (!p) nome.focus({ preventScroll: true }); }, 280);
   return { fechar: sair };
 }
