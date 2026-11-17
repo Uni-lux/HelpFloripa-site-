@@ -1335,13 +1335,18 @@ service cloud.firestore {
                     && request.auth.uid in resource.data.participantes
                     && request.resource.data.participantes == resource.data.participantes
                     && !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1])
-                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido'])
+                    && mudou().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido', 'entregueEm', 'ouvidos'])
                     && (!mudou().hasAny(['pedido']) || pedidoMudaOk())
                     // o resumo da última mensagem só pode ser escrito por quem mandou
                     && (!mudou().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
                         || request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
                     && soMinhaChave('lidoEm')
                     && soMinhaChave('vistoEm')
+                    // ✓✓ entregue e áudios ouvidos (17/11/2026): cada um marca só o próprio; ouvidos = lista dos últimos 50 ids
+                    && soMinhaChave('entregueEm')
+                    && soMinhaChave('ouvidos')
+                    && (!mudou().hasAny(['ouvidos']) || (request.resource.data.ouvidos[request.auth.uid] is list
+                        && request.resource.data.ouvidos[request.auth.uid].size() <= 50))
                     && soMinhaChave('digitando')
                     // arquivar / apagar "só para mim": cada um mexe só na própria marca
                     && soMinhaChave('arquivadaPara')

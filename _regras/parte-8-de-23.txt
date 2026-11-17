@@ -1,3 +1,7 @@
+        allow read: if logado() && participante();
+        // A moderação abre só a mensagem denunciada (uma por vez, sem listar a conversa).
+        allow get: if podeModerar();
+
         allow create: if logado()
                       && emailOk()
                       && participante()

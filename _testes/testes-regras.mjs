@@ -306,6 +306,11 @@ await t("mensagem: com bloqueio, ninguém manda", () => assertFails(mandarMsg("a
 await semRegras(async (db) => { const { deleteDoc } = await import("firebase/firestore"); await deleteDoc(doc(db, "bloqueios", "bia_ana")); });
 await t("conversa: cada um marca só a própria leitura", () => assertSucceeds(updateDoc(doc(ctx("ana"), "conversas", convAB), { "lidoEm.ana": serverTimestamp() })));
 await t("conversa: não marca a leitura da outra pessoa", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB), { "lidoEm.bia": serverTimestamp() })));
+await t("conversa: marca a própria entrega (✓✓)", () => assertSucceeds(updateDoc(doc(ctx("ana"), "conversas", convAB), { "entregueEm.ana": serverTimestamp() })));
+await t("conversa: não marca a entrega da outra pessoa", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB), { "entregueEm.bia": serverTimestamp() })));
+await t("conversa: marca os próprios áudios ouvidos", () => assertSucceeds(updateDoc(doc(ctx("ana"), "conversas", convAB), { "ouvidos.ana": ["m1", "m2"] })));
+await t("conversa: não marca áudio ouvido pela outra pessoa", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB), { "ouvidos.bia": ["m1"] })));
+await t("conversa: lista de ouvidos tem no máximo 50", () => assertFails(updateDoc(doc(ctx("ana"), "conversas", convAB), { "ouvidos.ana": Array.from({ length: 51 }, (_, i) => "m" + i) })));
 
 // Chat da equipe: grupo, conversa individual, anexos, citar e reações.
 await semRegras((db) => setDoc(doc(db, "admins", "mod2"), { nome: "Mod 2", papel: "suporte" }));

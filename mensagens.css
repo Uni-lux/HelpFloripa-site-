@@ -1744,3 +1744,26 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .pes-divisa { height: 1px; margin: 6px 18px; background: var(--line); }
 .pes-item .pes-visto { flex: none; margin-left: auto; padding-left: 10px; font-size: 11.5px; font-weight: 500; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pes-item .pes-visto.on { color: #2fbf71; font-weight: 700; }
+
+/* Áudio ouvido (17/11/2026, como no WhatsApp): microfone cinza até a outra pessoa ouvir o SEU áudio, azul depois;
+   no áudio que você RECEBEU, azul enquanto é novo e cinza depois de ouvir. */
+.bolha .hf-audio.wa .hf-audio-mic { color: color-mix(in srgb, currentColor 55%, transparent); transition: color .2s; }
+.bolha.audio-ouvido .hf-audio.wa .hf-audio-mic { color: #34b7f1; }
+:root[data-theme="dark"] .minha .bolha.audio-ouvido .hf-audio.wa .hf-audio-mic { color: #7fe0ff; }
+.bolha.audio-novo .hf-audio.wa .hf-audio-mic { color: #00adee; }
+.bolha.audio-novo .hf-audio.wa .hf-audio-ponto { background: #00adee; }
+
+/* Foto enviada (17/11/2026): o cartão segue a proporção da foto (print em pé não vira uma faixa cortada), a hora fica
+   numa pílula no canto de baixo da FOTO e o balão é só a foto com a borda fina. */
+.bolha.midia { position: relative; }
+.bolha.midia.so-midia { padding: 3px; }
+.bolha img.foto { width: min(260px, 64vw); height: auto; max-height: 340px; aspect-ratio: var(--ar, auto); object-fit: cover; }
+.bolha.midia.so-midia .meta { right: 9px; bottom: 9px; top: auto; left: auto; float: none; height: auto; display: inline-flex; padding: 2px 7px; border-radius: 999px; background: rgba(0, 0, 0, .5); color: #fff !important; backdrop-filter: blur(4px); }
+.bolha.midia.so-midia .meta .check, .bolha.midia.so-midia .meta .check.lida { color: #fff; }
+.bolha.midia.so-midia .meta .check.lida { color: #7fe0ff; }
+/* visor de fotos do chat: fundo escuro, foto inteira, fechar e baixar no topo */
+.visualizador:not([hidden]) { position: fixed; inset: 0; z-index: 4800; display: grid; place-items: center; background: rgba(0, 0, 0, .94); }
+.visualizador img { max-width: 100vw; max-height: 100dvh; object-fit: contain; }
+.visualizador .icon-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 1; width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; }
+.visualizador #visualizadorFechar { right: 12px; }
+.visualizador #visualizadorBaixar { right: 64px; }
