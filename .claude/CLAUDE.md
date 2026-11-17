@@ -2807,6 +2807,14 @@ chat da equipe).
   "Diário" no perfil de quem visita, menu/Configurações/rodapé/404. Nomes internos (social.html, `momentos`, `salao-base.js`, classes
   `pf-salao`) não mudaram. "Social" nos textos do Help/SOS ("pessoas do seu Social"), presentes e notificações ficou — perguntado a ele.
   Testes `t-marca-ponte` (16), `t-comunidade-rede`; `t-salao` e `t-perfil-social` falham igual no código de antes (ambiente).
+- **Cabeçalho da publicação, marca Ponte com a ponte e filtros (17/11/2026, PR depois do #234, sem regra nova):** prints dele.
+  Cabeçalho (`cartaoPost` em feed.js): linha 1 = nome (`.pc-nome`) + selo de verificado (`.pc-selo`, `perfis_publicos.verificado`)
+  + "· 3 h" (`.pc-tempo`); linha 2 (`.pc-l2`) = "@nick" (`.pc-nick`) e, com local, "· alfinete Local" (o local encurta, o @ fica).
+  `.sub-linha` saiu. Topo do Diário (`#marcaTopo`): `.mp-arte` = ponte do logo SEM a parte azul (`logo-ponte-marca.webp`, máscara
+  engrossada da `logo-ponte-estrutura.webp`, na cor do texto) + "Ponte" em cursiva + fio fino embaixo (`::after`; cópia do topo
+  no rede.html). Filtros: Textos, enquetes e perguntas numa classe só (`TIPOS_FEED` tudo/reels/textos "Textos e enquetes").
+  Chamadas: duração em cronômetro "1:05" (`cronometro` em mensagens-app.js; "1 min 05 s" era cortado pelo botão de ligar).
+  Teste `t-cabecalho-post.mjs` (14). `t-auditoria-diario` para na linha 113 (# dentro do texto, foram para o rodapé no #226).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

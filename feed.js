@@ -96,11 +96,12 @@ const temMidia = (p) => !!(p.mediaUrl || (p.midias || []).length);
 // Tipo de publicação (filtro do topo): tudo, fotos e vídeos, textos, enquetes e perguntas. Filtra o que já foi lido.
 // Botões só com ícone numa linha fina (como a grade do perfil das redes sociais), com o nome no title/aria-label.
 // "Reels" não filtra a lista: abre os vídeos em tela cheia (reels.js).
-const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Vídeos", "reels"], ["textos", "Textos", "registros"], ["enquetes", "Enquetes e perguntas", "enquete"]];
+// Textos, enquetes e perguntas numa classe só (17/11/2026, pedido dele): são todos publicações de escrever.
+const TIPOS_FEED = [["tudo", "Tudo", "grade"], ["reels", "Vídeos", "reels"], ["textos", "Textos e enquetes", "registros"]];
 let tipoFeed = "tudo"; // "fotos" (antigo) virou Reels // links antigos ?aba=registros abrem o Diário normal (textos e enquetes estão nele)
 // Tipo da publicação (diario.tipo; nas antigas, pelo conteúdo).
 const tipoDe = (p) => p.tipo || (p.enquete?.pergunta ? "enquete" : p.caixa?.pergunta ? "caixa" : p.mediaTipo === "video" && temMidia(p) ? "video" : temMidia(p) ? "foto" : "texto");
-const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : tipoFeed === "enquetes" ? ["enquete", "caixa"].includes(tipoDe(p)) : tipoDe(p) === "texto");
+const doTipo = (p) => tipoFeed === "tudo" || (tipoFeed === "fotos" ? ["foto", "video"].includes(tipoDe(p)) : ["texto", "enquete", "caixa"].includes(tipoDe(p)));
 const daAba = (p) => p._emDia ? tipoFeed === "tudo" && !tagAtual && !localAtual : !!(tagAtual || localAtual) || doTipo(p);
 // Reels: os vídeos já lidos + os mais novos do servidor, com as mesmas regras do Diário (silenciados, público...).
 const verReels = (comecarEm = null) => import("./reels.js?v=86").then((m) => m.abrirReels({ lista: todosPosts, oculto: postOculto, comecarEm, aoNovo: () => compor("video") }));
@@ -718,23 +719,27 @@ function cartaoPost(post) {
   const verAutor = () => { registrarGosto(post, PESO.abrir, eu.uid); ganchos.abrirPerfil(post.autorId); };
   av.addEventListener("click", verAutor);
   const quem = el("div", "quem");
-  const nome = el("button", null, post.nome || "Usuário"); nome.type = "button";
+  const nome = el("button", "pc-nome", post.nome || "Usuário"); nome.type = "button";
   nome.addEventListener("click", verAutor);
-  const sub = el("small", null, tempoRelativo(paraData(post.criadoEm)));
-  quem.append(nome);
-  if (post.local?.nome && Number.isFinite(post.local.lat)) sub.textContent = "· " + sub.textContent;
-  // Local da publicação: tocar mostra o que foi publicado ali.
-  // Com local (como no Instagram): o nome em cima e, numa linha só embaixo, "📍 Local · 3 h" (o local encurta com
-  // "…" e nunca quebra o nome). Sem local: "@nick · 3 h".
+  // Cabeçalho (17/11/2026, pedido dele): linha 1 = nome + selo de verificado + "· 3 h"; linha 2 = "@nick" e, com
+  // local, "· (alfinete) Florianópolis" (como no Instagram, o local vai embaixo do nome; o @ continua).
   const temLocal = post.local?.nome && Number.isFinite(post.local.lat);
+  const l1 = el("div", "pc-l1"), l2 = el("div", "pc-l2");
+  const selo = icone("selo", "i pc-selo"); selo.setAttribute("aria-label", "Perfil verificado"); selo.style.display = "none";
+  const sub = el("small", "pc-tempo", "· " + tempoRelativo(paraData(post.criadoEm)) + (post.editadoEm ? " · editada" : ""));
+  l1.append(nome, selo, sub);
+  const nick = el("button", "pc-nick"); nick.type = "button"; nick.hidden = true;
+  nick.addEventListener("click", verAutor);
+  l2.appendChild(nick);
+  // Local da publicação: tocar mostra o que foi publicado ali.
   if (temLocal) {
-    const linhaSub = el("div", "sub-linha");
     const lb = el("button", "local-post"); lb.type = "button"; lb.setAttribute("aria-label", `Publicações em ${post.local.nome}`); lb.title = post.local.nome;
     lb.append(icone("local", "i xs"), el("span", null, post.local.nome));
     lb.addEventListener("click", (e) => { e.stopPropagation(); abrirLocal(post.local); });
-    linhaSub.append(lb, sub);
-    quem.appendChild(linhaSub);
-  } else quem.appendChild(sub);
+    l2.appendChild(lb);
+  }
+  quem.append(l1, l2);
+  if (!temLocal) l2.hidden = true;
   const mais = el("button", "icone-btn"); mais.type = "button"; mais.setAttribute("aria-label", "Opções da publicação");
   mais.appendChild(icone("pontos", "i s"));
   mais.addEventListener("click", () => abrirOpcoes("Publicação", [
@@ -775,7 +780,8 @@ function cartaoPost(post) {
   obterPerfil(post.autorId).then((p) => {
     if (p.nome) nome.textContent = p.nome;
     if (p.fotoPerfil) pintarAvatar(av, p.fotoPerfil, p.nome);
-    sub.textContent = (temLocal ? "· " : "") + [temLocal ? "" : p.nickname ? "@" + p.nickname : "", tempoRelativo(paraData(post.criadoEm)), post.editadoEm ? "editada" : ""].filter(Boolean).join(" · ");
+    if (p.verificado) selo.style.display = "";
+    if (p.nickname) { nick.textContent = "@" + p.nickname; nick.hidden = false; l2.hidden = false; }
   });
   const url = urlSegura(post.mediaUrl);
   // Título em cima (opcional, até 90 letras), logo abaixo de quem publicou.

@@ -14,14 +14,15 @@ await p.waitForTimeout(1500);
 const quadro = (re) => p.frames().find((f) => f.parentFrame() && re.test(f.url()));
 const feed = quadro(/feed\.html/), mural = quadro(/mural\.html/), perfil = quadro(/usuarios\.html/);
 const topo = (f) => f.evaluate(() => {
-  const pt = document.querySelector(".topo .marca-ponte"), svg = pt?.querySelector(".marca-diare"), r = svg?.getBoundingClientRect();
+  const pt = document.querySelector(".topo .marca-ponte"), svg = pt?.querySelector(".marca-diare"), arte = pt?.querySelector(".mp-arte"), r = arte?.getBoundingClientRect(), ic = pt?.querySelector(".mp-ic")?.getBoundingClientRect();
   const h = document.querySelector(".topo").getBoundingClientRect();
   return { escrita: !!document.querySelector(".topo .marca"), texto: /HELP|FLORIPA|LUGAR/.test(document.querySelector(".topo").innerText),
-    ponte: !!pt && getComputedStyle(pt).visibility === "visible" && r.width > 30,
+    ponte: !!pt && getComputedStyle(pt).visibility === "visible" && r.width > 30, icone: !!ic && ic.width > 30 && ic.height > 15,
     centro: r ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : 99, cabo: svg ? getComputedStyle(svg).color + "|" + getComputedStyle(svg).fontFamily + "|" + svg.textContent + "|" + document.fonts.check('33px "HF Cursiva"') : "", gear: !!document.querySelector('.topo a[href="configuracoes.html"]'), sino: !!document.querySelector('.topo a[href="notificacoes.html"]'), fab: !!document.querySelector("body > .fab-hf") && getComputedStyle(document.querySelector("body > .fab-hf")).display !== "none" };
 });
 const d = await topo(feed);
 ok(d.ponte && !d.escrita && !d.texto, "Diário: só o nome Ponte na letra cursiva, sem HELP FLORIPA e slogan");
+ok(d.icone, "Diário: a ponte do logo ao lado do nome");
 ok(d.centro < 3, "Diário: nome no meio do topo (" + d.centro.toFixed(1) + " px)");
 ok(/"HF Cursiva".*\|Ponte\|true/.test(d.cabo) && /rgb\(2[0-9]{2}/.test(d.cabo), "Diário: nome na letra cursiva e na cor do texto (" + d.cabo + ")");
 ok(!d.gear && d.sino, "Diário: sem engrenagem, com o sino");

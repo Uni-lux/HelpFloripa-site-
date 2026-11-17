@@ -4418,6 +4418,10 @@ async function completarNomes(itens) {
   const lidos = await Promise.all(faltam.map((u) => obterPerfil(u).then((p) => [u, p]).catch(() => [u, {}])));
   return new Map(lidos);
 }
+const cronometro = (seg) => {
+  const t = Math.max(0, Math.round(Number(seg) || 0)), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), x = String(t % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${m}:${x}`;
+};
 const diaDaChamada = (t) => { const d = new Date(t), hoje = new Date(), ontem = new Date(); ontem.setDate(hoje.getDate() - 1); return mesmoDia(d, hoje) ? "Hoje" : mesmoDia(d, ontem) ? "Ontem" : d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }); };
 function setaChamada(sit) {
   const seta = document.createElementNS("http://www.w3.org/2000/svg", "svg"); seta.setAttribute("viewBox", "0 0 24 24");
@@ -4525,7 +4529,8 @@ async function renderizarChamadas(ler = true) {
     const sitTx = sit.perdida ? "Perdida" : sit.direcao === "Feita" ? (sit.falou ? "Feita" : sit.estado) : (sit.falou ? "Recebida" : sit.estado);
     const cls = sit.perdida ? "perdida" : sit.saiu ? "saiu" : "entrou";
     linha.append(setaChamada(sit), tipoIc, elm("span", "rc-sit " + cls, sitTx), elm("span", "rc-ponto", "·"), elm("span", "rc-hora", hora(new Date(ms(c.criadoEm)))));
-    if (sit.falou && sit.dur) { const d = elm("span", "rc-dur"); d.append(usar("relogio", "i"), document.createTextNode(duracaoTexto(sit.dur))); linha.appendChild(d); }
+    // Duração em formato de cronômetro ("1:05", "0:18", "1:03:20"): "1 min 05 s" era cortado pelo botão de ligar.
+    if (sit.falou && sit.dur) { const d = elm("span", "rc-dur"); d.title = duracaoTexto(sit.dur); d.append(usar("relogio", "i"), document.createTextNode(cronometro(sit.dur))); linha.appendChild(d); }
     const partes = [sitTx, hora(new Date(ms(c.criadoEm)))]; if (sit.falou && sit.dur) partes.push(duracaoTexto(sit.dur));
     tx.append(nome, linha);
     if (g.lista.length > 1) {

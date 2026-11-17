@@ -4518,3 +4518,34 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
   letter-spacing: .01em; color: var(--text); padding: 4px 6px 0; white-space: nowrap; transition: transform .18s ease; }
 .marca-ponte:active .marca-diare { transform: scale(.94); }
 .marca-ponte:focus-visible .marca-diare { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+
+/* ===================================================================================================
+   Cabeçalho da publicação (17/11/2026, pedido dele): linha 1 = nome + selo + "· 3 h"; linha 2 = "@nick · (alfinete)
+   local". Nome e @ começam no mesmo ponto (sem recuo de botão) e o local encurta com "…".
+   =================================================================================================== */
+.post-cab .quem { display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.post-cab .quem .pc-l1, .post-cab .quem .pc-l2 { display: flex; align-items: center; gap: 4px; min-width: 0; line-height: 1.25; }
+.post-cab .quem .pc-l2[hidden] { display: none; }
+.post-cab .quem .pc-nome { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 15px; font-weight: 800; color: var(--text); }
+.post-cab .quem .pc-selo { flex: none; width: 15px; height: 15px; color: var(--accent); }
+.post-cab .quem .pc-tempo { flex: none; white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.post-cab .quem .pc-nick { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.post-cab .quem .pc-nick[hidden] { display: none; }
+.post-cab .quem .pc-nick:not([hidden]) + .local-post::before { content: "·"; margin-right: 1px; color: var(--muted); font-weight: 500; }
+.post-cab .quem .pc-nick:not([hidden]) { flex: 0 0 auto; max-width: 62%; }
+.post-cab .quem .pc-l2 .local-post { flex: 0 1 auto; min-width: 0; }
+.post-cab .quem .local-post { font-weight: 600; color: var(--text); }
+.post-cab .quem .local-post svg { width: 13px; height: 13px; color: var(--accent); stroke-width: 2.2; }
+
+/* Marca do topo (17/11/2026, pedido dele): a ponte do logo (só a estrutura, sem a parte azul) + "Ponte" em cursiva.
+   A ponte fica na cor do texto, encostada no "P", e um fio fino continua o tabuleiro dela por baixo da palavra. */
+.marca-ponte .mp-arte { position: relative; display: inline-flex; align-items: flex-end; gap: 3px; padding: 2px 6px 4px; transition: transform .18s ease; }
+.marca-ponte .mp-ic { display: block; flex: none; width: 54px; height: 29px; margin-bottom: 6px; background: var(--text);
+  -webkit-mask: url("logo-ponte-marca.webp") center / contain no-repeat; mask: url("logo-ponte-marca.webp") center / contain no-repeat; }
+.marca-ponte .mp-arte .marca-diare { padding: 0; font-size: 34px; transition: none; }
+.marca-ponte .mp-arte::after { content: ""; position: absolute; left: 62px; right: 8px; bottom: 5px; height: 1.5px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--text), color-mix(in srgb, var(--text) 0%, transparent)); opacity: .55; }
+.marca-ponte:active .mp-arte { transform: scale(.94); }
+.marca-ponte:active .mp-arte .marca-diare { transform: none; }
+.marca-ponte:focus-visible .mp-arte { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.marca-ponte:focus-visible .mp-arte .marca-diare { outline: none; }
