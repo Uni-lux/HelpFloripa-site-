@@ -196,6 +196,11 @@
 > `uid_automotivo`), donoId, tipoNegocio, item, tipo, placaHash, marca, modelo, ano, cor, cidade, uf, criadoEm, atualizadoEm}:
 > qualquer conta lê (procura pelo hash), só o dono do negócio grava, a moderação apaga — **nunca leva a placa**.
 > `ocorrencias.veiculo` {marca, modelo, ano, cor} (opcional). Continuam **23 partes**, 1266 testes.
+>
+> **Desaparecidos (18/11/2026):** coleção nova `desaparecidos/{id}` (aviso de pessoa desaparecida com o número do boletim de
+> ocorrência). Nasce "analise" e só a moderação publica ("ativo") depois de conferir; quem registrou e a moderação leem sempre,
+> os outros só o publicado. Pistas em `desaparecidos/{id}/pistas` (anônima com `pistas_desap_autoria/{id}_{p}`, só a moderação
+> lê). Continuam **23 partes**, 1282 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

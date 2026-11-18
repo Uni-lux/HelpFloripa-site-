@@ -14,7 +14,7 @@ import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps, salvarLocal, marcarManual } from "./local-escolhido.js?v=3";
 import { buscarNoServidor, semAcento } from "./busca.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
-import { cartaoOp, grupoOps } from "./cartoes-op.js?v=1";
+import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
 
 const ROSA = "#e5487f";
 const POR_VEZ = 12;
@@ -187,7 +187,7 @@ function vazio() {
   const extras = [];
   if (l.uf) extras.push(cartaoOp({ nome: "Ver em todo o Brasil", desc: "Publicações de outras cidades", icone: "brasil", aoTocar: () => { salvarLocal({}); marcarManual(true); trocarLugar(); } }));
   extras.push(cartaoOp({ nome: "Convidar alguém", desc: "Quanto mais gente, mais ajuda", icone: "convidar", aoTocar: async () => { const url = new URL("comunidade.html", location.href).href; try { if (navigator.share) await navigator.share({ title: "Comunidade do Help Floripa", text: "Doe, troque e peça ajuda perto de você, de graça:", url }); else { await navigator.clipboard.writeText(url); toast("Link copiado"); } } catch {} } }));
-  const g2 = grupoOps(extras, { colunas: extras.length > 1 ? 2 : 1, unico: false }); g2.classList.add("mu-vazio-extras");
+  const g2 = grupoOps(extras, { colunas: 1, unico: false }); g2.classList.add("mu-vazio-extras");
   v.appendChild(g2);
   return v;
 }
@@ -348,6 +348,10 @@ function ligarComunidadeAqui() {
   montarBarraRede("comunidade"); pintarBarraRede(); ouvirAvisos();
   pintarLocal();
   $("btnPublicarMural")?.addEventListener("click", abrirPublicar);
+  // Regras na própria página (antes o link abria as Diretrizes e saía da Comunidade).
+  $("muRegras")?.addEventListener("click", () => abrirFolha("folhaRegras"));
+  const fr = $("folhaRegras");
+  fr?.addEventListener("click", (e) => { if (e.target === fr || e.target.closest("[data-fechar]")) fecharFolha("folhaRegras"); });
   const fp = $("folhaPublicar");
   fp.addEventListener("click", (e) => { if (e.target === fp || e.target.closest("[data-fechar]")) fecharFolha("folhaPublicar"); });
   ligarComunidadeAqui();

@@ -69,6 +69,8 @@ const P = {
   convidar: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M18.5 8v6M15.5 11h6"/>',
   brasil: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.3 3.5 8.5S14.5 18 12 20.5C9.5 18 8.5 15.2 8.5 12S9.5 6 12 3.5z"/>',
   alerta: '<path d="M12 3.5L21.5 20h-19z"/><path d="M12 10v4.5M12 17v.5"/>',
+  pessoa: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20.5a7 7 0 0 1 14 0"/>',
+  telefone: '<path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
   cadeado: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2"/>'
 };
 export const NOMES_ICONES = Object.keys(P);

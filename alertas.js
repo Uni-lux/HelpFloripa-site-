@@ -4,6 +4,7 @@
 // está ajudando"), sem duas pessoas indo à toa. Pets: RG do pet, perdido, encontrado e cruzamento de semelhança com
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
 // Veículos (18/11/2026): carro/moto com a placa guardada só com o dono, roubado → ocorrência + busca de anúncios.
+// Perdidos (18/11/2026): a aba "pets" tem Pets | Pessoas (?quem=pessoas); desaparecidos/{id} com boletim e conferência.
 // Parâmetros: ?aba=sos|pets|roubos|veiculos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=169";
@@ -15,8 +16,9 @@ import {
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=2";
 import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=6";
-import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=3";
-import { cartaoOp, grupoOps } from "./cartoes-op.js?v=1";
+import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=4";
+import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
+import { abrirCadastroPet } from "./pet-cadastro.js?v=5";
 import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
 
@@ -59,13 +61,16 @@ document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click
   if (sos === "novo") pedirSos(); else if (sos === "rapido") helpRapido(); else if (sos === "rede") abrirRede(); else if (sos) abrirSos(sos);
   if (params.get("pet")) abrirRg(params.get("pet"));
   if (params.get("achado")) abrirAchado(params.get("achado"));
+  if (params.get("desaparecido")) abrirPessoa(params.get("desaparecido"));
   if (params.get("ocorrencia")) abrirOcorrencia(params.get("ocorrencia"));
   if (params.get("consultar")) consultar(params.get("consultar"));
 })();
 
 function pintarEmergencias(alvo) {
   alvo.replaceChildren();
-  EMERGENCIAS.forEach(([n, nome]) => { const a = h("a", "al-tel"); a.href = `tel:${n}`; a.append(h("b", null, n), h("small", null, nome)); alvo.appendChild(a); });
+  // Toque = liga (link tel:). Nomes curtos para caber numa linha.
+  const CURTO = { "Direitos humanos": "Direitos" };
+  EMERGENCIAS.forEach(([n, nome]) => { const a = h("a", "al-tel"); a.href = `tel:${n}`; a.setAttribute("aria-label", `Ligar ${n}, ${nome}`); a.title = `Ligar ${n} (${nome})`; a.append(h("b", null, n), h("small", null, CURTO[nome] || nome)); alvo.appendChild(a); });
 }
 function pararTudo() { while (paradas.length) { try { paradas.pop()(); } catch {} } }
 function pintarAba() {
@@ -444,37 +449,51 @@ async function conversar(uid, servico = null) {
 }
 
 // =====================================================
-// PETS
+// PERDIDOS (18/11/2026): pets e pessoas na mesma aba. Pets: o MESMO formulário do Social (pet-cadastro.js) para o RG e
+// para "Encontrei um animal". Pessoas: aviso de desaparecimento com boletim de ocorrência, conferido pela equipe antes
+// de aparecer (evita alguém usar o site para achar quem fugiu de uma situação de violência), pistas "Vi esta pessoa"
+// (anônimas se quiser) e o que fazer quando encontra alguém perdido.
 // =====================================================
+let quem = params.get("quem") === "pessoas" ? "pessoas" : "pets";
 function abaPets() {
-  const topo = h("div", "al-acoes-topo");
-  topo.append(botao("Cadastrar meu pet (RG)", "ent-btn", () => editarPet(null)), botao("Encontrei um animal", "ent-btn sec", () => achei()));
-  corpo().appendChild(topo);
+  const seg = h("div", "al-seg"); seg.setAttribute("role", "tablist");
+  [["pets", "Pets"], ["pessoas", "Pessoas"]].forEach(([k, n]) => {
+    const b = h("button", null, n); b.type = "button"; b.dataset.quem = k; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(quem === k));
+    b.addEventListener("click", () => { quem = k; history.replaceState(history.state, "", `alertas.html?aba=pets${k === "pessoas" ? "&quem=pessoas" : ""}`); pintarAba(); });
+    seg.appendChild(b);
+  });
+  corpo().appendChild(seg);
+  if (quem === "pessoas") return abaPessoas();
+  corpo().appendChild(grupoOps([
+    cartaoOp({ nome: "Cadastrar meu pet", desc: "RG com foto e características", icone: "pata", dados: { acao: "pet" }, aoTocar: () => editarPet(null) }),
+    cartaoOp({ nome: "Encontrei um animal", desc: "Avisamos os possíveis tutores", icone: "lupa", dados: { acao: "achei" }, aoTocar: () => achei() })
+  ], { colunas: 2, unico: false, rotulo: "Ações" }));
   const meus = secao("Seus pets");
   const lm = h("div", "ent-lista"); meus.appendChild(lm);
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "pets"), fb.where("donoId", "==", eu.uid), fb.limit(20)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() }));
-    lm.replaceChildren(...(l.length ? l.map((p) => linhaPet(p, true)) : [vazio("Cadastre o seu pet: se ele sumir, quem encontrar acha você pelo RG e pelas características.")]));
+    lm.replaceChildren(...(l.length ? l.map((p) => linhaPet(p, true)) : [vazio("Nenhum pet cadastrado.")]));
   }, () => lm.replaceChildren(semLiberacao())));
   if (!cfg.petsArea) return;
-  const perdidos = secao("Perdidos perto de você", "Viu algum? Toque e avise o dono.");
-  const encontrados = secao("Encontrados perto de você", "É o seu? Toque para ver e falar com quem encontrou.");
-  if (!perto()) { perdidos.appendChild(vazio("Ative a localização para ver os pets perto.")); return; }
+  const perdidos = secao("Perdidos perto de você");
+  const encontrados = secao("Encontrados perto de você");
+  if (!perto()) { perdidos.appendChild(vazio("Ative a localização para ver os pets perto.")); encontrados.remove(); return; }
   const lp = h("div", "ent-lista"), le = h("div", "ent-lista");
   perdidos.appendChild(lp); encontrados.appendChild(le);
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "pets"), fb.where("visivel", "==", true), fb.where("status", "==", "perdido"), fb.where("geo4", "in", perto()), fb.limit(40)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.donoId !== eu.uid);
     lp.replaceChildren(...(l.length ? l.map((p) => linhaPet(p, false)) : [vazio("Nenhum pet perdido perto agora.")]));
-  }, () => lp.replaceChildren(vazio("Indisponível agora."))));
+  }, () => lp.replaceChildren(vazio("Indisponível no momento."))));
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "pets_achados"), fb.where("status", "==", "ativo"), fb.where("geo4", "in", perto()), fb.limit(40)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
     le.replaceChildren(...(l.length ? l.map(linhaAchado) : [vazio("Nenhum animal encontrado perto agora.")]));
-  }, () => le.replaceChildren(vazio("Indisponível agora."))));
+  }, () => le.replaceChildren(vazio("Indisponível no momento."))));
 }
-function fotoOuEmoji(foto, especie) {
+const fotoValida = (u) => /^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/)/.test(String(u || ""));
+function fotoOuEmoji(foto, especie, icone = "") {
   const f = h("span", "al-foto");
-  if (/^(data:image\/(jpeg|png|webp);base64,|https:\/\/firebasestorage\.googleapis\.com\/)/.test(String(foto || ""))) { const i = document.createElement("img"); i.src = foto; i.alt = ""; f.appendChild(i); }
-  else { const [icn, cor] = iconeEspecie(especie); f.classList.add("sem-foto"); f.style.setProperty("--c", cor); f.appendChild(iconeEl(icn, { cor, tam: 26 })); }
+  if (fotoValida(foto)) { const i = document.createElement("img"); i.src = foto; i.alt = ""; f.appendChild(i); }
+  else { f.classList.add("sem-foto"); f.appendChild(iconeEl(icone || iconeEspecie(especie)[0], { tam: 24 })); }
   return f;
 }
 const descricaoPet = (p) => [ESPECIES[p.especie]?.[0], p.raca, (p.cores || []).join(" e "), nomePorte(p.especie, p.porte)].filter(Boolean).join(" · ");
@@ -518,69 +537,186 @@ function reduzirFoto(arquivo) {
     img.src = url;
   });
 }
-// Campos comuns de pet (cadastro e animal encontrado).
-function camposPet(c, v, { comNome = true } = {}) {
-  const st = { especie: v.especie || "cao", cores: new Set(v.cores || []), porte: v.porte || "", sexo: v.sexo || "", foto: v.foto || "" };
-  let trocouEspecie = () => {}, pintarPrev = null;
-  const campo = (rot, val, id, max) => { const l = h("label", "ent-campo"); const i = h("input"); i.value = val || ""; i.id = id; i.maxLength = max; l.append(h("span", null, rot), i); c.appendChild(l); return i; };
-  const nome = comNome ? campo("Nome do pet", v.nome, "alPetNome", 40) : null;
-  c.appendChild(h("h3", null, "Espécie"));
-  const es = h("div", "ent-chips");
-  for (const [k, [n, e]] of Object.entries(ESPECIES)) { const b = h("button", "ent-chip"); b.append(iconeEl(iconeEspecie(k)[0], { tam: 16 }), document.createTextNode(n)); b.type = "button"; b.dataset.especie = k; b.setAttribute("aria-pressed", String(st.especie === k)); b.addEventListener("click", () => { st.especie = k; es.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); trocouEspecie(); pintarPrev?.(); }); es.appendChild(b); }
-  c.appendChild(es);
-  c.appendChild(h("h3", null, "Cores (até 4)"));
-  const cs = h("div", "ent-chips");
-  CORES_PET.forEach((cor) => { const b = h("button", "ent-chip", cor); b.type = "button"; b.dataset.cor = cor; b.setAttribute("aria-pressed", String(st.cores.has(cor))); b.addEventListener("click", () => { if (st.cores.has(cor)) st.cores.delete(cor); else if (st.cores.size < 4) st.cores.add(cor); else toast("Até 4 cores."); b.setAttribute("aria-pressed", String(st.cores.has(cor))); }); cs.appendChild(b); });
-  c.appendChild(cs);
-  // Porte e sexo em cartões (17/11/2026: sem a lista do celular). O porte muda com a espécie (pesos de cão ≠ gato).
-  const escolha = (rot, id, opcoes, val, aoMudar) => {
-    const box = h("div", "al-esc-box"); box.appendChild(h("span", "al-rot", rot));
-    const g = h("div", "al-esc"); g.id = id; g.setAttribute("role", "radiogroup"); g.setAttribute("aria-label", rot);
-    const pintar = (v) => g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === v)));
-    opcoes.forEach(([k, n, sub]) => { const b = h("button", "al-op"); b.type = "button"; b.dataset.v = k; b.setAttribute("role", "radio"); b.appendChild(h("b", null, n)); if (sub) b.appendChild(h("small", null, sub)); b.addEventListener("click", () => { aoMudar(k); pintar(k); }); g.appendChild(b); });
-    pintar(val); box.appendChild(g); return box;
-  };
-  const portes = () => [...(PORTES_ESPECIE[st.especie] || PORTES_ESPECIE.cao), ["", "Não sei", ""]];
-  let boxPorte = escolha("Porte", "alPetPorte", portes(), st.porte, (x) => (st.porte = x));
-  c.appendChild(boxPorte);
-  c.appendChild(escolha("Sexo", "alPetSexo", [["m", "Macho"], ["f", "Fêmea"], ["", "Não sei"]], st.sexo, (x) => (st.sexo = x)));
-  trocouEspecie = () => { const n = escolha("Porte", "alPetPorte", portes(), st.porte, (x) => (st.porte = x)); boxPorte.replaceWith(n); boxPorte = n; };
-  const raca = campo("Raça (ou SRD / vira-lata)", v.raca, "alPetRaca", 40);
-  const sinais = campo("Sinais particulares (coleira, manchas, cicatriz...)", v.sinais, "alPetSinais", 300);
-  const chip = campo("Microchip (se tiver)", v.microchip, "alPetChip", 24);
-  c.appendChild(h("h3", null, "Foto"));
-  const prev = h("div", "al-foto-prev"); pintarPrev = () => prev.replaceChildren(fotoOuEmoji(st.foto, st.especie)); pintarPrev();
-  const inp = h("input"); inp.type = "file"; inp.accept = "image/*"; inp.id = "alPetFoto";
-  inp.addEventListener("change", async () => { const f = inp.files?.[0]; if (!f) return; try { st.foto = await reduzirFoto(f); pintarPrev(); } catch { toast("Não foi possível usar essa foto."); } });
-  const lf = h("label", "ent-btn sec al-foto-bt"); lf.append(document.createTextNode("Escolher foto"), inp);
-  c.append(prev, lf);
-  return () => ({
-    ...(comNome ? { nome: nome.value.trim().slice(0, 40) } : {}),
-    especie: st.especie, cores: [...st.cores], porte: st.porte, sexo: st.sexo, raca: raca.value.trim().slice(0, 40),
-    sinais: sinais.value.trim().slice(0, 300), microchip: normalizarId(chip.value).slice(0, 20), ...(st.foto ? { foto: st.foto } : {})
-  });
-}
+// Cadastro do pet: o mesmo formulário do Social (pet-cadastro.js).
 function editarPet(p) {
-  const { corpo: c, fechar } = abrirTela(p ? "Editar pet" : "Cadastrar pet");
-  c.appendChild(h("p", "ent-sub", "Esse é o RG do seu pet no Help Floripa. Se ele sumir, quem encontrar um animal parecido é avisado de que pode ser o seu."));
-  const ler = camposPet(c, p || {});
-  const lv = h("label", "ent-check"); const cv = h("input"); cv.type = "checkbox"; cv.checked = p ? p.visivel !== false : true; cv.id = "alPetVisivel";
-  lv.append(cv, h("span", null, "Aparecer nas buscas de animais encontrados (recomendado: é assim que acham você)")); c.appendChild(lv);
-  const salvar = botao("Salvar RG do pet", "ent-btn", async () => {
-    const v = ler();
-    if (!v.nome) { toast("Diga o nome do pet."); return; }
-    salvar.disabled = true;
-    const doc = { ...v, donoId: eu.uid, donoNome: String(dados.nome || "").slice(0, 80), cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
-      visivel: cv.checked, status: p?.status || "casa", geo4: p?.geo4 || (pos ? geohash(pos.lat, pos.lng, 4) : ""), atualizadoEm: fb.serverTimestamp() };
-    if (p?.perdidoEm) { doc.perdidoEm = p.perdidoEm; doc.perdidoLocal = p.perdidoLocal; }
+  abrirCadastroPet({ fb, uid: eu.uid, dados, pet: p || null, pos, toast });
+}
+// ---------- Pessoas desaparecidas ----------
+const CONDICOES = { crianca: ["Criança ou adolescente", "pessoa"], idoso: ["Pessoa idosa", "pessoa"], demencia: ["Alzheimer ou confusão", "pessoa"], deficiencia: ["Deficiência ou autismo", "pessoa"], adulto: ["Adulto", "pessoa"], outro: ["Outra situação", "pessoa"] };
+const PARENTESCOS_DESAP = { pais: "Pai ou mãe", filho: "Filho ou filha", conjuge: "Cônjuge", irmao: "Irmão ou irmã", parente: "Outro parente", responsavel: "Responsável legal", amigo: "Amigo ou vizinho" };
+const STATUS_DESAP = { analise: ["Em análise", "amarelo"], ativo: ["Procurando", "vermelho"], encontrado: ["Encontrado", "verde"], removido: ["Encerrado", "cinza"] };
+const idadeTxt = (d) => (Number.isInteger(d.idade) ? `${d.idade} ${d.idade === 1 ? "ano" : "anos"}` : "");
+function abaPessoas() {
+  corpo().appendChild(grupoOps([
+    cartaoOp({ nome: "Desaparecimento", desc: "Registrar com o boletim", icone: "pessoa", dados: { acao: "desaparecido" }, aoTocar: () => registrarPessoa() }),
+    cartaoOp({ nome: "Encontrei alguém perdido", desc: "Criança, idoso ou alguém confuso", icone: "lupa", dados: { acao: "acheiPessoa" }, aoTocar: () => acheiPessoa() })
+  ], { colunas: 2, unico: false, rotulo: "Ações" }));
+  corpo().appendChild(h("p", "ent-sub al-nota", "Não existe prazo de 24 h: registre na polícia na hora (190 ou Delegacia Virtual). A equipe confere o boletim antes de publicar."));
+  const meus = secao("Seus avisos");
+  const lm = h("div", "ent-lista"); meus.appendChild(lm);
+  fb.getDocs(fb.query(fb.collection(fb.db, "desaparecidos"), fb.where("autorId", "==", eu.uid), fb.limit(10)))
+    .then((s) => { const l = s.docs.map((d) => ({ id: d.id, ...d.data() })); lm.replaceChildren(...(l.length ? l.map((d) => linhaPessoa(d, true)) : [vazio("Nenhum aviso registrado.")])); })
+    .catch(() => lm.replaceChildren(semLiberacao()));
+  const area = secao("Desaparecidos perto de você");
+  if (!perto()) { area.appendChild(vazio("Ative a localização para ver os avisos perto.")); return; }
+  const la = h("div", "ent-lista"); area.appendChild(la);
+  paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "desaparecidos"), fb.where("status", "==", "ativo"), fb.where("geo4", "in", perto()), fb.limit(40)), (s) => {
+    const l = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((d) => d.autorId !== eu.uid).sort((a, b) => ms(b.quando) - ms(a.quando));
+    la.replaceChildren(...(l.length ? l.map((d) => linhaPessoa(d, false)) : [vazio("Nenhum desaparecido perto agora.")]));
+  }, () => la.replaceChildren(vazio("Indisponível no momento."))));
+}
+function linhaPessoa(d, meu) {
+  const b = h("button", "ent-item al-item"); b.type = "button"; b.dataset.desaparecido = d.id;
+  const lin = h("div", "lin");
+  const tx = h("span", "pr-tx");
+  tx.append(h("b", null, d.nome || "Pessoa"), h("small", null, [idadeTxt(d), `desde ${dataCurta(d.quando)}`, d.visto, pos && Number.isFinite(d.lat) ? km(distKm(pos, d)) : ""].filter(Boolean).join(" · ")));
+  const st = STATUS_DESAP[d.status] || STATUS_DESAP.ativo;
+  lin.append(fotoOuEmoji(d.foto, "", "pessoa"), tx, h("span", "ent-etq " + st[1], meu ? st[0] : (CONDICOES[d.condicao]?.[0] || st[0])));
+  b.appendChild(lin);
+  b.addEventListener("click", () => abrirPessoa(d.id));
+  return b;
+}
+function registrarPessoa() {
+  const { corpo: c, fechar, folha } = abrirTela("Registrar desaparecimento");
+  const st = { condicao: "", parentesco: "", sexo: "", foto: "" };
+  passoNum(c, 1, "Quem é");
+  const fotoBox = h("div", "al-pfoto");
+  const prev = h("label", "al-pfoto-prev"); const inp = h("input"); inp.type = "file"; inp.accept = "image/*"; inp.id = "alDesFoto";
+  const pintarFoto = () => { prev.replaceChildren(fotoOuEmoji(st.foto, "", "pessoa"), inp); };
+  inp.addEventListener("change", async () => { const f = inp.files?.[0]; inp.value = ""; if (!f) return; try { st.foto = await reduzirFoto(f); pintarFoto(); folha.marcarMexido?.(); } catch { toast("Não foi possível usar essa foto."); } });
+  pintarFoto();
+  const campos = h("div", "al-pfoto-campos");
+  const campo = (rot, id, { max = 80, modo = "text", ph = "" } = {}) => { const l = h("label", "ent-campo"); const i = h("input"); i.id = id; i.maxLength = max; i.inputMode = modo; i.placeholder = ph; l.append(h("span", null, rot), i); campos.appendChild(l); return i; };
+  const nome = campo("Nome completo", "alDesNome", { ph: "Como a pessoa se chama" });
+  const idade = campo("Idade", "alDesIdade", { max: 3, modo: "numeric", ph: "Ex.: 8" });
+  fotoBox.append(prev, campos); c.appendChild(fotoBox);
+  c.appendChild(h("small", "al-pfoto-dica", "Toque no quadrado para pôr uma foto recente (o rosto bem visível)."));
+  c.appendChild(grupoOps(Object.entries(CONDICOES).map(([k, [n]]) => cartaoOp({ nome: n, icone: "pessoa", dados: { condicao: k }, aoTocar: () => { st.condicao = k; folha.marcarMexido?.(); } })), { colunas: 2, rotulo: "Situação" }));
+  passoNum(c, 2, "Como ela é");
+  const desc = h("textarea"); desc.id = "alDesDesc"; desc.maxLength = 500; desc.placeholder = "Altura, cabelo, pele, roupa que usava, mochila...";
+  const ld = h("label", "ent-campo"); ld.append(h("span", null, "Descrição"), desc); c.appendChild(ld);
+  const sin = h("input"); sin.id = "alDesSinais"; sin.maxLength = 300; sin.placeholder = "Cicatriz, tatuagem, óculos, jeito de falar...";
+  const ls = h("label", "ent-campo"); ls.append(h("span", null, "Sinais particulares (opcional)"), sin); c.appendChild(ls);
+  passoNum(c, 3, "Quando e onde foi vista");
+  const dois = (n) => String(n).padStart(2, "0"); const hoje = new Date(), diaTxt = (d) => `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+  const dia = h("input"); dia.type = "date"; dia.id = "alDesDia"; dia.value = diaTxt(hoje); dia.max = dia.value; dia.min = diaTxt(new Date(Date.now() - 365 * 864e5));
+  const hora = h("input"); hora.type = "time"; hora.id = "alDesHora"; hora.value = `${dois(hoje.getHours())}:${dois(hoje.getMinutes())}`;
+  const lq = h("div", "ent-duplo"); const l1 = h("label", "ent-campo"); l1.append(h("span", null, "Dia"), dia); const l2 = h("label", "ent-campo"); l2.append(h("span", null, "Hora"), hora); lq.append(l1, l2); c.appendChild(lq);
+  const visto = h("input"); visto.id = "alDesVisto"; visto.maxLength = 120; visto.placeholder = "Rua, bairro ou ponto de referência";
+  const lv = h("label", "ent-campo"); lv.append(h("span", null, "Visto por último em"), visto); c.appendChild(lv);
+  passoNum(c, 4, "Você e o boletim");
+  c.appendChild(grupoOps(Object.entries(PARENTESCOS_DESAP).map(([k, n]) => cartaoOp({ nome: n, icone: "pessoas", dados: { parentesco: k }, aoTocar: () => { st.parentesco = k; folha.marcarMexido?.(); } })), { colunas: 2, rotulo: "Você é" }));
+  const bo = h("input"); bo.id = "alDesBo"; bo.maxLength = 40; bo.placeholder = "Número do boletim de ocorrência";
+  const lb = h("label", "ent-campo"); lb.append(h("span", null, "Boletim de ocorrência (obrigatório)"), bo); c.appendChild(lb);
+  const lc = h("label", "ent-check"); const ck = h("input"); ck.type = "checkbox"; ck.id = "alDesDeclaro";
+  lc.append(ck, h("span", null, "Declaro que sou parente ou responsável e que o desaparecimento foi registrado na polícia. Aviso falso leva a banimento e pode ser crime.")); c.appendChild(lc);
+  const ok = botao("Enviar para a equipe conferir", "ent-btn", async () => {
+    const n = nome.value.trim(), ida = idade.value.trim() === "" ? null : Number(idade.value);
+    if (n.length < 3) { toast("Escreva o nome da pessoa."); nome.focus(); return; }
+    if (ida !== null && !(Number.isInteger(ida) && ida >= 0 && ida <= 120)) { toast("Confira a idade."); idade.focus(); return; }
+    if (!st.condicao) { toast("Escolha a situação da pessoa."); return; }
+    if (desc.value.trim().length < 10) { toast("Descreva a pessoa com pelo menos 10 letras."); desc.focus(); return; }
+    if (!st.parentesco) { toast("Diga quem você é para a pessoa."); return; }
+    const nbo = bo.value.trim().replace(/\s+/g, "");
+    if (!/^[A-Za-z0-9./-]{4,40}$/.test(nbo)) { toast("Informe o número do boletim de ocorrência."); bo.focus(); return; }
+    if (!ck.checked) { toast("Marque a declaração para continuar."); return; }
+    ok.disabled = true;
+    const g = await lerGps(8000) || pos;
+    if (!g) { ok.disabled = false; toast("Ative a localização para marcar a região."); return; }
+    const ref = fb.doc(fb.collection(fb.db, "desaparecidos"));
+    const doc = {
+      autorId: eu.uid, autorNome: String(dados.nome || "").slice(0, 80), nome: n.slice(0, 80), ...(ida !== null ? { idade: ida } : {}),
+      condicao: st.condicao, parentesco: st.parentesco, descricao: desc.value.trim().slice(0, 500), sinais: sin.value.trim().slice(0, 300),
+      visto: visto.value.trim().slice(0, 120), quando: fb.Timestamp.fromMillis(Math.min(Date.now() - 1000, new Date(`${dia.value}T${hora.value || "12:00"}`).getTime() || Date.now() - 1000)),
+      bo: nbo, lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3, geo4: geohash(g.lat, g.lng, 4),
+      cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
+      status: "analise", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ...(st.foto ? { foto: st.foto } : {})
+    };
     try {
-      if (p) await fb.setDoc(fb.doc(fb.db, "pets", p.id), { ...doc, criadoEm: p.criadoEm || fb.serverTimestamp() });
-      else await fb.addDoc(fb.collection(fb.db, "pets"), { ...doc, criadoEm: fb.serverTimestamp() });
-      toast("RG do pet salvo"); fechar();
-    } catch (e) { salvar.disabled = false; toast(e?.code === "permission-denied" ? "O RG do pet ainda está sendo liberado." : "Não foi possível salvar: " + erroAmigavel(e)); }
+      await fb.setDoc(ref, doc);
+      // Chamado URGENTE na fila de Segurança para a equipe conferir o boletim e publicar.
+      const sref = fb.doc(fb.collection(fb.db, "suporte")); const lote = fb.writeBatch(fb.db);
+      lote.set(sref, { prioridade: "urgente", uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: `Desaparecimento: ${n}`.slice(0, 120), categoria: "sos", status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
+      lote.set(fb.doc(fb.db, "suporte", sref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: `DESAPARECIMENTO · conferir e publicar\nPessoa: ${n}${ida !== null ? ", " + ida + " anos" : ""} (${CONDICOES[st.condicao][0]})\nBoletim: ${nbo}\nQuem registrou: ${PARENTESCOS_DESAP[st.parentesco]}\nPainel › Segurança e alertas › Desaparecidos`.slice(0, 2000), em: fb.serverTimestamp() });
+      lote.commit().catch(() => {});
+      fechar(); toast("Enviado. A equipe confere o boletim e publica o aviso.");
+      if (aba === "pets") pintarAba();
+    } catch (e) { ok.disabled = false; toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); }
   });
-  salvar.id = "alPetSalvar";
-  c.appendChild(salvar);
+  ok.id = "alDesOk";
+  c.appendChild(ok);
+}
+async function abrirPessoa(id) {
+  const { corpo: c, fechar } = abrirTela("Desaparecido");
+  try {
+    const s = await fb.getDoc(fb.doc(fb.db, "desaparecidos", id));
+    if (!s.exists()) { c.appendChild(vazio("Aviso não encontrado.")); return; }
+    const d = { id, ...s.data() };
+    const meu = d.autorId === eu.uid;
+    const cart = h("div", "al-pessoa"); cart.append(fotoOuEmoji(d.foto, "", "pessoa"), h("div"));
+    const st = STATUS_DESAP[d.status] || STATUS_DESAP.ativo;
+    cart.lastChild.append(h("b", null, d.nome), h("small", null, [idadeTxt(d), CONDICOES[d.condicao]?.[0]].filter(Boolean).join(" · ")), h("span", "ent-etq " + st[1], st[0]));
+    c.appendChild(cart);
+    const info = h("dl", "al-dl");
+    const lin = (a, b) => { if (b) info.append(h("dt", null, a), h("dd", null, b)); };
+    lin("Visto por último", [d.visto, new Date(ms(d.quando)).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })].filter(Boolean).join(" · "));
+    lin("Como é", d.descricao); lin("Sinais", d.sinais); lin("Região", [d.cidade, d.uf].filter(Boolean).join("/"));
+    c.appendChild(info);
+    if (meu) {
+      if (d.status === "analise") c.appendChild(h("p", "ent-sub", "A equipe está conferindo o boletim. Assim que publicar, o aviso aparece para quem está perto."));
+      if (["analise", "ativo"].includes(d.status)) c.appendChild(botao(`${d.nome.split(" ")[0]} foi encontrado(a)`, "ent-btn ok", async () => {
+        try { await fb.updateDoc(fb.doc(fb.db, "desaparecidos", id), { status: "encontrado", atualizadoEm: fb.serverTimestamp() }); toast("Que alívio! Aviso encerrado."); fechar(); pintarAba(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+      }));
+      c.appendChild(h("h3", null, "Pistas recebidas"));
+      const lp = h("div", "ent-lista"); c.appendChild(lp);
+      try {
+        const ps = await fb.getDocs(fb.query(fb.collection(fb.db, "desaparecidos", id, "pistas"), fb.limit(50)));
+        const l = ps.docs.map((x) => x.data()).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+        lp.replaceChildren(...(l.length ? l.map((p) => { const it = h("div", "ent-item"); it.append(h("b", null, p.anonimo ? "Pista anônima" : p.nome || "Alguém"), h("small", null, dataCurta(p.criadoEm)), h("span", null, p.texto)); if (Number.isFinite(p.lat)) { const a = h("a", "ent-btn sec", "Ver no mapa"); a.href = `https://www.google.com/maps?q=${p.lat},${p.lng}`; a.target = "_blank"; a.rel = "noopener"; it.appendChild(a); } return it; }) : [vazio("Nenhuma pista ainda.")]));
+      } catch { lp.replaceChildren(vazio("Não foi possível ler as pistas.")); }
+      return;
+    }
+    if (d.status === "ativo") {
+      c.appendChild(h("p", "ent-sub", "Viu esta pessoa? Não a aborde à força. Se ela estiver em perigo, ligue 190."));
+      const bt = botao("Vi esta pessoa", "ent-btn", () => pistaPessoa(d)); bt.id = "alDesVi"; c.appendChild(bt);
+    }
+  } catch { c.appendChild(vazio("Indisponível no momento.")); }
+}
+function pistaPessoa(d) {
+  const { corpo: c, fechar } = abrirTela(`Vi ${d.nome.split(" ")[0]}`);
+  const t = h("textarea"); t.id = "alDesPista"; t.maxLength = 400; t.placeholder = "Onde, quando e como ela estava";
+  const l = h("label", "ent-campo"); l.append(h("span", null, "O que você viu"), t); c.appendChild(l);
+  const lg = h("label", "ent-check"); const cg = h("input"); cg.type = "checkbox"; cg.checked = true; cg.id = "alDesPistaLocal"; lg.append(cg, h("span", null, "Mandar a minha localização aproximada (cerca de 100 m)")); c.appendChild(lg);
+  const la = h("label", "ent-check"); const ca = h("input"); ca.type = "checkbox"; ca.checked = true; ca.id = "alDesPistaAnonima"; la.append(ca, h("span", null, "Sem o meu nome (anônima). A equipe sabe quem mandou.")); c.appendChild(la);
+  const ok = botao("Enviar pista à família", "ent-btn", async () => {
+    if (t.value.trim().length < 3) { toast("Escreva o que você viu."); return; }
+    ok.disabled = true;
+    const g = cg.checked ? await lerGps(8000) || pos : null;
+    const ref = fb.doc(fb.collection(fb.db, "desaparecidos", d.id, "pistas"));
+    const base = { texto: t.value.trim().slice(0, 400), criadoEm: fb.serverTimestamp(), ...(g ? { lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3 } : {}) };
+    try {
+      const lote = fb.writeBatch(fb.db);
+      if (ca.checked) { lote.set(ref, { ...base, anonimo: true }); lote.set(fb.doc(fb.db, "pistas_desap_autoria", `${d.id}_${ref.id}`), { uid: eu.uid }); }
+      else lote.set(ref, { ...base, anonimo: false, uid: eu.uid, nome: String(dados.nome || "").slice(0, 80) });
+      await lote.commit();
+      toast("Pista enviada. Obrigado!"); fechar();
+    } catch (e) { ok.disabled = false; toast("Não foi possível: " + erroAmigavel(e)); }
+  });
+  ok.id = "alDesPistaOk";
+  c.appendChild(ok);
+}
+function acheiPessoa() {
+  const { corpo: c } = abrirTela("Encontrei alguém perdido");
+  const ul = h("ol", "al-passos");
+  ["Fique com a pessoa num lugar público e seguro. Não leve para casa.", "Ligue 190 (polícia). Se for criança, a polícia aciona o Conselho Tutelar; se ela precisar de atendimento, 192.", "Não publique a foto dela em redes sociais.", "Veja abaixo se ela está nos avisos perto e mande uma pista à família."].forEach((x) => ul.appendChild(h("li", null, x)));
+  c.appendChild(ul);
+  const tel = h("a", "ent-btn al-btn-sos"); tel.href = "tel:190"; tel.textContent = "Ligar 190"; c.appendChild(tel);
+  c.appendChild(h("h3", null, "Desaparecidos perto"));
+  const l = h("div", "ent-lista"); c.appendChild(l);
+  if (!perto()) { l.appendChild(vazio("Ative a localização para ver os avisos perto.")); return; }
+  fb.getDocs(fb.query(fb.collection(fb.db, "desaparecidos"), fb.where("status", "==", "ativo"), fb.where("geo4", "in", perto()), fb.limit(40)))
+    .then((s) => { const lista = s.docs.map((d) => ({ id: d.id, ...d.data() })); l.replaceChildren(...(lista.length ? lista.map((d) => linhaPessoa(d, false)) : [vazio("Nenhum aviso perto. Siga os passos acima.")])); })
+    .catch(() => l.replaceChildren(vazio("Indisponível no momento.")));
 }
 function opcoesMeuPet(p) {
   const { corpo: c, fechar } = abrirTela(p.nome || "Pet");
@@ -655,25 +791,18 @@ function avisarPar(uid, cartao, resumo) {
   mandarMensagem(uid, { tipoArquivo: "cartao", cartao: { tipo: "pet", ...cartao } }, resumo, { servico }).catch(() => {});
 }
 function achei() {
-  const { corpo: c, fechar } = abrirTela("Encontrei um animal");
-  c.appendChild(h("p", "ent-sub", "Conte como ele é: procuramos pets perdidos parecidos e com o mesmo microchip e avisamos os possíveis tutores."));
-  const ler = camposPet(c, {}, { comNome: false });
-  const onde = h("input"); onde.placeholder = "Rua, bairro ou ponto de referência"; onde.id = "alAchouOnde"; onde.maxLength = 120;
-  const l = h("label", "ent-campo"); l.append(h("span", null, "Onde encontrou"), onde); c.appendChild(l);
-  const ok = botao("Publicar e procurar o tutor", "ent-btn", async () => {
-    ok.disabled = true;
+  abrirCadastroPet({ fb, uid: eu.uid, dados, pos, toast, modo: "achado", aoEnviar: async (v) => {
     const g = await lerGps(8000) || pos;
-    if (!g) { ok.disabled = false; toast("Ative a localização para marcar onde encontrou."); return; }
-    const v = ler();
-    const local = { lat: Math.round(g.lat * 1e4) / 1e4, lng: Math.round(g.lng * 1e4) / 1e4, nome: onde.value.trim().slice(0, 120) };
+    if (!g) { toast("Ative a localização para marcar onde encontrou."); return false; }
+    const { onde, ...resto } = v;
+    const local = { lat: Math.round(g.lat * 1e4) / 1e4, lng: Math.round(g.lng * 1e4) / 1e4, nome: onde || "" };
     try {
-      const ref = await fb.addDoc(fb.collection(fb.db, "pets_achados"), { ...v, autorId: eu.uid, autorNome: String(dados.nome || "").slice(0, 80), local, geo4: geohash(g.lat, g.lng, 4), quando: fb.serverTimestamp(), status: "ativo", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
-      fechar(); toast("Publicado! Procurando o tutor...");
-      procurarTutores({ id: ref.id, ...v, local, geo4: geohash(g.lat, g.lng, 4), quando: Date.now() });
-    } catch (e) { ok.disabled = false; toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); }
-  });
-  ok.id = "alAchouOk";
-  c.appendChild(ok);
+      const ref = await fb.addDoc(fb.collection(fb.db, "pets_achados"), { ...resto, autorId: eu.uid, autorNome: String(dados.nome || "").slice(0, 80), local, geo4: geohash(g.lat, g.lng, 4), quando: fb.serverTimestamp(), status: "ativo", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
+      toast("Publicado! Procurando o tutor...");
+      procurarTutores({ id: ref.id, ...resto, local, geo4: geohash(g.lat, g.lng, 4), quando: Date.now() });
+      return true;
+    } catch (e) { toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); return false; }
+  } });
 }
 // Quem achou: pets perdidos perto (e com o mesmo microchip, mesmo em casa), ordenados pela semelhança; avisa os mais parecidos.
 async function procurarTutores(a) {

@@ -39,8 +39,8 @@
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <link rel="stylesheet" href="comunidade.css?v=5" />
-  <link rel="stylesheet" href="mural.css?v=10" />
-  <script type="module" src="mural.js?v=97"></script>
+  <link rel="stylesheet" href="mural.css?v=11" />
+  <script type="module" src="mural.js?v=98"></script>
   <script type="module" src="alertas-faixa.js?v=4"></script>
 </head>
 <body class="pg-mural">
@@ -78,7 +78,7 @@
         <div class="mu-barra">
           <div class="mu-filtros" id="muFiltros" role="tablist" aria-label="Mostrar"></div>
         </div>
-        <p class="mu-aviso"><svg class="i xs"><use href="#i-alerta"/></svg><span>Só doação, troca e ajuda. Proibido vender.</span><a href="diretrizes.html">Regras</a></p>
+        <p class="mu-aviso"><svg class="i xs"><use href="#i-alerta"/></svg><span>Só doação, troca e ajuda. Proibido vender.</span><button type="button" class="mu-regras-bt" id="muRegras" aria-haspopup="dialog">Regras</button></p>
         <div id="muLista" class="mu-lista" aria-live="polite"><div class="mu-carregando"><span></span><span></span><span></span></div></div>
         <div class="mu-fim"><button type="button" class="btn sec" id="muMais" hidden>Ver mais publicações</button></div>
       </div>
@@ -112,6 +112,22 @@
       <div class="folha-corpo">
         <div class="mu-pub-lista" id="muTipos"></div>
         <p class="mu-pub-nota">Tudo de graça: quem tiver interesse chama você no chat.</p>
+      </div>
+    </div>
+  </div>
+  <!-- Regras da Comunidade numa janela na própria página (18/11/2026, pedido dele: o link levava para outra página) -->
+  <div class="folha mu-folha" id="folhaRegras" role="dialog" aria-modal="true" aria-labelledby="tituloRegras">
+    <div class="folha-caixa">
+      <div class="folha-topo"><h2 id="tituloRegras">Regras da Comunidade</h2><button type="button" class="icone-btn" data-fechar aria-label="Fechar"><svg class="i"><use href="#i-fechar"/></svg></button></div>
+      <div class="folha-corpo mu-regras">
+        <h3>Pode</h3>
+        <ul class="mu-rl ok"><li>Doar o que você não usa mais.</li><li>Trocar uma coisa por outra, sem dinheiro.</li><li>Pedir ajuda ou um item que está faltando.</li><li>Dividir quarto, com o rateio das contas.</li><li>Achados e perdidos.</li></ul>
+        <h3>Não pode</h3>
+        <ul class="mu-rl nao"><li>Vender ou cobrar (nem "só o frete" ou "uma ajuda").</li><li>Armas, drogas, remédios controlados ou animais à venda.</li><li>Dados pessoais de outras pessoas.</li><li>Golpes, correntes e propaganda.</li></ul>
+        <h3>Para a sua segurança</h3>
+        <ul class="mu-rl"><li>Combine a entrega num lugar público e de dia.</li><li>Nunca pague nada adiantado.</li><li>Viu algo errado? Denuncie no ⋯ da publicação.</li></ul>
+        <p class="mu-regras-pe">Quem descumpre tem a publicação removida e pode perder o acesso à Comunidade.</p>
+        <button type="button" class="btn mu-regras-ok" data-fechar>Entendi</button>
       </div>
     </div>
   </div>
