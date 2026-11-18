@@ -32,36 +32,34 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=129" />
+  <link rel="stylesheet" href="rede.css?v=130" />
   <link rel="stylesheet" href="entregas.css?v=2" />
-  <link rel="stylesheet" href="presentes.css?v=2" />
+  <link rel="stylesheet" href="presentes.css?v=3" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
-  <script type="module" src="presentes.js?v=32"></script>
+  <script type="module" src="presentes.js?v=33"></script>
 </head>
-<body class="com-barra">
-  <header class="topo">
-    <a href="index.html" class="icone-btn" aria-label="Início do Help Floripa" title="Início"><svg class="i"><use href="#i-casa"/></svg></a>
-    <span class="topo-espaco" aria-hidden="true"></span>
-    <a href="index.html" class="marca" aria-label="Help Floripa - Início"><strong>HELP <span>FLORIPA</span></strong><small>TUDO EM UM SÓ LUGAR</small></a>
+<body class="com-barra pg-app">
+  <header class="topo topo-app">
+    <a href="social.html" class="icone-btn" data-voltar aria-label="Voltar" title="Voltar"><svg class="i"><use href="#i-voltar"/></svg></a>
+    <h1 class="topo-tit"><span>Presentes</span></h1>
     <a href="notificacoes.html" class="icone-btn" aria-label="Notificações" title="Notificações"><svg class="i"><use href="#i-sino"/></svg><b class="ponto-badge" id="badgeAvisos" hidden></b></a>
-    <a href="configuracoes.html" class="icone-btn" aria-label="Configurações" title="Configurações"><svg class="i"><use href="#i-config"/></svg></a>
   </header>
   <main class="pagina pr-pagina">
     <section class="pr-hero">
-      <span class="pr-hero-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 0 0-1-1h-17a1 1 0 0 0-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/></svg></span>
+      <span class="pr-hero-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-1a1 1 0 0 0-1-1h-17a1 1 0 0 0-1 1zM12 7v13.5M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7zM12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z"/></svg></span>
       <div>
-        <h1>Presentes</h1>
-        <p>Mande um mimo, um lanche, uma roupa, dinheiro por Pix ou até uma corrida para quem você gosta. A pessoa aceita ou recusa.</p>
+        <h2>Mande um presente</h2>
+        <p>Mimo, lanche, produto, vale, dinheiro por Pix, corrida ou entrega. A pessoa aceita ou recusa.</p>
       </div>
       <button type="button" class="ent-btn" id="prEnviar">Enviar um presente</button>
     </section>
-    <button type="button" class="pr-quem" id="prQuem"><span><small>Quem pode me enviar presentes</small><b id="prQuemTx">...</b></span><svg class="i s"><use href="#i-config"/></svg></button>
-    <div class="ent-abas pr-abas" role="tablist">
-      <button type="button" role="tab" data-aba="recebidos" aria-selected="true">Recebidos <b class="pr-n"></b></button>
-      <button type="button" role="tab" data-aba="enviados" aria-selected="false">Enviados <b class="pr-n"></b></button>
+    <div class="pr-abas" role="tablist" aria-label="Seus presentes">
+      <button type="button" role="tab" class="pr-aba" data-aba="recebidos" aria-selected="true"><span class="pr-aba-ic" data-ic="caixa"></span><span class="pr-aba-tx"><b>Recebidos <i class="pr-n"></i></b><small>Carregando...</small></span></button>
+      <button type="button" role="tab" class="pr-aba" data-aba="enviados" aria-selected="false"><span class="pr-aba-ic" data-ic="presente"></span><span class="pr-aba-tx"><b>Enviados</b><small>Carregando...</small></span></button>
     </div>
     <div id="prCorpo"><p class="ent-vazio">Carregando...</p></div>
+    <button type="button" class="pr-quem" id="prQuem"><span class="pr-quem-ic" data-ic="escudo"></span><span><small>Quem pode me enviar presentes</small><b id="prQuemTx">...</b></span><svg class="i s"><use href="#i-avancar"/></svg></button>
     <p class="pr-rodape">O Help Floripa não cobra nem recebe dinheiro dos presentes: o pagamento é direto entre as pessoas, a loja ou quem leva. Ninguém vê o seu endereço, só a loja que entrega.</p>
   </main>
 </body>

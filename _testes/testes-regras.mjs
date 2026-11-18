@@ -1810,6 +1810,34 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("achado: quem achou marca devolvido", () => assertSucceeds(updateDoc(doc(ctx("sc"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
 }
 
+// ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================
+{
+  const H = "a".repeat(64), H2 = "b".repeat(64);
+  const vei = (extra) => ({ donoId: "vd", tipo: "carro", placa: "ABC1D23", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", apelido: "", chassiFim: "", status: "ok", ocorrenciaId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("veículo: o dono cadastra", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "v1"), vei())));
+  await t("veículo: placa fora do formato é recusada", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "v2"), vei({ placa: "AB-123" }))));
+  await t("veículo: não cadastra no nome de outra pessoa", () => assertFails(setDoc(doc(ctx("vo"), "veiculos", "v3"), vei())));
+  await t("veículo: outra pessoa não lê (a placa é só do dono)", () => assertFails(getDoc(doc(ctx("vo"), "veiculos", "v1"))));
+  await t("veículo: o dono lista os dele", () => assertSucceeds(getDocs(query(collection(ctx("vd"), "veiculos"), where("donoId", "==", "vd")))));
+  await t("veículo: marca como roubado com a ocorrência", () => assertSucceeds(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { status: "roubado", ocorrenciaId: "oc1", roubadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("veículo: status inventado é recusado", () => assertFails(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { status: "sumiu", atualizadoEm: serverTimestamp() })));
+  await t("veículo: não muda a data de criação", () => assertFails(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { criadoEm: antigo, atualizadoEm: serverTimestamp() })));
+  await t("veículo: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("vo"), "veiculos", "v1"))));
+  const venda = (extra) => ({ negocioId: "vl_lojinha", donoId: "vl", tipoNegocio: "lojinha", item: "Fiat Uno 2015", tipo: "carro", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", cidade: "Florianópolis", uf: "SC", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("venda: o dono da loja indexa o carro (só o hash)", () => assertSucceeds(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda())));
+  await t("venda: id que não bate com o hash é recusado", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H2.slice(0, 16)), venda())));
+  await t("venda: em negócio de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("vo"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda({ donoId: "vo" }))));
+  await t("venda: com a placa aberta é recusado", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda({ placa: "ABC1D23" }))));
+  await t("venda: no Automotivo também", () => assertSucceeds(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_automotivo_" + H2.slice(0, 16)), venda({ negocioId: "vl_automotivo", tipoNegocio: "automotivo", placaHash: H2, tipo: "moto" }))));
+  await t("venda: delivery não vende veículo", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_delivery_" + H.slice(0, 16)), venda({ negocioId: "vl_delivery", tipoNegocio: "lojinha" }))));
+  await t("venda: qualquer conta procura pelo hash", () => assertSucceeds(getDocs(query(collection(ctx("vo"), "veiculos_venda"), where("placaHash", "==", H)))));
+  await t("venda: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("vo"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)))));
+  await t("venda: o dono tira", () => assertSucceeds(deleteDoc(doc(ctx("vl"), "veiculos_venda", "vl_automotivo_" + H2.slice(0, 16)))));
+  const ocV = { anonimo: false, autorId: "vd", autorNome: "Vd", tipo: "roubo", objeto: "carro", identificador: "ABC1D23", descricao: "Levaram meu carro na rua", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() };
+  await t("ocorrência: carro com marca, modelo, ano e cor", () => assertSucceeds(setDoc(doc(ctx("vd"), "ocorrencias", "ov1"), { ...ocV, veiculo: { marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata" } })));
+  await t("ocorrência: veículo com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("vd"), "ocorrencias", "ov2"), { ...ocV, veiculo: { marca: "Fiat", placa: "ABC1D23" } })));
+}
+
 // ===================== Escondido pela equipe / agendado: não abre por link direto =====================
 {
   const futuro = Timestamp.fromMillis(Date.now() + 9e9), passado = Timestamp.fromMillis(Date.now() - 9e6);

@@ -4077,7 +4077,8 @@ service cloud.firestore {
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
       allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm', 'veiculo'])
+                    && (!('veiculo' in d()) || veiculoOcOk(d().veiculo))
                     && d().anonimo is bool
                     && (d().anonimo
                         ? (d().autorId == '' && !('autorNome' in d())
@@ -4113,6 +4114,54 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+    // Carro/moto da ocorrência (18/11/2026): marca, modelo, ano e cor para achar anúncios parecidos (a placa vai no
+    // identificador, como antes).
+    function veiculoOcOk(v) {
+      return v is map && v.keys().hasOnly(['marca', 'modelo', 'ano', 'cor'])
+          && valorTextoAte(v.get('marca', ''), 30) && valorTextoAte(v.get('modelo', ''), 40) && valorTextoAte(v.get('cor', ''), 20)
+          && v.get('ano', '') is string && v.get('ano', '').matches('^([0-9]{4})?$');
+    }
+
+    // VEÍCULOS (18/11/2026): o carro/moto da pessoa, com a placa. Só o dono e a moderação leem.
+    match /veiculos/{id} {
+      function d() { return request.resource.data; }
+      allow get, list: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow create, update: if logado() && emailOk() && d().donoId == request.auth.uid
+                    && (resource == null || resource.data.donoId == request.auth.uid)
+                    && d().keys().hasOnly(['donoId', 'tipo', 'placa', 'placaHash', 'marca', 'modelo', 'ano', 'cor', 'apelido', 'chassiFim', 'status', 'ocorrenciaId', 'roubadoEm', 'criadoEm', 'atualizadoEm'])
+                    && d().tipo in ['carro', 'moto']
+                    && d().placa is string && d().placa.matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$')
+                    && d().placaHash is string && d().placaHash.matches('^[a-f0-9]{64}$')
+                    && valorTextoAte(d().get('marca', ''), 30) && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
+                    && valorTextoAte(d().get('apelido', ''), 30)
+                    && d().get('ano', '') is string && d().get('ano', '').matches('^([0-9]{4})?$')
+                    && d().get('chassiFim', '') is string && d().get('chassiFim', '').matches('^[A-Z0-9]{0,6}$')
+                    && d().status in ['ok', 'roubado', 'recuperado']
+                    && valorTextoAte(d().get('ocorrenciaId', ''), 40)
+                    && d().atualizadoEm == request.time
+                    && (resource == null ? d().criadoEm == request.time : d().criadoEm == resource.data.criadoEm);
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+    // Índice dos carros/motos à venda (Shopping e Automotivo): só o HASH da placa, nunca a placa. Quem tem a placa acha o
+    // anúncio (dono do carro roubado, a equipe, quem vai comprar). Só o dono do negócio cria; a moderação apaga.
+    match /veiculos_venda/{id} {
+      function d() { return request.resource.data; }
+      allow get, list: if logado();
+      allow create, update: if logado() && emailOk() && d().donoId == request.auth.uid
+                    && (resource == null || resource.data.donoId == request.auth.uid)
+                    && d().negocioId is string && d().negocioId.matches('^' + request.auth.uid + '_(lojinha|automotivo)$')
+                    && id == d().negocioId + '_' + d().placaHash[0:16]
+                    && d().keys().hasOnly(['negocioId', 'donoId', 'tipoNegocio', 'item', 'tipo', 'placaHash', 'marca', 'modelo', 'ano', 'cor', 'cidade', 'uf', 'criadoEm', 'atualizadoEm'])
+                    && d().tipoNegocio in ['lojinha', 'automotivo'] && d().tipo in ['carro', 'moto']
+                    && d().placaHash is string && d().placaHash.matches('^[a-f0-9]{64}$')
+                    && valorTextoAte(d().get('item', ''), 60) && valorTextoAte(d().get('marca', ''), 30) && valorTextoAte(d().get('modelo', ''), 40)
+                    && valorTextoAte(d().get('cor', ''), 20) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+                    && d().get('ano', '') is string && d().get('ano', '').matches('^([0-9]{4})?$')
+                    && d().atualizadoEm == request.time
+                    && (resource == null ? d().criadoEm == request.time : d().criadoEm == resource.data.criadoEm);
+      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+    }
+
     match /ocorrencias_autoria/{id} {
       allow get: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
       allow list: if podeModerar();

@@ -144,3 +144,37 @@ body:has(.al-pagina) .ent-folha .hf-ic.fundo, .al-pagina .hf-ic.fundo { backgrou
 .al-tel { padding: 8px 2px; }
 .al-tel small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .al-esc { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+
+/* ---------- 18/11/2026: topo de app, 4 abas, cartões no padrão do site, consulta e veículos ---------- */
+.al-hero h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.2px; }
+.al-abas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.al-abas button { font-size: 13.5px; padding: 0 4px; }
+.al-pagina .op-grade { margin-bottom: 10px; }
+.al-valida { display: block; margin-top: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.al-valida.ok { color: var(--ok); }
+.al-valida.erro { color: #e5484d; }
+.al-id { display: grid; gap: 8px; }
+.al-id .op-sec { margin-top: 0; }
+.al-vei-campos { gap: 0 10px; }
+.al-resultado { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; margin: 12px 0 8px; padding: 12px 14px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--panel); }
+.al-resultado > div { display: grid; gap: 2px; min-width: 0; }
+.al-resultado b { font-size: 15px; }
+.al-resultado small { color: var(--muted); font-size: 12.5px; }
+.al-resultado.verde { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); }
+.al-resultado.verde .hf-ic { color: var(--ok); }
+.al-resultado.vermelho { border-color: color-mix(in srgb, #e5484d 60%, var(--line)); background: color-mix(in srgb, #e5484d 8%, var(--panel)); }
+.al-resultado.vermelho .hf-ic, .al-resultado.vermelho b { color: #e5484d; }
+.al-anuncio { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 6px 0; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; }
+.al-anuncio > span:nth-child(2) { display: grid; min-width: 0; }
+.al-anuncio b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; }
+.al-anuncio small { color: var(--muted); font-size: 12px; }
+.al-recentes { margin-top: 14px; }
+.al-res .ent-btn { margin-top: 4px; }
+.al-resumo-area { margin: 0 0 6px; }
+.al-vei-cartao { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); margin: 4px 0 14px; }
+.al-vei-cartao > div { display: grid; gap: 4px; justify-items: start; min-width: 0; }
+.al-vei-cartao b { font-size: 17px; }
+.al-vei-cartao small { color: var(--muted); }
+.al-placa { display: inline-block; padding: 3px 10px; border-radius: 6px; border: 2px solid var(--text); font-weight: 800; letter-spacing: .12em; font-variant-numeric: tabular-nums; font-size: 14px; background: var(--panel-2); }
+.al-monitor { padding: 12px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); }
+.al-monitor h3 { margin-top: 0; }

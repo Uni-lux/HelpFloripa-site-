@@ -220,3 +220,42 @@
 :root[data-theme="dark"] .mu-vazio, :root[data-theme="dark"] .mu-al { background: #000; border-color: rgba(255, 255, 255, .16); }
 :root[data-theme="dark"] .mu-vazio-tipo, :root[data-theme="dark"] .mu-vazio-em { background: #0e0f10; border-color: rgba(255, 255, 255, .14); }
 .mu-vazio-tipo .mu-vt-ic { box-shadow: none; }
+
+/* ---------- 18/11/2026: Comunidade no padrão dos cartões do site (pedido dele) ---------- */
+.mu-alertas, .mu-alertas:not(#x) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; overflow: visible; margin: 6px 0 10px; }
+.mu-al, .mu-al:not(#x) { position: relative; display: grid; grid-template-columns: 1fr; align-content: start; gap: 6px; min-height: 0; padding: 10px; border-radius: 16px;
+  border: 1.5px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; font-weight: 400; font-size: inherit; }
+.mu-al.sos { border-color: var(--line); color: var(--text); }
+.mu-al-ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+.mu-al-ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mu-al.sos .mu-al-ic { color: #e5484d; box-shadow: inset 0 0 0 1px color-mix(in srgb, #e5484d 40%, var(--line)); }
+.mu-al-tx { display: grid; gap: 1px; min-width: 0; }
+.mu-al-tx > span { font-weight: 800; font-size: 14px; flex: none; overflow: visible; }
+.mu-al-tx small { color: var(--muted); font-size: 11.5px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-al b, .mu-al b:not(.tem) { position: absolute; top: 8px; right: 8px; display: none; }
+.mu-al b.tem { display: inline-grid; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; place-items: center; font-size: 11px; background: #e5484d; color: #fff; }
+.mu-combina { margin: 4px 0 14px; padding: 12px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); }
+.mu-combina-cab { display: grid; gap: 1px; margin-bottom: 8px; }
+.mu-combina-cab h2 { margin: 0; font-size: 15.5px; }
+.mu-combina-cab small { color: var(--muted); font-size: 12px; }
+.mu-combina-lista { display: grid; gap: 6px; }
+.mu-combina-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); text-decoration: none; }
+.mu-ci-foto { width: 52px; height: 52px; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: var(--panel); color: var(--cc); }
+.mu-ci-foto img { width: 100%; height: 100%; object-fit: cover; }
+.mu-ci-foto .ic-com { width: 24px; height: 24px; }
+.mu-ci-tx { display: grid; gap: 1px; min-width: 0; }
+.mu-ci-tx b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-ci-tx small { color: var(--muted); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-combina-item > svg { color: var(--muted); }
+.mu-vazio { justify-items: stretch; text-align: left; }
+.mu-vazio > .mu-vazio-em { justify-self: center; }
+.mu-vazio > strong, .mu-vazio > p { justify-self: center; text-align: center; }
+.mu-vazio .op-grade { width: 100%; }
+.mu-vazio-extras { margin-top: 2px; }
+/* cartões compactos (ícone ao lado do texto): a primeira publicação continua aparecendo logo */
+.mu-al, .mu-al:not(#x) { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 8px 9px; border-radius: 14px; }
+.mu-al-ic { width: 30px; height: 30px; border-radius: 10px; }
+.mu-al-ic svg { width: 17px; height: 17px; }
+.mu-al-tx > span { font-size: 13.5px; }
+.mu-al-tx small { font-size: 11px; }
+.mu-al b.tem { top: -6px; right: -4px; }

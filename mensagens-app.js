@@ -30,7 +30,7 @@ import { NOME_FIG, ehFigurinha, minhasFigurinhas, guardarFigurinha, atualizarFig
 import { editarImagem, dataUrlParaBlob } from "./editor-imagem.js?v=7";
 import { abrirQueixa } from "./queixas.js?v=20";
 import { corrigirTexto, carregarLexico } from "./corretor.js?v=6";
-import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=2";
+import { iconeEl, iconeSos, iconePresente, iconeMimo } from "./icones-hf.js?v=3";
 import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
@@ -3008,8 +3008,8 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 // volta para esta conversa como cartão, sem sair do chat.
 let vitrineMod = null;
 function carregarVitrine() {
-  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=44"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=101"));
+  if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=45"; l.dataset.vitrine = ""; document.head.appendChild(l); }
+  return (vitrineMod ||= import("./vitrine.js?v=102"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());

@@ -14,6 +14,7 @@ import { docsComValidade, docsPorIds, buscarDeNovo } from "./leituras.js?v=4";
 import { lerLocal, rotuloLocal, escolherLocal, aoMudarLocal, atualizarPeloGps, salvarLocal, marcarManual } from "./local-escolhido.js?v=3";
 import { buscarNoServidor, semAcento } from "./busca.js?v=1";
 import { minhaPosicao, comDistancia, textoDistancia, pedirLocalizacao, esquecerPosicao, posicaoGuardada } from "./perto.js?v=3";
+import { cartaoOp, grupoOps } from "./cartoes-op.js?v=1";
 
 const ROSA = "#e5487f";
 const POR_VEZ = 12;
@@ -179,16 +180,65 @@ function vazio() {
     el("p", null, leitura.foraDoAr && !c
       ? `${leitura.foraDoAr === 1 ? "O anúncio daqui está reservado, concluído ou passou de 60 dias" : `Os ${leitura.foraDoAr} anúncios daqui estão reservados, concluídos ou passaram de 60 dias`} (depois disso precisam ser renovados). Publique o seu ou renove em Meus anúncios.`
       : "Seja a primeira pessoa! Quem estiver perto vê a sua publicação e chama você no chat."));
-  const atalhos = el("div", "mu-vazio-tipos");
-  ["doacao", "pedido", "troca"].forEach((k) => { const a = el("a", "mu-vazio-tipo"); a.href = link(k); a.style.setProperty("--cc", CAT_COM[k].cor); const ic = el("span", "mu-vt-ic"); ic.appendChild(iconeCom(k)); a.append(ic, el("b", null, TIPOS[k].chamada), el("small", null, TIPOS[k].dica)); atalhos.appendChild(a); });
-  v.appendChild(atalhos);
-  const bts = el("div", "mu-vazio-bts");
-  if (l.uf) { const b = el("button", "mu-acao sec", "Ver em todo o Brasil"); b.type = "button"; b.addEventListener("click", () => { salvarLocal({}); marcarManual(true); trocarLugar(); }); bts.appendChild(b); }
-  const conv = el("button", "mu-acao sec", "Convidar alguém"); conv.type = "button";
-  conv.addEventListener("click", async () => { const url = new URL("comunidade.html", location.href).href; try { if (navigator.share) await navigator.share({ title: "Comunidade do Help Floripa", text: "Doe, troque e peça ajuda perto de você, de graça:", url }); else { await navigator.clipboard.writeText(url); toast("Link copiado"); } } catch {} });
-  bts.appendChild(conv);
-  v.appendChild(bts);
+  // Cartões no padrão do site (18/11/2026): o que publicar e, embaixo, ver em todo o Brasil ou convidar alguém.
+  const ICO_TIPO = { doacao: "presente", pedido: "maoAjuda", troca: "trocar" };
+  const DESC_TIPO = { doacao: "Algo que você não usa mais, de graça", pedido: "Ajuda ou um item que está faltando", troca: "Uma coisa sua por outra" };
+  v.appendChild(grupoOps(["doacao", "pedido", "troca"].map((k) => cartaoOp({ nome: TIPOS[k].chamada, desc: DESC_TIPO[k], icone: ICO_TIPO[k], dados: { novo: k }, aoTocar: () => abrirNaComunidade(link(k)) })), { colunas: 1, unico: false, rotulo: "Publicar" }));
+  const extras = [];
+  if (l.uf) extras.push(cartaoOp({ nome: "Ver em todo o Brasil", desc: "Publicações de outras cidades", icone: "brasil", aoTocar: () => { salvarLocal({}); marcarManual(true); trocarLugar(); } }));
+  extras.push(cartaoOp({ nome: "Convidar alguém", desc: "Quanto mais gente, mais ajuda", icone: "convidar", aoTocar: async () => { const url = new URL("comunidade.html", location.href).href; try { if (navigator.share) await navigator.share({ title: "Comunidade do Help Floripa", text: "Doe, troque e peça ajuda perto de você, de graça:", url }); else { await navigator.clipboard.writeText(url); toast("Link copiado"); } } catch {} } }));
+  const g2 = grupoOps(extras, { colunas: extras.length > 1 ? 2 : 1, unico: false }); g2.classList.add("mu-vazio-extras");
+  v.appendChild(g2);
   return v;
+}
+
+// ---------- "Combina com você" (18/11/2026): cruza o que a pessoa publicou com o que tem perto ----------
+// Pedido ↔ doação/troca, doação ↔ pedido, troca ↔ troca, perdido ↔ encontrado. Compara as palavras do título (valem
+// mais) e da descrição, sem acento e sem palavras comuns. Tudo no aparelho, com o que já foi carregado (sem leitura extra
+// além dos anúncios da própria pessoa).
+const COMUNS = new Set("para com sem uma umas uns dos das nos nas que por mais muito pouco bem tudo esta este essa esse aqui algo coisa coisas preciso precisa precisando tenho temos doando doacao doar quero troca trocar alguem pessoa favor obrigado obrigada novo nova usado usada bom boa estado".split(" "));
+const palavras = (t) => new Set(semAcento(String(t || "")).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !COMUNS.has(w)).map((w) => w.replace(/(oes|aes|ais|eis|s)$/, "")));
+const PARES = { pedido: ["doacao", "troca"], doacao: ["pedido"], troca: ["troca", "doacao"], achados: ["achados"] };
+let meus = [];
+function pontuar(meu, outro) {
+  if (!(PARES[meu.categoria] || []).includes(outro.categoria)) return 0;
+  if (meu.categoria === "achados" && (meu.achado?.tipo || "perdido") === (outro.achado?.tipo || "perdido")) return 0;
+  const ta = palavras(meu.titulo), tb = palavras(outro.titulo), da = palavras(`${meu.titulo} ${meu.descricao}`), db = palavras(`${outro.titulo} ${outro.descricao}`);
+  let n = 0; ta.forEach((w) => { if (tb.has(w)) n += 3; else if (db.has(w)) n += 1.5; });
+  da.forEach((w) => { if (!ta.has(w) && db.has(w)) n += 0.5; });
+  if (n < 3) return 0;
+  if (Number.isFinite(outro._km)) n *= outro._km < 5 ? 1.3 : outro._km < 30 ? 1.1 : outro._km > 300 ? 0.7 : 1;
+  return n;
+}
+async function carregarMeus() {
+  try { meus = (await fb.getDocs(fb.query(fb.collection(fb.db, "comunidade"), fb.where("donoId", "==", eu.uid), fb.limit(10)))).docs.map((d) => ({ id: d.id, ...d.data() })).filter(comunidadeNoAr); }
+  catch { meus = []; }
+}
+const VERBO_MEU = { pedido: "Você pediu", doacao: "Você está doando", troca: "Você quer trocar", achados: "Você publicou" };
+function pintarCombina() {
+  const sec = $("muCombina"); if (!sec) return;
+  const pares = [];
+  if (!termo && !filtro && meus.length) {
+    const usados = new Set();
+    for (const m of meus) {
+      todos.filter((a) => a.donoId !== eu.uid && comunidadeNoAr(a)).map((a) => ({ a, n: pontuar(m, a) })).filter((x) => x.n > 0).sort((x, y) => y.n - x.n).slice(0, 3)
+        .forEach((x) => { if (!usados.has(x.a.id)) { usados.add(x.a.id); pares.push({ meu: m, ...x }); } });
+    }
+  }
+  pares.sort((x, y) => y.n - x.n);
+  sec.hidden = !pares.length;
+  if (!pares.length) return;
+  $("muCombinaLista").replaceChildren(...pares.slice(0, 6).map(({ meu, a }) => {
+    const c = CAT_COM[a.categoria] || CAT_COM.doacao, p = perfisAut.get(a.donoId) || {};
+    const b = el("a", "mu-combina-item"); b.href = `comunidade.html?item=${encodeURIComponent(a.id)}&de=mural`; b.style.setProperty("--cc", c.cor);
+    const f = el("span", "mu-ci-foto"); const foto = (a.fotos || []).find(fotoOk);
+    if (foto) { const im = new Image(); im.src = foto; im.alt = ""; im.loading = "lazy"; f.appendChild(im); } else f.appendChild(iconeCom(a.categoria));
+    const tx = el("span", "mu-ci-tx");
+    tx.append(el("small", null, `${VERBO_MEU[meu.categoria] || "Você publicou"} “${meu.titulo || ""}”`), el("b", null, a.titulo || c.nome),
+      el("small", null, [`${(p.nome || "Alguém").split(" ")[0]} ${verbo(a)}`, Number.isFinite(a._km) ? textoDistancia(a._km, a._aprox) : (a.bairro || a.cidade || "")].filter(Boolean).join(" · ")));
+    b.append(f, tx, icone("avancar", "i xs"));
+    return b;
+  }));
 }
 // "Perto de você" em bolinhas (como a fileira do Flash no Diário): foto do item com o anel na cor do tipo, o nome e a distância.
 function pintarPerto() {
@@ -211,7 +261,7 @@ function pintarLista() {
   w.replaceChildren(...(lista.length ? lista.slice(0, mostrados).map(cartao) : [vazio()]));
   $("muMais").hidden = !(lista.length > mostrados || (maisNoServidor && !filtro));
 }
-function pintarTudo() { pintarFiltros(); pintarPerto(); pintarLista(); document.querySelector(".mu-barra").hidden = !visiveis(false, false).length; }
+function pintarTudo() { pintarFiltros(); pintarCombina(); pintarPerto(); pintarLista(); document.querySelector(".mu-barra").hidden = !visiveis(false, false).length; }
 
 // ---------- leitura ----------
 async function carregarPerfis(lista) {
@@ -259,7 +309,7 @@ async function trocarLugar() {
 // em vez de trocar para a página comunidade.html. Os links antigos (comunidade.html?item=ID / ?novo=TIPO) continuam nos
 // cartões para "abrir em nova aba" e compartilhar, mas o toque é tratado aqui.
 let com = null;
-const carregarCom = () => (com ||= import("./comunidade.js?v=69").then(async (m) => {
+const carregarCom = () => (com ||= import("./comunidade.js?v=70").then(async (m) => {
   await m.prepararEmbutido({ fb, eu, perfil: dados, aoMudar: () => { buscarDeNovo(); carregar().then(pintarTudo).catch(() => {}); } });
   return m;
 }));
@@ -322,7 +372,7 @@ function ligarComunidadeAqui() {
     if (f !== null) trocarLugar();
   });
   posEu = await minhaPosicao(dados).catch(() => null);
-  await carregar();
+  await Promise.all([carregar(), carregarMeus()]);
   pintarTudo();
   if (new URLSearchParams(location.search).get("publicado")) { toast("Publicado! Quem tiver interesse chama você no chat."); history.replaceState(history.state, "", "mural.html"); }
   aoMudarLocal(() => trocarLugar());

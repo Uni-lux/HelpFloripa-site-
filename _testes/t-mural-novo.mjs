@@ -59,7 +59,7 @@ const B = await navegador({ mobile: true }); // aparelho sem cópia guardada
 const p2 = await entrar(B.ctx, "ana", "mural.html");
 if (process.env.CLARO !== "1") await p2.emulateMedia({ colorScheme: "dark" });
 await p2.waitForSelector(".mu-vazio", { timeout: 25000 }); await p2.waitForTimeout(500);
-ok(await p2.locator(".mu-vazio .mu-vazio-tipo").count() === 3, "vazio com atalhos Doar · Pedir · Trocar");
+ok(await p2.locator(".mu-vazio .op-card[data-novo]").count() === 3, "vazio com atalhos Doar · Pedir · Trocar (cartões no padrão do site)");
 await p2.locator(".mu-vazio").scrollIntoViewIfNeeded(); await p2.screenshot({ path: "saida/mn-04-vazio.png" });
 await B.browser.close();
 ok(!erros.length, "sem erros" + (erros.length ? ": " + erros.join(" | ") : ""));

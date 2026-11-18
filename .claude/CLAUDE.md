@@ -2853,6 +2853,34 @@ chat da equipe).
   duo-cartao.js) = 1ª + última palavra nas publicações, comentários, listas, Vídeos e sugestões (nome inteiro no `title`);
   cadastro e Editar perfil exigem nome e sobrenome ("Nome completo"). Prévia do duo SEM números e SEM botões (pedido dele): tocar na foto ou no nome abre o perfil; tocar no "Juntos há" abre o cartão completo. Testes `t-help-presentes2.mjs` (15), `t-help-pets`
   (Rede de Help nova), `t-sos-pets` (cartões).
+- **Presentes, ocorrências, veículos, Comunidade e painel de segurança (18/11/2026, PR depois do #237, MUDA REGRAS — não
+  publicadas; 23 partes, 1266 testes):** prints dele. Marca do Diário: **"ponte" em Sora 700 minúsculo** (a cursiva Grand
+  Hotel parecia o Instagram; NÃO voltar a ela). `cartoes-op.js` (sem rede.js): `cartaoOp`/`grupoOps`/`secaoOp` = o "padrão do
+  último print" (ícone num quadradinho, nome e explicação; `aria-pressed`) no lugar das pílulas. **Presentes:** topo de app
+  (voltar · Presentes · sino), abas Recebidos/Enviados em cartões com resumo ("2 esperando você"), lista com "Esperando
+  você/resposta" primeiro; enviar = Para quem → **A ocasião** (7 cartões com ícone) → O presente (grupos Na hora · De um
+  negócio · Mobilidade, `GRUPOS_PRESENTE`) → detalhes → Recado + resumo. **Help e alertas:** topo de app e 4 abas (Help · Pets
+  · Roubos · **Veículos**). Ocorrência em 5 passos com cartões (o que aconteceu, o que foi levado), `campoIdentificacao`
+  (IMEI conferido pela soma de Luhn `imeiOk`, placa antiga ou Mercosul), carro/moto com marca/modelo/ano/cor
+  (`ocorrencias.veiculo`, sem a regra grava sem), aviso de ocorrência repetida, resumo do que mais acontece perto.
+  Consultar: cartões Celular/Carro ou moto/Bicicleta/Outro, placa nos 2 padrões (`formasPlaca`), "anunciado no Help Floripa",
+  consultas recentes (`hf-consultas-<uid>`). **Veículos** (`veiculos-base.js` sem deps): `veiculos/{id}` com a placa (só o
+  dono e a moderação; sem as regras guarda em `usuarios.veiculosGuardados` e passa depois); hash = SHA-256 de
+  "hf-veiculo:" + placa Mercosul (antiga e Mercosul = mesmo carro); "Fui roubado" → ocorrência + veículo `roubado` +
+  `procurarAnuncios` (mesma placa no `veiculos_venda` pelo hash + parecidos `semelhancaVeiculo` ≥ 60), monitorado de novo a
+  cada abertura da aba. **Venda de carro/moto (Shopping e Automotivo):** item com "É um carro ou moto?" (`blocoVeiculoItem`),
+  placa OBRIGATÓRIA e oculta; nome com cara de veículo (`pareceVeiculo`) sem marcar não salva; placa com ocorrência ativa
+  não salva e manda pista automática anônima à vítima (a autoria = quem tentou, só a moderação vê); salvo = `item.veiculo`
+  {tipo, marca, modelo, ano, cor, ref, conferido} + `veiculos_venda` (só o hash) e a placa em `usuarios.veiculosVenda`;
+  vitrine mostra "Placa registrada e conferida". Limite sem servidor: um app modificado pode pular o índice (o painel cruza o
+  que existe; Cloud Function no Blaze resolveria). **Comunidade:** Help · Pets · Alertas em cartões compactos, vazio com
+  cartões (Doar/Pedir/Trocar, Ver em todo o Brasil, Convidar) e **"Combina com você"** (`pintarCombina`: os anúncios da
+  pessoa × os de perto, pedido↔doação, troca↔troca, perdido↔encontrado, por palavras do título/descrição e distância).
+  **Painel → Segurança e alertas** (`admin-seguranca.js`): KPIs e abas Cruzamentos (mesma placa, veículo parecido ≥ 75, pet
+  perdido × encontrado, ocorrência repetida) · Help · Ocorrências (quem registrou, tirar do ar) · Veículos à venda · Pets;
+  ações: ver anúncio, ficha, esconder o negócio, avisar a vítima (pista da equipe). Conta apagada leva `veiculos` e
+  `veiculos_venda`. Teste `t-veiculos-presentes.mjs` (35). `t-sos-etapas` para no "1 pessoa recebe" também no código de antes.
+  Atenção nos testes: `git stash` troca o `firestore.rules` e o emulador fica com as regras velhas — rodar `node trocar-regras.mjs main`.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2862,7 +2890,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1246 testes; inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1266 testes; inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
