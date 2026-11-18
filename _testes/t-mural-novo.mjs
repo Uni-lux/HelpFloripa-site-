@@ -28,7 +28,7 @@ await p.waitForSelector(".mu-post", { timeout: 25000 }); await p.waitForTimeout(
 ok(await p.locator("#muNumeros, .mu-tipo, .mu-topo").count() === 0, "topo enxuto (sem números, cartões nem painel)");
 ok(await p.locator('.mu-chip[data-k]').count() === 6, "filtros com todos os tipos (Tudo + 5)");
 await p.screenshot({ path: "saida/mn-01-topo.png" });
-ok(await p.locator(".mu-aviso a[href='diretrizes.html']").count() === 1, "regra numa linha com o link das Regras");
+ok(await p.locator(".mu-aviso #muRegras").count() === 1, "regra numa linha com o botão das Regras (abre na própria página)");
 // busca
 await p.locator("#muBusca").fill("berço"); await p.waitForTimeout(500);
 const achados = await p.$$eval(".mu-post", (cs) => cs.map((c) => c.dataset.id));

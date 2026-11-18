@@ -10,8 +10,8 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { tipoChavePix } from "./pix.js?v=1";
 import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PRESENTE, resumoPresente, emojiPresente, proximoPasso } from "./presentes-base.js?v=2";
 import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=6";
-import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=3";
-import { cartaoOp, grupoOps, secaoOp } from "./cartoes-op.js?v=1";
+import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=4";
+import { cartaoOp, grupoOps, secaoOp } from "./cartoes-op.js?v=2";
 const OCASIOES = {
   aniversario: ["Aniversário", "Feliz aniversário! Que esse ano seja incrível.", "bolo", "Mais um ano de vida"],
   namoro: ["Nosso dia", "Mais um dia do nosso fio. Obrigado por estar comigo.", "coracao", "Para o seu duo"],

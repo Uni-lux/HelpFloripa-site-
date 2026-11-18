@@ -5,7 +5,7 @@
 // =====================================================
 import { ESPECIES, CORES_PET, PORTES_ESPECIE, nomePorte, rgPet, normalizarId, geohash } from "./alertas-base.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=6";
-import { iconeEl, iconeEspecie } from "./icones-hf.js?v=3";
+import { iconeEl, iconeEspecie } from "./icones-hf.js?v=4";
 
 const COR_HEX = { preto: "#1b1b1b", branco: "#f5f5f0", marrom: "#6b4226", caramelo: "#c98a3c", cinza: "#8a8f96", dourado: "#d9a53b", creme: "#efe0bf", tigrado: "linear-gradient(135deg,#8a5a2b 0 30%,#2b1b10 30% 45%,#8a5a2b 45% 70%,#2b1b10 70%)", malhado: "radial-gradient(circle at 30% 30%,#222 0 22%,#f3f3f3 23%)", tricolor: "conic-gradient(#1b1b1b 0 33%,#c98a3c 0 66%,#f5f5f0 0)", laranja: "#e98a2b", rajado: "repeating-linear-gradient(45deg,#9a9a9a 0 4px,#4a4a4a 4px 8px)" };
 const RACAS = {
@@ -105,6 +105,17 @@ function css() {
 .pc-cor:disabled{opacity:.4}
 .pc-dica{margin:-4px 0 0;font-size:12px;color:var(--muted,#9aa7b4);line-height:1.4}
 html.pc-travado,html.pc-travado body{overflow:hidden!important}
+/* 18/11/2026: sem cores nos ícones (pedido dele) e mais compacto */
+.pc .hf-ic{--c:currentColor!important}
+.pc-sec>h4 svg{color:var(--muted,#9aa7b4)!important}
+.pc-esp{padding:10px 4px 8px;gap:4px}
+.pc-esp[aria-pressed=true] .hf-ic{color:var(--accent,#00adee)}
+.pc-rg{background:var(--panel-2,#182029)!important;border-color:var(--line,rgba(255,255,255,.12))!important}
+.pc-corpo{gap:12px}
+.pc-sec{gap:10px;padding:12px}
+.pc-cores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.pc-cor{padding:8px 2px 6px;font-size:11px}
+.pc-cor i{width:20px;height:20px}
 `;
   document.head.appendChild(s);
 }
@@ -134,6 +145,9 @@ function reduzirFoto(arquivo) {
  */
 export function abrirCadastroPet(op) {
   css();
+  // modo "achado" (18/11/2026): o mesmo formulário para "Encontrei um animal" (sem nome, idade e "aparecer nas buscas";
+  // com "onde encontrou"). Quem chama grava (op.aoEnviar(dados)), porque o achado vai para pets_achados.
+  const achado = op.modo === "achado";
   const { fb, uid, toast } = op;
   const p = op.pet || null, v = p || {};
   const st = { especie: v.especie || "cao", cores: new Set(v.cores || []), porte: v.porte || "", sexo: v.sexo || "", foto: fotoPetOk(v.foto) };
@@ -160,7 +174,7 @@ export function abrirCadastroPet(op) {
   document.addEventListener("keydown", tecla);
   fundo.addEventListener("click", (e) => { if (e.target === fundo) tentarSair(); });
   const topo = el("div", "pc-topo"); const x = el("button", "pc-x"); x.type = "button"; x.dataset.fechar = ""; x.setAttribute("aria-label", "Fechar"); x.appendChild(svg(IC.fechar)); x.addEventListener("click", tentarSair);
-  topo.append(el("h3", null, p ? `Editar ${p.nome || "pet"}` : "RG do pet"), x);
+  topo.append(el("h3", null, achado ? "Encontrei um animal" : p ? `Editar ${p.nome || "pet"}` : "RG do pet"), x);
   const corpo = el("div", "pc-corpo");
   const titulo = (tx, ic, extra) => { const h = el("h4"); h.append(svg(IC[ic] || IC.pata), el("span", null, tx)); if (extra) h.appendChild(extra); return h; };
   const secao = (tx, ic, extra) => { const sc = el("section", "pc-sec"); sc.appendChild(titulo(tx, ic, extra)); corpo.appendChild(sc); return sc; };
@@ -170,7 +184,7 @@ export function abrirCadastroPet(op) {
   const foto = el("label", "pc-foto"); foto.setAttribute("aria-label", "Foto do pet");
   const inp = el("input"); inp.type = "file"; inp.accept = "image/*"; inp.id = "pcFoto";
   const rgTx = el("div", "tx");
-  const sel = el("span", "sel", p?.id ? rgPet(p.id) : "RG do pet · novo");
+  const sel = el("span", "sel", achado ? "Animal encontrado" : p?.id ? rgPet(p.id) : "RG do pet · novo");
   const nmv = el("b", "nmv"); const sub = el("span", "sub");
   const barra = el("div", "pc-barra"); barra.appendChild(el("i"));
   const fbts = el("div", "pc-fotobts");
@@ -184,7 +198,7 @@ export function abrirCadastroPet(op) {
     foto.replaceChildren();
     foto.classList.toggle("tem", !!st.foto);
     if (st.foto) { const i = el("img"); i.src = st.foto; i.alt = ""; foto.appendChild(i); }
-    else { const [ic, cor] = iconeEspecie(st.especie); foto.appendChild(iconeEl(ic, { cor, tam: 38 })); }
+    else { const [ic] = iconeEspecie(st.especie); foto.appendChild(iconeEl(ic, { tam: 34 })); }
     const cam = el("span", "cam"); cam.appendChild(svg(IC.camera)); foto.append(cam, inp);
     fbts.hidden = !st.foto; bAjustar.hidden = !fotoOriginal && !st.foto;
   };
@@ -204,7 +218,7 @@ export function abrirCadastroPet(op) {
   bTirar.addEventListener("click", () => { st.foto = ""; fotoOriginal = null; pintarFoto(); pintarResumo(); });
 
   // 2) Identificação
-  const sId = secao("Identificação", "pata");
+  const sId = secao(achado ? "Espécie" : "Identificação", "pata");
   const nome = el("input"); nome.type = "text"; nome.id = "pcNome"; nome.maxLength = 40; nome.placeholder = "Nome do pet"; nome.value = v.nome || ""; nome.autocomplete = "off";
   const idade = el("input"); idade.type = "text"; idade.id = "pcIdade"; idade.maxLength = 20; idade.placeholder = "Idade (ex.: 3 anos)"; idade.value = v.idade || ""; idade.autocomplete = "off";
   const lNome = el("label", "pc-l"); lNome.append(el("span", null, "Nome"), nome);
@@ -213,12 +227,12 @@ export function abrirCadastroPet(op) {
   const esp = el("div", "pc-especies");
   for (const [k, [n]] of Object.entries(ESPECIES)) {
     const b = el("button", "pc-esp"); b.type = "button"; b.dataset.especie = k; b.setAttribute("aria-pressed", String(st.especie === k));
-    const [ic, cor] = iconeEspecie(k); b.append(iconeEl(ic, { cor, tam: 22, fundo: true }), el("span", null, n));
+    const [ic] = iconeEspecie(k); b.append(iconeEl(ic, { tam: 22 }), el("span", null, n));
     b.addEventListener("click", () => { st.especie = k; esp.querySelectorAll("button").forEach((y) => y.setAttribute("aria-pressed", String(y === b))); if (!st.foto) pintarFoto(); pintarSug(); if (typeof trocarPorte === "function") trocarPorte(); pintarResumo(); });
     esp.appendChild(b);
   }
   lEsp.appendChild(esp);
-  sId.append(lNome, lIdade, lEsp);
+  if (achado) { lEsp.firstChild.remove(); sId.append(lEsp); } else sId.append(lNome, lIdade, lEsp);
 
   // 3) Características: sexo e porte em cartões claros (marcado = borda e fundo azul + ✓), raça e cores
   const sCar = secao("Características", "paleta");
@@ -262,8 +276,8 @@ export function abrirCadastroPet(op) {
   lCor.replaceChildren(tituloCor, cores); sCar.appendChild(lCor); pintarCores();
 
   // 4) Segurança: o que ajuda a achar o pet se ele sumir
-  const sSeg = secao("Para achar se ele sumir", "escudo");
-  sSeg.appendChild(el("p", "pc-dica", "Quanto mais completo, mais fácil alguém reconhecer o seu pet pelos alertas da Help Floripa."));
+  const sSeg = secao(achado ? "Para achar o tutor" : "Para achar se ele sumir", "escudo");
+  sSeg.appendChild(el("p", "pc-dica", achado ? "Comparamos com os pets perdidos perto e com o mesmo microchip e avisamos os possíveis tutores." : "Quanto mais completo, mais fácil alguém reconhecer o seu pet pelos alertas da Help Floripa."));
   const lSin = el("label", "pc-l"); lSin.appendChild(el("span", null, "Sinais particulares"));
   const sinais = el("textarea"); sinais.id = "pcSinais"; sinais.maxLength = 300; sinais.placeholder = "Coleira, manchas, cicatriz, jeito de andar..."; sinais.value = v.sinais || "";
   sinais.addEventListener("input", () => pintarResumo());
@@ -274,23 +288,33 @@ export function abrirCadastroPet(op) {
   sSeg.append(lSin, lChip);
   const vis = el("label", "pc-chave"); const vtx = el("span", "tx"); vtx.append(el("b", null, "Aparecer nas buscas"), el("small", null, "Se ele sumir, quem encontrar um animal parecido acha você. Recomendado."));
   const vch = el("span", "pc-ch"); const vin = el("input"); vin.type = "checkbox"; vin.id = "pcVisivel"; vin.checked = p ? p.visivel !== false : true; vch.append(vin, el("span"));
-  vis.append(vtx, vch); sSeg.appendChild(vis);
+  vis.append(vtx, vch);
+  const onde = el("input"); onde.type = "text"; onde.id = "pcOnde"; onde.maxLength = 120; onde.placeholder = "Rua, bairro ou ponto de referência"; onde.autocomplete = "off";
+  if (achado) { const lOnde = el("label", "pc-l"); lOnde.append(el("span", null, "Onde encontrou"), onde); sSeg.appendChild(lOnde); }
+  else sSeg.appendChild(vis);
 
   // Resumo vivo no cartão do RG + quanto do cadastro está completo
   const pintarResumo = () => {
-    nmv.textContent = nome.value.trim() || "Nome do pet";
+    nmv.textContent = achado ? (ESPECIES[st.especie]?.[0] || "Animal") + " encontrado" : nome.value.trim() || "Nome do pet";
     const partes = [ESPECIES[st.especie]?.[0], raca.value.trim(), { m: "macho", f: "fêmea" }[st.sexo], nomePorte(st.especie, st.porte).toLowerCase()].filter(Boolean);
     sub.textContent = partes.join(" · ") || "Preencha os dados abaixo";
-    const itens = [st.foto, nome.value.trim(), idade.value.trim(), st.sexo, st.porte, raca.value.trim(), st.cores.size, sinais.value.trim()];
+    const itens = achado ? [st.foto, st.sexo, st.porte, raca.value.trim(), st.cores.size, sinais.value.trim()] : [st.foto, nome.value.trim(), idade.value.trim(), st.sexo, st.porte, raca.value.trim(), st.cores.size, sinais.value.trim()];
     const pct = Math.round(itens.filter(Boolean).length / itens.length * 100);
     barra.style.setProperty("--p", pct + "%"); barra.firstChild.style.width = pct + "%"; barra.title = `Cadastro ${pct}% completo`;
   };
   nome.addEventListener("input", pintarResumo); idade.addEventListener("input", pintarResumo);
   pintarResumo();
   const pe = el("div", "pc-pe");
-  const salvar = el("button", "pc-salvar", p ? "Salvar alterações" : "Criar o RG do pet"); salvar.type = "button"; salvar.id = "pcSalvar";
-  const ok = () => { salvar.disabled = !nome.value.trim(); }; nome.addEventListener("input", ok); ok();
+  const salvar = el("button", "pc-salvar", achado ? "Publicar e procurar o tutor" : p ? "Salvar alterações" : "Criar o RG do pet"); salvar.type = "button"; salvar.id = "pcSalvar";
+  const ok = () => { salvar.disabled = !achado && !nome.value.trim(); }; nome.addEventListener("input", ok); ok();
   salvar.addEventListener("click", async () => {
+    if (achado) {
+      salvar.disabled = true; salvar.textContent = "Publicando...";
+      const dadosA = { especie: st.especie, cores: [...st.cores], porte: st.porte, sexo: st.sexo, raca: raca.value.trim().slice(0, 40), sinais: sinais.value.trim().slice(0, 300), microchip: normalizarId(chip.value).slice(0, 20), onde: onde.value.trim().slice(0, 120), ...(st.foto ? { foto: st.foto } : {}) };
+      try { if ((await op.aoEnviar?.(dadosA)) !== false) sair(); else { salvar.disabled = false; salvar.textContent = "Publicar e procurar o tutor"; } }
+      catch { salvar.disabled = false; salvar.textContent = "Publicar e procurar o tutor"; }
+      return;
+    }
     if (!nome.value.trim()) { nome.focus(); return; }
     salvar.disabled = true; salvar.textContent = "Salvando...";
     const conta = op.dados || {};
@@ -319,6 +343,6 @@ export function abrirCadastroPet(op) {
   c.append(topo, corpo, pe);
   document.body.appendChild(fundo);
   estadoInicial = retrato();
-  setTimeout(() => { if (!p) nome.focus({ preventScroll: true }); }, 280);
+  setTimeout(() => { if (!p && !achado) nome.focus({ preventScroll: true }); }, 280);
   return { fechar: sair };
 }

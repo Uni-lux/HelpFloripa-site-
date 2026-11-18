@@ -9,7 +9,7 @@
 // Ações: ver o anúncio, ficha do vendedor, esconder o negócio, avisar a vítima (pista da equipe), ver quem registrou
 // (autoria) e tirar ocorrência falsa do ar.
 // =====================================================
-import { C, h, ms, data, dataHora, relativo, selo, toast, registrar, abrirFicha, pode, semPermissao, esconderItem } from "./admin-base.js?v=30";
+import { C, h, ms, data, dataHora, relativo, selo, toast, registrar, abrirFicha, pode, semPermissao, esconderItem, enviarAviso } from "./admin-base.js?v=30";
 import { destaque, num } from "./graficos.js?v=7";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";
@@ -29,14 +29,15 @@ function chips(opcoes, atual, aoMudar) {
 
 async function ler(fb) {
   const q = (col, ...f) => fb.getDocs(fb.query(fb.collection(fb.db, col), ...f)).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch((e) => { console.warn(col, e.code || e.message); return null; });
-  const [oc, vendas, sos, perdidos, achados] = await Promise.all([
+  const [oc, vendas, sos, perdidos, achados, desap] = await Promise.all([
     q("ocorrencias", fb.where("status", "==", "ativo"), fb.limit(400)),
     q("veiculos_venda", fb.limit(800)),
     q("sos", fb.where("status", "in", ["aberto", "atendido"]), fb.limit(150)),
     q("pets", fb.where("status", "==", "perdido"), fb.limit(300)),
-    q("pets_achados", fb.where("status", "==", "ativo"), fb.limit(300))
+    q("pets_achados", fb.where("status", "==", "ativo"), fb.limit(300)),
+    q("desaparecidos", fb.where("status", "in", ["analise", "ativo"]), fb.limit(200))
   ]);
-  return { oc: oc || [], vendas: vendas || [], sos: (sos || []).filter((s) => sosVivo(s)), perdidos: perdidos || [], achados: achados || [], semRegras: vendas === null };
+  return { oc: oc || [], vendas: vendas || [], sos: (sos || []).filter((s) => sosVivo(s)), perdidos: perdidos || [], achados: achados || [], desap: desap || [], semRegras: vendas === null };
 }
 // Cruzamentos (tudo no aparelho da equipe).
 async function cruzar(d) {
@@ -77,17 +78,19 @@ export function seguranca(el) {
       destaque({ rotulo: "Ocorrências ativas", valor: d.oc.length, dica: `${d.oc.filter((o) => ms(o.quando) > Date.now() - 7 * 864e5).length} nos últimos 7 dias` }),
       destaque({ rotulo: "Veículos roubados", valor: d.oc.filter((o) => ehVeiculo(o.objeto)).length, dica: "carros e motos com alerta" }),
       destaque({ rotulo: "Veículos à venda", valor: d.vendas.length, dica: "com a placa registrada (oculta)" }),
+      destaque({ rotulo: "Desaparecidos", valor: d.desap.length, dica: `${d.desap.filter((x) => x.status === "analise").length} esperando conferir o boletim`, alerta: d.desap.some((x) => x.status === "analise") }),
       destaque({ rotulo: "Pets perdidos", valor: d.perdidos.length, dica: `${d.achados.length} encontrados esperando o tutor` })
     );
-    filtros.replaceChildren(chips([["cruzamentos", `Cruzamentos (${cruz.length})`], ["help", `Help (${d.sos.length})`], ["ocorrencias", `Ocorrências (${d.oc.length})`], ["vendas", `Veículos à venda (${d.vendas.length})`], ["pets", `Pets (${d.perdidos.length})`]], aba, (v) => { aba = v; pintar(); }));
+    filtros.replaceChildren(chips([["cruzamentos", `Cruzamentos (${cruz.length})`], ["help", `Help (${d.sos.length})`], ["ocorrencias", `Ocorrências (${d.oc.length})`], ["vendas", `Veículos à venda (${d.vendas.length})`], ["desaparecidos", `Desaparecidos (${d.desap.length})`], ["pets", `Pets (${d.perdidos.length})`]], aba, (v) => { aba = v; pintar(); }));
     if (d.semRegras) filtros.appendChild(h("div", "ad-aviso-papel", "Veículos à venda aparecem depois que as regras novas forem publicadas (coleção veiculos_venda)."));
     pintar();
   }
   function pintar() {
     const itens = aba === "cruzamentos" ? cruz.map(itemCruz) : aba === "help" ? d.sos.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)).map(itemSos)
       : aba === "ocorrencias" ? d.oc.sort((a, b) => ms(b.quando) - ms(a.quando)).map((o) => itemOc(o)) : aba === "vendas" ? d.vendas.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm)).map(itemVenda)
+      : aba === "desaparecidos" ? d.desap.sort((a, b) => (a.status === "analise" ? 0 : 1) - (b.status === "analise" ? 0 : 1) || ms(b.criadoEm) - ms(a.criadoEm)).map(itemDesap)
       : d.perdidos.sort((a, b) => ms(b.perdidoEm) - ms(a.perdidoEm)).map(itemPet);
-    lista.replaceChildren(...(itens.length ? itens : [h("div", "ad-vazio", { cruzamentos: "Nenhum cruzamento agora. O painel confere de novo sempre que você abre esta seção.", help: "Nenhum pedido de Help aberto.", ocorrencias: "Nenhuma ocorrência ativa.", vendas: "Nenhum carro ou moto à venda.", pets: "Nenhum pet perdido." }[aba])]));
+    lista.replaceChildren(...(itens.length ? itens : [h("div", "ad-vazio", { cruzamentos: "Nenhum cruzamento agora. O painel confere de novo sempre que você abre esta seção.", help: "Nenhum pedido de Help aberto.", ocorrencias: "Nenhuma ocorrência ativa.", vendas: "Nenhum carro ou moto à venda.", desaparecidos: "Nenhum aviso de desaparecimento.", pets: "Nenhum pet perdido." }[aba])]));
   }
   // ---------- itens ----------
   function linhaOc(o) {
@@ -171,6 +174,39 @@ export function seguranca(el) {
     top.append(selo(v.tipo === "moto" ? "Moto" : "Carro", "neutro"), alerta ? selo("Alerta de roubo", "critico") : selo("Sem alerta", "bom"), h("b", null, v.item || nomeVeiculo(v)), h("span", "quando", relativo(v.criadoEm)));
     c.append(top, h("div", "meta", `${nomeVeiculo(v)} · ${[v.cor, v.cidade, v.uf].filter(Boolean).join(" · ")} · ${v.tipoNegocio === "automotivo" ? "Automotivo" : "Shopping"}`));
     acoesVenda(c, v, null); return c;
+  }
+  function itemDesap(x) {
+    const c = h("article", "ad-item"); const top = h("div", "cab");
+    const COND = { crianca: "Criança/adolescente", idoso: "Idoso", demencia: "Alzheimer/confusão", deficiencia: "Deficiência/autismo", adulto: "Adulto", outro: "Outra situação" };
+    const PAR = { pais: "pai ou mãe", filho: "filho(a)", conjuge: "cônjuge", irmao: "irmão(ã)", parente: "outro parente", responsavel: "responsável legal", amigo: "amigo/vizinho" };
+    top.append(selo(x.status === "analise" ? "Conferir boletim" : "Publicado", x.status === "analise" ? "critico" : "atencao"), h("b", null, x.nome), h("span", "quando", relativo(x.criadoEm)));
+    c.appendChild(top);
+    if (/^(data:image|https:\/\/firebasestorage)/.test(String(x.foto || ""))) { const im = document.createElement("img"); im.src = x.foto; im.alt = "Foto"; im.className = "ad-pub-img"; im.style.maxWidth = "160px"; c.appendChild(im); }
+    c.append(h("div", "meta", `${COND[x.condicao] || ""}${Number.isInteger(x.idade) ? " · " + x.idade + " anos" : ""} · visto ${dataHora(x.quando)}${x.visto ? " em " + x.visto : ""} · ${[x.cidade, x.uf].filter(Boolean).join("/")}`),
+      h("div", "meta", `Boletim: ${x.bo} · registrado por ${x.autorNome || "?"} (${PAR[x.parentesco] || "?"})`), h("div", "trecho", x.descricao || ""));
+    const ac = h("div", "ad-acoes");
+    ac.appendChild(btn("Ficha de quem registrou", "mini", () => abrirFicha(x.autorId)));
+    if (pode("moderar")) {
+      if (x.status === "analise") ac.appendChild(btn("Boletim conferido: publicar", "mini", async () => {
+        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "ativo", atualizadoEm: C.fb.serverTimestamp() });
+        await enviarAviso(x.autorId, { titulo: "Aviso de desaparecimento publicado", texto: `O aviso de ${x.nome} foi publicado para quem está perto. Pistas chegam em Help e alertas › Perdidos › Pessoas.`, tipo: "info" }).catch(() => {});
+        await registrar("publicar_desaparecido", x.autorId, `${x.nome} · BO ${x.bo}`, `desaparecidos:${x.id}`);
+        x.status = "ativo"; cache = null; toast("Aviso publicado"); pintar();
+      }));
+      ac.appendChild(btn(x.status === "analise" ? "Recusar" : "Tirar do ar", "mini perigo", async () => {
+        if (!(await confirmarHF({ titulo: x.status === "analise" ? "Recusar este aviso?" : "Tirar o aviso do ar?", texto: "Use quando o boletim não confere, a pessoa já foi encontrada ou há sinal de abuso (alguém tentando achar quem fugiu).", ok: x.status === "analise" ? "Recusar" : "Tirar do ar", icone: "escudo" }))) return;
+        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "removido", atualizadoEm: C.fb.serverTimestamp() });
+        await enviarAviso(x.autorId, { titulo: "Aviso de desaparecimento não publicado", texto: "A equipe não conseguiu confirmar o aviso. Fale com a polícia (190) e, se precisar, com o Suporte.", tipo: "alerta" }).catch(() => {});
+        await registrar("remover_desaparecido", x.autorId, `${x.nome} · BO ${x.bo}`, `desaparecidos:${x.id}`);
+        d.desap = d.desap.filter((y) => y !== x); cache = null; toast("Feito"); pintar();
+      }));
+      ac.appendChild(btn("Ver pistas", "mini", async (b) => {
+        const s = await C.fb.getDocs(C.fb.query(C.fb.collection(C.fb.db, "desaparecidos", x.id, "pistas"), C.fb.limit(50)));
+        const l = s.docs.map((y) => y.data()).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+        b.replaceWith(h("div", "trecho", l.length ? l.map((p) => `• ${dataHora(p.criadoEm)}: ${p.texto}${Number.isFinite(p.lat) ? ` (${p.lat}, ${p.lng})` : ""}`).join("\n") : "Nenhuma pista ainda."));
+      }));
+    }
+    c.appendChild(ac); return c;
   }
   function itemPet(p) {
     const c = h("article", "ad-item"); const top = h("div", "cab");

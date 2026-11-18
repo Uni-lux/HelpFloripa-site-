@@ -2881,6 +2881,21 @@ chat da equipe).
   ações: ver anúncio, ficha, esconder o negócio, avisar a vítima (pista da equipe). Conta apagada leva `veiculos` e
   `veiculos_venda`. Teste `t-veiculos-presentes.mjs` (35). `t-sos-etapas` para no "1 pessoa recebe" também no código de antes.
   Atenção nos testes: `git stash` troca o `firestore.rules` e o emulador fica com as regras velhas — rodar `node trocar-regras.mjs main`.
+- **Perdidos (pets e pessoas), formulário único do pet e Regras na Comunidade (18/11/2026, PR depois do #238, MUDA REGRAS —
+  não publicadas; 23 partes, 1282 testes):** prints dele. Help e alertas: cadastro do pet e "Encontrei um animal" usam o
+  MESMO formulário do Social (`abrirCadastroPet` em pet-cadastro.js; `op.modo: "achado"` sem nome/idade, com `#pcOnde`, e
+  `op.aoEnviar(dados)` grava em `pets_achados`); `camposPet`/formulário antigo saíram. Ícones sem cores (espécies, foto
+  vazia, títulos das seções; marcado = azul do site). Página compacta (hero de 1 linha, 5 telefones `tel:` numa linha, nomes
+  curtos). Aba **Perdidos** (`data-aba="pets"`) com Pets | Pessoas (`.al-seg`, `?quem=pessoas`). **Desaparecidos**
+  `desaparecidos/{id}` {autorId, autorNome, nome, idade?, condicao crianca|idoso|demencia|deficiencia|adulto|outro,
+  parentesco, descricao, sinais, visto, quando, bo (OBRIGATÓRIO), foto?, lat/lng/geo4 (~100 m), cidade, uf, status}: nasce
+  `analise` + chamado urgente (suporte categoria sos) e SÓ a moderação publica (`ativo`) depois de conferir o boletim
+  (evita usar o site para achar quem fugiu de violência); autor marca encontrado; pistas `desaparecidos/{id}/pistas`
+  (anônima = `pistas_desap_autoria/{id}_{p}` só para a moderação; com localização aproximada opcional); "Encontrei alguém
+  perdido" = passos (190, não publicar foto) + desaparecidos perto para mandar pista. Painel → Segurança e alertas → aba
+  Desaparecidos (publicar/recusar com aviso à pessoa, pistas, ficha). limpeza-conta apaga `desaparecidos`. Comunidade:
+  "Regras" abre `#folhaRegras` na própria página (antes ia para diretrizes.html); cartões do vazio em 1 coluna.
+  Teste `t-perdidos.mjs` (18); `t-sos-pets`, `t-help-presentes2`, `t-mural-novo` atualizados.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -2890,7 +2905,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1266 testes; inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1282 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

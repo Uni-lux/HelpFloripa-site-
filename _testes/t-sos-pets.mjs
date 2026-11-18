@@ -64,13 +64,13 @@ await pa.click("text=Já estou bem (resolvido)"); await pa.waitForTimeout(1500);
 ok((await db.doc(`sos/${sos.id}`).get()).data().status === "resolvido", "Ana encerrou: resolvido");
 
 // ---------- RG do pet ----------
-await pa.goto(BASE + "alertas.html?aba=pets"); await pa.waitForSelector("text=Cadastrar meu pet (RG)", { timeout: 15000 });
-await pa.click("text=Cadastrar meu pet (RG)");
-await pa.fill("#alPetNome", "Pipoca");
-await pa.click('.ent-folha [data-cor="caramelo"]'); await pa.click('.ent-folha [data-cor="branco"]');
-await pa.click('#alPetPorte [data-v="M"]'); await pa.click('#alPetSexo [data-v="f"]');
-await pa.fill("#alPetRaca", "SRD"); await pa.fill("#alPetSinais", "Coleira vermelha e mancha na orelha");
-await pa.click("#alPetSalvar"); await pa.waitForTimeout(2000);
+await pa.goto(BASE + "alertas.html?aba=pets"); await pa.waitForSelector('[data-acao="pet"]', { timeout: 15000 });
+await pa.click('[data-acao="pet"]'); await pa.waitForSelector("#pcNome");
+await pa.fill("#pcNome", "Pipoca");
+await pa.click('.pc [data-cor="caramelo"]'); await pa.click('.pc [data-cor="branco"]');
+await pa.click('#pcPorte [data-v="M"]'); await pa.click('#pcSexo [data-v="f"]');
+await pa.fill("#pcRaca", "SRD"); await pa.fill("#pcSinais", "Coleira vermelha e mancha na orelha");
+await pa.click("#pcSalvar"); await pa.waitForTimeout(2000);
 const pet = (await db.collection("pets").where("donoId", "==", U.ana).get()).docs[0];
 ok(pet?.data().nome === "Pipoca" && pet.data().cores.length === 2, "RG do pet salvo");
 await pa.click(`[data-pet="${pet.id}"]`); await pa.waitForSelector(".al-rg", { timeout: 8000 });
@@ -84,10 +84,10 @@ ok((await db.doc(`pets/${pet.id}`).get()).data().status === "perdido", "Pipoca m
 
 await pf.goto(BASE + "alertas.html?aba=pets"); await pf.waitForSelector(`[data-pet="${pet.id}"]`, { timeout: 15000 });
 ok(true, "Fabi vê a Pipoca em Perdidos perto");
-await pf.click("text=Encontrei um animal");
-await pf.click('.ent-folha [data-cor="caramelo"]'); await pf.click('#alPetPorte [data-v="M"]');
-await pf.fill("#alPetSinais", "coleira vermelha"); await pf.fill("#alAchouOnde", "Perto da Praça XV");
-await pf.click("#alAchouOk"); await pf.waitForTimeout(4000);
+await pf.click('[data-acao="achei"]'); await pf.waitForSelector("#pcOnde");
+await pf.click('.pc [data-cor="caramelo"]'); await pf.click('#pcPorte [data-v="M"]');
+await pf.fill("#pcSinais", "coleira vermelha"); await pf.fill("#pcOnde", "Perto da Praça XV");
+await pf.click("#pcSalvar"); await pf.waitForTimeout(4000);
 ok(/Muito parecido|Parecido/.test(await pf.textContent(".ent-folha")), "possíveis tutores com a semelhança: " + ((await pf.textContent(".ent-folha")).match(/(Muito parecido|Parecido)[^·]*· \d+%/) || [""])[0]);
 const convAF = [U.ana, U.fabi].sort().join("_");
 await pf.waitForTimeout(1500);

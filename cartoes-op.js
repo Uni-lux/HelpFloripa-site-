@@ -6,7 +6,7 @@
 //   grupoOps(cartões, { colunas: 1|2|3, rotulo, unico: true })     → <div class="op-grade"> (marca só um por vez)
 // Sem dependências além do icones-hf.js; o CSS vem junto (uma vez por página).
 // =====================================================
-import { iconeEl } from "./icones-hf.js?v=3";
+import { iconeEl } from "./icones-hf.js?v=4";
 
 let estilo = false;
 function css() {
