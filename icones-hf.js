@@ -55,7 +55,21 @@ const P = {
   bola: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5l4 3-1.5 4.5h-5L8 10.5z"/>',
   vela: '<path d="M9 10h6v10.5H9z"/><path d="M12 10V7.5M12 3c1.5 1.6 1.8 3 0 4.5-1.8-1.5-1.5-2.9 0-4.5z"/>',
   foto: '<rect x="3" y="5.5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 5.5l1.2-2h4.6l1.2 2"/>',
-  linhaTempo: '<path d="M6 3.5v17"/><circle cx="6" cy="7" r="2"/><circle cx="6" cy="16" r="2"/><path d="M10.5 7h9M10.5 16h6"/>'
+  linhaTempo: '<path d="M6 3.5v17"/><circle cx="6" cy="7" r="2"/><circle cx="6" cy="16" r="2"/><path d="M10.5 7h9M10.5 16h6"/>',
+  // 18/11/2026: ocorrências, consulta, veículos e Comunidade
+  lupa: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l5 5"/>',
+  celular: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
+  bicicleta: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5l4-7h6l3 7M9.5 9.5l3 7h-7M14 6.5h2.5l-1 3"/>',
+  notebook: '<rect x="4" y="5" width="16" height="10.5" rx="1.5"/><path d="M2 19h20l-1.5-3.5h-17z"/>',
+  documento: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 10h4.5M14 13h3"/>',
+  placa: '<rect x="2.5" y="7" width="19" height="10" rx="1.5"/><path d="M2.5 9.5h19"/><path d="M6 14h3M10.5 14h3M15 14h3"/>',
+  anzol: '<path d="M14 3v10a5 5 0 1 1-10 0v-1.5l2.5 2.5"/><path d="M14 3h4"/>',
+  olho: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  trocar: '<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>',
+  convidar: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M18.5 8v6M15.5 11h6"/>',
+  brasil: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.3 3.5 8.5S14.5 18 12 20.5C9.5 18 8.5 15.2 8.5 12S9.5 6 12 3.5z"/>',
+  alerta: '<path d="M12 3.5L21.5 20h-19z"/><path d="M12 10v4.5M12 17v.5"/>',
+  cadeado: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2"/>'
 };
 export const NOMES_ICONES = Object.keys(P);
 

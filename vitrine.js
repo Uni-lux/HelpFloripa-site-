@@ -666,6 +666,13 @@ export function abrirProduto(n, idx, opcoes = {}) {
   cab.append(el("h3", null, i.nome), precoComDesconto(i));
   if (est !== null && est > 0) cab.appendChild(el("span", "vt-tag " + (est === 1 ? "" : "neutra"), est === 1 ? "Última unidade" : `${est} disponíveis`));
   ct.appendChild(cab);
+  // Carro/moto (18/11/2026): a placa fica oculta; o selo diz que ela foi registrada e conferida contra os alertas de roubo.
+  if (i.veiculo?.conferido) {
+    const sv = el("div", "vd-vei-selo");
+    sv.append(icone("escudo"), el("span"));
+    sv.lastChild.append(el("strong", null, "Placa registrada e conferida"), el("small", null, "Sem alerta de roubo ou furto no Help Floripa quando foi anunciado. Antes de pagar, confira o documento (CRLV) e faça a vistoria."));
+    ct.appendChild(sv);
+  }
 
   const escolha = { tam: "", cor: "" };
   const tams = Array.isArray(i.tamanhos) ? i.tamanhos.filter(Boolean) : [];
@@ -676,6 +683,7 @@ export function abrirProduto(n, idx, opcoes = {}) {
   if (i.descricao) { ct.appendChild(titulo4("Descrição")); ct.appendChild(el("p", "texto", i.descricao)); }
   const ficha = String(i.ficha || "").split("\n").map((l) => l.trim()).filter(Boolean);
   const fichaLinhas = [
+    ...(i.veiculo ? [["Veículo", i.veiculo.tipo === "moto" ? "Moto" : "Carro"], ...(i.veiculo.marca ? [["Marca", i.veiculo.marca]] : []), ...(i.veiculo.modelo ? [["Modelo", i.veiculo.modelo]] : []), ...(i.veiculo.ano ? [["Ano", i.veiculo.ano]] : []), ...(i.veiculo.cor ? [["Cor", i.veiculo.cor]] : [])] : []),
     ...(i.marca ? [["Marca", i.marca]] : []), ...(CONDICAO[i.condicao] ? [["Estado", CONDICAO[i.condicao]]] : []),
     ...(tams.length ? [["Tamanhos", tams.join(", ")]] : []), ...(cores.length ? [["Cores", cores.join(", ")]] : []),
     ...ficha.map((l) => { const p = l.indexOf(":"); return p > 0 ? [l.slice(0, p).trim(), l.slice(p + 1).trim()] : ["", l]; })

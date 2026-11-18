@@ -34,7 +34,7 @@ ok(x.r === "50%" && x.w === 36, "botão de trocar a pessoa redondo (sem o quadra
 await p.locator('[data-tipo="pix"]').click(); await p.waitForTimeout(400);
 await p.locator(".ent-folha .ent-chip").first().click(); await p.waitForTimeout(300);
 ok(!(await p.locator("#prResumo").isHidden()) && (await p.locator("#prResumo").textContent()).includes("R$"), "resumo antes de enviar");
-const cores = await p.evaluate(() => [...document.querySelectorAll(".ent-folha .hf-ic")].map((i) => getComputedStyle(i).color));
+const cores = await p.evaluate(() => [...document.querySelectorAll(".ent-folha .hf-ic")].filter((i) => !i.closest('[aria-pressed="true"]')).map((i) => getComputedStyle(i).color));
 ok(new Set(cores).size <= 1, `ícones numa cor só (${new Set(cores).size})`);
 ok(!erros.length, "sem erros: " + erros.join(" | "));
 process.exit(process.exitCode || 0);

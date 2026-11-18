@@ -81,7 +81,8 @@
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
       allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm', 'veiculo'])
+                    && (!('veiculo' in d()) || veiculoOcOk(d().veiculo))
                     && d().anonimo is bool
                     && (d().anonimo
                         ? (d().autorId == '' && !('autorNome' in d())
@@ -117,43 +118,32 @@
         allow update, delete: if false;
       }
     }
-    match /ocorrencias_autoria/{id} {
-      allow get: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
-      allow list: if podeModerar();
-      allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-                    && !exists(/databases/$(database)/documents/ocorrencias/$(id))
-                    && getAfter(/databases/$(database)/documents/ocorrencias/$(id)).data.anonimo == true;
-      allow update, delete: if false;
-    }
-    match /pistas_autoria/{id} {
-      allow read: if podeModerar();
-      allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-                    && getAfter(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
-      allow update, delete: if false;
+    // Carro/moto da ocorrência (18/11/2026): marca, modelo, ano e cor para achar anúncios parecidos (a placa vai no
+    // identificador, como antes).
+    function veiculoOcOk(v) {
+      return v is map && v.keys().hasOnly(['marca', 'modelo', 'ano', 'cor'])
+          && valorTextoAte(v.get('marca', ''), 30) && valorTextoAte(v.get('modelo', ''), 40) && valorTextoAte(v.get('cor', ''), 20)
+          && v.get('ano', '') is string && v.get('ano', '').matches('^([0-9]{4})?$');
     }
 
-    // RG do pet: o dono cadastra; "visivel" deixa o pet entrar nas buscas de animais encontrados.
-    function petOk(d) {
-      return d.especie in ['cao', 'gato', 'ave', 'outro']
-          && d.cores is list && d.cores.size() <= 4
-          && d.get('porte', '') in ['', 'P', 'M', 'G'] && d.get('sexo', '') in ['', 'm', 'f', '?']
-          && valorTextoAte(d.get('raca', ''), 40) && valorTextoAte(d.get('sinais', ''), 300)
-          && d.get('microchip', '') is string && d.get('microchip', '').matches('^[A-Z0-9]{0,20}$')
-          && (!('foto' in d) || (fotoOk(d.foto) && d.foto.size() <= 300000));
-    }
-    match /pets/{id} {
+    // VEÍCULOS (18/11/2026): o carro/moto da pessoa, com a placa. Só o dono e a moderação leem.
+    match /veiculos/{id} {
       function d() { return request.resource.data; }
-      allow get, list: if logado() && (resource.data.visivel == true || resource.data.donoId == request.auth.uid || podeModerar());
+      allow get, list: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
       allow create, update: if logado() && emailOk() && d().donoId == request.auth.uid
                     && (resource == null || resource.data.donoId == request.auth.uid)
-                    && d().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
-                    && d().nome is string && d().nome.size() >= 1 && d().nome.size() <= 40
-                    && valorTextoAte(d().get('donoNome', ''), 80) && valorTextoAte(d().get('idade', ''), 20)
-                    && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
-                    && petOk(d())
-                    && d().status in ['casa', 'perdido'] && d().visivel is bool
-                    && d().get('geo4', '').matches('^([0-9a-z]{4})?$')
-                    && d().atualizadoEm == request.time;
+                    && d().keys().hasOnly(['donoId', 'tipo', 'placa', 'placaHash', 'marca', 'modelo', 'ano', 'cor', 'apelido', 'chassiFim', 'status', 'ocorrenciaId', 'roubadoEm', 'criadoEm', 'atualizadoEm'])
+                    && d().tipo in ['carro', 'moto']
+                    && d().placa is string && d().placa.matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$')
+                    && d().placaHash is string && d().placaHash.matches('^[a-f0-9]{64}$')
+                    && valorTextoAte(d().get('marca', ''), 30) && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
+                    && valorTextoAte(d().get('apelido', ''), 30)
+                    && d().get('ano', '') is string && d().get('ano', '').matches('^([0-9]{4})?$')
+                    && d().get('chassiFim', '') is string && d().get('chassiFim', '').matches('^[A-Z0-9]{0,6}$')
+                    && d().status in ['ok', 'roubado', 'recuperado']
+                    && valorTextoAte(d().get('ocorrenciaId', ''), 40)
+                    && d().atualizadoEm == request.time
+                    && (resource == null ? d().criadoEm == request.time : d().criadoEm == resource.data.criadoEm);
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
     }
 // ===== FIM DA PARTE 22 DE 23 =====

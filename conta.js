@@ -112,7 +112,7 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
     pegar("relacoes", "seguidorId"), pegar("relacoes", "alvoId"), pegar("bloqueios", "bloqueadorId"),
     pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"), pegar("comunidade", "donoId"),
     pegar("stories", "autorId"), pegar("stories_restritos", "autorId"), pegar("destaques", "uid"), pegar("contagem_lembretes", "uid"), // flashes, destaques e lembretes de contagem
-    pegar("agendadas", "autorId"), pegar("guardados", "dono"), pegar("momentos", "uid") /* Salão */ // publicações agendadas e conteúdo escondido
+    pegar("agendadas", "autorId"), pegar("guardados", "dono"), pegar("momentos", "uid") /* Salão */, pegar("veiculos", "donoId"), pegar("veiculos_venda", "donoId") /* veículos */ // publicações agendadas e conteúdo escondido
   ]);
   const docs = [...new Map(lotes.flatMap((l) => l.docs).map((d) => [d.ref.path, d])).values()];
   // Estrelas dadas: saem junto do resumo da publicação (diario_notas); publicação que já não existe, só a nota.

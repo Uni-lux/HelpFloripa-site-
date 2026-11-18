@@ -70,8 +70,8 @@ ok(await esperar(async () => { const x = (await db.collection("sos").where("uid"
 await db.doc(`pref_publicas/${U.ana}`).set({ presentes: "todos" }, { merge: true });
 const negId = (await db.collection("negocios").where("donoId", "==", U.bruno).where("tipo", "==", "servicos").get()).docs[0].id;
 await pf.goto(BASE + `presentes.html?para=${U.ana}&negocio=${negId}&tipo=vale`); await pf.waitForTimeout(3500);
-ok(await pf.locator('.ent-op[data-tipo="vale"][aria-checked="true"]').count() === 1, "“Dar de presente” num serviço abre o vale-presente");
-ok(await pf.locator(".ent-op .hf-ic svg").count() >= 6, "tipos de presente com ícones");
+ok(await pf.locator('.op-card[data-tipo="vale"][aria-pressed="true"]').count() === 1, "“Dar de presente” num serviço abre o vale-presente");
+ok(await pf.locator(".op-card[data-tipo] .hf-ic svg").count() >= 6, "tipos de presente com ícones");
 await pf.locator(".ent-chips .ent-chip", { hasText: "100" }).click();
 await pf.screenshot({ path: "saida/presente-vale.png" });
 await pf.click("#prMandar");

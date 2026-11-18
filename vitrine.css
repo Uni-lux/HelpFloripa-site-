@@ -1046,3 +1046,9 @@ a.vt-dono strong { color: var(--vt-text); font-weight: 750; text-decoration: und
 .vt-toast { width: max-content; max-width: min(calc(100% - 32px), 440px); box-sizing: border-box; text-align: center; line-height: 1.35; text-wrap: balance; overflow-wrap: break-word; animation: hfToastEntra .22s ease-out; }
 @keyframes hfToastEntra { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .toast, .vt-toast, .cm-toast, .ad-toast { animation: none !important; } }
+/* Carro/moto à venda: placa registrada e conferida (18/11/2026) */
+.vd-vei-selo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; margin: 10px 0 4px; padding: 10px 12px; border-radius: 14px; border: 1px solid color-mix(in srgb, #2fbf71 45%, var(--vt-line, rgba(127,127,127,.25))); background: color-mix(in srgb, #2fbf71 8%, transparent); }
+.vd-vei-selo > svg { color: #2fbf71; margin-top: 2px; }
+.vd-vei-selo span { display: grid; gap: 2px; }
+.vd-vei-selo strong { font-size: 14px; }
+.vd-vei-selo small { font-size: 12px; color: var(--vt-muted, #8a97a1); line-height: 1.4; }

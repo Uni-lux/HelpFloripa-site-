@@ -565,7 +565,7 @@
     import { fotoSegura } from "./seguranca.js?v=1";
     import { confirmarHF } from "./confirmar.js?v=6";
     import { ESTILOS_DUO, lerModoDuo, montarModoDuo, valorDuo, textoModoDuo, salvarModoDuo, duoDaConta } from "./duo-modo.js?v=3";
-    import { iconeEl, iconeEspecie } from "./icones-hf.js?v=2";
+    import { iconeEl, iconeEspecie } from "./icones-hf.js?v=3";
     import { QUEM_PODE } from "./presentes-base.js?v=2";
     import { CATEGORIAS, catDe, VER_MOMENTO, MAX_MOMENTOS, LIMITES_SALAO, contarSalao, MODELOS_GALERIA, modeloGaleria, DESENHO_MODELO, quando, ordenar, relacaoCom, lerMomentos, lerDestaquesFlash, fotoOk, reduzirFotoSalao } from "./salao-base.js?v=3";
     const $ = (id) => document.getElementById(id);
@@ -945,7 +945,7 @@
       }, { pe: true });
     }
     function editarPetAqui(p) {
-      import("./pet-cadastro.js?v=3").then(({ abrirCadastroPet }) => abrirCadastroPet({
+      import("./pet-cadastro.js?v=4").then(({ abrirCadastroPet }) => abrirCadastroPet({
         fb, uid: eu.uid, dados: { ...dono, ...(conta || {}) }, pet: p, toast,
         aoSalvar: (novo) => { const l = (pets.get(eu.uid) || []).filter((x) => x.id !== novo.id); l.unshift(novo); pets.set(eu.uid, l); desenharTudo(); }
       })).catch(() => toast("Não foi possível abrir agora."));

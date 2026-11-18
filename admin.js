@@ -5,6 +5,7 @@
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=30";
 import * as S from "./admin-secoes.js?v=92";
+import { seguranca } from "./admin-seguranca.js?v=1";
 import { previa, tocarSom } from "./admin-chat.js?v=46";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
 
@@ -12,7 +13,7 @@ const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
   suporte: S.suporte, denuncias: S.denuncias, reclamacoes: S.reclamacoes, sancoes: S.sancoes, negocios: S.negocios,
   parcerias: S.parcerias, planos: S.planos, comunicados: S.comunicados, registro: S.registro, equipe: S.equipe,
-  tarefas: S.tarefas, publicacoes: S.publicacoes
+  tarefas: S.tarefas, publicacoes: S.publicacoes, seguranca
 };
 let atual = "visao", ultimaPresenca = "";
 // Só os donos do site: planos (pagamentos, negociações, receita) e o registro de ações da equipe.

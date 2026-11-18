@@ -3,7 +3,8 @@
 // SOS: pede ajuda ao seu Social (cartão no Mensagens) e a quem está perto; quem aceita aparece para todos ("Fulano já
 // está ajudando"), sem duas pessoas indo à toa. Pets: RG do pet, perdido, encontrado e cruzamento de semelhança com
 // aviso automático. Roubos e furtos: ocorrência (anônima se quiser), pistas anônimas e consulta de IMEI/placa/série.
-// Parâmetros: ?aba=sos|pets|roubos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
+// Veículos (18/11/2026): carro/moto com a placa guardada só com o dono, roubado → ocorrência + busca de anúncios.
+// Parâmetros: ?aba=sos|pets|roubos|veiculos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=169";
 import { confirmarHF } from "./confirmar.js?v=6";
@@ -14,7 +15,9 @@ import {
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=2";
 import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=6";
-import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=2";
+import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=3";
+import { cartaoOp, grupoOps } from "./cartoes-op.js?v=1";
+import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
@@ -22,7 +25,7 @@ import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLi
 const ESCALAR_MIN = 3;
 
 const params = new URLSearchParams(location.search);
-let aba = ["sos", "pets", "roubos"].includes(params.get("aba")) ? params.get("aba") : "sos";
+let aba = ["sos", "pets", "roubos", "veiculos"].includes(params.get("aba")) ? params.get("aba") : "sos";
 let pos = null, cfg = { raio: 10, sosArea: true, petsArea: true, roubosArea: true };
 const paradas = [];
 const corpo = () => $("alCorpo");
@@ -69,7 +72,7 @@ function pintarAba() {
   pararTudo();
   document.querySelectorAll("[data-aba]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.aba === aba)));
   corpo().replaceChildren();
-  if (aba === "sos") abaSos(); else if (aba === "pets") abaPets(); else abaRoubos();
+  if (aba === "sos") abaSos(); else if (aba === "pets") abaPets(); else if (aba === "veiculos") abaVeiculos(); else abaRoubos();
 }
 const perto = () => (pos ? vizinhos(pos.lat, pos.lng, 4) : null);
 function vazio(t) { return h("p", "ent-vazio", t); }
@@ -735,12 +738,22 @@ async function abrirAchado(id) {
 }
 
 // =====================================================
-// ROUBOS E FURTOS
+// ROUBOS E FURTOS (18/11/2026: cartões no padrão do site, identificação conferida — IMEI pela soma, placa no padrão
+// antigo ou Mercosul —, ocorrência repetida avisada e, para carro/moto, a busca de anúncios com a mesma placa)
 // =====================================================
+const TIPO_OC = { roubo: ["Roubo", "Com ameaça ou violência", "sirene"], furto: ["Furto", "Levaram sem ninguém ver", "cadeado"], golpe: ["Golpe", "Pix, venda falsa, link...", "anzol"], suspeita: ["Atividade suspeita", "Algo estranho na rua", "olho"] };
+const OBJ_IC = { celular: "celular", bike: "bicicleta", carro: "carro", moto: "moto", notebook: "notebook", documento: "documento", pet: "pata", outro: "caixa" };
+const OBJ_DESC = { celular: "Pelo IMEI", bike: "Número do quadro", carro: "Pela placa", moto: "Pela placa", notebook: "Número de série", documento: "RG, CNH, cartões", pet: "Cachorro, gato...", outro: "Outra coisa" };
+const ehVeiculo = (o) => o === "carro" || o === "moto";
+const PAGINA_VENDA = { lojinha: "shopping.html", automotivo: "automotivo.html" };
+const linkVenda = (a) => `${PAGINA_VENDA[a.tipoNegocio] || "shopping.html"}?negocio=${encodeURIComponent(a.negocioId)}&de=alerta`;
+function passoNum(c, n, t, sub) { const d = h("div", "pr-passo"); d.append(h("span", "pr-passo-n", String(n)), h("h3", null, t)); c.appendChild(d); if (sub) c.appendChild(h("p", "ent-sub", sub)); }
+
 function abaRoubos() {
-  const topo = h("div", "al-acoes-topo");
-  topo.append(botao("Registrar ocorrência", "ent-btn", registrarOcorrencia), botao("Consultar IMEI, placa ou série", "ent-btn sec", () => consultar("")));
-  corpo().appendChild(topo);
+  corpo().appendChild(grupoOps([
+    cartaoOp({ nome: "Registrar ocorrência", desc: "Roubo, furto ou golpe: avise a vizinhança e receba pistas", icone: "sirene", dados: { acao: "registrar" }, aoTocar: () => registrarOcorrencia() }),
+    cartaoOp({ nome: "Consultar antes de comprar", desc: "Confira o IMEI, a placa ou o número de série de um usado", icone: "lupa", dados: { acao: "consultar" }, aoTocar: () => consultar("") })
+  ], { colunas: 1, unico: false, rotulo: "Ações" }));
   corpo().appendChild(h("p", "ent-sub al-aviso-bo", "Registre também o boletim de ocorrência na polícia (Delegacia Virtual do seu estado). Aqui é para avisar a vizinhança e ajudar a recuperar."));
   const minhas = secao("Suas ocorrências");
   const lm = h("div", "ent-lista"); minhas.appendChild(lm);
@@ -757,34 +770,97 @@ function abaRoubos() {
   const la = h("div", "ent-lista"); area.appendChild(la);
   paradas.push(fb.onSnapshot(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("geo4", "in", perto()), fb.limit(60)), (s) => {
     const l = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((o) => Date.now() - ms(o.quando) < 30 * 864e5 && (distKm(pos, o) ?? 0) <= Math.max(cfg.raio, 5)).sort((a, b) => ms(b.quando) - ms(a.quando));
-    la.replaceChildren(...(l.length ? l.map((o) => linhaOcorrencia(o, false)) : [vazio("Nenhum alerta perto nos últimos 30 dias.")]));
+    // Resumo do que mais acontece por perto (só com dados reais carregados agora).
+    if (l.length >= 3) {
+      const por = {}; l.forEach((o) => { const k = OBJETOS[o.objeto]?.[0] || "Outro"; por[k] = (por[k] || 0) + 1; });
+      const top = Object.entries(por).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} (${n})`).join(", ");
+      la.replaceChildren(h("p", "ent-sub al-resumo-area", `${l.length} alertas por perto. O que mais aparece: ${top}.`), ...l.map((o) => linhaOcorrencia(o, false)));
+    } else la.replaceChildren(...(l.length ? l.map((o) => linhaOcorrencia(o, false)) : [vazio("Nenhum alerta perto nos últimos 30 dias.")]));
   }, () => la.replaceChildren(semLiberacao())));
 }
 function linhaOcorrencia(o, minha) {
   const b = h("button", "ent-item al-item"); b.type = "button"; b.dataset.ocorrencia = o.id;
   const lin = h("div", "lin");
   const tx = h("span", "pr-tx");
-  tx.append(h("b", null, `${TIPOS_OCORRENCIA[o.tipo] || "Ocorrência"}: ${OBJETOS[o.objeto]?.[0] || "objeto"}`), h("small", null, `${[o.bairro, o.cidade].filter(Boolean).join(", ") || "Perto"} · ${dataCurta(o.quando)}${pos ? " · " + km(distKm(pos, o)) : ""}${o.anonimo ? " · anônima" : ""}`));
-  lin.append(tx, h("span", "ent-etq " + (o.status === "ativo" ? "vermelho" : "verde"), o.status === "ativo" ? (minha ? "Ativa" : "Alerta") : o.status === "recuperado" ? "Recuperado" : "Encerrada"));
+  const oque = ehVeiculo(o.objeto) && o.veiculo?.modelo ? `${OBJETOS[o.objeto][0]} ${[o.veiculo.marca, o.veiculo.modelo].filter(Boolean).join(" ")}` : OBJETOS[o.objeto]?.[0] || "objeto";
+  tx.append(h("b", null, `${TIPOS_OCORRENCIA[o.tipo] || "Ocorrência"}: ${oque}`), h("small", null, `${[o.bairro, o.cidade].filter(Boolean).join(", ") || "Perto"} · ${dataCurta(o.quando)}${pos && Number.isFinite(o.lat) ? " · " + km(distKm(pos, o)) : ""}${o.anonimo ? " · anônima" : ""}`));
+  lin.append(iconeEl(OBJ_IC[o.objeto] || "caixa", { tam: 20, fundo: true }), tx, h("span", "ent-etq " + (o.status === "ativo" ? "vermelho" : "verde"), o.status === "ativo" ? (minha ? "Ativa" : "Alerta") : o.status === "recuperado" ? "Recuperado" : "Encerrada"));
   b.appendChild(lin);
   b.appendChild(h("small", "pr-msg", o.descricao));
   b.addEventListener("click", () => abrirOcorrencia(o.id));
   return b;
 }
-function registrarOcorrencia() {
-  const { corpo: c, fechar } = abrirTela("Registrar ocorrência");
-  const st = { tipo: "furto", objeto: "celular", anonimo: true, foto: "" };
-  const chips = (titulo, mapa, chave) => {
-    c.appendChild(h("h3", null, titulo));
-    const g = h("div", "ent-chips");
-    for (const [k, v] of Object.entries(mapa)) { const b = h("button", "ent-chip", Array.isArray(v) ? v[0] : v); b.type = "button"; b.dataset[chave] = k; b.setAttribute("aria-pressed", String(st[chave] === k)); b.addEventListener("click", () => { st[chave] = k; g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); if (chave === "objeto") rotuloId(); }); g.appendChild(b); }
-    c.appendChild(g);
+// Campo de identificação que se ajusta ao objeto: IMEI conferido pela soma, placa no padrão antigo ou Mercosul.
+function campoIdentificacao(objeto, inicial = "") {
+  const l = h("label", "ent-campo"); const sp = h("span"); const i = h("input"); i.id = "alOcId"; i.maxLength = 40; i.autocomplete = "off"; i.value = inicial;
+  const dica = h("small", "al-valida");
+  l.append(sp, i, dica);
+  const conf = { celular: ["IMEI (15 números)", "Disque *#06# no celular ou veja na caixa e na nota fiscal.", "numeric", "000000000000000"], bike: ["Número do quadro", "Fica gravado embaixo do pedivela, perto dos pedais.", "text", "Ex.: WTU123A4567"], carro: ["Placa", "Padrão antigo (ABC-1234) ou Mercosul (ABC1D23).", "text", "ABC1D23"], moto: ["Placa", "Padrão antigo (ABC-1234) ou Mercosul (ABC1D23).", "text", "ABC1D23"], notebook: ["Número de série", "Fica na etiqueta embaixo do aparelho ou nas configurações.", "text", "Número de série"], outro: ["Número de série (se tiver)", "Ajuda a recuperar e a evitar a revenda.", "text", "Número de série"] }[objeto];
+  l.hidden = !conf;
+  if (!conf) return { el: l, valor: () => "", ok: () => true };
+  sp.textContent = conf[0]; i.inputMode = conf[2]; i.placeholder = conf[3];
+  if (ehVeiculo(objeto)) { i.maxLength = 8; i.style.textTransform = "uppercase"; }
+  const validar = () => {
+    const v = i.value.trim();
+    if (!v) { dica.textContent = conf[1]; dica.className = "al-valida"; return true; }
+    let ok = true, msg = "";
+    if (objeto === "celular") { ok = imeiOk(v); msg = ok ? "IMEI conferido." : /^\d{15}$/.test(v.replace(/\D/g, "")) ? "Esse IMEI não confere: algum número foi digitado errado." : `Faltam números (${v.replace(/\D/g, "").length} de 15).`; }
+    else if (ehVeiculo(objeto)) { ok = placaOk(v); msg = ok ? `Placa ${formatarPlaca(v)}${placaAntiga(v) && normalizarPlaca(v) !== placaAntiga(v) ? ` (antiga: ${formatarPlaca(placaAntiga(v))})` : placaAntiga(v) ? ` (Mercosul: ${placaMercosul(v)})` : ""}.` : "Confira a placa: 3 letras, 1 número, 1 letra ou número e 2 números."; }
+    else { ok = normalizarId(v).length >= 4; msg = ok ? "" : "Número muito curto."; }
+    dica.textContent = msg || conf[1]; dica.className = "al-valida " + (ok ? "ok" : "erro");
+    return ok;
   };
-  chips("O que aconteceu", TIPOS_OCORRENCIA, "tipo");
-  chips("O que foi levado", OBJETOS, "objeto");
-  const lId = h("label", "ent-campo"); const spanId = h("span"); const iId = h("input"); iId.id = "alOcId"; iId.maxLength = 40; lId.append(spanId, iId); c.appendChild(lId);
-  const rotuloId = () => { const r = OBJETOS[st.objeto][1]; lId.hidden = !r; spanId.textContent = `${r} (ajuda a recuperar e a evitar a revenda)`; };
-  rotuloId();
+  i.addEventListener("input", () => { if (objeto === "celular") i.value = i.value.replace(/\D/g, "").slice(0, 15); validar(); });
+  validar();
+  return { el: l, input: i, valor: () => (ehVeiculo(objeto) ? placaMercosul(i.value) : objeto === "celular" ? i.value.replace(/\D/g, "") : normalizarId(i.value)), ok: validar };
+}
+function camposVeiculo(v = {}) {
+  const box = h("div", "al-vei-campos");
+  const campo = (rot, id, val, { lista = "", max = 40, modo = "text", ph = "" } = {}) => { const l = h("label", "ent-campo"); const i = h("input"); i.id = id; i.value = val || ""; i.maxLength = max; i.inputMode = modo; i.placeholder = ph; if (lista) i.setAttribute("list", lista); l.append(h("span", null, rot), i); box.appendChild(l); return i; };
+  const tipo = v.tipo === "moto" ? "moto" : "carro";
+  const dl = (id, itens) => { if (document.getElementById(id)) return; const d = h("datalist"); d.id = id; itens.forEach((x) => { const o = h("option"); o.value = x; d.appendChild(o); }); document.body.appendChild(d); };
+  dl("alMarcasCarro", MARCAS.carro); dl("alMarcasMoto", MARCAS.moto); dl("alCoresVei", CORES_VEICULO);
+  const r = {
+    marca: campo("Marca", "alVeiMarca", v.marca, { lista: tipo === "moto" ? "alMarcasMoto" : "alMarcasCarro", max: 30, ph: tipo === "moto" ? "Ex.: Honda" : "Ex.: Fiat" }),
+    modelo: campo("Modelo", "alVeiModelo", v.modelo, { max: 40, ph: tipo === "moto" ? "Ex.: CG 160 Fan" : "Ex.: Uno Way" }),
+    ano: campo("Ano", "alVeiAno", v.ano, { max: 4, modo: "numeric", ph: "2018" }),
+    cor: campo("Cor", "alVeiCor", v.cor, { lista: "alCoresVei", max: 20, ph: "Ex.: Prata" })
+  };
+  box.className = "ent-duplo al-vei-campos";
+  return { el: box, ler: () => ({ marca: r.marca.value.trim().slice(0, 30), modelo: r.modelo.value.trim().slice(0, 40), ano: /^\d{4}$/.test(r.ano.value.trim()) ? r.ano.value.trim() : "", cor: r.cor.value.trim().slice(0, 20) }), tipo: (t) => { r.marca.setAttribute("list", t === "moto" ? "alMarcasMoto" : "alMarcasCarro"); } };
+}
+function registrarOcorrencia(pre = {}) {
+  const { corpo: c, fechar, folha } = abrirTela("Registrar ocorrência");
+  const st = { tipo: pre.tipo || "furto", objeto: pre.objeto || "celular", anonimo: true, veiculoDoc: pre.veiculo || null };
+  passoNum(c, 1, "O que aconteceu");
+  c.appendChild(grupoOps(Object.entries(TIPO_OC).map(([k, [n, d, i]]) => cartaoOp({ nome: n, desc: d, icone: i, ativo: st.tipo === k, dados: { tipo: k }, classe: k === "roubo" ? "perigo" : "", aoTocar: () => { st.tipo = k; folha.marcarMexido?.(); } })), { colunas: 2, rotulo: "O que aconteceu" }));
+  passoNum(c, 2, "O que foi levado");
+  c.appendChild(grupoOps(Object.entries(OBJETOS).map(([k, [n]]) => cartaoOp({ nome: n, desc: OBJ_DESC[k], icone: OBJ_IC[k], ativo: st.objeto === k, dados: { objeto: k }, aoTocar: () => { if (st.objeto !== k) st.veiculoDoc = null; st.objeto = k; pintarId(); folha.marcarMexido?.(); } })), { colunas: 2, rotulo: "O que foi levado" }));
+  passoNum(c, 3, "Identificação", "É o que faz o Help Floripa achar o objeto depois: quem for comprar consulta e, se for carro ou moto, a loja não consegue anunciar.");
+  const caixaId = h("div", "al-id"); c.appendChild(caixaId);
+  let idAtual = null, veiAtual = null;
+  const pintarId = async () => {
+    caixaId.replaceChildren();
+    const o = st.objeto;
+    if (o === "pet") {
+      const n = h("div", "ent-nota"); n.append(ic("ajuda"), h("span", null, "Se é o seu pet, use a aba Pets: marque como perdido e o Help Floripa cruza com os animais encontrados perto."));
+      caixaId.append(n, botao("Ir para Pets", "ent-btn sec", () => { fechar(); aba = "pets"; pintarAba(); }));
+    }
+    if (o === "documento") { const n = h("div", "ent-nota"); n.append(ic("ajuda"), h("span", null, "Não coloque o número dos documentos. Bloqueie os cartões pelo app do banco e peça a segunda via.")); caixaId.appendChild(n); }
+    if (ehVeiculo(o)) {
+      const meus = (await lerMeusVeiculos().catch(() => [])).filter((v) => v.tipo === o);
+      if (meus.length) {
+        caixaId.appendChild(h("h4", "op-sec", "Seus veículos"));
+        caixaId.appendChild(grupoOps(meus.map((v) => cartaoOp({ nome: nomeVeiculo(v), desc: `${formatarPlaca(v.placa)}${v.cor ? " · " + v.cor : ""}`, icone: v.tipo, ativo: st.veiculoDoc?.id === v.id, dados: { veiculo: v.id }, aoTocar: () => { st.veiculoDoc = v; pintarId(); } })), { colunas: 1 }));
+      }
+    }
+    idAtual = campoIdentificacao(o, st.veiculoDoc ? formatarPlaca(st.veiculoDoc.placa) : "");
+    caixaId.appendChild(idAtual.el);
+    veiAtual = ehVeiculo(o) ? camposVeiculo(st.veiculoDoc || { tipo: o }) : null;
+    if (veiAtual) caixaId.appendChild(veiAtual.el);
+  };
+  pintarId();
+  passoNum(c, 4, "Como foi");
   const desc = h("textarea"); desc.id = "alOcDesc"; desc.maxLength = 500; desc.placeholder = "Como foi, marca/modelo, cor, características. Não coloque dados pessoais de ninguém.";
   const ld = h("label", "ent-campo"); ld.append(h("span", null, "Descrição"), desc); c.appendChild(ld);
   // Quando: dia e hora em campos separados (campos.js abre o calendário e o relógio do site, sem a tela do celular).
@@ -796,45 +872,69 @@ function registrarOcorrencia() {
   const ld1 = h("label", "ent-campo"); ld1.append(h("span", null, "Dia"), dia);
   const ld2 = h("label", "ent-campo"); ld2.append(h("span", null, "Hora (aproximada)"), horaI);
   lq.append(ld1, ld2); c.appendChild(lq);
-  const quando = { get value() { return `${dia.value}T${horaI.value || "12:00"}`; } };
   const bairro = h("input"); bairro.id = "alOcBairro"; bairro.maxLength = 60; bairro.value = dados.bairro || "";
   const lb = h("label", "ent-campo"); lb.append(h("span", null, "Bairro"), bairro); c.appendChild(lb);
   c.appendChild(h("p", "ent-sub", "O ponto no mapa é aproximado (cerca de 100 m), a partir da sua localização."));
+  passoNum(c, 5, "Quem aparece");
   const lan = h("label", "ent-check"); const can = h("input"); can.type = "checkbox"; can.checked = true; can.id = "alOcAnonimo";
   can.addEventListener("change", () => (st.anonimo = can.checked));
   lan.append(can, h("span", null, "Publicar sem o meu nome (anônima). Só a moderação sabe quem registrou.")); c.appendChild(lan);
   const ok = botao("Registrar e avisar a vizinhança", "ent-btn", async () => {
     const d = desc.value.trim();
+    if (idAtual && !idAtual.ok()) { toast(st.objeto === "celular" ? "Confira o IMEI: 15 números (*#06# no celular)." : "Confira a placa (ABC-1234 ou ABC1D23)."); idAtual.input?.focus(); return; }
+    if (!idAtual) return;
+    const ident = idAtual.valor();
+    if (ehVeiculo(st.objeto) && !ident) { toast("Para carro ou moto, a placa é obrigatória: é por ela que o Help Floripa procura o veículo."); idAtual.input?.focus(); return; }
     if (d.length < 10) { toast("Descreva com pelo menos 10 letras."); desc.focus(); return; }
-    if (!identificadorOk(st.objeto, iId.value)) { toast(st.objeto === "celular" ? "O IMEI tem 15 números (*#06# no celular)." : "Confira a placa (ABC1D23 ou ABC1234)."); iId.focus(); return; }
     ok.disabled = true;
+    // Já existe ocorrência ativa com o mesmo número? (outra pessoa já registrou, ou é repetida)
+    if (ident) {
+      try {
+        const formas = ehVeiculo(st.objeto) ? formasPlaca(ident) : [ident];
+        const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "in", formas), fb.limit(3)));
+        const ja = s.docs.find((x) => !(dados.minhasOcorrencias || []).includes(x.id) && x.data().autorId !== eu.uid);
+        const minhaJa = s.docs.find((x) => (dados.minhasOcorrencias || []).includes(x.id) || x.data().autorId === eu.uid);
+        if (minhaJa) { ok.disabled = false; toast("Você já tem uma ocorrência ativa com esse número."); abrirOcorrencia(minhaJa.id); return; }
+        if (ja && !(await confirmarHF({ titulo: "Já existe um alerta com esse número", texto: `Alguém registrou ${TIPOS_OCORRENCIA[ja.data().tipo]?.toLowerCase() || "uma ocorrência"} com esse número em ${new Date(ms(ja.data().quando)).toLocaleDateString("pt-BR")}. Se é o mesmo caso, mande uma pista em vez de registrar de novo.`, ok: "Registrar mesmo assim", cancelar: "Voltar", icone: "alerta", cor: "normal" }))) { ok.disabled = false; return; }
+      } catch {}
+    }
     const g = await lerGps(8000) || pos;
     if (!g) { ok.disabled = false; toast("Ative a localização para marcar a região."); return; }
     const ref = fb.doc(fb.collection(fb.db, "ocorrencias"));
     const doc = {
       anonimo: st.anonimo, autorId: st.anonimo ? "" : eu.uid, ...(st.anonimo ? {} : { autorNome: String(dados.nome || "").slice(0, 80) }),
-      tipo: st.tipo, objeto: st.objeto, identificador: normalizarId(iId.value), descricao: d.slice(0, 500),
-      quando: fb.Timestamp.fromMillis(Math.min(Date.now() - 1000, new Date(quando.value).getTime() || Date.now() - 1000)),
+      tipo: st.tipo, objeto: st.objeto, identificador: ident, descricao: d.slice(0, 500),
+      quando: fb.Timestamp.fromMillis(Math.min(Date.now() - 1000, new Date(`${dia.value}T${horaI.value || "12:00"}`).getTime() || Date.now() - 1000)),
       lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3, geo4: geohash(g.lat, g.lng, 4),
       bairro: bairro.value.trim().slice(0, 60), cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
       status: "ativo", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
     };
+    const vei = veiAtual?.ler();
+    if (vei && (vei.marca || vei.modelo || vei.ano || vei.cor)) doc.veiculo = vei;
+    const gravar = async (x) => { const lote = fb.writeBatch(fb.db); lote.set(ref, x); if (st.anonimo) lote.set(fb.doc(fb.db, "ocorrencias_autoria", ref.id), { uid: eu.uid }); await lote.commit(); };
     try {
-      const lote = fb.writeBatch(fb.db);
-      lote.set(ref, doc);
-      if (st.anonimo) lote.set(fb.doc(fb.db, "ocorrencias_autoria", ref.id), { uid: eu.uid });
-      await lote.commit();
+      // Regras de antes da atualização não aceitam "veiculo": grava sem ele (a placa vai do mesmo jeito).
+      try { await gravar(doc); } catch (e) { if (e?.code !== "permission-denied" || !doc.veiculo) throw e; const sem = { ...doc }; delete sem.veiculo; await gravar(sem); }
       fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { minhasOcorrencias: fb.arrayUnion(ref.id) }, { merge: true }).catch(() => {});
       dados.minhasOcorrencias = [...(dados.minhasOcorrencias || []), ref.id];
-      fechar(); toast("Ocorrência registrada"); dicas(st.objeto);
-      if (aba === "roubos") pintarAba();
+      if (st.veiculoDoc) await marcarVeiculo(st.veiculoDoc, { status: "roubado", ocorrenciaId: ref.id, roubadoEm: fb.serverTimestamp() }).catch(() => {});
+      fechar(); toast("Ocorrência registrada");
+      dicas(st.objeto, ehVeiculo(st.objeto) ? { tipo: st.objeto, placa: ident, ...(vei || {}), uf: doc.uf, cidade: doc.cidade, quando: doc.quando } : null);
+      if (aba === "roubos" || aba === "veiculos") pintarAba();
     } catch (e) { ok.disabled = false; toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); }
   });
   ok.id = "alOcOk";
   c.appendChild(ok);
 }
-function dicas(objeto) {
+function dicas(objeto, veiculo = null) {
   const { corpo: c } = abrirTela("O que fazer agora");
+  if (veiculo) {
+    c.appendChild(h("h3", null, "Procurando o seu veículo no Help Floripa"));
+    const r = h("div", "al-busca-vei"); r.appendChild(vazio("Procurando anúncios com essa placa e parecidos..."));
+    c.appendChild(r);
+    procurarAnuncios(veiculo).then((res) => r.replaceChildren(blocoAnuncios(res, veiculo)));
+  }
+  c.appendChild(h("h3", null, "Próximos passos"));
   const ul = h("ul", "eg-lista-ben");
   (DICAS_OCORRENCIA[objeto] || DICAS_OCORRENCIA.outro).forEach((t) => { const li = h("li"); li.append(ic("check"), h("span", null, t)); ul.appendChild(li); });
   c.append(ul, h("p", "ent-sub", "Se alguém tiver uma pista, ela chega para você (sem mostrar quem mandou, se a pessoa quiser). Quando recuperar, marque como recuperado."));
@@ -847,15 +947,29 @@ async function abrirOcorrencia(id) {
     const o = { id, ...d.data() };
     const minha = o.autorId === eu.uid || (dados.minhasOcorrencias || []).includes(id);
     c.appendChild(linhaOcorrencia(o, minha));
-    if (o.identificador) c.appendChild(h("p", "ent-sub", `${OBJETOS[o.objeto]?.[1] || "Identificação"}: ${o.identificador}`));
+    if (o.identificador) c.appendChild(h("p", "ent-sub", `${OBJETOS[o.objeto]?.[1] || "Identificação"}: ${ehVeiculo(o.objeto) ? formatarPlaca(o.identificador) : o.identificador}`));
+    if (o.veiculo) c.appendChild(h("p", "ent-sub", [o.veiculo.marca, o.veiculo.modelo, o.veiculo.ano, o.veiculo.cor].filter(Boolean).join(" · ")));
     if (minha) {
-      if (o.status === "ativo") c.appendChild(botao("Recuperei", "ent-btn ok", async () => { try { await fb.updateDoc(fb.doc(fb.db, "ocorrencias", id), { status: "recuperado", atualizadoEm: fb.serverTimestamp() }); toast("Que bom!"); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); } }));
+      if (o.status === "ativo") c.appendChild(botao("Recuperei", "ent-btn ok", async () => {
+        try {
+          await fb.updateDoc(fb.doc(fb.db, "ocorrencias", id), { status: "recuperado", atualizadoEm: fb.serverTimestamp() });
+          const v = (await lerMeusVeiculos().catch(() => [])).find((x) => x.ocorrenciaId === id);
+          if (v) await marcarVeiculo(v, { status: "recuperado" }).catch(() => {});
+          toast("Que bom!");
+        } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+      }));
+      if (ehVeiculo(o.objeto) && o.identificador && o.status === "ativo") {
+        c.appendChild(h("h3", null, "Anúncios no Help Floripa"));
+        const r = h("div"); r.appendChild(vazio("Procurando..."));
+        c.appendChild(r);
+        procurarAnuncios({ tipo: o.objeto, placa: o.identificador, ...(o.veiculo || {}), uf: o.uf, cidade: o.cidade, quando: o.quando }).then((res) => r.replaceChildren(blocoAnuncios(res, o)));
+      }
       c.appendChild(h("h3", null, "Pistas recebidas"));
       const lp = h("div", "ent-lista"); c.appendChild(lp);
       try {
         const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias", id, "pistas"), fb.limit(50)));
         const l = s.docs.map((x) => x.data()).sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
-        lp.replaceChildren(...(l.length ? l.map((p) => { const it = h("div", "ent-item"); it.append(h("b", null, p.anonimo ? "Pista anônima" : p.nome || "Alguém"), h("small", null, dataCurta(p.criadoEm)), h("span", null, p.texto)); if (!p.anonimo && p.uid) it.appendChild(botao("Conversar", "ent-btn sec", () => conversar(p.uid))); return it; }) : [vazio("Nenhuma pista ainda.")]));
+        lp.replaceChildren(...(l.length ? l.map((p) => { const it = h("div", "ent-item"); it.append(h("b", null, p.anonimo ? (/^Alerta automático/.test(p.texto) ? "Alerta automático" : "Pista anônima") : p.nome || "Alguém"), h("small", null, dataCurta(p.criadoEm)), h("span", null, p.texto)); if (!p.anonimo && p.uid) it.appendChild(botao("Conversar", "ent-btn sec", () => conversar(p.uid))); return it; }) : [vazio("Nenhuma pista ainda.")]));
       } catch { lp.replaceChildren(vazio("Não foi possível ler as pistas.")); }
       return;
     }
@@ -885,32 +999,266 @@ async function gravarPista(id, texto, anonimo) {
   if (anonimo) lote.set(fb.doc(fb.db, "pistas_autoria", `${id}_${ref.id}`), { uid: eu.uid });
   await lote.commit();
 }
-// Consulta antes de comprar usado: IMEI, placa ou número de série com ocorrência ativa.
-async function consultar(inicial) {
+// Consulta antes de comprar usado: escolhe o que é, o campo se ajusta e confere o número (IMEI pela soma, placa nos
+// dois padrões). Para carro/moto mostra também se está anunciado no Help Floripa.
+const TIPOS_CONSULTA = { celular: ["Celular", "Pelo IMEI", "celular"], veiculo: ["Carro ou moto", "Pela placa", "carro"], bike: ["Bicicleta", "Número do quadro", "bicicleta"], outro: ["Outro", "Número de série", "notebook"] };
+const chaveConsultas = () => `hf-consultas-${eu?.uid || ""}`;
+function lerConsultas() { try { return JSON.parse(localStorage.getItem(chaveConsultas()) || "[]"); } catch { return []; } }
+function guardarConsulta(tipo, numero, achou) { try { const l = lerConsultas().filter((x) => x.n !== numero); l.unshift({ t: tipo, n: numero, a: achou ? 1 : 0, em: Date.now() }); localStorage.setItem(chaveConsultas(), JSON.stringify(l.slice(0, 6))); } catch {} }
+async function consultar(inicial, tipoIni = "") {
   const { corpo: c } = abrirTela("Consultar antes de comprar");
-  c.appendChild(h("p", "ent-sub", "Vai comprar um celular, bike, carro ou moto usado? Confira se o IMEI, a placa ou o número de série tem ocorrência registrada no Help Floripa."));
-  const i = h("input"); i.id = "alConsulta"; i.placeholder = "IMEI, placa ou número de série"; i.value = inicial || ""; i.maxLength = 40;
-  const l = h("label", "ent-campo"); l.append(h("span", null, "Número"), i); c.appendChild(l);
-  const res = h("div");
+  c.appendChild(h("p", "ent-sub", "Vai comprar um usado? Confira se o número tem ocorrência de roubo, furto ou golpe registrada no Help Floripa."));
+  let tipo = tipoIni || (inicial ? (placaOk(inicial) ? "veiculo" : /^\d{15}$/.test(String(inicial).replace(/\D/g, "")) ? "celular" : "outro") : "celular");
+  c.appendChild(grupoOps(Object.entries(TIPOS_CONSULTA).map(([k, [n, d, i]]) => cartaoOp({ nome: n, desc: d, icone: i, ativo: tipo === k, dados: { consulta: k }, aoTocar: () => { tipo = k; pintarCampo(); res.replaceChildren(); } })), { colunas: 2, rotulo: "O que você vai comprar" }));
+  const caixa = h("div"); c.appendChild(caixa);
+  const res = h("div", "al-res");
+  let campo = null;
+  const pintarCampo = (val = "") => { campo = campoIdentificacao(tipo === "veiculo" ? "carro" : tipo === "outro" ? "notebook" : tipo, val); campo.input.id = "alConsulta"; caixa.replaceChildren(campo.el); };
+  pintarCampo(inicial || "");
   const bt = botao("Consultar", "ent-btn", async () => {
-    const x = normalizarId(i.value);
+    if (!campo.ok()) { toast(tipo === "celular" ? "Confira o IMEI (15 números)." : tipo === "veiculo" ? "Confira a placa." : "Confira o número."); return; }
+    const x = campo.valor();
     if (x.length < 4) { toast("Digite o número completo."); return; }
     res.replaceChildren(vazio("Consultando..."));
     try {
-      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "==", x), fb.limit(5)));
-      if (!s.docs.length) { res.replaceChildren(h("div", "al-estado verde", "Nenhuma ocorrência com esse número."), h("p", "ent-sub", "Isso não garante a origem: peça nota fiscal, confira o IMEI no aparelho (*#06#) e na Anatel, e desconfie de preço muito baixo.")); return; }
-      const o = { id: s.docs[0].id, ...s.docs[0].data() };
-      res.replaceChildren(h("div", "al-estado vermelho", `Atenção: consta ${TIPOS_OCORRENCIA[o.tipo]?.toLowerCase() || "ocorrência"} em ${new Date(ms(o.quando)).toLocaleDateString("pt-BR")}${o.bairro ? " · " + o.bairro : ""}${o.cidade ? ", " + o.cidade : ""}.`),
-        h("p", "ent-sub", "Não compre. Se alguém está vendendo, mande uma pista (pode ser anônima) e, se for seguro, avise a polícia (190)."),
-        botao("Mandar pista anônima", "ent-btn", () => mandarPista(o.id, `Este número foi oferecido à venda${dados.cidade ? " em " + dados.cidade : ""}.`)));
-      // Quem registrou fica sabendo que alguém consultou (pista anônima automática, 1 vez por aparelho).
-      const k = `hf-consulta-${o.id}`;
-      try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, "1"); gravarPista(o.id, `Alguém consultou este número no Help Floripa${dados.cidade ? " (" + dados.cidade + ")" : ""}: pode estar à venda.`, true).catch(() => {}); } } catch {}
+      const formas = tipo === "veiculo" ? formasPlaca(x) : [x];
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "in", formas), fb.limit(5)));
+      const partes = [];
+      if (!s.docs.length) {
+        const ok2 = h("div", "al-resultado verde"); ok2.append(iconeEl("check", { tam: 22, fundo: true }), h("div")); ok2.lastChild.append(h("b", null, "Nenhuma ocorrência com esse número"), h("small", null, tipo === "veiculo" ? `Placa ${formatarPlaca(x)}` : x));
+        partes.push(ok2, h("p", "ent-sub", tipo === "celular" ? "Isso não garante a origem: peça a nota fiscal, confira o IMEI no aparelho (*#06#) e desconfie de preço muito baixo." : tipo === "veiculo" ? "Isso não garante a origem: confira o documento (CRLV) no app Carteira Digital de Trânsito, a placa e o chassi no próprio veículo, e faça a vistoria antes de pagar." : "Isso não garante a origem: peça a nota fiscal e desconfie de preço muito baixo."));
+      } else {
+        const o = { id: s.docs[0].id, ...s.docs[0].data() };
+        const al = h("div", "al-resultado vermelho"); al.append(iconeEl("alerta", { tam: 22, fundo: true }), h("div")); al.lastChild.append(h("b", null, `Atenção: consta ${TIPOS_OCORRENCIA[o.tipo]?.toLowerCase() || "ocorrência"}`), h("small", null, `${new Date(ms(o.quando)).toLocaleDateString("pt-BR")}${o.bairro ? " · " + o.bairro : ""}${o.cidade ? ", " + o.cidade : ""}`));
+        partes.push(al, h("p", "ent-sub", "Não compre. Se alguém está vendendo, mande uma pista (pode ser anônima) e, se for seguro, avise a polícia (190)."),
+          botao("Mandar pista anônima", "ent-btn", () => mandarPista(o.id, `Este número foi oferecido à venda${dados.cidade ? " em " + dados.cidade : ""}.`)));
+        // Quem registrou fica sabendo que alguém consultou (pista anônima automática, 1 vez por sessão).
+        const k = `hf-consulta-${o.id}`;
+        try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, "1"); gravarPista(o.id, `Alguém consultou este número no Help Floripa${dados.cidade ? " (" + dados.cidade + ")" : ""}: pode estar à venda.`, true).catch(() => {}); } } catch {}
+      }
+      if (tipo === "veiculo") {
+        try {
+          const v = await fb.getDocs(fb.query(fb.collection(fb.db, "veiculos_venda"), fb.where("placaHash", "==", await hashPlaca(x)), fb.limit(5)));
+          v.docs.forEach((d) => { const a = d.data(); const l = h("a", "al-anuncio"); l.href = linkVenda(a); l.append(iconeEl(a.tipo === "moto" ? "moto" : "carro", { tam: 20, fundo: true }), h("span")); l.lastChild.append(h("b", null, "Anunciado no Help Floripa"), h("small", null, [a.item || nomeVeiculo(a), a.cidade].filter(Boolean).join(" · "))); partes.push(l); });
+        } catch {}
+      }
+      res.replaceChildren(...partes);
+      guardarConsulta(tipo, x, s.docs.length > 0);
+      pintarRecentes();
     } catch (e) { res.replaceChildren(vazio("Não foi possível consultar: " + erroAmigavel(e))); }
   });
   bt.id = "alConsultar";
   c.append(bt, res);
+  const rec = h("div", "al-recentes"); c.appendChild(rec);
+  const pintarRecentes = () => {
+    const l = lerConsultas();
+    rec.replaceChildren();
+    if (!l.length) return;
+    rec.appendChild(h("h4", "op-sec", "Consultas recentes"));
+    rec.appendChild(grupoOps(l.map((q) => cartaoOp({ nome: q.t === "veiculo" ? formatarPlaca(q.n) : q.n, desc: `${TIPOS_CONSULTA[q.t]?.[0] || "Número"} · ${q.a ? "tinha alerta" : "sem alerta"} · ${new Date(q.em).toLocaleDateString("pt-BR")}`, icone: q.a ? "alerta" : TIPOS_CONSULTA[q.t]?.[2] || "lupa", aoTocar: () => { tipo = q.t; pintarCampo(q.t === "veiculo" ? formatarPlaca(q.n) : q.n); bt.click(); } })), { colunas: 1, unico: false }));
+  };
+  pintarRecentes();
   if (inicial) bt.click();
+}
+
+// =====================================================
+// VEÍCULOS (18/11/2026): o carro/moto da pessoa com a placa guardada só com ela. Roubado → ocorrência + busca de
+// anúncios com a mesma placa (veiculos_venda, pelo hash) e parecidos (marca, modelo, cor, ano, lugar).
+// Sem as regras novas publicadas, o cadastro fica na conta (usuarios.veiculosGuardados) e passa sozinho depois.
+// =====================================================
+let meusVeiculosCache = null;
+async function lerMeusVeiculos(forcar = false) {
+  if (meusVeiculosCache && !forcar) return meusVeiculosCache;
+  const guardados = Object.entries(dados.veiculosGuardados || {}).map(([id, v]) => ({ id, ...v, _guardado: true }));
+  let l = [];
+  try {
+    l = (await fb.getDocs(fb.query(fb.collection(fb.db, "veiculos"), fb.where("donoId", "==", eu.uid), fb.limit(20)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+    // As regras já aceitam: passa o que estava guardado na conta para a coleção.
+    for (const g of guardados) {
+      if (l.some((x) => x.id === g.id)) continue;
+      try { const { _guardado, id, ...resto } = g; await fb.setDoc(fb.doc(fb.db, "veiculos", id), { ...resto, donoId: eu.uid, criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() }); l.push({ ...g, _guardado: false }); }
+      catch { l.push(g); }
+    }
+    if (guardados.length && guardados.every((g) => l.some((x) => x.id === g.id && !x._guardado))) { fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: fb.deleteField() }, { merge: true }).catch(() => {}); dados.veiculosGuardados = {}; }
+  } catch { l = guardados; }
+  meusVeiculosCache = l.sort((a, b) => ms(b.criadoEm) - ms(a.criadoEm));
+  return meusVeiculosCache;
+}
+async function marcarVeiculo(v, mudancas) {
+  meusVeiculosCache = null;
+  if (v._guardado) {
+    const novo = { ...(dados.veiculosGuardados || {}) }; const { _guardado, id, ...resto } = v;
+    Object.entries(mudancas).forEach(([k, x]) => { resto[k] = x && typeof x === "object" && !x.toMillis ? Date.now() : x; });
+    novo[v.id] = resto; dados.veiculosGuardados = novo;
+    return fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true });
+  }
+  return fb.updateDoc(fb.doc(fb.db, "veiculos", v.id), { ...mudancas, atualizadoEm: fb.serverTimestamp() });
+}
+async function procurarAnuncios(v) {
+  const out = { iguais: [], parecidos: [], erro: false };
+  try {
+    const hash = v.placaHash || (v.placa ? await hashPlaca(v.placa) : "");
+    const col = fb.collection(fb.db, "veiculos_venda");
+    if (hash) out.iguais = (await fb.getDocs(fb.query(col, fb.where("placaHash", "==", hash), fb.limit(10)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+    const filtros = [fb.where("tipo", "==", v.tipo === "moto" ? "moto" : "carro")];
+    if (/^[A-Z]{2}$/.test(v.uf || "")) filtros.push(fb.where("uf", "==", v.uf));
+    const outros = (await fb.getDocs(fb.query(col, ...filtros, fb.limit(150)))).docs.map((d) => ({ id: d.id, ...d.data() }));
+    out.parecidos = outros.filter((a) => a.placaHash !== hash && a.donoId !== eu.uid).map((a) => ({ ...a, _nota: semelhancaVeiculo({ ...v, placaHash: hash }, a) }))
+      .filter((a) => a._nota >= PARECIDO_A_PARTIR).sort((a, b) => b._nota - a._nota).slice(0, 8);
+  } catch { out.erro = true; }
+  return out;
+}
+function blocoAnuncios(res, v) {
+  const w = h("div", "al-anuncios");
+  if (res.erro) { w.appendChild(h("p", "ent-sub", "A busca de anúncios começa a funcionar assim que a atualização do sistema terminar. A sua ocorrência já está valendo.")); return w; }
+  if (res.iguais.length) {
+    const al = h("div", "al-resultado vermelho"); al.append(iconeEl("alerta", { tam: 22, fundo: true }), h("div"));
+    al.lastChild.append(h("b", null, `${res.iguais.length === 1 ? "Um anúncio" : res.iguais.length + " anúncios"} com a MESMA placa`), h("small", null, "Não vá sozinho ao encontro. Avise a polícia (190) e a equipe do Help Floripa."));
+    w.appendChild(al);
+    res.iguais.forEach((a) => {
+      const l = h("a", "al-anuncio"); l.href = linkVenda(a); l.dataset.venda = a.id;
+      l.append(iconeEl(a.tipo === "moto" ? "moto" : "carro", { tam: 20, fundo: true }), h("span"));
+      l.lastChild.append(h("b", null, a.item || nomeVeiculo(a)), h("small", null, [a.cor, a.cidade, a.uf].filter(Boolean).join(" · ")));
+      w.appendChild(l);
+    });
+    const placa = v?.placa || v?.identificador || "";
+    w.appendChild(botao("Avisar a equipe de segurança", "ent-btn", () => irPara(`suporte.html?categoria=golpe&assunto=${encodeURIComponent("Veículo roubado anunciado no site")}&texto=${encodeURIComponent(`Meu veículo (${[v?.marca, v?.modelo].filter(Boolean).join(" ") || "carro/moto"}${placa ? ", placa " + formatarPlaca(placa) : ""}) foi roubado e aparece anunciado no Help Floripa: ${res.iguais.map((a) => new URL(linkVenda(a), location.href).href).join(" ")}`)}`)));
+  } else {
+    const ok = h("div", "al-resultado verde"); ok.append(iconeEl("escudo", { tam: 22, fundo: true }), h("div"));
+    ok.lastChild.append(h("b", null, "Nenhum anúncio com essa placa"), h("small", null, "Se alguém tentar anunciar, a loja não consegue publicar e você recebe um alerta automático nas pistas."));
+    w.appendChild(ok);
+  }
+  if (res.parecidos.length) {
+    w.appendChild(h("h4", "op-sec", "Parecidos à venda (confira)"));
+    res.parecidos.forEach((a) => {
+      const l = h("a", "al-anuncio"); l.href = linkVenda(a);
+      l.append(iconeEl(a.tipo === "moto" ? "moto" : "carro", { tam: 20, fundo: true }), h("span"), h("span", "ent-etq " + (a._nota >= 75 ? "amarelo" : "ciano"), textoSemelhancaVeiculo(a._nota)));
+      l.children[1].append(h("b", null, a.item || nomeVeiculo(a)), h("small", null, [a.ano, a.cor, a.cidade].filter(Boolean).join(" · ")));
+      w.appendChild(l);
+    });
+    w.appendChild(h("p", "ent-sub", "Parecido não quer dizer que é o seu: compare detalhes (adesivos, arranhões, rodas) pelas fotos antes de avisar."));
+  }
+  return w;
+}
+async function abaVeiculos() {
+  corpo().appendChild(grupoOps([
+    cartaoOp({ nome: "Cadastrar carro ou moto", desc: "A placa fica guardada só com você", icone: "carro", dados: { acao: "veiculo" }, aoTocar: () => editarVeiculo(null) }),
+    cartaoOp({ nome: "Consultar uma placa", desc: "Antes de comprar um usado", icone: "lupa", dados: { acao: "consultarPlaca" }, aoTocar: () => consultar("", "veiculo") })
+  ], { colunas: 1, unico: false, rotulo: "Ações" }));
+  const sec = secao("Seus veículos");
+  const lista = h("div", "ent-lista"); lista.id = "alVeiculos"; sec.appendChild(lista);
+  lista.appendChild(vazio("Carregando..."));
+  const mon = h("div"); mon.id = "alMonitor";
+  const veis = await lerMeusVeiculos(true).catch(() => []);
+  if (aba !== "veiculos") return;
+  lista.replaceChildren(...(veis.length ? veis.map(linhaVeiculo) : [vazio("Nenhum veículo cadastrado. Cadastre o seu: se ele for roubado, um toque avisa a vizinhança e o Help Floripa procura anúncios com a mesma placa.")]));
+  if (veis.some((v) => v._guardado)) lista.appendChild(h("p", "ent-sub", "Guardado na sua conta. Assim que a atualização do sistema terminar, ele passa a valer na busca automática."));
+  // Monitoramento: cada veículo roubado é procurado de novo sempre que a aba abre.
+  const roubados = veis.filter((v) => v.status === "roubado");
+  if (roubados.length) {
+    corpo().insertBefore(mon, corpo().firstChild?.nextSibling || null);
+    for (const v of roubados) {
+      const res = await procurarAnuncios(v);
+      if (aba !== "veiculos") return;
+      const caixa = h("section", "al-sec al-monitor"); caixa.appendChild(h("h3", null, `Monitorando: ${nomeVeiculo(v)}`));
+      caixa.appendChild(blocoAnuncios(res, v)); mon.appendChild(caixa);
+    }
+  }
+  const como = secao("Como funciona");
+  const ul = h("ul", "eg-lista-ben");
+  ["Cadastre a placa, a marca, o modelo, o ano e a cor. Ninguém vê a placa: só você e a equipe de segurança.",
+    "Foi roubado? Toque em “Fui roubado ou furtado”: a ocorrência avisa a vizinhança e quem for comprar consegue consultar.",
+    "Para vender carro ou moto no Shopping ou no Automotivo, a placa é obrigatória. Se ela tiver alerta, o anúncio não sai e você recebe um aviso.",
+    "O Help Floripa também mostra anúncios parecidos (mesma marca, modelo, cor e ano por perto) para você conferir."].forEach((t) => { const li = h("li"); li.append(ic("check"), h("span", null, t)); ul.appendChild(li); });
+  como.appendChild(ul);
+}
+function linhaVeiculo(v) {
+  const b = h("button", "ent-item al-item"); b.type = "button"; b.dataset.veiculo = v.id;
+  const lin = h("div", "lin");
+  const tx = h("span", "pr-tx");
+  tx.append(h("b", null, v.apelido || nomeVeiculo(v)), h("small", null, [formatarPlaca(v.placa), v.cor, v.apelido ? nomeVeiculo(v) : ""].filter(Boolean).join(" · ")));
+  const st = STATUS_VEICULO[v.status] || STATUS_VEICULO.ok;
+  lin.append(iconeEl(v.tipo === "moto" ? "moto" : "carro", { tam: 20, fundo: true }), tx, h("span", "ent-etq " + st[1], st[0]));
+  b.appendChild(lin);
+  b.addEventListener("click", () => abrirVeiculo(v));
+  return b;
+}
+function abrirVeiculo(v) {
+  const { corpo: c, fechar } = abrirTela(v.apelido || nomeVeiculo(v));
+  const cart = h("div", "al-vei-cartao");
+  const st = STATUS_VEICULO[v.status] || STATUS_VEICULO.ok;
+  cart.append(iconeEl(v.tipo === "moto" ? "moto" : "carro", { tam: 30, fundo: true }), h("div"));
+  cart.lastChild.append(h("b", null, nomeVeiculo(v)), h("span", "al-placa", formatarPlaca(v.placa)), h("small", null, [v.cor, TIPOS_VEICULO[v.tipo]?.[0]].filter(Boolean).join(" · ")), h("span", "ent-etq " + st[1], st[0]));
+  c.appendChild(cart);
+  const acoes = [];
+  if (v.status === "roubado") {
+    acoes.push(cartaoOp({ nome: "Procurar agora", desc: "Anúncios com a mesma placa e parecidos", icone: "lupa", aoTocar: () => { const r = h("div"); r.appendChild(vazio("Procurando...")); c.appendChild(r); procurarAnuncios(v).then((res) => r.replaceChildren(blocoAnuncios(res, v))); r.scrollIntoView({ behavior: "smooth" }); } }));
+    if (v.ocorrenciaId) acoes.push(cartaoOp({ nome: "Ver a ocorrência e as pistas", desc: "O que a vizinhança mandou", icone: "olho", aoTocar: () => abrirOcorrencia(v.ocorrenciaId) }));
+    acoes.push(cartaoOp({ nome: "Recuperei", desc: "Encerra o alerta e a ocorrência", icone: "check", aoTocar: async () => {
+      try {
+        if (v.ocorrenciaId) await fb.updateDoc(fb.doc(fb.db, "ocorrencias", v.ocorrenciaId), { status: "recuperado", atualizadoEm: fb.serverTimestamp() }).catch(() => {});
+        await marcarVeiculo(v, { status: "recuperado" }); toast("Que bom! Alerta encerrado."); fechar(); pintarAba();
+      } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+    } }));
+  } else {
+    acoes.push(cartaoOp({ nome: "Fui roubado ou furtado", desc: "Registra a ocorrência e procura anúncios com esta placa", icone: "sirene", classe: "perigo", dados: { acao: "roubado" }, aoTocar: () => { fechar(); registrarOcorrencia({ objeto: v.tipo, veiculo: v, tipo: "roubo" }); } }));
+  }
+  acoes.push(cartaoOp({ nome: "Editar", desc: "Placa, marca, modelo, ano e cor", icone: "documento", aoTocar: () => { fechar(); editarVeiculo(v); } }));
+  acoes.push(cartaoOp({ nome: "Remover", desc: "Tira o veículo da sua lista", icone: "caixa", aoTocar: async () => {
+    if (!(await confirmarHF({ titulo: "Remover este veículo?", texto: "Ele sai da sua lista. Ocorrências já registradas continuam valendo.", ok: "Remover", icone: "lixo" }))) return;
+    try {
+      meusVeiculosCache = null;
+      if (v._guardado) { const novo = { ...(dados.veiculosGuardados || {}) }; delete novo[v.id]; dados.veiculosGuardados = novo; await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true }); }
+      else await fb.deleteDoc(fb.doc(fb.db, "veiculos", v.id));
+      toast("Veículo removido"); fechar(); pintarAba();
+    } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+  } }));
+  c.appendChild(grupoOps(acoes, { colunas: 1, unico: false }));
+}
+function editarVeiculo(v) {
+  const { corpo: c, fechar, folha } = abrirTela(v ? "Editar veículo" : "Cadastrar veículo");
+  let tipo = v?.tipo || "carro";
+  passoNum(c, 1, "Tipo");
+  c.appendChild(grupoOps(Object.entries(TIPOS_VEICULO).map(([k, [n]]) => cartaoOp({ nome: n, desc: k === "moto" ? "Motocicleta ou motoneta" : "Carro, picape ou utilitário", icone: k, ativo: tipo === k, dados: { tipoVeiculo: k }, aoTocar: () => { tipo = k; campos.tipo(k); folha.marcarMexido?.(); } })), { colunas: 2, rotulo: "Tipo" }));
+  passoNum(c, 2, "Placa", "Fica guardada só com você e com a equipe de segurança. Ninguém mais vê.");
+  const campoPlaca = campoIdentificacao("carro", v ? formatarPlaca(v.placa) : ""); campoPlaca.input.id = "alVeiPlaca";
+  c.appendChild(campoPlaca.el);
+  passoNum(c, 3, "Como ele é", "Ajuda a achar anúncios parecidos se a placa for trocada.");
+  const campos = camposVeiculo(v || { tipo });
+  c.appendChild(campos.el);
+  const lap = h("label", "ent-campo"); const ap = h("input"); ap.id = "alVeiApelido"; ap.maxLength = 30; ap.placeholder = "Ex.: Carro do trabalho"; ap.value = v?.apelido || ""; lap.append(h("span", null, "Apelido (opcional)"), ap); c.appendChild(lap);
+  const ok = botao(v ? "Salvar" : "Cadastrar veículo", "ent-btn", async () => {
+    if (!placaOk(campoPlaca.input.value)) { toast("Confira a placa (ABC-1234 ou ABC1D23)."); campoPlaca.input.focus(); return; }
+    const placa = placaMercosul(campoPlaca.input.value), x = campos.ler();
+    if (!x.marca || !x.modelo) { toast("Informe a marca e o modelo."); return; }
+    ok.disabled = true;
+    // A placa tem alerta de outra pessoa? (pode ter comprado um veículo roubado sem saber)
+    try {
+      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "in", formasPlaca(placa)), fb.limit(3)));
+      const alheia = s.docs.find((d) => !(dados.minhasOcorrencias || []).includes(d.id) && d.data().autorId !== eu.uid);
+      if (alheia) await confirmarHF({ titulo: "Esta placa tem alerta de roubo ou furto", texto: "Alguém registrou uma ocorrência ativa com esta placa. Se você comprou este veículo há pouco tempo, procure a polícia com o documento de compra. O cadastro continua.", ok: "Entendi", soOk: true, icone: "alerta", cor: "normal" });
+    } catch {}
+    const doc = { donoId: eu.uid, tipo, placa, placaHash: await hashPlaca(placa), ...x, apelido: ap.value.trim().slice(0, 30), chassiFim: "", status: v?.status || "ok", ocorrenciaId: v?.ocorrenciaId || "", atualizadoEm: fb.serverTimestamp() };
+    try {
+      meusVeiculosCache = null;
+      if (v && !v._guardado) await fb.updateDoc(fb.doc(fb.db, "veiculos", v.id), doc);
+      else {
+        const ref = v ? fb.doc(fb.db, "veiculos", v.id) : fb.doc(fb.collection(fb.db, "veiculos"));
+        try { await fb.setDoc(ref, { ...doc, criadoEm: fb.serverTimestamp() }); if (v?._guardado) { const novo = { ...(dados.veiculosGuardados || {}) }; delete novo[v.id]; dados.veiculosGuardados = novo; fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true }).catch(() => {}); } }
+        catch (e) {
+          if (e?.code !== "permission-denied") throw e;
+          // Regras de antes: guarda na conta (só a pessoa lê) e passa para a coleção depois.
+          const { atualizadoEm, ...semData } = doc;
+          const novo = { ...(dados.veiculosGuardados || {}), [ref.id]: { ...semData, criadoEm: Date.now() } };
+          await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true });
+          dados.veiculosGuardados = novo;
+        }
+      }
+      toast(v ? "Veículo salvo" : "Veículo cadastrado"); fechar(); aba = "veiculos"; pintarAba();
+    } catch (e) { ok.disabled = false; toast("Não foi possível salvar: " + erroAmigavel(e)); }
+  });
+  ok.id = "alVeiSalvar";
+  c.appendChild(ok);
 }
 
 // =====================================================

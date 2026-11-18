@@ -1,4 +1,4 @@
-// Topo da rede: no Diário o nome da rede, "Ponte" (16/11/2026, letra cursiva como a do Instagram), sem a marca Help Floripa;
+// Topo da rede: no Diário o nome da rede, "ponte" (18/11/2026: letra da marca do site, Sora; a cursiva parecia o Instagram), sem a marca Help Floripa;
 // no Explorar, Comunidade e Perfil a marca sai. Tocar no nome sobe para o começo do Diário.
 // Uso: node seed.mjs | tail -1 > saida/seed-ids.json && node t-marca-ponte.mjs
 import { navegador, entrar } from "./nav.mjs";
@@ -18,13 +18,13 @@ const topo = (f) => f.evaluate(() => {
   const h = document.querySelector(".topo").getBoundingClientRect();
   return { escrita: !!document.querySelector(".topo .marca"), texto: /HELP|FLORIPA|LUGAR/.test(document.querySelector(".topo").innerText),
     ponte: !!pt && getComputedStyle(pt).visibility === "visible" && r.width > 30, icone: !!ic && ic.width > 30 && ic.height > 15,
-    centro: r ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : 99, cabo: svg ? getComputedStyle(svg).color + "|" + getComputedStyle(svg).fontFamily + "|" + svg.textContent + "|" + document.fonts.check('33px "HF Cursiva"') : "", gear: !!document.querySelector('.topo a[href="configuracoes.html"]'), sino: !!document.querySelector('.topo a[href="notificacoes.html"]'), fab: !!document.querySelector("body > .fab-hf") && getComputedStyle(document.querySelector("body > .fab-hf")).display !== "none" };
+    centro: r ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : 99, cabo: svg ? getComputedStyle(svg).color + "|" + getComputedStyle(svg).fontFamily + "|" + svg.textContent + "|" + document.fonts.check('700 27px "HF Marca"') : "", gear: !!document.querySelector('.topo a[href="configuracoes.html"]'), sino: !!document.querySelector('.topo a[href="notificacoes.html"]'), fab: !!document.querySelector("body > .fab-hf") && getComputedStyle(document.querySelector("body > .fab-hf")).display !== "none" };
 });
 const d = await topo(feed);
-ok(d.ponte && !d.escrita && !d.texto, "Diário: só o nome Ponte na letra cursiva, sem HELP FLORIPA e slogan");
+ok(d.ponte && !d.escrita && !d.texto, "Diário: só o nome ponte, sem HELP FLORIPA e slogan");
 ok(d.icone, "Diário: a ponte do logo ao lado do nome");
 ok(d.centro < 3, "Diário: nome no meio do topo (" + d.centro.toFixed(1) + " px)");
-ok(/"HF Cursiva".*\|Ponte\|true/.test(d.cabo) && /rgb\(2[0-9]{2}/.test(d.cabo), "Diário: nome na letra cursiva e na cor do texto (" + d.cabo + ")");
+ok(/"HF Marca".*\|ponte\|true/.test(d.cabo) && !/Cursiva/.test(d.cabo) && /rgb\(2[0-9]{2}/.test(d.cabo), "Diário: \"ponte\" na letra da marca do site (sem a cursiva do Instagram) e na cor do texto (" + d.cabo + ")");
 ok(!d.gear && d.sino, "Diário: sem engrenagem, com o sino");
 ok(d.fab, "Diário: + do lado");
 await p.screenshot({ path: "saida/mp-diario.png" });

@@ -35,13 +35,13 @@
       document.documentElement.dataset.theme = escuro ? "dark" : "light";
     })();
   </script>
-  <link rel="stylesheet" href="rede.css?v=129" />
+  <link rel="stylesheet" href="rede.css?v=130" />
   <script type="module" src="firebase.js"></script>
   <script type="module" src="auth-guard.js"></script>
   <link rel="stylesheet" href="comunidade.css?v=5" />
-  <link rel="stylesheet" href="mural.css?v=9" />
-  <script type="module" src="mural.js?v=96"></script>
-  <script type="module" src="alertas-faixa.js?v=3"></script>
+  <link rel="stylesheet" href="mural.css?v=10" />
+  <script type="module" src="mural.js?v=97"></script>
+  <script type="module" src="alertas-faixa.js?v=4"></script>
 </head>
 <body class="pg-mural">
   <header class="topo topo-com">
@@ -61,11 +61,16 @@
              fileira do Flash), filtros compactos e a regra numa linha. Publicar fica no "+" do topo. -->
         <h1 class="sr">Comunidade</h1>
 
+        <!-- Help · Pets · Alertas em cartões (18/11/2026, padrão do site: ícone, nome e o que tem perto) -->
         <nav class="mu-alertas" id="muAlertas" aria-label="Help e alertas perto de você">
-          <a class="mu-al sos" href="alertas.html?aba=sos"><span>Help</span><b>0</b></a>
-          <a class="mu-al pets" href="alertas.html?aba=pets"><span>Pets</span><b>0</b></a>
-          <a class="mu-al roubos" href="alertas.html?aba=roubos"><span>Alertas</span><b>0</b></a>
+          <a class="mu-al sos" href="alertas.html?aba=sos"><span class="mu-al-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M4.5 12.5h3.5l1.5-2.5 2 4 1.5-2h6"/></svg></span><span class="mu-al-tx"><span>Help</span><small>Pedir ajuda</small></span><b>0</b></a>
+          <a class="mu-al pets" href="alertas.html?aba=pets"><span class="mu-al-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="15.5" rx="4" ry="3.5"/><circle cx="6.5" cy="10.5" r="1.8"/><circle cx="17.5" cy="10.5" r="1.8"/><circle cx="9.5" cy="6.5" r="1.8"/><circle cx="14.5" cy="6.5" r="1.8"/></svg></span><span class="mu-al-tx"><span>Pets</span><small>Perdidos</small></span><b>0</b></a>
+          <a class="mu-al roubos" href="alertas.html?aba=roubos"><span class="mu-al-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17v-5a5 5 0 0 1 10 0v5"/><path d="M5 17h14v3H5zM12 4V2.5M5.6 6.6 4.5 5.5M18.4 6.6l1.1-1.1"/></svg></span><span class="mu-al-tx"><span>Alertas</span><small>Roubos</small></span><b>0</b></a>
         </nav>
+        <section class="mu-combina" id="muCombina" hidden aria-labelledby="muCombinaTit">
+          <div class="mu-combina-cab"><h2 id="muCombinaTit">Combina com você</h2><small>Cruzamos o que você publicou com o que tem perto</small></div>
+          <div class="mu-combina-lista" id="muCombinaLista"></div>
+        </section>
         <section class="mu-bolhas-sec" id="muPertoSec" hidden aria-label="Perto de você">
           <div class="mu-bolhas" id="muPerto"></div>
         </section>

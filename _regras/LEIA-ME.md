@@ -189,6 +189,13 @@
 > vazio, local ≤60, categoria (12), foto JPEG ≤240 mil (obrigatória na foto), fixado, ver todos|seguidores|amigos|eu, com ≤10,
 > criadoEm, atualizadoEm}. Lê quem o "ver" deixa (seguidores = segue; amigos = os dois se seguem; bloqueio esconde); a lista
 > precisa filtrar `uid` e `ver`. Só o dono grava. Continuam **23 partes**, 1238 testes.
+>
+> **Veículos (18/11/2026):** coleção nova `veiculos/{id}` {donoId, tipo carro|moto, placa (padrão Mercosul), placaHash, marca,
+> modelo, ano, cor, apelido, chassiFim, status ok|roubado|recuperado, ocorrenciaId, roubadoEm, criadoEm, atualizadoEm}: só o
+> dono e a moderação leem. Índice `veiculos_venda/{negocio}_{16 letras do hash}` {negocioId (`uid_lojinha` ou
+> `uid_automotivo`), donoId, tipoNegocio, item, tipo, placaHash, marca, modelo, ano, cor, cidade, uf, criadoEm, atualizadoEm}:
+> qualquer conta lê (procura pelo hash), só o dono do negócio grava, a moderação apaga — **nunca leva a placa**.
+> `ocorrencias.veiculo` {marca, modelo, ano, cor} (opcional). Continuam **23 partes**, 1266 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de

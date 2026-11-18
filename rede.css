@@ -4556,3 +4556,14 @@ html:has(> body.com-barra), body.com-barra { overflow-x: clip; }
 .post-cab .pc-rosa { position: absolute; right: -4px; bottom: -3px; width: 19px; height: 19px; padding: 0; border-radius: 50%; display: grid; place-items: center;
   background: #fff; color: #e0243b; border: 2px solid var(--panel, #fff); box-shadow: 0 1px 5px rgba(224, 36, 59, .4); cursor: pointer; }
 .post-cab .pc-rosa .i { width: 11px; height: 11px; }
+
+/* ===================================================================================================
+   Marca "ponte" própria (18/11/2026, pedido dele: "não pode ficar parecido com o Instagram"). Sai a letra cursiva
+   (Grand Hotel) e entra a letra da marca do site (Sora, a mesma do HELP FLORIPA), em minúsculas e apertada, com a
+   ponte do logo encostada. O fio embaixo continua o tabuleiro da ponte.
+   =================================================================================================== */
+.marca-ponte .marca-diare, .marca-ponte .mp-arte .marca-diare { font-family: "HF Marca", "Sora", system-ui, sans-serif; font-weight: 700;
+  font-size: 27px; letter-spacing: -.045em; line-height: 1; text-transform: lowercase; padding: 0 0 1px; }
+.marca-ponte .mp-arte { align-items: center; gap: 6px; }
+.marca-ponte .mp-ic { width: 46px; height: 30px; margin-bottom: 0; }
+.marca-ponte .mp-arte::after { left: 58px; bottom: 2px; height: 1.5px; }

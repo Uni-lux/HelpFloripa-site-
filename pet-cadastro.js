@@ -5,7 +5,7 @@
 // =====================================================
 import { ESPECIES, CORES_PET, PORTES_ESPECIE, nomePorte, rgPet, normalizarId, geohash } from "./alertas-base.js?v=2";
 import { confirmarHF } from "./confirmar.js?v=6";
-import { iconeEl, iconeEspecie } from "./icones-hf.js?v=2";
+import { iconeEl, iconeEspecie } from "./icones-hf.js?v=3";
 
 const COR_HEX = { preto: "#1b1b1b", branco: "#f5f5f0", marrom: "#6b4226", caramelo: "#c98a3c", cinza: "#8a8f96", dourado: "#d9a53b", creme: "#efe0bf", tigrado: "linear-gradient(135deg,#8a5a2b 0 30%,#2b1b10 30% 45%,#8a5a2b 45% 70%,#2b1b10 70%)", malhado: "radial-gradient(circle at 30% 30%,#222 0 22%,#f3f3f3 23%)", tricolor: "conic-gradient(#1b1b1b 0 33%,#c98a3c 0 66%,#f5f5f0 0)", laranja: "#e98a2b", rajado: "repeating-linear-gradient(45deg,#9a9a9a 0 4px,#4a4a4a 4px 8px)" };
 const RACAS = {

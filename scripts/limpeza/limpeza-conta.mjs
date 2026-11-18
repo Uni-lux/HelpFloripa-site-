@@ -110,6 +110,8 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     for (const v of vins.docs) if (!simular) await col("vinculos_retrato").doc(v.id).delete().catch(() => {});
     await apagar("vinculos", col("vinculos").where("participantes", "array-contains", uid));
     await apagar("momentos", col("momentos").where("uid", "==", uid)); // Salão (momentos e lembranças)
+    await apagar("veiculos", col("veiculos").where("donoId", "==", uid)); // veículos (placa) e o índice dos à venda
+    await apagar("veiculos_venda", col("veiculos_venda").where("donoId", "==", uid));
     await apagar("negocios", col("negocios").where("donoId", "==", uid));
     await apagar("anuncios", col("anuncios").where("donoId", "==", uid));
     await apagar("comunidade", col("comunidade").where("donoId", "==", uid));
