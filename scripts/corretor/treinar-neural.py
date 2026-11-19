@@ -3,6 +3,8 @@
 # bidirecional) para escolher entre palavras que se confundem (e/é, mas/mais, onde/aonde...). Palavras viram números por
 # hashing (FNV-1a, igual ao corretor.js); a palavra em dúvida vira um marcador do grupo. Treina com os mesmos textos e a
 # mesma divisão do gerar-contexto.py, e compara com o modelo atual (hashing + regressão logística) em frases que nenhum viu.
+# Resultado de 19/11/2026: NÃO adotada (corrige menos que o modelo atual; junto com ele, +4% de correções mas o dobro de
+# palavras certas estragadas e ~400 KB a mais). Fica guardado para tentar de novo com mais texto ou empilhada.
 # Uso: python3 treinar-neural.py avaliar machado.txt:1 modernos.txt:6 tatoeba.txt:1:x
 import os, sys, random, math, time
 from collections import Counter, defaultdict
