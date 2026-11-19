@@ -357,6 +357,7 @@ function concordarSujeito(s, anotar) {
     const w = lc(toks[a]), ant = a > 0 && !corta(a - 1, a) ? lc(toks[a - 1]) : "";
     let pessoa = null, fimSuj = a, conf = "alta", motivo = "o verbo combina com quem faz a ação";
     if (PREPOS.has(ant)) continue; // "pra nós", "com eles": não é quem faz a ação
+    // "para que eu possa", "se eu faça": depois de "que/se/caso/embora" o verbo pode estar no subjuntivo (possa, faça, seja)
     if (w === "nós" || w === "nois" || w === "nóis") pessoa = "1p";
     else if (w === "eu") pessoa = "1s";
     else if (/^(eles|elas|vocês|voces)$/.test(w)) pessoa = "3p";
@@ -378,6 +379,7 @@ function concordarSujeito(s, anotar) {
     if (j >= toks.length || corta(j - 1, j) || /,/.test(entre(j - 1, j))) continue;
     const v = lc(toks[j]);
     if (PARA_FRASE.has(v) || PREPOS.has(v)) continue;
+    if (pessoa === "1s" && /^(que|se|caso|embora|talvez|quando|enquanto)$/.test(ant) && /[ae]$/.test(v)) continue;
     // "eu é que", "os outros é que": construção com "é que" não muda
     if (/^(é|foi|era|seria|será)$/.test(v) && j + 1 < toks.length && lc(toks[j + 1]) === "que") continue;
     // com artigo + palavra, o verbo só muda se ele for verbo mesmo (classe) e "é/era" só como sugestão
@@ -465,7 +467,14 @@ const ESTRANGEIRAS = new Set(("pet pets petshop cookie cookies e-mail e-mails em
   "yoga coach coaching startup startups mei cnpj cpf rg cnh pix qr code ok okay hashtag hashtags stalker crush match like likes follow " +
   "web download upload backup bug bugs layout feedback deadline briefing job jobs freelancers drive pen pendrive bluetooth smart tv " +
   "check-in checkin check-out checkout self service drink drinks happy hour fast food food truck trucks gamer games game streaming live lives " +
-  "reel reels flash nº nºs vs etc").split(" "));
+  "reel reels flash nº nºs vs etc " +
+  // eletrônicos, marcas e termos técnicos (avaliações de produtos: "hd", "hdmi", "full hd", "xbox" não são erro)
+  "hd hdmi full fullhd pc pcs lg cce www wii xbox playstation ps2 ps3 ps4 ps5 slim vimeo plug pip rca usb dvd dvds led leds lcd plasma " +
+  "blu-ray bluray samsung sony philips motorola nokia apple ipad ipod kindle touch touchscreen screen display zoom player players gps " +
+  "tablet tablets netbook ultrabook headphone headphones headset wireless stereo dolby surround subwoofer home theater bass sd microsd " +
+  "mpg mpeg divx xvid avi mkv jpg jpeg png pdf mp3 mp4 router modem ram ssd hdd cpu gpu chip chips intel amd nvidia windows linux mac " +
+  "macbook dell lenovo acer asus positivo semp toshiba panasonic jbl multilaser britania mondial arno walita electrolux brastemp consul " +
+  "ok ok's ps sms driver drivers magic dlna smartv software hardware firmware widget widgets bike bikes premium plus pro").split(" "));
 const CHAVE_PESSOAL = "hf-dicionario";
 try { (JSON.parse(localStorage.getItem(CHAVE_PESSOAL) || "[]") || []).forEach((w) => PESSOAL.add(w)); } catch {}
 export const lexicoPronto = () => !!LEX;
@@ -605,6 +614,7 @@ function corrigirPeloContexto(s, anotar) {
     // limites medidos fora do treino (1 = nunca), com piso: só muda sozinho com 90%+ e sugere com 70%+
     const conf = lim[0] < 1 && pm > Math.max(lim[0], 0.9) ? "alta" : lim[1] < 1 && pm > Math.max(lim[1], 0.7) ? "media" : null;
     if (!conf) return;
+    if (conf === "media" && naoSugerir(k, melhor, toks, i)) return;
     const para = comoOriginal(t.w, melhor);
     const de = (i > 0 && !/[.,;:!?]/.test(toks[i - 1].w) ? toks[i - 1].w + " " : "") + t.w; // um pouco do contexto na lista
     const deAte = de === t.w ? para : de.slice(0, de.length - t.w.length) + para;
@@ -635,6 +645,32 @@ function corrigirPeloContexto(s, anotar) {
   });
   for (const t of troca.sort((a, b) => b.i - a.i)) s = s.slice(0, t.i) + t.para + s.slice(t.f);
   return s;
+}
+// Sugestões (conf "media") que o modelo erra em texto bem escrito: listas com "e", verbo depois de "não", "mais" + substantivo.
+// Medido em _testes/corretor-paginas.mjs (frases certas do site) e _testes/corretor-prova.mjs (erros reais).
+const DET_LISTA = /^(o|a|os|as|um|uma|uns|umas|quem|seu|sua|seus|suas|meu|minha|meus|minhas|nosso|nossa|outro|outra)$/;
+function naoSugerir(k, para, toks, i) {
+  const w = (j) => (j >= 0 && j < toks.length ? semAcento(toks[j].w.toLowerCase()) : "");
+  const c = (j) => (j >= 0 && j < toks.length ? classeCtx(w(j)) : "<");
+  if (k === "e" && para === "é") {
+    const dep = w(i + 1), ant = w(i - 1);
+    // "você e a pessoa", "você e quem votou": quem faz a ação são os dois
+    if (/^(voce|voces|eu|ele|ela|eles|elas|nos)$/.test(ant) && DET_LISTA.test(dep)) return true;
+    // "o plano e o período", "um documento e uma selfie", "a senha atual e a nova": dois itens com artigo
+    if (DET_LISTA.test(dep) && [i - 2, i - 3].some((j) => /^(o|a|os|as|um|uma|seu|sua|meu|minha|esse|essa|cada|do|da|dos|das|no|na|nos|nas|pelo|pela|ao|num|numa)$/.test(w(j)))) return true;
+    // "X, Y e Z" (enumeração): vírgula pouco antes, sem verbo no meio
+    if (i > 0 && !/^[.,;:!?]$/.test(toks[i - 1].w)) for (let j = i - 2; j >= Math.max(0, i - 4); j--) { if (toks[j].w === ",") return true; if (/^[.;:!?]$/.test(toks[j].w) || c(j) === "V") break; }
+    // "agora e edite", "e muito mais": o que vem depois é verbo no imperativo/presente ou "muito mais"
+    if (dep === "muito" && w(i + 2) === "mais") return true;
+    if (c(i + 1) === "V" && !/(ado|ada|ido|ida|ados|adas|idos|idas)$/.test(dep)) return true;
+    // "agora e edite", "e mande": forma do verbo (editar → edite) logo depois do "e"
+    if (/e$/.test(dep) && dep.length >= 4 && c(i + 1) !== "A" && LEX && LEX.has(dep.slice(0, -1) + "ar")) return true;
+  }
+  // "não publica, não avalia", "mensagens, publica, avalia": verbo, não "pública"
+  if (k === "publica" && (/^(nao|nunca|ja|tambem|se|me|ninguem|quem|so)$/.test(w(i - 1)) || toks[i - 1]?.w === "," || toks[i + 1]?.w === ",")) return true;
+  // "mais corridas", "mais fotos": quantidade, não "mas"
+  if (k === "mais" && para === "mas" && (c(i + 1) === "N" || c(i + 1) === "A")) return true;
+  return false;
 }
 const MAIS_ACENTO = new Set("e as esta nos pais da ai por pode publico duvida historia seria ate la le numero musica ultimo ultima publica mes manha".split(" "));
 
@@ -801,8 +837,11 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
     // 1) palavra por palavra
     s = s.replace(PALAVRA, (w, off, str) => {
       const k = w.toLowerCase(), ks = semAcento(k);
+      // colada em número/código ("mp4", "80cm", "n8", "v=abc") não é palavra para corrigir
+      const colada = /[\p{N}=_/@]/u.test(str[off - 1] || "") || /[\p{N}=_/@]/u.test(str[off + w.length] || "");
+      if (colada) return w;
       // risadas e "rs" ficam como estão
-      if (/^(k{2,}|(ha){2,}|(he){2,}|(hu){2,}|(rs)+|a?ha+|kk+)$/i.test(w)) return w;
+      if (/^(k{2,}|(ha){2,}|(he){2,}|(hu){2,}|(rs)+|a?ha+|kk+|[aeiu]?(h[aeiu]+){2,}h?|hu[ae](hu[ae])+)$/i.test(w)) return w;
       // letras repetidas: "muitoooo" → "muito" (no chat a pessoa pode querer; vale como sugestão)
       const rep = w.replace(/(\p{L})\1{2,}/gu, (m, l) => /[rs]/i.test(l) ? l + l : l);
       if (rep !== w && rep.length >= 2) { if (anotar(w, rep, "repeticao", "letras repetidas")) return rep; }
@@ -817,7 +856,10 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       if (Object.prototype.hasOwnProperty.call(NOMES, ks) && w !== NOMES[ks]) {
         if (anotar(w, NOMES[ks], "maiuscula", "nome de lugar ou pessoa começa com maiúscula")) return NOMES[ks];
       }
-      if (k === ks && Object.prototype.hasOwnProperty.call(ACENTOS, k) && ACENTOS[k] && ACENTOS[k] !== k) {
+      // "eu/não/ou + palavra + artigo": a palavra sem acento é verbo ("ou silencio uma conversa", "eu pratico o")
+      const verboComObjeto = /(?:^|[\s,])(eu|n[ãa]o|ou|que|se|me|te|nos|j[áa]|tamb[ée]m|sempre|nunca)\s+$/i.test(str.slice(Math.max(0, off - 14), off))
+        && /^\s+(o|a|os|as|um|uma|uns|umas|meu|minha|seu|sua|esse|essa|este|esta|isso|isto|tudo|nada)\b/i.test(str.slice(off + w.length, off + w.length + 10));
+      if (k === ks && !verboComObjeto && Object.prototype.hasOwnProperty.call(ACENTOS, k) && ACENTOS[k] && ACENTOS[k] !== k) {
         const n = comoOriginal(w, ACENTOS[k]);
         if (anotar(w, n, "acento", "palavra com acento")) return n;
       }
@@ -840,12 +882,14 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
         if (n && n !== k && (!LEX || LEX.has(n))) { n = comoOriginal(w, n); if (anotar(w, n, "acento", "terminação com acento")) return n; }
       }
       // Dicionário: a palavra existe? (nomes próprios no meio da frase, siglas e palavras com número ficam de fora)
-      if (LEX && k.length >= 2 && !/\d/.test(w) && !PESSOAL.has(k) && !/\p{Lu}/u.test(w.slice(1))
+      // sem vogal ("hd", "pc": sigla) não é palavra para corrigir
+      if (LEX && k.length >= 2 && /[aeiouyáéíóúâêôãõàü]/.test(k) && !/\d/.test(w) && !PESSOAL.has(k) && !/\p{Lu}/u.test(w.slice(1))
           && !(/^\p{Lu}/u.test(w) && !inicioFrase(str, off, ip === 0))) {
         const existe = (x) => LEX.has(x) || PESSOAL.has(x) || ESTRANGEIRAS.has(x);
         const partesHifen = k.split("-");
         if (!existe(k) && !(partesHifen.length > 1 && partesHifen.every(existe))) {
           const sg = sugerirPalavra(k);
+          if (sg && k.length <= 3 && sg.como !== "acento") sg.conf = "media"; // 2–3 letras: muitas siglas e gírias, só sugere
           if (sg) {
             const n = comoOriginal(w, sg.para);
             return anotar(w, n, sg.como === "acento" ? "acento" : "ortografia", MOTIVO_SUG[sg.como], sg.conf) ? n : w;

@@ -2932,6 +2932,18 @@ chat da equipe).
   no fim → "más", "boas ou mas" → "más", ", más eu/não..." e "Más" no começo → "mas". Conferido: 0 mudanças nas páginas do
   site; em 10 mil frases certas que têm essas palavras, 1 automática ("Nada demais", erro de verdade no texto) e 2 sugestões.
   t-corretor 153/153.
+- **Prova independente do corretor + listas sem "e/é" (19/11/2026, PR depois do #242, sem regra nova):** pedido dele (itens 1 e 2
+  da avaliação do corretor). `_testes/corretor-prova.mjs` + `_testes/corretor-prova/nilc-ugc.json` (corpus NILC de erros reais,
+  CC0: 1.699 frases de avaliações de produtos, 4.083 erros marcados por linguistas; frases ÍMPARES = ajuste, PARES = prova — não
+  olhar caso a caso). Nota = F0,5 (precisão pesa o dobro). `_testes/corretor-paginas.mjs` = falsos alarmes nas 960 frases das
+  páginas do site. Achados e correções (corretor.js): palavra colada em número/código não é corrigida (mp4, 80cm, n8, v=abc),
+  palavra sem vogal é sigla (hd, pc, lg), palavra de 2–3 letras só vira sugestão (al→ao, of→o, the→te eram automáticas),
+  termos de eletrônicos/marcas em ESTRANGEIRAS, risadas "hahaa", "ou silencio uma conversa" (verbo antes do objeto não ganha
+  acento), "para que eu possa" (subjuntivo não vira "posso"), `naoSugerir` (e/é em listas: "você e a pessoa", "o plano e o
+  período", "X, Y e Z", "agora e edite"; "não publica" verbo; "mais corridas"). Resultado: prova 81,5 → 89,2 (precisão 82,7% →
+  93,1%; palavras certas estragadas 1,7% → 0,4%; corrigidos sozinhos 76,4%); páginas do site 23 sugestões erradas → 0;
+  frases certas atuais (UD) automáticas 1.265 → 1.046 e e→é sugeridas 78 → 58. Regras novas de "não e"/"isso e" testadas e
+  tiradas (5 acertos a mais, 5 alarmes falsos a mais). t-corretor 153/153.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
