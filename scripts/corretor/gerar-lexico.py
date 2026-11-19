@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# Gera corretor/lexico.txt: palavras do português do Brasil, da mais usada para a menos usada (uma por linha).
+# Gera scripts/corretor/fonte/lexico.txt (o site usa corretor/lexico2.txt, feito por compactar.py): palavras do português do Brasil, da mais usada para a menos usada (uma por linha).
 # Fontes (fora do repositório):
 #   - dicionário VERO pt-BR (LibreOffice; pacote hunspell-pt-br, LGPL-3.0 / MPL-2.0): confere se a palavra existe
 #   - FrequencyWords pt_br_full.txt (Hermit Dave, legendas do OpenSubtitles; conteúdo CC-BY-SA 4.0): ordem de uso
 # Uso: apt-get install hunspell hunspell-pt-br
-#      python3 gerar-lexico.py pt_br_full.txt ../../corretor/lexico.txt [limite=350000]
+#      python3 gerar-lexico.py pt_br_full.txt fonte/lexico.txt [limite=350000]
+#      depois: python3 compactar.py fonte/lexico.txt fonte/contexto.json ../../corretor 1.02
 import re, subprocess, sys
 freq, saida = sys.argv[1], sys.argv[2]
 limite = int(sys.argv[3]) if len(sys.argv) > 3 else 350000

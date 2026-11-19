@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Gera corretor/contexto.json: o "corretor que aprende" (12/11/2026).
+# Gera scripts/corretor/fonte/contexto.json (o site usa a versão compacta, ver compactar.py): o "corretor que aprende" (12/11/2026).
 # Para cada grupo de palavras que se confundem (e/é, a/à/há, mas/mais, mal/mau, esta/está...), conta em textos de verdade
 # quais palavras aparecem antes e depois de cada uma. No aparelho, o corretor compara essas contagens com a frase da pessoa
 # (Bayes ingênuo) e escolhe a forma mais provável. Nada sai do aparelho.
@@ -8,7 +8,8 @@
 #   - textos atuais do Brasil das árvores sintáticas Universal Dependencies (frases "# text =" dos .conllu):
 #     UD_Portuguese-GSD, -Bosque (só a parte da Folha, ids "CF"), -PUD e -PetroGold (CC BY-SA 4.0/3.0),
 #     -Porttinari e -DANTEStocks (CC BY 4.0), em github.com/UniversalDependencies.
-# Uso: python3 gerar-contexto.py ../../corretor/contexto.json machado.txt:1 modernos.txt:3
+# Uso: python3 gerar-contexto.py fonte/contexto.json machado.txt:1 modernos.txt:3
+#      depois: python3 compactar.py fonte/lexico.txt fonte/contexto.json ../../corretor 1.02 (o site usa os compactos)
 import json, re, sys, unicodedata, random, os
 from collections import Counter, defaultdict
 
@@ -137,7 +138,7 @@ def main():
   for k, v in sorted(lim.items()): print(k, v)
   # modelo final com todas as frases
   ex = exemplos(treino + [(t, 1) for t in teste])
-  lex = set(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../corretor/lexico.txt"), encoding="utf-8").read().split())
+  lex = set(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonte/lexico.txt"), encoding="utf-8").read().split())
   saida = {"v": 3, "pos": "".join(f"{w}={k}," for w, k in POS.items()), "grupos": [], "lim": {}, "m": {}}
   n = 0
   for gi, xs in sorted(ex.items()):

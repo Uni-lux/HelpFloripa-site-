@@ -427,7 +427,8 @@ function emPartes(texto) {
 const PALAVRA = /[\p{L}]+(?:-[\p{L}]+)*/gu;
 
 // =====================================================
-// Dicionário (12/11/2026): corretor/lexico.txt = palavras do português do Brasil (dicionário VERO do LibreOffice,
+// Dicionário (12/11/2026): corretor/lexico2.txt (formato compacto desde 19/11/2026; o legível fica em
+// scripts/corretor/fonte/lexico.txt) = palavras do português do Brasil (dicionário VERO do LibreOffice,
 // LGPL/MPL) na ordem de uso (lista de frequência FrequencyWords, CC-BY-SA 4.0) — gerado por scripts/corretor/gerar-lexico.mjs.
 // Com ele, QUALQUER palavra que não existe é encontrada e a sugestão vem por: acento (sem acento → com acento), som
 // (como se fala: ss/ç/sc, x/ch, s/z, g/j, l/u no fim da sílaba, ei/e, ou/o, n/m antes de consoante...) e digitação
@@ -450,10 +451,28 @@ try { (JSON.parse(localStorage.getItem(CHAVE_PESSOAL) || "[]") || []).forEach((w
 export const lexicoPronto = () => !!LEX;
 export function definirLexico(texto) {
   LEX = new Map(); ACC = null; FON = null;
-  String(texto).split("\n").forEach((w, i) => { w = w.trim(); if (w && !LEX.has(w)) LEX.set(w, i); });
+  texto = String(texto);
+  if (texto.startsWith("#hflex2")) return lexicoCompacto(texto);
+  texto.split("\n").forEach((w, i) => { w = w.trim(); if (w && !LEX.has(w)) LEX.set(w, i); });
   return LEX.size;
 }
-export function carregarLexico(url = new URL("./corretor/lexico.txt?v=1", import.meta.url).href) {
+// Formato compacto (19/11/2026, scripts/corretor/compactar.py): palavras em ordem alfabética, cada linha começa com um
+// caractere que diz quantas letras repete da anterior; no fim, a faixa de uso de cada palavra (posição ≈ q^faixa).
+// A posição volta como número com vírgula: o meio da faixa + um desempate pela ordem alfabética (nunca dá empate).
+function lexicoCompacto(texto) {
+  const linhas = texto.split("\n"), q = parseFloat(linhas[0].split(" ")[1]) || 1.05, lq = Math.log(q);
+  const fim = linhas.indexOf("#faixas"), faixas = linhas[fim + 1] || "", n = fim - 1;
+  let prev = "";
+  for (let i = 0; i < n; i++) {
+    const l = linhas[i + 1], p = l.charCodeAt(0) - 48, w = prev.slice(0, p) + l.slice(1);
+    const f = faixas.charCodeAt(i) - 48;
+    LEX.set(w, Math.exp((f + 0.5) * lq) - 1 + i / (n * 10)); prev = w;
+  }
+  const t = linhas.indexOf("#topo"); // as mais usadas na ordem exata
+  if (t > 0) for (let i = t + 1, r = 0; i < linhas.length; i++) if (linhas[i]) LEX.set(linhas[i], r++);
+  return LEX.size;
+}
+export function carregarLexico(url = new URL("./corretor/lexico2.txt?v=1", import.meta.url).href) {
   if (LEX) { carregarContexto(); return Promise.resolve(true); }
   if (!carregando) carregando = Promise.all([
     fetch(url).then((r) => (r.ok ? r.text() : Promise.reject(new Error("lexico")))).then((t) => { definirLexico(t); return true; }),
@@ -465,7 +484,7 @@ export function carregarLexico(url = new URL("./corretor/lexico.txt?v=1", import
 // =====================================================
 // Corretor que aprende (12/11/2026): palavras que se confundem (e/é, mas/mais, mal/mau, esta/está, nos/nós, por/pôr...)
 // são escolhidas pelas palavras em volta, com contagens tiradas de 2,5 milhões de palavras de textos em português
-// (corretor/contexto.json, gerado por scripts/corretor/gerar-contexto.py). Cada grupo tem a margem de confiança medida
+// (corretor/contexto2.json, compacto; o legível é scripts/corretor/fonte/contexto.json, gerado por gerar-contexto.py). Cada grupo tem a margem de confiança medida
 // em frases que o modelo não viu no treino: só corrige sozinho onde acertou 99% delas; entre 93% e 99% vira sugestão.
 // E aprende com a pessoa: correção que ela desliga várias vezes deixa de vir ligada (e depois some); sugestão que ela
 // liga várias vezes passa a vir ligada (aprenderEscolhas, guardado só no aparelho).
@@ -474,12 +493,27 @@ let CTX = null, carregandoCtx = null;
 export const contextoPronto = () => !!CTX;
 export function definirContexto(dados) {
   const d = typeof dados === "string" ? JSON.parse(dados) : dados;
+  if (d.v >= 4) d.m = pesosCompactos(d.m);
   const membro = new Map(), pos = new Map();
   (d.grupos || []).forEach((g, gi) => g.forEach((w) => membro.set(w, gi)));
   String(d.pos || "").split(",").forEach((x) => { const i = x.indexOf("="); if (i > 0) pos.set(x.slice(0, i), x.slice(i + 1)); });
   CTX = { ...d, membro, pos };
 }
-export function carregarContexto(url = new URL("./corretor/contexto.json?v=2", import.meta.url).href) {
+// Pesos no formato compacto (v4, compactar.py): 2 formas por grupo, o peso da 2ª é o da 1ª com o sinal trocado e vem em
+// centésimos; as pistas vêm juntas por tipo ("l": "a|de|o", "w": {"l": "12,-40,3"}). Volta ao formato de sempre.
+function pesosCompactos(m) {
+  const out = {};
+  for (const [g, v] of Object.entries(m)) {
+    const w = {};
+    for (const [p, lista] of Object.entries(v.f)) {
+      const ks = lista.split("|"), xs = String(v.w[p]).split(",");
+      ks.forEach((k, i) => { const x = Number(xs[i]) / 100; w[p + ":" + k] = [x, -x]; });
+    }
+    out[g] = { c: v.c, b: [v.b, -v.b], w };
+  }
+  return out;
+}
+export function carregarContexto(url = new URL("./corretor/contexto2.json?v=1", import.meta.url).href) {
   if (CTX) return Promise.resolve(true);
   if (!carregandoCtx) carregandoCtx = fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))).then((j) => { definirContexto(j); return true; })
     .catch(() => { carregandoCtx = null; return false; });
