@@ -2915,7 +2915,14 @@ chat da equipe).
   avaliação 10% com erros simulados (antigo: 5.549 corrigidos, 10 certos estragados; v5: 5.773 e 16, em ~15,9 mil certos).
   Pesos 201 → 115 KB comprimidos (−43%), abrir 20 → 3 ms; corretor real igual (1.728 × 1.733 textos consertados).
   Textos: baixar machado.zip do nltk_data e os .conllu das UD pelo raw.githubusercontent.com (Tatoeba/HuggingFace bloqueados
-  daqui; frases do dia a dia dependem dele baixar). t-corretor 134/134.
+  daqui; ele mandou o `por_sentences.tsv.bz2`). **Tatoeba (mesmo PR #241):** `preparar-tatoeba.py` tira as frases com cara
+  de Portugal (439 mil ficam) e entra como `tatoeba.txt:1:x` (peso 1; 10% fora do treino). A calibração usa teste + essas
+  frases (com só o teste o "e/é" perdia a correção automática) e a sugestão exige 97% (era 95%). Resultado no corretor:
+  textos consertados 1.690 → 1.810 (atuais), 1.658 → 1.711 (Machado), 2.295 → 2.617 (dia a dia), 0 textos certos
+  estragados; 42 grupos (novos: tem/têm, de/dê, dúvida, séria, mágoa, fábrica, haja/aja; conserto/concerto quase não
+  sugere mais). Nas páginas do site: 0 mudanças automáticas, sugestões erradas 6 → 23 em 1.408 frases (quase todas
+  "X e" → "X é" em listas; piso da sugestão 0,8/0,9 testado e não compensou). Pesos 115 → 161 KB comprimidos.
+  `contexto3.json`/`pesos3.bin` agora `?v=2`. t-corretor 135/135.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

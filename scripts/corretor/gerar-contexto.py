@@ -12,7 +12,9 @@
 # e esse número é a posição do peso numa tabela do grupo (tamanho = potência de 2 >= 4x as pistas; HF_FATOR muda). Não vai
 # vocabulário: só a tabela de pesos (1 byte cada, escala por grupo). O treino já é feito nesse formato, então as pistas
 # que caem na mesma posição são aprendidas juntas. HF_HASH=0 gera o formato antigo (v3) para comparar.
-# Uso: python3 gerar-contexto.py fonte/contexto.json machado.txt:1 modernos.txt:6
+#   - frases do dia a dia do Tatoeba (CC BY 2.0 FR, tatoeba.org), sem as que têm cara de português de Portugal
+#     (preparar-tatoeba.py). ":x" = 10% dela fica fora do treino para a calibração e para a avaliação à parte.
+# Uso: python3 gerar-contexto.py fonte/contexto.json machado.txt:1 modernos.txt:6 tatoeba.txt:1:x
 #      depois: python3 compactar.py fonte/lexico.txt fonte/contexto.json ../../corretor 1.02 (o site usa os compactos)
 import json, re, sys, unicodedata, random, os
 from collections import Counter, defaultdict
@@ -131,7 +133,7 @@ def probabilidades(mod, fs):
 
 def calibrar(mods, teste):
   # por grupo: probabilidade mínima da outra forma para acertar >= 99,7% (corrige sozinho, com 30+ casos)
-  # e >= 95% (sugestão), medida em frases que o modelo NÃO viu, como se a pessoa tivesse escrito sem acento
+  # e >= 97% (sugestão), medida em frases que o modelo NÃO viu, como se a pessoa tivesse escrito sem acento
   res = defaultdict(list)
   for gi, xs in exemplos([(t, 1) for t in teste]).items():
     if gi not in mods: continue
@@ -149,7 +151,7 @@ def calibrar(mods, teste):
         sel = [ok for pr, ok in xs if pr > corte]
         if len(sel) >= n and sum(sel) / len(sel) >= prec: return corte
       return 1
-    a, b = T(0.997, 30), T(0.95, 8)
+    a, b = T(0.997, 30), T(0.97, 8)  # sugestão: 97% (com 95% vinham sugestões erradas demais nos textos do site)
     if a < 1 or b < 1: lim[GRUPOS[gi][0]] = [a, min(a, b)]
   return lim
 
@@ -184,27 +186,35 @@ def main():
   import glob
   conllu = sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(sys.argv[2].split(":")[0])), "*.conllu")))
   carregar_pos(conllu); print("classes de", len(POS), "palavras (", len(conllu), "arquivos .conllu)")
+  extra = []  # fonte marcada com ":x" (ex.: tatoeba.txt:2:x): 10% dela só para avaliar à parte, fora da calibração
   for arg in sys.argv[2:]:
-    nome, _, peso = arg.partition(":")
+    nome, peso, marca = (arg.split(":") + ["", ""])[:3]
     fr = list(frases(open(nome, encoding="utf-8").read()))
     random.shuffle(fr)
     corte = len(fr) // 10
-    teste += fr[:corte]; treino += [(t, int(peso or 1)) for t in fr[corte:]]
-    print(nome, len(fr), "frases, peso", peso or 1)
+    if marca == "x":
+      extra += fr[:corte]
+      if peso != "0": treino += [(t, int(peso or 1)) for t in fr[corte:]]
+    else:
+      teste += fr[:corte]; treino += [(t, int(peso or 1)) for t in fr[corte:]]
+    print(nome, len(fr), "frases, peso", peso or 1, "(avaliada à parte)" if marca == "x" else "")
   if os.environ.get("HF_AVALIAR"):
     # 80% treino, 10% calibração, 10% avaliação (nada é gravado)
     aval = teste[: len(teste) // 2]; cal = teste[len(teste) // 2:]
-    tr = treino[: len(treino) * 8 // 9]
+    tr = [x for x in treino if x[1] > 0]
+    random.Random(3).shuffle(tr); tr = tr[: len(tr) * 8 // 9]
     mods = {gi: m for gi, xs in exemplos(tr).items() if (m := treinar_grupo(xs))}
     lim = calibrar(mods, cal)
     print("AVALIACAO", dict(avaliar(mods, lim, aval)))
+    if extra: print("AVALIACAO_EXTRA", dict(avaliar(mods, lim, extra)))
     return
   ex = exemplos(treino)
   mods = {gi: m for gi, xs in ex.items() if (m := treinar_grupo(xs))}
-  lim = calibrar(mods, teste)
+  # calibra com todas as frases fora do treino (as da fonte ":x" também): mais casos = limite mais estável
+  lim = calibrar(mods, teste + extra)
   for k, v in sorted(lim.items()): print(k, v)
   # modelo final com todas as frases
-  ex = exemplos(treino + [(t, 1) for t in teste])
+  ex = exemplos(treino + [(t, 1) for t in teste] + [(t, 1) for t in extra])
   lex = set(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonte/lexico.txt"), encoding="utf-8").read().split())
   saida = {"v": 5 if HASH else 3, "pos": "".join(f"{w}={k}," for w, k in POS.items()), "grupos": [], "lim": {}, "m": {}}
   tabela = bytearray()

@@ -36,5 +36,8 @@ Textos usados no treino:
   UD_Portuguese-GSD (CC BY-SA 4.0), UD_Portuguese-Bosque, só a parte da Folha de S.Paulo
   (CC BY-SA 4.0), UD_Portuguese-PUD (CC BY-SA 3.0), UD_Portuguese-PetroGold (CC BY-SA 4.0),
   UD_Portuguese-Porttinari (CC BY 4.0) e UD_Portuguese-DANTEStocks (CC BY 4.0).
+- Tatoeba (https://tatoeba.org), frases em português escritas pelos colaboradores do projeto,
+  licença Creative Commons Atribuição 2.0 França (CC BY 2.0 FR):
+  https://creativecommons.org/licenses/by/2.0/fr/ — usadas sem as que têm cara de português de Portugal.
 Desde 19/11/2026 as pistas viram números por hashing (FNV-1a) e os pesos ficam numa tabela de
 bytes (pesos3.bin). Por isso o contexto3.json, o pesos3.bin (e o contexto.json) são distribuídos sob CC BY-SA 4.0, como o lexico.
