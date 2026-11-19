@@ -2944,6 +2944,19 @@ chat da equipe).
   93,1%; palavras certas estragadas 1,7% → 0,4%; corrigidos sozinhos 76,4%); páginas do site 23 sugestões erradas → 0;
   frases certas atuais (UD) automáticas 1.265 → 1.046 e e→é sugeridas 78 → 58. Regras novas de "não e"/"isso e" testadas e
   tiradas (5 acertos a mais, 5 alarmes falsos a mais). t-corretor 153/153.
+- **Corretor: regência, verbo antes do sujeito e vírgula (19/11/2026, mesmo PR #244, sem regra nova):** itens 3 e 4 dele. Tipo
+  novo `regencia` (TIPOS_CORRECAO, grupo e ícone no corretor-tela.js). REGRAS: "assistir o filme/a novela/os jogos" → ao/à/aos
+  (só com o que se VÊ: lista fechada; "assistiu o paciente" fica; "a" + plural já é preposição), "obedecer as regras" → às
+  (sugestão), "prefiro mais X" → "prefiro X" (sugestão; "mais tarde/cedo" ficam), "namorar com" → "namorar" (sugestão; "meu
+  namoro com" fica). Sujeito depois do verbo: "existe/falta/sobra/acontece + os/as/muitos/dois... + plural" → plural (alta);
+  "chegou/começou/terminou/acabou/saiu/apareceu/surgiu" → sugestão; só no começo da frase ou depois de que/quando/ainda/já/não...
+  (com sujeito antes não mexe); vezes/horas/dias/anos só contam com faltar/sobrar ("aparece duas vezes" fica). "devem/podem/vão
+  haver" → singular. Vírgula: conectivo no começo (Porém, Contudo, No entanto, Além disso, Ou seja, Por exemplo, Por outro lado,
+  Sendo assim, Dessa forma...; Aliás/De fato/Na verdade/Infelizmente/Felizmente/Resumindo só sugestão; "Isto é" e "Em seguida"
+  NÃO: "Isto é feito"), ", pois" (não "pois é/pois não", nem depois de e/ou/mas/que) e "Sim, eu vou" / "Não, eu..." (sugestão).
+  `vocativo "Obrigado, Ana"` e ", mas" já existiam. Conferido em 37,5 mil frases certas (UD, baixadas para o scratchpad):
+  66 automáticas + 21 sugestões, quase todas vírgulas que faltavam de verdade ("Porém o uso..."). Prova NILC 89,1 (só ortografia:
+  os 2 "estragos" novos são "assistir aos jogos"/"à tv", corretos). Páginas do site: 0. t-corretor 177/177; t-corretor-tela ok.
 - **Rede neural do corretor testada e NÃO adotada (19/11/2026, PR depois do #242, site não muda):** pedido dele ("entender a
   frase toda"). `scripts/corretor/treinar-neural.py` (PyTorch, `pip install torch`, só CPU): GRU bidirecional sobre até 20
   palavras de cada lado, palavras por hashing FNV (V=2^14, 24 números por palavra, 48 de memória; 425 mil parâmetros ≈ 400 KB a

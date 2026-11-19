@@ -15,6 +15,7 @@ export const TIPOS_CORRECAO = {
   ortografia: "Escrita",
   abreviacao: "Abreviações",
   concordancia: "Concordância",
+  regencia: "Regência",
   crase: "Crase",
   pontuacao: "Pontuação",
   maiuscula: "Maiúsculas",
@@ -202,6 +203,45 @@ const REGRAS = [
   [P(`(ele|ela|voc[eê]|quem|isso|sempre|que)\\s+tr[aá]s(?![${L}])`), "$1 traz", "ortografia", "“traz” é do verbo trazer"],
   [P(`(vou|vai|pode|posso|quero|quer|preciso|precisa|tem\\s+que|temos\\s+que|vamos)\\s+por\\s+(o|a|os|as|no|na|nos|nas|mais)(?![${L}])`), "$1 pôr $2", "acento", "“pôr” (colocar) leva acento"],
   [P(`(eles|elas|voc[eê]s)\\s+vem(?![${L}])`), "$1 vêm", "acento", "“vêm” no plural leva acento"],
+  // ---- regência (19/11/2026): o verbo pede a preposição certa ----
+  // "assistir o filme" → "assistir ao filme" (assistir = ver pede "a"; "assistir o paciente" = ajudar, por isso só com o que se vê)
+  [P(`(assistir|assisti|assistiu|assistimos|assistiram|assisto|assiste|assistem|assistindo|assistia|assistiam|assistirei|assistiremos|assistirem)\\s+(o|a|os|as)\\s+(filmes?|jogos?|novelas?|s[eé]ries?|programas?|shows?|v[ií]deos?|aulas?|partidas?|apresenta[cç](?:[aã]o|[oõ]es)|palestras?|final|desenhos?|document[aá]rios?|epis[oó]dios?|lives?|missa|culto|lutas?|corridas?|tv|televis[aã]o|jornal|telejornal|treinos?|ensaios?|espet[aá]culos?|pe[cç]as?|musical|torneio|campeonato|copa|novelinha|reels|stories)(?![${L}])`),
+    (m, v, d, n) => (/^(a|o)$/i.test(d) && /s$/i.test(n) && !/^(reels|stories|lives?)$/i.test(n) ? null : `${v} ${{ o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()]} ${n}`), "regencia", "“assistir” (ver) pede “a”: assistir ao filme, à novela"],
+  // "obedecer as regras" → "obedecer às regras"
+  [P(`((?:des)?obedec(?:er|e|em|emos|eu|eram|ia|iam|endo|o|a|am))\\s+(o|a|os|as)(?=\\s+\\p{L})`),
+    (m, v, d) => ({ para: `${v} ${{ o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()]}`, conf: "media" }), "regencia", "“obedecer” pede “a”: obedecer às regras, ao pai"],
+  // "prefiro mais isso" → "prefiro isso" (“preferir” já diz que é mais)
+  [P(`(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+mais(?=\\s+(?!(?:tarde|cedo|perto|longe|devagar|r[aá]pido|vezes|dias|horas|tempo|um|uma|de|do|da)(?![${L}]))\\p{L})`),
+    (m, v) => ({ para: v, conf: "media" }), "regencia", "“preferir” já quer dizer “gostar mais”: prefiro isso"],
+  // "namorar com alguém" → "namorar alguém" (sugestão; "o meu namoro com ele" é substantivo)
+  [P(`(?<!(?:meu|seu|nosso|o|um|esse|este|do|no|pelo)\\s)(namorar|namoro|namora|namorei|namorou|namoramos|namoram|namorava|namorando)\\s+com(?=\\s+\\p{L})`),
+    (m, v) => ({ para: v, conf: "media" }), "regencia", "“namorar” não pede “com”: namorar alguém"],
+  // ---- quem faz a ação vem DEPOIS do verbo: "chegou as encomendas" → "chegaram as encomendas" ----
+  [new RegExp(`(^|[.!?;,:]\\s*|(?<![${L}])(?:que|quando|onde|ainda|j[aá]|n[aã]o|s[oó]|tamb[eé]m|hoje|ontem|amanh[aã]|aqui|ali|l[aá]|agora|depois|logo|ent[aã]o|sempre|nunca|se|como|mas|porque|pois|quase|finalmente)\\s+)`
+    + `(existe|existia|existiu|existir[aá]|falta|faltava|faltou|faltar[aá]|sobra|sobrava|sobrou|acontece|acontecia|aconteceu|chegou|chega|chegava|come[cç]ou|come[cç]a|terminou|acabou|saiu|sai|apareceu|aparece|surgiu|surge)`
+    + `\\s+(os|as|uns|umas|muitos|muitas|poucos|poucas|v[aá]rios|v[aá]rias|alguns|algumas|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|[2-9]|\\d{2,3})\\s+(\\p{Ll}{3,}s)(?![${L}])`, "giu"),
+    (m, pre, v, d, n) => {
+      if (!LEX || !LEX.has(n.toLowerCase()) || !/^[N?]$/.test(classeSegura(n.toLowerCase()))) return null;
+      // "aparece duas vezes", "chegou dois dias depois": tempo/vezes é quanto, não quem (menos “faltam dois dias”, “sobraram 3 horas”)
+      if (/^(vezes|horas|minutos|segundos|dias|semanas|meses|anos|metros|quil[oô]metros|km|reais|pontos|gols)$/i.test(n) && !/^(falt|sobr)/i.test(v)) return null;
+      // números: "chega 2 dias" sim; "as 10h" nem chega aqui (precisa de palavra no plural)
+      const pl = conjugar(v, "3p"); if (!pl || pl === v.toLowerCase()) return null;
+      const certo = /^(exist|falt|sobr|acontec)/i.test(v);
+      return { para: `${pre}${comoOriginal(v, pl)} ${d} ${n}`, conf: certo ? "alta" : "media" };
+    }, "concordancia", "quem faz a ação está no plural (e vem depois): o verbo vai para o plural"],
+  // "devem haver problemas" → "deve haver" (“haver” = existir não tem plural, nem o verbo que vai com ele)
+  [P(`(devem|podem|v[aã]o|costumam|precisam|deveriam|poderiam|parecem)\\s+haver`), (m, v) => `${{ devem: "deve", podem: "pode", "vão": "vai", vao: "vai", costumam: "costuma", precisam: "precisa", deveriam: "deveria", poderiam: "poderia", parecem: "parece" }[v.toLowerCase()]} haver`,
+    "concordancia", "com “haver” (existir) o verbo de antes fica no singular: deve haver"],
+  // ---- vírgula ----
+  // "Porém eu não fui" → "Porém, eu não fui" (palavra que liga as ideias no começo da frase)
+  [new RegExp(`(^|[.!?]\\s+)(por[eé]m|contudo|entretanto|no\\s+entanto|todavia|al[eé]m\\s+disso|ou\\s+seja|por\\s+exemplo|ou\\s+melhor|por\\s+outro\\s+lado|sendo\\s+assim|dessa\\s+forma|desse\\s+modo|desta\\s+forma|deste\\s+modo|por\\s+fim|al[ií][aá]s|de\\s+fato|na\\s+verdade|infelizmente|felizmente|em\\s+resumo|resumindo|ali[aá]s)\\s+(?=\\p{L})`, "giu"),
+    (m, pre, c) => ({ para: `${pre}${c}, `, conf: /^(al[ií][aá]s|ali[aá]s|de\s|na\s|infeliz|feliz|em\s+seguida|resumindo)/i.test(c) ? "media" : "alta" }), "pontuacao", "vírgula depois da palavra que liga as ideias (Porém, Além disso,...)"],
+  // "Fui embora pois estava cansado" → ", pois" (explicação)
+  [new RegExp(`(?<=[${L}]{2,})(?<!(?:^|\\s)(?:e|ou|mas|que|depois|ent[aã]o|n[aã]o))\\s+pois\\s+(?!(?:[eé]|n[aã]o|bem|sim|ent[aã]o)(?![${L}]))(?=\\p{L})`, "giu"),
+    () => ", pois ", "pontuacao", "vírgula antes de “pois” (explicação)"],
+  // "Sim eu vou" → "Sim, eu vou"; "Não eu não quero" → "Não, eu não quero"
+  [new RegExp(`(^|[.!?]\\s+)(sim|n[aã]o)\\s+(?=(eu|ele|ela|n[oó]s|a\\s+gente|voc[eê]s?|eles|elas|obrigad[oa]|claro|senhor|senhora)(?![${L}]))`, "giu"),
+    (m, pre, r, q) => ({ para: `${pre}${r}, `, conf: /^s/i.test(r) ? "alta" : "media" }), "pontuacao", "vírgula depois do “sim”/“não” da resposta"],
   // concordância do verbo com a pessoa
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])(?!\\s+que(?![${L}]))`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
@@ -991,7 +1031,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
 // Resumo curto: "3 acentos, 2 abreviações"
 export function resumoCorrecoes(porTipo) {
   const nomes = { acento: ["acento", "acentos"], ortografia: ["palavra", "palavras"], abreviacao: ["abreviação", "abreviações"],
-    concordancia: ["concordância", "concordâncias"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
+    concordancia: ["concordância", "concordâncias"], regencia: ["regência", "regências"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
     repeticao: ["repetição", "repetições"] };
   return Object.entries(porTipo).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${nomes[k][n > 1 ? 1 : 0]}`).join(", ");
 }
