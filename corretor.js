@@ -484,16 +484,21 @@ export function carregarLexico(url = new URL("./corretor/lexico2.txt?v=1", impor
 // =====================================================
 // Corretor que aprende (12/11/2026): palavras que se confundem (e/é, mas/mais, mal/mau, esta/está, nos/nós, por/pôr...)
 // são escolhidas pelas palavras em volta, com contagens tiradas de 2,5 milhões de palavras de textos em português
-// (corretor/contexto2.json, compacto; o legível é scripts/corretor/fonte/contexto.json, gerado por gerar-contexto.py). Cada grupo tem a margem de confiança medida
+// (corretor/contexto3.json + pesos3.bin desde 19/11/2026: as pistas viram números por hashing, sem vocabulário; a fonte é
+// scripts/corretor/fonte/contexto.json, gerada por gerar-contexto.py e separada por compactar.py). Cada grupo tem a margem de confiança medida
 // em frases que o modelo não viu no treino: só corrige sozinho onde acertou 99% delas; entre 93% e 99% vira sugestão.
 // E aprende com a pessoa: correção que ela desliga várias vezes deixa de vir ligada (e depois some); sugestão que ela
 // liga várias vezes passa a vir ligada (aprenderEscolhas, guardado só no aparelho).
 // =====================================================
 let CTX = null, carregandoCtx = null;
 export const contextoPronto = () => !!CTX;
-export function definirContexto(dados) {
+export function definirContexto(dados, pesos) {
   const d = typeof dados === "string" ? JSON.parse(dados) : dados;
-  if (d.v >= 4) d.m = pesosCompactos(d.m);
+  if (d.v === 5) {
+    // v5: pesos numa tabela de bytes (pesos3.bin), posição = hash da pista. Também aceita a tabela em base64 (arquivo fonte).
+    if (pesos) d.tab = new Int8Array(pesos.buffer ? pesos.buffer.slice(pesos.byteOffset, pesos.byteOffset + pesos.byteLength) : pesos);
+    else if (d.tabela) { const b = atob(d.tabela); d.tab = new Int8Array(b.length); for (let i = 0; i < b.length; i++) d.tab[i] = (b.charCodeAt(i) << 24) >> 24; delete d.tabela; }
+  } else if (d.v >= 4) d.m = pesosCompactos(d.m);
   const membro = new Map(), pos = new Map();
   (d.grupos || []).forEach((g, gi) => g.forEach((w) => membro.set(w, gi)));
   String(d.pos || "").split(",").forEach((x) => { const i = x.indexOf("="); if (i > 0) pos.set(x.slice(0, i), x.slice(i + 1)); });
@@ -513,11 +518,22 @@ function pesosCompactos(m) {
   }
   return out;
 }
-export function carregarContexto(url = new URL("./corretor/contexto2.json?v=1", import.meta.url).href) {
+export function carregarContexto(url = new URL("./corretor/contexto3.json?v=1", import.meta.url).href,
+  urlPesos = new URL("./corretor/pesos3.bin?v=1", import.meta.url).href) {
   if (CTX) return Promise.resolve(true);
-  if (!carregandoCtx) carregandoCtx = fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))).then((j) => { definirContexto(j); return true; })
+  if (!carregandoCtx) carregandoCtx = Promise.all([
+    fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))),
+    fetch(urlPesos).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error("pesos"))))
+  ]).then(([j, b]) => { definirContexto(j, new Uint8Array(b)); return true; })
     .catch(() => { carregandoCtx = null; return false; });
   return carregandoCtx;
+}
+// FNV-1a de 32 bits sobre os bytes UTF-8 (o mesmo do gerar-contexto.py): a pista vira o número da posição na tabela
+const UTF8 = new TextEncoder();
+function fnv(s) {
+  let h = 0x811c9dc5;
+  for (const b of UTF8.encode(s)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h >>> 0;
 }
 const TOK_CTX = /[\p{L}]+(?:-[\p{L}]+)*|[.,;:!?]/gu;
 // classe da palavra (N substantivo, A adjetivo, V verbo, X auxiliar, R advérbio, D determinante, P pronome, E preposição,
@@ -539,6 +555,14 @@ function probCtx(gi, toks, i) {
   const fs = ["l:" + at(i - 1), "r:" + at(i + 1), "ll:" + at(i - 2) + "_" + at(i - 1), "rr:" + at(i + 1) + "_" + at(i + 2),
     "lp:" + cl(i - 1), "rp:" + cl(i + 1), "pp:" + cl(i - 1) + "_" + cl(i + 1), "rq:" + cl(i + 1) + "_" + cl(i + 2),
     "lq:" + cl(i - 2) + "_" + cl(i - 1), "rs:" + at(i + 1).slice(-3), "ls:" + at(i - 1).slice(-3)];
+  if (CTX.tab) {
+    // v5: soma o peso de cada pista na tabela do grupo (peso da 1ª forma; a 2ª é o mesmo com o sinal trocado)
+    const mask = (1 << m.bits) - 1;
+    let s = m.b;
+    for (const f of fs) s += CTX.tab[m.off + (fnv(f) & mask)] / m.s;
+    const p1 = 1 / (1 + Math.exp(-2 * s));
+    return { [m.c[0]]: p1, [m.c[1]]: 1 - p1 };
+  }
   const z = m.b.slice();
   for (const f of fs) { const w = m.w[f]; if (w) for (let c = 0; c < z.length; c++) z[c] += w[c]; }
   const mx = Math.max(...z), e = z.map((x) => Math.exp(x - mx)), soma = e.reduce((a, x) => a + x, 0);

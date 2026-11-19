@@ -4,7 +4,7 @@
 import fs from "node:fs";
 const C = await import("../corretor.js");
 C.definirLexico(fs.readFileSync(new URL("../corretor/lexico2.txt", import.meta.url), "utf8"));
-C.definirContexto(fs.readFileSync(new URL("../corretor/contexto2.json", import.meta.url), "utf8"));
+C.definirContexto(fs.readFileSync(new URL("../corretor/contexto3.json", import.meta.url), "utf8"), fs.readFileSync(new URL("../corretor/pesos3.bin", import.meta.url)));
 let ok = 0, ruins = 0;
 const conferir = (cond, t) => { console.log(cond ? "  ✔" : "  ✘", t); cond ? ok++ : ruins++; if (!cond) process.exitCode = 1; };
 const corrigir = (t, modo = "pub", tudo = false) => {
@@ -87,6 +87,12 @@ const CASOS = [
   ["eu fui no médico e compra o remédio", "Eu fui ao médico e comprei o remédio", "chat"],
   ["eles chegou cedo e pega o carro", "Eles chegaram cedo e pegaram o carro", "chat"],
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegou/.test(r), "chat"], // sugestão: não muda sozinho
+  // grupos novos do modelo v5 (19/11/2026): palavras que existem as duas; vêm como sugestão para conferir
+  ["não sei aonde deixei a chave", (r) => /sei onde/.test(r), "chat", true],
+  ["ele não tem bom censo", (r) => /bom senso/.test(r), "chat", true],
+  ["comprei uma sexta de frutas", (r) => /uma cesta/.test(r), "chat", true],
+  ["fomos ao conserto da orquestra", (r) => /ao concerto/.test(r), "chat", true],
+  ["fomos ao conserto da orquestra", (r) => /ao conserto/.test(r), "chat"], // sem aceitar, não muda sozinho
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegamos/.test(r), "chat", true],
   // corretor que aprende: escolhe pelas palavras em volta (contexto.json) + regras de chat
   ["quero mas cafe", (r) => /mais café/.test(r), "chat", true],

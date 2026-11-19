@@ -2904,6 +2904,18 @@ chat da equipe).
   1.180 → 709 KB comprimidos (−40%); abrir +36 ms (1× por sessão). Comparado com o antigo: 10 de 8.448 textos e 89 de
   48.519 palavras erradas (0,2%) com outra sugestão, todos quase empate. Testados: faixa 1,05 (−49%, 0,5% muda) e as mais
   usadas na ordem exata (pouco ganho).
+- **Corretor v5: hashing + grupos novos (19/11/2026, PR depois do #240, sem regra nova):** pedido dele ("converter em
+  sequência de números"). `gerar-contexto.py` (v5, padrão; `HF_HASH=0` = v3 antigo): cada pista vira FNV-1a 32 bits & máscara
+  = posição numa tabela do grupo (potência de 2 ≥ 4× as pistas, `HF_FATOR`), treino já feito no espaço do hash (`Hasher`),
+  pesos < 0,05 zerados, 1 byte com escala por grupo (`m[g] = {c, b, bits, off, s}`); fonte em base64 (`tabela`), `compactar.py`
+  separa em `corretor/contexto3.json` + `corretor/pesos3.bin` (contexto2.json saiu). corretor.js: `definirContexto(dados,
+  pesos)` (v5 lê Int8Array; também aceita base64), `fnv`, `carregarContexto` baixa os dois; sw.js guarda `.bin?v=`. Grupos
+  novos (só entram os que o treino acerta): onde/aonde, conserto/concerto, senso/censo, sexta/cesta (vêm como sugestão);
+  haja/aja, cumprimento/comprimento, assento/acento, cela/sela não passaram. `HF_AVALIAR=1` = treino 80%/calibração 10%/
+  avaliação 10% com erros simulados (antigo: 5.549 corrigidos, 10 certos estragados; v5: 5.773 e 16, em ~15,9 mil certos).
+  Pesos 201 → 115 KB comprimidos (−43%), abrir 20 → 3 ms; corretor real igual (1.728 × 1.733 textos consertados).
+  Textos: baixar machado.zip do nltk_data e os .conllu das UD pelo raw.githubusercontent.com (Tatoeba/HuggingFace bloqueados
+  daqui; frases do dia a dia dependem dele baixar). t-corretor 134/134.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

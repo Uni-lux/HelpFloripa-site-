@@ -5,7 +5,7 @@
 #  - contexto: os grupos têm só 2 formas e o peso da 2ª é sempre o da 1ª com o sinal trocado: guarda um número só,
 #    em centésimos inteiros, e as pistas ficam juntas por tipo (l, r, ll...) sem repetir o "l:" — sem perder nada.
 # Uso: python3 compactar.py fonte/lexico.txt fonte/contexto.json ../../corretor 1.02
-#      (gera lexico2.txt e contexto2.json; q = 1.02 escolhido em 19/11/2026: comparado com o formato antigo em 8.448 textos
+#      (gera lexico2.txt e contexto3.json + pesos3.bin (modelo v5, hashing; v3 antigo gera contexto2.json); q = 1.02 escolhido em 19/11/2026: comparado com o formato antigo em 8.448 textos
 #      e 48.519 palavras erradas, 10 textos e 89 palavras (0,2%) tiveram outra sugestão, todos casos de quase empate)
 #      [topo=N] guarda também as N mais usadas na ordem exata (testado; o ganho não pagou o tamanho)
 import sys, json, math, os
@@ -31,6 +31,13 @@ def lexico(entrada, saida, q, topo=0):
 
 def contexto(entrada, saida):
   d = json.load(open(entrada, encoding="utf-8"))
+  if d.get("v") == 5:
+    # v5 (hashing): a tabela de pesos vai como arquivo binário (1 byte por posição), o resto num JSON pequeno
+    import base64
+    pasta = os.path.dirname(saida)
+    open(os.path.join(pasta, "pesos3.bin"), "wb").write(base64.b64decode(d.pop("tabela")))
+    open(os.path.join(pasta, "contexto3.json"), "w", encoding="utf-8").write(json.dumps(d, ensure_ascii=False, separators=(",", ":")))
+    return
   m2 = {}
   for g, v in d["m"].items():
     assert len(v["c"]) == 2 and abs(v["b"][0] + v["b"][1]) < 1e-9
