@@ -2944,6 +2944,14 @@ chat da equipe).
   93,1%; palavras certas estragadas 1,7% → 0,4%; corrigidos sozinhos 76,4%); páginas do site 23 sugestões erradas → 0;
   frases certas atuais (UD) automáticas 1.265 → 1.046 e e→é sugeridas 78 → 58. Regras novas de "não e"/"isso e" testadas e
   tiradas (5 acertos a mais, 5 alarmes falsos a mais). t-corretor 153/153.
+- **Rede neural do corretor testada e NÃO adotada (19/11/2026, PR depois do #242, site não muda):** pedido dele ("entender a
+  frase toda"). `scripts/corretor/treinar-neural.py` (PyTorch, `pip install torch`, só CPU): GRU bidirecional sobre até 20
+  palavras de cada lado, palavras por hashing FNV (V=2^14, 24 números por palavra, 48 de memória; 425 mil parâmetros ≈ 400 KB a
+  mais para baixar), a palavra em dúvida vira marcador do grupo; mesma divisão do `HF_AVALIAR`. Resultado (frases nunca vistas,
+  60 mil/200 mil exemplos por grupo, 3/5 passadas, ~13 min): sozinha corrige MENOS que o modelo atual (5.223 × 6.475; dia a dia
+  19.071 × 22.987); média das duas +4% de correções (6.730; 23.922) mas estraga o dobro de palavras certas (15 × 6; 19 × 13).
+  Não compensa o download nem o risco. Caminhos se ele quiser de novo: rede "por cima" do modelo atual (empilhada), muito mais
+  texto, ou revisão por IA no servidor (Claude API numa Cloud Function, precisa do Blaze).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
