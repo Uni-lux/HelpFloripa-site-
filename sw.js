@@ -1,7 +1,7 @@
 // Service worker do Help Floripa (app instalado / PWA e site).
 // - páginas (.html): sempre da rede (com "navigation preload", sem esperar o service worker acordar);
 //   sem internet, mostra a página offline.html (estilizada);
-// - arquivos com versão no endereço (".js?v=12", ".css?v=5", "corretor/lexico.txt?v=1", "vitrine.js?tipo=x&v=54") e o SDK do Firebase
+// - arquivos com versão no endereço (".js?v=12", ".css?v=5", "corretor/lexico2.txt?v=1", "vitrine.js?tipo=x&v=54") e o SDK do Firebase
 //   (www.gstatic.com/firebasejs/10.12.2/...): NUNCA mudam (mudou o arquivo, muda o ?v=), então vêm do aparelho na
 //   hora, sem ir à rede. Isso deixa as páginas e o "voltar" bem mais rápidos. Guardar versão nova de um arquivo apaga
 //   as versões antigas dele;

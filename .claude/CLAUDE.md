@@ -2896,6 +2896,14 @@ chat da equipe).
   Desaparecidos (publicar/recusar com aviso à pessoa, pistas, ficha). limpeza-conta apaga `desaparecidos`. Comunidade:
   "Regras" abre `#folhaRegras` na própria página (antes ia para diretrizes.html); cartões do vazio em 1 coluna.
   Teste `t-perdidos.mjs` (18); `t-sos-pets`, `t-help-presentes2`, `t-mural-novo` atualizados.
+- **Dicionários do corretor compactos (19/11/2026, PR depois do #239, sem regra nova):** pedido dele ("converta, vê se vale
+  a pena"). O site agora baixa `corretor/lexico2.txt` (palavras em ordem alfabética só com o que muda da anterior + faixa de
+  uso q = 1,02) e `corretor/contexto2.json` (v4: 1 peso por pista em centésimos inteiros, pistas juntas por tipo; SEM perda).
+  Os legíveis foram para `scripts/corretor/fonte/` (não publicados); `scripts/corretor/compactar.py` gera os compactos
+  (rodar depois do gerar-lexico/gerar-contexto). `definirLexico`/`definirContexto` aceitam os dois formatos. Medido:
+  1.180 → 709 KB comprimidos (−40%); abrir +36 ms (1× por sessão). Comparado com o antigo: 10 de 8.448 textos e 89 de
+  48.519 palavras erradas (0,2%) com outra sugestão, todos quase empate. Testados: faixa 1,05 (−49%, 0,5% muda) e as mais
+  usadas na ordem exata (pouco ganho).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

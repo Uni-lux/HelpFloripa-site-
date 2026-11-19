@@ -1,10 +1,10 @@
 // Corretor de texto (12/11/2026): bateria de frases com erros reais (acento, digitação, som, abreviação, concordância,
 // crase, mal/mau, traz/trás, pontuação, maiúsculas) e frases CERTAS que não podem ser mexidas.
-// Uso: node t-corretor.mjs   (não precisa do emulador; lê ../corretor/lexico.txt)
+// Uso: node t-corretor.mjs   (não precisa do emulador; lê ../corretor/lexico2.txt, o mesmo arquivo do site)
 import fs from "node:fs";
 const C = await import("../corretor.js");
-C.definirLexico(fs.readFileSync(new URL("../corretor/lexico.txt", import.meta.url), "utf8"));
-C.definirContexto(fs.readFileSync(new URL("../corretor/contexto.json", import.meta.url), "utf8"));
+C.definirLexico(fs.readFileSync(new URL("../corretor/lexico2.txt", import.meta.url), "utf8"));
+C.definirContexto(fs.readFileSync(new URL("../corretor/contexto2.json", import.meta.url), "utf8"));
 let ok = 0, ruins = 0;
 const conferir = (cond, t) => { console.log(cond ? "  ✔" : "  ✘", t); cond ? ok++ : ruins++; if (!cond) process.exitCode = 1; };
 const corrigir = (t, modo = "pub", tudo = false) => {

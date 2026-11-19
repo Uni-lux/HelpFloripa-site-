@@ -1,0 +1,39 @@
+Vocabulário do corretor do Help Floripa (lexico2.txt)
+
+Palavras do português do Brasil com a faixa de uso de cada uma (formato compacto, feito por
+scripts/corretor/compactar.py a partir da lista legível scripts/corretor/fonte/lexico.txt, uma
+palavra por linha, da mais usada para a menos usada).
+Gerado por scripts/corretor/gerar-lexico.py a partir de:
+
+1) Dicionário VERO pt-BR (LibreOffice), versão 24.2 — por Raimundo Moura e equipe.
+   Licença: GNU LGPL 3.0 ou Mozilla Public License 2.0.
+   https://pt-br.libreoffice.org/projetos/vero/
+   (usado para conferir se cada palavra existe)
+
+2) FrequencyWords — Hermit Dave (https://github.com/hermitdave/FrequencyWords),
+   lista pt_br_full a partir das legendas do OpenSubtitles.
+   Licença do conteúdo: Creative Commons BY-SA 4.0.
+   (usada para a ordem de uso das palavras)
+
+Por ser derivado dessa lista, os arquivos lexico2.txt e lexico.txt são distribuídos sob a licença
+Creative Commons Atribuição-CompartilhaIgual 4.0 (CC BY-SA 4.0):
+https://creativecommons.org/licenses/by-sa/4.0/deed.pt_BR
+
+----------------------------------------------------------------------
+Corretor que aprende (contexto2.json; o legível é scripts/corretor/fonte/contexto.json)
+
+Modelo que escolhe, pela frase, entre palavras que se confundem (e/é, mas/mais, mal/mau,
+esta/está, nos/nós, por/pôr, da/dá...): uma regressão logística por grupo, com as palavras
+vizinhas, as classes delas (substantivo, adjetivo, verbo...) e o fim das palavras. Gerado por
+scripts/corretor/gerar-contexto.py. Cada grupo tem o limite de confiança medido em 10% das
+frases que ficaram fora do treino (só corrige sozinho onde acertou 99,7%).
+
+Textos usados no treino:
+- Obra completa de Machado de Assis — domínio público (corpus "machado" do NLTK,
+  http://machado.mec.gov.br/).
+- Universal Dependencies (https://github.com/UniversalDependencies), só as frases e as classes
+  das palavras:
+  UD_Portuguese-GSD (CC BY-SA 4.0), UD_Portuguese-Bosque, só a parte da Folha de S.Paulo
+  (CC BY-SA 4.0), UD_Portuguese-PUD (CC BY-SA 3.0), UD_Portuguese-PetroGold (CC BY-SA 4.0),
+  UD_Portuguese-Porttinari (CC BY 4.0) e UD_Portuguese-DANTEStocks (CC BY 4.0).
+Por isso o contexto2.json (e o contexto.json) é distribuído sob CC BY-SA 4.0, como o lexico.

@@ -1,8 +1,8 @@
 // Falsos alarmes do corretor: 6 mil frases CERTAS de cada fonte; conta as mudanças automáticas (o ideal é perto de zero).
 import fs from "node:fs";
 const C = await import(new URL("../", import.meta.url).pathname + "corretor.js");
-C.definirLexico(fs.readFileSync(new URL("../", import.meta.url).pathname + "corretor/lexico.txt","utf8"));
-C.definirContexto(fs.readFileSync(new URL("../", import.meta.url).pathname + "corretor/contexto.json","utf8"));
+C.definirLexico(fs.readFileSync(new URL("../", import.meta.url).pathname + "corretor/lexico2.txt","utf8"));
+C.definirContexto(fs.readFileSync(new URL("../", import.meta.url).pathname + "corretor/contexto2.json","utf8"));
 // Uso: node corretor-falsos.mjs PASTA (com machado.txt e modernos.txt, ver scripts/corretor/gerar-contexto.py); VER=texto mostra as frases
 const D = (process.argv[2] || ".") + "/";
 for (const [arq, n] of [["modernos.txt", 6000], ["machado.txt", 6000]]) {
