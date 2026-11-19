@@ -256,4 +256,4 @@ def main():
   json.dump(saida, open(sys.argv[1], "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
   print("grupos", len(saida["grupos"]), "pesos", n)
 
-main()
+if __name__ == "__main__": main()
