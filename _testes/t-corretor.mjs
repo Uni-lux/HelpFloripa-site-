@@ -91,8 +91,10 @@ const CASOS = [
   ["não sei aonde deixei a chave", (r) => /sei onde/.test(r), "chat", true],
   ["ele não tem bom censo", (r) => /bom senso/.test(r), "chat", true],
   ["comprei uma sexta de frutas", (r) => /uma cesta/.test(r), "chat", true],
-  ["fomos ao conserto da orquestra", (r) => /ao concerto/.test(r), "chat", true],
-  ["fomos ao conserto da orquestra", (r) => /ao conserto/.test(r), "chat"], // sem aceitar, não muda sozinho
+  // com as frases do Tatoeba (19/11/2026): haja/aja corrige sozinho, de/dê vem como sugestão
+  ["talvez aja uma solução", (r) => /haja uma/.test(r), "chat"],
+  ["me de um minuto", (r) => /me dê/i.test(r), "chat", true],
+  ["me de um minuto", (r) => /me de um/i.test(r), "chat"], // sem aceitar, não muda sozinho
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegamos/.test(r), "chat", true],
   // corretor que aprende: escolhe pelas palavras em volta (contexto.json) + regras de chat
   ["quero mas cafe", (r) => /mais café/.test(r), "chat", true],

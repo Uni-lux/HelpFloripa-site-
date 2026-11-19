@@ -518,8 +518,8 @@ function pesosCompactos(m) {
   }
   return out;
 }
-export function carregarContexto(url = new URL("./corretor/contexto3.json?v=1", import.meta.url).href,
-  urlPesos = new URL("./corretor/pesos3.bin?v=1", import.meta.url).href) {
+export function carregarContexto(url = new URL("./corretor/contexto3.json?v=2", import.meta.url).href,
+  urlPesos = new URL("./corretor/pesos3.bin?v=2", import.meta.url).href) {
   if (CTX) return Promise.resolve(true);
   if (!carregandoCtx) carregandoCtx = Promise.all([
     fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error("contexto")))),
