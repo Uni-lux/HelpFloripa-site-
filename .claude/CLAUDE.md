@@ -2978,6 +2978,17 @@ chat da equipe).
   que acaba em espaço precisa de `new RegExp` sem o P. Maiúscula não passa pelo `comoOriginal`. Conferido: páginas do site 0;
   NILC 88,9 (os "estragos" novos são acertos: pós-venda, micro-ondas, pra eu descrever); UD +44 automáticas, quase todas ortografia
   antiga (fim-de-semana, auto-estrada, co-autor) e passiva ("fez-se modificações"). t-corretor 177/177, t-corretor-tela ok.
+- **Corretor: verbo na forma errada (19/11/2026, PRs #246 e seguinte, sem regra nova):** frase do dono ("não conseguir toma café,
+  depois sair correndo... mais esqueci... tive que volta"). REGRAS novas: depois de tive que/vou/quero/posso/preciso/consegui/
+  comecei a... o verbo vai com R ("volta" → "voltar"; substantivo fica depois de verbo transitivo: "conseguiu tutela"; pronome
+  colado "espalhá-la" fica); "pra/para + verbo" (só verbo de verdade: "para casa" fica); infinitivo -ir no lugar do passado
+  ("eu não conseguir" → "consegui", "depois sair" → "saí", acento quando a raiz acaba em vogal, menos gu/qu) só quando a frase
+  conta o que aconteceu (tem "eu" ou outro verbo -ei/-i), não depois de de/pra/vou/quero..., não com se/quando/caso (futuro do
+  subjuntivo) nem coordenado a infinitivo/gerúndio ("reagir e impedir"); "mais" + verbo no passado/estava/não → "mas" (não em
+  "cada vez mais", "nada mais", "mais nada/ninguém" sem verbo no passado depois, "mais X do que"). Também (#246): "à noite"
+  depois de verbo de ação, "prefiro mais ... do que" numa sugestão só, "se eu vir" sozinho. Banco: categoria "Verbo na forma
+  errada" (11); prova do banco +8 casos e +8 certas escritos antes das regras (98,6%). UD (38 mil frases certas): só 2 mudanças
+  novas, ambas erros reais ("pode causa", "podemos encontra"). t-corretor 191/191.
 - **Rede neural do corretor testada e NÃO adotada (19/11/2026, PR depois do #242, site não muda):** pedido dele ("entender a
   frase toda"). `scripts/corretor/treinar-neural.py` (PyTorch, `pip install torch`, só CPU): GRU bidirecional sobre até 20
   palavras de cada lado, palavras por hashing FNV (V=2^14, 24 números por palavra, 48 de memória; 425 mil parâmetros ≈ 400 KB a
