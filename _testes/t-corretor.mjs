@@ -95,6 +95,26 @@ const CASOS = [
   ["talvez aja uma solução", (r) => /haja uma/.test(r), "chat"],
   ["me de um minuto", (r) => /me dê/i.test(r), "chat", true],
   ["me de um minuto", (r) => /me de um/i.test(r), "chat"], // sem aceitar, não muda sozinho
+  // senão × se não, demais × de mais, sessão × seção × cessão, mas × más (regras, 19/11/2026)
+  ["senão chover a gente vai", (r) => /^Se não chover/.test(r), "chat"],
+  ["corre, se não você perde o ônibus", (r) => /senão você perde/.test(r), "chat", true],
+  ["não foi nada demais", (r) => /nada de mais/.test(r), "chat"],
+  ["os de mais chegaram depois", (r) => /Os demais chegaram/.test(r), "chat"],
+  ["ela é linda de mais", (r) => /linda demais/.test(r), "chat"],
+  ["vamos na seção de cinema", (r) => /sessão de cinema/.test(r), "chat"],
+  ["estou na sessão de frios", (r) => /seção de frios/.test(r), "chat"],
+  ["assinei a sessão de direitos", (r) => /cessão de direitos/.test(r), "chat"],
+  ["não ando com pessoas mas", (r) => /pessoas más/.test(r), "chat"],
+  ["gostei, más não comprei", (r) => /gostei, mas não/i.test(r), "chat"],
+  // certas: não podem mudar
+  ["Se não chover, vamos.", "Se não chover, vamos.", "pub"],
+  ["Corre, senão você perde o ônibus.", "Corre, senão você perde o ônibus.", "pub"],
+  ["Não fez nada senão reclamar.", "Não fez nada senão reclamar.", "pub"],
+  ["Não vejo nada de mais nisso.", "Não vejo nada de mais nisso.", "pub"],
+  ["Os demais chegaram.", "Os demais chegaram.", "pub"],
+  ["A biblioteca suspendeu a cessão de livros.", "A biblioteca suspendeu a cessão de livros.", "pub"],
+  ["Tenho más notícias.", "Tenho más notícias.", "pub"],
+  ["Mas eu não quero.", "Mas eu não quero.", "pub"],
   ["nós fomos lá, mas quando chegou estava fechado", (r) => /chegamos/.test(r), "chat", true],
   // corretor que aprende: escolhe pelas palavras em volta (contexto.json) + regras de chat
   ["quero mas cafe", (r) => /mais café/.test(r), "chat", true],

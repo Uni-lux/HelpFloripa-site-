@@ -151,6 +151,26 @@ const REGRAS = [
   [P(`(^|[.!?]\\s+)porque\\s+(?=[^.!?]*\\?)`), "$1Por que ", "ortografia", "em pergunta, “por que” é separado"],
   [P(`porque\\s*\\?`), "por quê?", "ortografia", "no fim da pergunta: “por quê?”"],
   [P(`a\\s+onde\\s+(fica|est[aá]|[eé]|mora)`), "onde $1", "ortografia", "com “ficar/estar/morar” é “onde” (“aonde” é para onde se vai)"],
+  // senão × se não (19/11/2026): "se não" = caso não (condição); "senão" = do contrário, a não ser
+  [P(`sen[aã]o\\s+(chover|der|for|puder|tiver|quiser|conseguir|estiver|houver|fizer|vier|souber|pagar|chegar|responder|gostar|funcionar|resolver|aparecer|ligar|vierem|forem|puderem|tiverem|quiserem|conseguirem|estiverem|derem|fizerem|me\\s+engano|me\\s+falha|se\\s+importar)(?![${L}])`), "se não $1", "ortografia", "condição (caso não) é “se não”, separado; “senão” = do contrário"],
+  [P(`(?<=,)\\s*se\\s+n[aã]o\\s+((?:voc[eê]|vc|a\\s+gente|eu|ele|ela|eles|elas)\\s+)?(vai|vou|vamos|v[aã]o|perde|perdemos|fica|ficamos|atrasa|esfria|queima|estraga|acaba|d[aá]\\s+ruim)`), (m, s1, v) => ` senão ${s1 || ""}${v}`, "ortografia", "“senão” = do contrário (corre, senão perde o ônibus)", "media"],
+  // demais × de mais: "demais" = muito/os outros; "de mais" = o contrário de "de menos"
+  [P(`nada\\s+demais`), "nada de mais", "ortografia", "“nada de mais” (o contrário de “de menos”)"],
+  [P(`demais\\s+ou\\s+de\\s+menos`), "de mais ou de menos", "ortografia", "“de mais” é o contrário de “de menos”"],
+  [P(`(os|as|aos|[aà]s|dos|das|nos|nas|pelos|pelas)\\s+de\\s+mais(?=\\s+(pessoas|clientes|alunos|participantes|casos|itens|produtos|colegas|amigos|convidados|membros|funcion[aá]rios|\\p{L}+(?:ram|am|em|ão))(?![${L}])|\\s*[.,;!?]|\\s*$)`), "$1 demais", "ortografia", "“os demais” (os outros) é junto"],
+  [P(`(lind[oa]s?|bo[am]s?|bons|legal|legais|car[oa]s?|bonit[oa]s?|gostos[oa]s?|chat[oa]s?|grandes?|pequen[oa]s?|longe|cedo|tarde|r[aá]pido|f[aá]cil|dif[ií]cil|forte|fofo|fofa|top|incr[ií]vel|perfeit[oa]|cansad[oa]|feliz|triste|gostei|amei|adorei|comi|bebi|trabalhei|falou|falei|chorei|ri|dormi|cansei|demorou|demora|sofri|pensei|caro|apertad[oa]|quente|frio|fria)\\s+de\\s+mais(?=\\s*[.,;!?]|\\s*$|\\s+(n[eé]|mesmo|hoje|ontem|kk+|rs))`), "$1 demais", "ortografia", "no sentido de “muito”, é “demais”, junto"],
+  // sessão (reunião, tempo de algo) × seção (parte, setor) × cessão (ato de ceder)
+  [P(`(sess[aã]o|sess[oõ]es|se[cç][aã]o|se[cç][oõ]es)\\s+(de|do|da|dos|das)\\s+(cinema|filme|terapia|fotos?|treinos?|fisioterapia|massagem|estudos?|aut[oó]grafos?|julgamento|c[aâ]mara|plen[aá]rio|acupuntura|psicoterapia|tatuagem|drenagem|pilates|yoga|ioga|cuidados|depila[cç][aã]o|coaching|mentoria)(?![${L}])`),
+    (m, w, d, o) => `${/[oõ]es$/i.test(w) ? "sessões" : "sessão"} ${d} ${o}`, "ortografia", "“sessão” = encontro, tempo de uma atividade (sessão de cinema, de terapia)"],
+  [P(`(sess[aã]o|sess[oõ]es|se[cç][aã]o|se[cç][oõ]es)\\s+(de|do|da|dos|das)\\s+(frios|esportes|classificados|livros|roupas|brinquedos|hortifruti|perguntas|coment[aá]rios|ajuda|achados|eletr[oô]nicos|bebidas|limpeza|padaria|a[cç]ougue|cal[cç]ados|not[ií]cias|contatos?|jornal|loja|mercado|supermercado|site|p[aá]gina|revista|livro|texto|artigo|lei|manual)(?![${L}])`),
+    (m, w, d, o) => `${/[oõ]es$/i.test(w) ? "seções" : "seção"} ${d} ${o}`, "ortografia", "“seção” = parte, setor (seção de frios, do jornal)"],
+  [P(`se[cç][aã]o\\s+eleitoral|sess[aã]o\\s+eleitoral`), "seção eleitoral", "ortografia", "“seção eleitoral” (o lugar onde se vota)"],
+  [P(`(sess[aã]o|se[cç][aã]o|cess[aã]o)\\s+(de|do|da|dos|das)\\s+(direitos?|uso|cr[eé]ditos?|im[oó]vel|terreno|ponto|contrato|cotas?|quotas?|imagem)(?![${L}])`),
+    (m, w, d, o) => `cessão ${d} ${o}`, "ortografia", "“cessão” = ato de ceder (cessão de direitos, de uso)"],
+  // mas (porém) × más (plural de "má", ruins)
+  [P(`(pessoas|coisas|not[ií]cias|ideias|id[eé]ias|l[ií]nguas|companhias|influ[eê]ncias|condi[cç][oõ]es|escolhas|inten[cç][oõ]es|experi[eê]ncias|lembran[cç]as|energias|vibes|decis[oõ]es|atitudes|notas|a[cç][oõ]es|condutas|amizades|mem[oó]rias|sensa[cç][oõ]es|vibra[cç][oõ]es|l[ií]nguas)\\s+mas(?=\\s*[.,;!?]|\\s*$|\\s+(e|ou)\\s)`), "$1 más", "acento", "“más” (ruins) leva acento; “mas” = porém"],
+  [P(`(boas|bons)\\s+(e|ou)\\s+mas(?![${L}])`), "$1 $2 más", "acento", "“más” (ruins) leva acento; “mas” = porém"],
+  [P(`(?<=^|[,;]\\s*)m[aá]s(?=\\s+(eu|ele|ela|voc[eê]|vc|a\\s+gente|n[oó]s|eles|elas|n[aã]o|tudo|quando|se|como|j[aá]|ainda|tamb[eé]m|isso|isto|agora|hoje|mesmo|depois)(?![${L}]))`), (m) => (/á/i.test(m) ? "mas" : m), "acento", "“mas” (porém) não leva acento; “más” = ruins"],
   [P(`mal\\s+educad([oa]s?)`), "mal-educad$1", "ortografia", "“mal-educado” leva hífen"],
   [P(`bem\\s+vind([oa]s?)`), "bem-vind$1", "ortografia", "“bem-vindo” leva hífen"],
   [P(`(at[eé]|por|da[ií]|de|para|pra|l[aá]|c[aá]|fica|ficou|chegando|t[oô]|estou|t[aá]|esteja)\\s+ai(?=[\\s?!.,]|$)`), "$1 aí", "acento", "“aí” (lugar) leva acento"],
