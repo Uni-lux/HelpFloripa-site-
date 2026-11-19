@@ -16,6 +16,7 @@ export const TIPOS_CORRECAO = {
   abreviacao: "Abreviações",
   concordancia: "Concordância",
   regencia: "Regência",
+  estilo: "Estilo",
   crase: "Crase",
   pontuacao: "Pontuação",
   maiuscula: "Maiúsculas",
@@ -90,6 +91,14 @@ const ABREVIACOES = {
 
 // Erros comuns de escrita.
 const ORTOGRAFIA = {
+  // verbos com forma inventada e palavras juntas/separadas (19/11/2026)
+  fazerei: "farei", fazeremos: "faremos", fazeria: "faria", fazeriam: "fariam", fazerá: "fará", trazerei: "trarei", trazeremos: "traremos",
+  trazeria: "traria", trazerá: "trará", dizerei: "direi", dizeremos: "diremos", dizeria: "diria", dizerá: "dirá", fazido: "feito", fazida: "feita",
+  abrido: "aberto", escrevido: "escrito", dizido: "dito", ponhei: "pus", ponhou: "pôs", ponharam: "puseram", trusse: "trouxe",
+  manteu: "manteve", deteu: "deteve", conteu: "conteve", obteu: "obteve", reteu: "reteve", interviu: "interveio", interviram: "intervieram",
+  requiz: "requereu", requis: "requereu", requizeram: "requereram", microondas: "micro-ondas", "antiinflamatório": "anti-inflamatório",
+  antiinflamatorio: "anti-inflamatório", "dia-a-dia": "dia a dia", "fim-de-semana": "fim de semana", "fins-de-semana": "fins de semana",
+  "mão-de-obra": "mão de obra", "cara-de-pau": "cara de pau", "à-toa": "à toa", "dia-dia": "dia a dia",
   nois: "nós", noiz: "nós", muié: "mulher", trabaio: "trabalho", oque: "o que", doque: "do que", noque: "no que", praque: "pra que", porisso: "por isso", encima: "em cima", atoa: "à toa",
   denovo: "de novo", porfavor: "por favor", nadaver: "nada a ver", derrepente: "de repente", apartir: "a partir",
   concerteza: "com certeza", derrepente: "de repente", porisso: "por isso", apartir: "a partir", atravez: "através",
@@ -242,6 +251,139 @@ const REGRAS = [
   // "Sim eu vou" → "Sim, eu vou"; "Não eu não quero" → "Não, eu não quero"
   [new RegExp(`(^|[.!?]\\s+)(sim|n[aã]o)\\s+(?=(eu|ele|ela|n[oó]s|a\\s+gente|voc[eê]s?|eles|elas|obrigad[oa]|claro|senhor|senhora)(?![${L}]))`, "giu"),
     (m, pre, r, q) => ({ para: `${pre}${r}, `, conf: /^s/i.test(r) ? "alta" : "media" }), "pontuacao", "vírgula depois do “sim”/“não” da resposta"],
+  // ======== 19/11/2026: regras profissionais (banco de erros comuns: _testes/corretor-banco.mjs) ========
+  // ---- por que / porque / por quê ----
+  // "porque você não veio?" → "Por que você não veio?" (pergunta direta)
+  [new RegExp(`(^|[.!?]\\s+)(porque)(\\s[^.!?\\n]{1,140}\\?)`, "giu"), (m, pre, w, resto) => `${pre}${w[0] === "P" ? "Por que" : "por que"}${resto}`, "ortografia", "pergunta começa com “por que” (separado)"],
+  // "por que?" no fim → "por quê?"; "porque?" → "por quê?"
+  [P(`por\\s+que(?=\\s*[?!.]|\\s*$)`), "por quê", "acento", "no fim da frase é “por quê” (com acento)"],
+  [P(`porque(?=\\s*\\?)`), "por quê", "ortografia", "no fim da pergunta é “por quê” (separado e com acento)"],
+  // pergunta indireta: "me diga porque você saiu" → "por que"
+  [P(`(diga|diz|me\\s+diz|me\\s+diga|explica|explique|explicar|pergunto|perguntou|perguntei|perguntar|sei|sabe|sabia|saber|entendi|entendo|entender|entende|descobrir|descobri|imagino|compreendo|compreender|n[aã]o\\s+vejo)\\s+porque(?=\\s+(?:voc[eê]s?|ele|ela|eles|elas|eu|n[oó]s|a\\s+gente|o|a|os|as|isso|tanto|n[aã]o|tem|est[aá]|foi|[eé]|ficou|demorou|sumiu|saiu|fez|faz)(?![${L}]))`),
+    (m, v) => ({ para: `${v} por que`, conf: /^(sei|sabe|sabia|saber|entendi|entendo|entender|entende|imagino|compreend)/i.test(v) ? "media" : "alta" }), "ortografia", "pergunta indireta (o motivo de) é “por que”, separado"],
+  // ---- hífen (nova ortografia) ----
+  [P(`ex\\s+(presidente|prefeito|governador|ministro|mulher|marido|namorad[oa]|noiv[oa]|alun[oa]s?|funcion[aá]ri[oa]s?|chefe|s[oó]ci[oa]|jogador|t[eé]cnico|deputad[oa]|vereador|senador|patr[aã]o|companheir[oa]|colega|esposa|esposo|cunhad[oa]|sogr[oa]|BBB|participante|integrante|membro|diretor|dono|dona|presidi[aá]rio)(?![${L}])`), "ex-$1", "ortografia", "“ex” (antigo) vai com hífen: ex-presidente"],
+  [P(`(p[oó]s|pr[eé]|pr[oó])\\s+(gradua[cç][aã]o|graduad[oa]|parto|operat[oó]ri[oa]|venda|doutorado|mestrado|guerra|natal|escola|vestibular|pago|requisito|estreia|candidat[oa]|datad[oa]|hist[oó]ria|vida|ativo|reforma|temporada|jogo|treino|carnaval|eleitoral)(?![${L}])`), (m, a, b) => {
+    const pre = { pos: "pós", "pós": "pós", pre: "pré", "pré": "pré", pro: "pró", "pró": "pró" }[a.toLowerCase()];
+    return `${a[0] === a[0].toUpperCase() ? pre[0].toUpperCase() + pre.slice(1) : pre}-${b}`; }, "ortografia", "pós-, pré- e pró- vão com hífen: pós-graduação"],
+  [P(`(vice|rec[eé]m|sem|al[eé]m|aqu[eé]m)\\s+(presidente|prefeito|governador|campe[aã]o|campe[aã]|l[ií]der|diretor|reitor|nascid[oa]s?|casad[oa]s?|chegad[oa]s?|formad[oa]s?|contratad[oa]s?|inaugurad[oa]|terra|teto|mar|fronteiras?|vergonha)(?![${L}])`), (m, a, b) => {
+    if (/^sem$/i.test(a) && !/^(terra|teto|vergonha)$/i.test(b)) return null;
+    if (/^al[eé]m|aqu[eé]m$/i.test(a) && !/^(mar|fronteiras?)$/i.test(b)) return null;
+    if (/^vice$/i.test(a) && /^(nascid|casad|chegad|formad|contratad|inaugur|terra|teto|mar|fronteir|vergonha)/i.test(b)) return null;
+    return `${a}-${b}`; }, "ortografia", "vai com hífen: vice-presidente, recém-nascido, sem-terra"],
+  [P(`boas\\s+vindas`), "boas-vindas", "ortografia", "“boas-vindas” vai com hífen"],
+  [P(`(um|o|esse|este|aquele|pequeno|grande|novo|outro|houve\\s+um|teve\\s+um|foi\\s+um|uns|os|esses|alguns)\\s+mal\\s+entendid(o|os)`), "$1 mal-entendid$2", "ortografia", "o substantivo “mal-entendido” vai com hífen"],
+  // ---- crase que NÃO existe ----
+  [P(`(à)\\s+(p[eé]|prazo|domic[ií]lio|cavalo|partir|ela|ele|eles|elas|voc[eê]s?|mim|ti|todos|todas|cada|qualquer|algu[eé]m|ningu[eé]m|quem|esta|essa|este|esse|isso|isto|vossa)(?![${L}])`),
+    (m, a, w) => `${a === "À" ? "A" : "a"} ${w}`, "crase", "não há crase antes de palavra masculina, pronome ou “partir/pé/prazo”"],
+  [P(`(à)\\s+(\\p{Ll}+(?:ar|er|ir|or))`), (m, a, w) => {
+    if (!LEX || !LEX.has(w) || classeSegura(w) !== "V" || /^(mulher|colher|lugar|mar|bar|jantar|par|sabor|cor|flor|dor|amor|senhor|favor|calor|valor|interior|exterior|prazer|poder|dever|lazer|ser|melhor|pior|maior|menor|beira-mar|vapor|vez)$/i.test(w)) return null;
+    return `${a === "À" ? "A" : "a"} ${w}`; }, "crase", "não há crase antes de verbo (a fazer, a chover)"],
+  // ---- crase que falta ----
+  [P(`(fico|fica|ficamos|ficam|estou|est[aá]|estamos|est[aã]o|estarei|estaremos|seguimos|sigo|permane[cç]o|permanecemos|me\\s+coloco|nos\\s+colocamos|me\\s+ponho|deixo|deixamos)\\s+a\\s+((?:sua|tua|vossa|inteira)\\s+)?disposi[cç][aã]o`),
+    (m, v, x) => `${v} à ${x || ""}disposição`, "crase", "“à disposição” leva crase"],
+  [P(`(pagamento|pagar|pago|paga|pagando|paguei|pagou|pagamos|compra|comprar|comprei|compro|pre[cç]o|valor|desconto|venda|vender|vendo|vendemos|vendas)\\s+(s[oó]\\s+|somente\\s+|apenas\\s+)?a\\s+vista`),
+    (m, v, s1) => `${v} ${s1 || ""}à vista`, "crase", "pagamento “à vista” leva crase"],
+  [P(`(sa[ií]mos|sa[ií]|saio|sair|saiu|liguei|ligo|ligar|ligou|chego|chegou|cheguei|chegamos|volto|voltei|voltamos|voltou|trabalho|estudo|treino|abre|abrimos|abro|fecha|fechamos|vou|vamos|vai|vem|venho|durmo|acordo|janto|almo[cç]o|corro|caminho|saiu|ocorre|acontece|come[cç]a|termina|e\\s+de\\s+manh[aã]|ou)\\s+a\\s+(noite|tarde|tardinha|noitinha)(?!\\s+(?:toda|inteira|passada|anterior|de|do|da|em|que)(?![${L}]))`),
+    "$1 à $2", "crase", "“à noite / à tarde” (quando) leva crase"],
+  [P(`(estou|est[aá]|estamos|est[aã]o|estava|estavam|ando|anda|andamos|fico|fiquei|ficou|vivo|vive|sa[ií]|saiu|fui|foi|vou|vai|continuo|continua|sigo|segue|estar|ficar)\\s+a\\s+procura\\s+(de|do|da|dos|das)`),
+    "$1 à procura $2", "crase", "“à procura de” leva crase"],
+  [P(`(fiquei|fico|ficamos|ficou|fica|estou|est[aá]|estamos|est[aã]o|estava|estive|continuo|continua|sigo|seguimos)\\s+a\\s+espera(?=\\s*[.,!?]|\\s*$|\\s+(?:de|do|da|dos|das|que)(?![${L}]))`),
+    "$1 à espera", "crase", "“à espera” leva crase"],
+  [P(`(feito|feita|feitos|feitas|fez|fa[cç]o|fazemos|escrito|escrita|escrevi|escreveu|lavar|lavo|lavei|lavado|lavada|bordado|bordada|pintado|pintada|costurado|costurada|desenhado|desenhada|montado|montada|preenchido|preenchida)\\s+a\\s+m[aã]o(?![${L}])`),
+    "$1 à mão", "crase", "“à mão” (feito a mão) leva crase"],
+  [P(`a\\s+(milanesa|parmegiana|parmigiana|bolonhesa|moda\\s+(?:da|do|de|antiga))(?![${L}])`), "à $1", "crase", "“à milanesa / à moda de” leva crase"],
+  [P(`(chego|chega|chegou|cheguei|come[cç]a|come[cç]ou|termina|terminou|abre|abriu|fecha|fechou|saio|sai|saiu|volto|voltou|almo[cç]o|marcado|marcada|marcamos|marquei|[eé]|foi|ser[aá])\\s+a\\s+uma\\s+(hora|da\\s+tarde|da\\s+manh[aã]|da\\s+madrugada)(?![${L}])`),
+    "$1 à uma $2", "crase", "hora marcada: “à uma hora” leva crase"],
+  // ---- regência e expressões ----
+  [P(`nada\\s+haver`), "nada a ver", "ortografia", "é “nada a ver” (não tem relação)"],
+  [P(`(tem|tinha|t[eê]m|ter|tenha|teve|tiver|teria)\\s+haver(?=\\s+com(?![${L}]))`), (m, v) => `${v} a ver`, "ortografia", "é “ter a ver com” (ter relação)"],
+  [P(`ao\\s+(meu|seu|teu|nosso)\\s+ver`), "a $1 ver", "regencia", "é “a meu ver” (sem o “o”)"],
+  [P(`haja\\s+visto`), "haja vista", "ortografia", "a expressão é “haja vista”"],
+  [P(`sobre\\s+medida`), "sob medida", "ortografia", "é “sob medida” (sob = embaixo de)"],
+  [P(`sobre\\s+(o|este|esse|aquele|um)\\s+(ponto\\s+de\\s+vista|aspecto|prisma|olhar)`), "sob $1 $2", "ortografia", "é “sob o ponto de vista”"],
+  [P(`(perigo|risco|amea[cç]a|guerra|ataque|colapso|queda|morte|chegada|despejo|fal[eê]ncia)\\s+eminente`), "$1 iminente", "ortografia", "“iminente” = prestes a acontecer; “eminente” = importante"],
+  [P(`(inflig(?:ir|iu|iram|e|em|imos|indo|ido|ia))\\s+(a|as|o|os)\\s+(lei|leis|regra|regras|norma|normas|regulamento|regimento|contrato|c[oó]digo|sinal|regras\\s+do|lei\\s+do)`),
+    (m, v, d, n) => `${v.replace(/^inflig/i, "infring")} ${d} ${n}`, "ortografia", "desrespeitar a lei é “infringir”; “infligir” é aplicar (uma pena)"],
+  [P(`(quantia|soma|valor|investimento|dinheiro|preju[ií]zo|neg[oó]cio|verba|montante|doa[cç][aã]o|lucro|fortuna)\\s+(vultuos(?:o|a|os|as))`), (m, n, v) => `${n} ${v.replace(/vultuos/i, "vultos")}`, "ortografia", "valor grande é “vultoso” (vultuoso = rosto inchado)"],
+  [P(`(pass(?:ou|a|ar|am|aram|ando|ei|amos|ado)|ficou|fica)\\s+desapercebid(o|a|os|as)`), "$1 despercebid$2", "ortografia", "sem ser notado é “despercebido”"],
+  [P(`ao\\s+inv[eé]s\\s+de`), (m) => ({ para: "em vez de", conf: "media" }), "estilo", "“ao invés de” é só para opostos; “em vez de” serve sempre"],
+  [P(`(falar|falou|falamos|falei|fala|conversar|conversamos|conversei|discutir|discutimos|discutiu|saber|sabe|sei|informar|informou|informa|perguntar|perguntou|pergunta|pensar|penso|d[uú]vidas?|reclamar|reclamou|explicar|explicou|comentar|comentou|opini[aã]o|not[ií]cias?|informa[cç](?:[aã]o|[oõ]es))\\s+a\\s+cerca\\s+(de|do|da|dos|das|disso)`),
+    "$1 acerca $2", "ortografia", "“acerca de” (junto) = sobre"],
+  [P(`(?<!(?:daqui|dentro\\s+de|em)\\s)a\\s+cerca\\s+de\\s+(\\d+|um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|cem|mil)\\s+(anos|meses|dias|semanas|horas|minutos|d[eé]cadas)(?![${L}])`),
+    (m, n, t) => ({ para: `há cerca de ${n} ${t}`, conf: "media" }), "ortografia", "tempo que passou: “há cerca de”"],
+  [new RegExp(`(?<![${L}])(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+((?:\\p{L}+\\s+){1,3}?)do\\s+que\\s+(?:(o|a|os|as)\\s+)?(?=\\p{L})`, "giu"),
+    (m, v, x, d) => ({ para: `${v} ${x}${d ? { o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()] : "a"} `, conf: "media" }), "regencia", "preferir uma coisa “a” outra (não “do que”)"],
+  [P(`(?<=,)\\s*se\\s+n[aã]o\\s+(perco|chego|atraso|esque[cç]o|caio|levo|leva|apanho|apanha|perdemos|chegamos|atrasamos|perde|chega|esquece|cai)(?![${L}])`),
+    (m, v) => ({ para: ` senão ${v}`, conf: "media" }), "ortografia", "“senão” = do contrário (corre, senão perde o ônibus)"],
+  [P(`([eé]|era|for|sendo|s[aã]o|eram|seja|sou|somos)\\s+de\\s+menor(es)?(?![${L}])`), (m, v, p) => `${v} menor${p || ""} de idade`, "ortografia", "o certo é “menor de idade”"],
+  [P(`mau[\\s-]+humorad(o|a|os|as)`), "mal-humorad$1", "ortografia", "“mal-humorado” (com L e hífen)"],
+  [P(`(concert(?:ar|o|ou|ei|amos|aram|a|am|ando|ado|ada|e|em))\\s+((?:o|a|os|as|meu|minha|seu|sua|esse|essa|este|esta|um|uma)\\s+)?(carro|celular|computador|geladeira|tv|televis[aã]o|m[aá]quina|moto|telhado|cano|torneira|chuveiro|rel[oó]gio|bicicleta|bike|notebook|pc|roupa|sapato|port[aã]o|porta|janela|fog[aã]o|aparelho|defeito|erro|problema|celulares|carros|vazamento|tela)(?![${L}])`),
+    (m, v, d, n) => `${v.replace(/^concert/i, (x) => (x[0] === "C" ? "Consert" : "consert"))} ${d || ""}${n}`, "ortografia", "arrumar é “consertar” (com S); “concertar” é combinar"],
+  // ---- verbos ----
+  // futuro do subjuntivo com quem faz a ação: "se eu ver" → "se eu vir", "se eles verem" → "se eles virem"
+  [P(`(quando|se|assim\\s+que|logo\\s+que|caso|enquanto|sempre\\s+que|depois\\s+que)\\s+(eu|voc[eê]|ele|ela|a\\s+gente|n[oó]s|eles|elas|voc[eê]s)\\s+(ver|verem|vermos|fazer|fazerem|fazermos|poder|poderem|podermos|ter|terem|termos|saber|saberem|sabermos|querer|quererem|querermos|dizer|dizerem|dizermos|trazer|trazerem|trazermos|estar|estarem|estarmos|propor|proporem|pôr|porem|ir|irem|ser|serem|dar|darem|manter|manterem|caber|caberem|obter|obterem|conter|ver-me)(?![${L}])`),
+    (m, c, q, v) => {
+      const k = v.toLowerCase(); const plural = /(em|mos)$/.test(k) && !/^(ter|ser|ver|dar|ir)$/.test(k);
+      const base = { ver: "vir", fazer: "fizer", poder: "puder", ter: "tiver", saber: "souber", querer: "quiser", dizer: "disser", trazer: "trouxer", estar: "estiver", propor: "propuser", "pôr": "puser", por: "puser", ir: "for", ser: "for", dar: "der", manter: "mantiver", caber: "couber", obter: "obtiver", conter: "contiver" };
+      const raiz = k.replace(/(em|mos)$/, "").replace(/^(ver|fazer|poder|ter|saber|querer|dizer|trazer|estar|propor|ir|ser|dar|manter|caber)$/, "$1");
+      const inf = base[k] ? k : Object.keys(base).find((b) => k === b + "em" || k === b + "mos" || (b === "pôr" && /^porem$/.test(k)));
+      if (!inf) return null;
+      let f = base[inf]; if (k.endsWith("em") && k !== inf) f += "em"; else if (k.endsWith("mos") && k !== inf) f += "mos";
+      if (/^(eles|elas|voc[eê]s)$/i.test(q) && !/em$/.test(f)) f += "em";
+      if (/^n[oó]s$/i.test(q) && !/mos$/.test(f)) f += "mos";
+      return `${c} ${q} ${f}`; }, "concordancia", "futuro do verbo: “se eu vir”, “quando puder”, “se eles tiverem”"],
+  [P(`(eu(?:\\s+n[aã]o)?)\\s+di(?![${L}])`), "$1 dei", "concordancia", "passado de “dar”: “eu dei”"],
+  [P(`(eu(?:\\s+n[aã]o)?|n[aã]o)\\s+cabo(?=\\s+(?:a[ií]|aqui|l[aá]|nisso|nessa|nesse|em|no|na|mais)(?![${L}])|\\s*[.,!?]|\\s*$)`), "$1 caibo", "concordancia", "verbo caber: “eu caibo”"],
+  [P(`(tinha|tenho|tem|havia|haviam|tinham|t[ií]nhamos|teria|ter|terem|tenha|tivesse|tiver|tinha\\s+n[aã]o)\\s+(chego|trago)(?![${L}])`), (m, v, p) => `${v} ${p.toLowerCase() === "chego" ? "chegado" : "trazido"}`, "concordancia", "depois de “tinha/tenho” vem “chegado/trazido”"],
+  // gerundismo: "vou estar enviando" → "vou enviar"
+  [P(`(vou|vai|vamos|v[aã]o|irei|iremos|ir[aá]|posso|pode|podemos|devo|deve|devemos)\\s+estar\\s+(\\p{Ll}+?)(ando|endo|indo)(?![${L}])`), (m, v, r, t) => {
+    const inf = r + { ando: "ar", endo: "er", indo: "ir" }[t]; if (!LEX || !LEX.has(inf)) return null;
+    return { para: `${v} ${inf}`, conf: "media" }; }, "estilo", "gerundismo: “vou enviar” é mais direto que “vou estar enviando”"],
+  // ---- concordância ----
+  // "Vende-se casas" → "Vendem-se casas" (a coisa vendida é quem manda no verbo)
+  [P(`(\\p{L}{3,})-se\\s+((?:os|as|uns|umas|\\d+|dois|duas|tr[eê]s|v[aá]rios|v[aá]rias|muitos|muitas|alguns|algumas|novos|novas|lindos|lindas)\\s+)?(\\p{Ll}{3,}s)(?![${L}])`), (m, v, d, n) => {
+    if (!d && /^(pelas|pelos|nas|nos|das|dos|aos|mais|menos|depois|antes|apenas|atrav[eé]s|somos|estamos|temos|vamos|vezes|horas|dias|anos|meses)$/i.test(n)) return null;
+    if (!LEX || !LEX.has(n) || !/^[N?]$/.test(classeSegura(n)) || /^(trata|precisa|necessita|fala|vive|chega|vai|sabe|pensa|acredita|gosta|confia|depende|refere|comenta)$/i.test(v)) return null;
+    const pl = conjugar(v, "3p"); if (!pl || pl === v.toLowerCase()) return null;
+    return `${comoOriginal(v, pl)}-se ${d || ""}${n}`; }, "concordancia", "com “-se”, o verbo vai para o plural se a coisa está no plural (vendem-se casas)"],
+  // "ficou meia preocupada" → "meio preocupada" (meio = um pouco, não muda)
+  [P(`(ficou|fiquei|fica|fico|est[aá]|estou|estava|t[aá]|t[oô]|ficando|parece|parecia|anda|ando|andava|[eé]|era|sou|sentiu|sinto|deixou|deixa|achei|acho|t[aá]\\s+t[aã]o)\\s+meia\\s+(\\p{Ll}{3,})(?![${L}])`), (m, v, a) => {
+    if (classeSegura(a) !== "A" && !/(ada|ida|osa|ante|ente|ica)$/.test(a)) return null;
+    return `${v} meio ${a}`; }, "concordancia", "“meio” (um pouco) não muda: meio cansada"],
+  [P(`([eé]|est[aá]|fica)\\s+(proibido|permitido|necess[aá]rio|obrigat[oó]rio|vedado)\\s+a\\s+(\\p{Ll}{3,})(?![${L}])`), (m, v, a, n) => {
+    if (!LEX || !LEX.has(n) || classeSegura(n) !== "N" || /^(todos|todas|ele|ela|quem|voc[eê]|qualquer|menores|pessoas|crian[cç]as|clientes)$/i.test(n)) return null;
+    return { para: `${v} ${a.replace(/o$/, "a")} a ${n}`, conf: "media" }; }, "concordancia", "com artigo, combina com a palavra: “é proibida a entrada”"],
+  [P(`(elas|eles|n[oó]s|voc[eê]s)\\s+mesmo(?=\\s+(?:\\p{Ll}+(?:ram|ram|mos|am|em|aram|eram|iram)|fizeram|fomos|vamos|v[aã]o|sabem|disseram|fizemos)(?![${L}]))`), (m, q) => `${q} ${/^elas$/i.test(q) ? "mesmas" : "mesmos"}`, "concordancia", "“mesmo” combina com a pessoa: elas mesmas"],
+  // ---- pronomes ----
+  [P(`com\\s+n[oó]s(?!\\s+(?:dois|duas|tr[eê]s|quatro|cinco|todos|todas|mesmos|mesmas|pr[oó]prios|pr[oó]prias|ambos|outros|outras|sozinhos)(?![${L}]))`), "conosco", "concordancia", "“com nós” vira “conosco”"],
+  [P(`(para|pra)\\s+mim\\s+(\\p{Ll}+(?:ar|er|ir|or))(?![${L}])`), (m, p, v, off, str) => {
+    if (!LEX || !LEX.has(v) || classeSegura(v) !== "V") return null;
+    const antes = str.slice(Math.max(0, off - 25), off);
+    return { para: `${p} eu ${v}`, conf: /(dif[ií]cil|f[aá]cil|importante|bom|ruim|imposs[ií]vel|poss[ií]vel|complicado|chato|legal|[oó]timo|melhor|pior|necess[aá]rio)\s*$/i.test(antes) ? "media" : "alta" }; }, "concordancia", "antes de verbo é “para eu fazer” (quem faz é “eu”)"],
+  // ---- repetição de ideia (sugestão) ----
+  [P(`((?:sub|sob)\\p{Ll}*|desc\\p{Ll}*|entr(?:a|ar|o|ou|ei|amos|aram|e|em|ando)|sa[ií]|sair|saiu|sa[ií]mos|sa[ií]ram|saia|saiam|saindo|saio)\\s+(l[aá]\\s+)?(pra|para)\\s+(cima|baixo|dentro|fora)(?!\\s+(?:de|da|do|das|dos|deste|desta|dele|dela)(?![${L}]))`), (m, v, la, p, d) => {
+    const ok = { cima: /^s[uo]b/i, baixo: /^desc/i, dentro: /^entr/i, fora: /^sa/i }[d.toLowerCase()];
+    if (!ok.test(v)) return null;
+    return { para: `${v}${la ? " " + la.trim() : ""}`, conf: "media" }; }, "estilo", "repete a ideia: “subir” já é para cima"],
+  [P(`(repet\\p{Ll}*)\\s+(de\\s+novo|novamente|outra\\s+vez)`), (m, v) => ({ para: v, conf: "media" }), "estilo", "repete a ideia: “repetir” já é fazer de novo"],
+  [P(`h[aá]\\s+((?:\\p{L}+\\s+)?(?:anos|meses|dias|semanas|tempos|horas|minutos|d[eé]cadas|s[eé]culos))\\s+atr[aá]s`), (m, t) => ({ para: `há ${t}`, conf: "media" }), "estilo", "“há … atrás” repete a ideia: basta “há”"],
+  [P(`(surpresa)\\s+inesperada|(elo)\\s+de\\s+liga[cç][aã]o|(planos)\\s+para\\s+o\\s+futuro|(encarar)\\s+de\\s+frente|(consenso)\\s+geral|(fato)\\s+real|(monop[oó]lio)\\s+exclusivo|(acabamento)\\s+final|(multid[aã]o)\\s+de\\s+pessoas|(hemorragia)\\s+de\\s+sangue|(abertura)\\s+inaugural|(metades)\\s+iguais|(conviver)\\s+juntos?|(outra)\\s+alternativa`),
+    (m, ...g) => { const w = g.slice(0, 14).find(Boolean); return { para: /^outra$/i.test(w) ? "alternativa" : w, conf: "media" }; }, "estilo", "repete a ideia (pleonasmo)"],
+  [P(`(ganh(?:e|ar|ou|ei|a|am|em|amos|ando)|leve|levar|receba|receber)\\s+gr[aá]tis`), (m, v) => ({ para: v, conf: "media" }), "estilo", "“ganhar” já é de graça"],
+  [P(`(cri(?:ar|ou|amos|aram|a|am|ando|e|em))\\s+(novos|novas)(?=\\s+\\p{L})`), (m, v) => ({ para: v, conf: "media" }), "estilo", "“criar” já é fazer algo novo"],
+  // ---- pontuação e formatos ----
+  [new RegExp(`([${L}]+),?\\s+e\\s+etc\\.{0,3}`, "giu"), "$1 etc.", "pontuacao", "“etc.” já quer dizer “e outros”: sem o “e”"],
+  [new RegExp(`(?<![${L}])etc\\.{2,}`, "giu"), "etc.", "pontuacao", "“etc.” leva um ponto só"],
+  [/\.{4,}/g, "...", "pontuacao", "reticências são três pontos"],
+  // ---- maiúsculas: dia da semana e mês no meio da frase ----
+  [new RegExp(`(?<=(?:^|[^.!?\\s]\\s)(?:na|no|de|da|do|toda|todo|nesta|neste|nessa|nesse|esta|este|essa|esse|pr[oó]xima|pr[oó]ximo|[uú]ltima|[uú]ltimo|at[eé]|At[eé]|desde|Desde|aos|[àa]s|nas|nos|pela|pelo|cada|em|e|ou|entre|m[eê]s\\s+de)\\s)(Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo|Janeiro|Fevereiro|Mar[cç]o|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)(-[Ff]eira)?(?![${L}])`, "gu"),
+    (m, d, f, off, str) => {
+      const antes = str.slice(Math.max(0, off - 40), off).trim().split(/\s+/);
+      // "Sete de Setembro" (nome de rua/data comemorativa): palavra com maiúscula logo antes da preposição, fora do começo da frase
+      const ant = antes[antes.length - 2], comeco = antes.length - 2 === 0 || /[.!?]$/.test(antes[antes.length - 3] || "");
+      if (ant && /^\p{Lu}/u.test(ant) && !comeco) return null;
+      return (d + (f || "")).toLowerCase(); }, "maiuscula", "dia da semana e mês vão com letra minúscula"],
   // concordância do verbo com a pessoa
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])(?!\\s+que(?![${L}]))`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
@@ -514,7 +656,7 @@ const ESTRANGEIRAS = new Set(("pet pets petshop cookie cookies e-mail e-mails em
   "tablet tablets netbook ultrabook headphone headphones headset wireless stereo dolby surround subwoofer home theater bass sd microsd " +
   "mpg mpeg divx xvid avi mkv jpg jpeg png pdf mp3 mp4 router modem ram ssd hdd cpu gpu chip chips intel amd nvidia windows linux mac " +
   "macbook dell lenovo acer asus positivo semp toshiba panasonic jbl multilaser britania mondial arno walita electrolux brastemp consul " +
-  "ok ok's ps sms driver drivers magic dlna smartv software hardware firmware widget widgets bike bikes premium plus pro").split(" "));
+  "ok ok's ps sms driver drivers magic dlna smartv software hardware firmware widget widgets bike bikes premium plus pro di").split(" "));
 const CHAVE_PESSOAL = "hf-dicionario";
 try { (JSON.parse(localStorage.getItem(CHAVE_PESSOAL) || "[]") || []).forEach((w) => PESSOAL.add(w)); } catch {}
 export const lexicoPronto = () => !!LEX;
@@ -708,6 +850,8 @@ function naoSugerir(k, para, toks, i) {
   }
   // "não publica, não avalia", "mensagens, publica, avalia": verbo, não "pública"
   if (k === "publica" && (/^(nao|nunca|ja|tambem|se|me|ninguem|quem|so)$/.test(w(i - 1)) || toks[i - 1]?.w === "," || toks[i + 1]?.w === ",")) return true;
+  // "nos vemos amanhã", "nos falamos": “nos” é o pronome (um ao outro), não “nós”
+  if (k === "nos" && /^(vemos|falamos|encontramos|conhecemos|vimos|despedimos|beijamos|abra[cç]amos|casamos|mudamos|sentimos|preocupamos|divertimos|esfor[cç]amos|cuidamos|cuidemos|vemos|falaremos|veremos|encontraremos|reunimos|reuniremos|juntamos|amamos|entendemos)$/.test(w(i + 1))) return true;
   // "mais corridas", "mais fotos": quantidade, não "mas"
   if (k === "mais" && para === "mas" && (c(i + 1) === "N" || c(i + 1) === "A")) return true;
   return false;
@@ -846,6 +990,7 @@ function inicioFrase(str, off, primeira) {
 function unidades(t, anotar) {
   return t
     .replace(/(?<![\w/.])(\d{1,2})\s?(?:hrs?|hs|horas?)\b/gi, (m, h) => (/horas?/i.test(m) ? m : anotar(m, h + "h", "pontuacao", "hora: “10h”") ? h + "h" : m))
+    .replace(/(?<![\w/.:])(\d{1,2}):(\d{2})\s?h(?:rs?|s)?(?![\p{L}])/giu, (m, h, mi) => { const n = h + "h" + (mi === "00" ? "" : mi); return anotar(m, n, "pontuacao", "hora: 10h ou 10h30 (sem os dois-pontos)") ? n : m; })
     .replace(/(?<![\w/.])(\d{1,2})\s?h\s?(\d{2})\b/gi, (m, h, mi) => (anotar(m, h + "h" + mi, "pontuacao", "hora: “10h30”") ? h + "h" + mi : m))
     .replace(/(?<![\p{L}])(as)\s+(\d{1,2})(?=h\b|:\d{2}|\s*horas?\b)/giu, (m, a, h) => { const n = (a[0] === "A" ? "Às " : "às ") + h; return anotar(m, n, "crase", "hora: “às 10h” leva crase") ? n : m; })
     .replace(/(?<![\p{L}])fazem\s+(\d+)\s+(anos?|meses|dias?|semanas?|horas?|minutos?)(?![\p{L}])/giu, (m, n, u) => { const x = (m[0] === "F" ? "Faz " : "faz ") + n + " " + u; return anotar(m, x, "concordancia", "“faz” indicando tempo fica no singular") ? x : m; })
@@ -927,6 +1072,12 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
           && !(/^\p{Lu}/u.test(w) && !inicioFrase(str, off, ip === 0))) {
         const existe = (x) => LEX.has(x) || PESSOAL.has(x) || ESTRANGEIRAS.has(x);
         const partesHifen = k.split("-");
+        // nova ortografia: prefixo sem hífen ("auto-estima" → autoestima, "anti-rugas" → antirrugas, "mini-série" → minissérie)
+        if (partesHifen.length === 2 && !existe(k)) {
+          const [a, b] = partesHifen, junto = a + (/[aeiou]$/.test(a) && /^[rs]/.test(b) ? b[0] : "") + b;
+          const PREF = /^(auto|anti|contra|semi|mini|micro|maxi|mega|ultra|infra|supra|super|hiper|neo|pseudo|co|extra|intra|agro|multi|poli|retro|tele|socio|eco|bio|geo|foto|hidro|termo|aero|moto|macro|proto|ante|entre|sobre)$/;
+          if (PREF.test(a) && b.length >= 3 && !/^(lhe|lhes|nos|vos|los|las|nas|sena)$/.test(b) && LEX.has(junto) && a.slice(-1) !== b[0]) { const n = comoOriginal(w, junto); if (anotar(w, n, "ortografia", "nova ortografia: junto, sem hífen")) return n; }
+        }
         if (!existe(k) && !(partesHifen.length > 1 && partesHifen.every(existe))) {
           const sg = sugerirPalavra(k);
           if (sg && k.length <= 3 && sg.como !== "acento") sg.conf = "media"; // 2–3 letras: muitas siglas e gírias, só sugere
@@ -958,7 +1109,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
         let cf = conf;
         if (n && typeof n === "object") { cf = n.conf || conf; n = n.para; }
         if (!n || n === m) return m;
-        n = comoOriginal(m.trimStart(), n.trimStart()); n = m.match(/^\s*/)[0] + n;
+        if (tipo !== "maiuscula") n = comoOriginal(m.trimStart(), n.trimStart()); n = m.match(/^\s*/)[0] + n.trimStart();
         return anotar(m.trim(), n.trim(), tipo, motivo, cf) ? n : m;
       });
     }
@@ -1005,7 +1156,8 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       }
       const limpa = f.trim().replace(/[\s,;:]+$/, "");
       const nPal = limpa.split(/\s+/).length;
-      if (!/[.!?…]["”')]*$/.test(limpa) && PERG.test(limpa) && nPal >= 2 && !/\uE001$/.test(limpa) && !ORDEM_PEDIDO.test(limpa)) {
+      const subordinada = /^(quando|onde|como|se)\b[^,]*,/iu.test(limpa); // "Quando eu puder, vou" afirma, não pergunta
+      if (!/[.!?…]["”')]*$/.test(limpa) && !subordinada && PERG.test(limpa) && nPal >= 2 && !/\uE001$/.test(limpa) && !ORDEM_PEDIDO.test(limpa)) {
         const ult = limpa.split(/\s+/).pop();
         if (anotar(ult, ult + "?", "pontuacao", "pergunta termina com “?”", nPal <= 9 ? "alta" : "media")) f = f.replace(/[\s,;:]*$/, (e) => "?" + e.replace(/[,;:]/g, ""));
       }
@@ -1031,7 +1183,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
 // Resumo curto: "3 acentos, 2 abreviações"
 export function resumoCorrecoes(porTipo) {
   const nomes = { acento: ["acento", "acentos"], ortografia: ["palavra", "palavras"], abreviacao: ["abreviação", "abreviações"],
-    concordancia: ["concordância", "concordâncias"], regencia: ["regência", "regências"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
+    concordancia: ["concordância", "concordâncias"], regencia: ["regência", "regências"], estilo: ["ajuste de estilo", "ajustes de estilo"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
     repeticao: ["repetição", "repetições"] };
   return Object.entries(porTipo).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${nomes[k][n > 1 ? 1 : 0]}`).join(", ");
 }
