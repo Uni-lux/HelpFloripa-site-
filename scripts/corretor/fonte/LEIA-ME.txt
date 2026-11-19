@@ -20,7 +20,7 @@ Creative Commons Atribuição-CompartilhaIgual 4.0 (CC BY-SA 4.0):
 https://creativecommons.org/licenses/by-sa/4.0/deed.pt_BR
 
 ----------------------------------------------------------------------
-Corretor que aprende (contexto2.json; o legível é scripts/corretor/fonte/contexto.json)
+Corretor que aprende (contexto3.json + pesos3.bin; a fonte é scripts/corretor/fonte/contexto.json)
 
 Modelo que escolhe, pela frase, entre palavras que se confundem (e/é, mas/mais, mal/mau,
 esta/está, nos/nós, por/pôr, da/dá...): uma regressão logística por grupo, com as palavras
@@ -36,4 +36,5 @@ Textos usados no treino:
   UD_Portuguese-GSD (CC BY-SA 4.0), UD_Portuguese-Bosque, só a parte da Folha de S.Paulo
   (CC BY-SA 4.0), UD_Portuguese-PUD (CC BY-SA 3.0), UD_Portuguese-PetroGold (CC BY-SA 4.0),
   UD_Portuguese-Porttinari (CC BY 4.0) e UD_Portuguese-DANTEStocks (CC BY 4.0).
-Por isso o contexto2.json (e o contexto.json) é distribuído sob CC BY-SA 4.0, como o lexico.
+Desde 19/11/2026 as pistas viram números por hashing (FNV-1a) e os pesos ficam numa tabela de
+bytes (pesos3.bin). Por isso o contexto3.json, o pesos3.bin (e o contexto.json) são distribuídos sob CC BY-SA 4.0, como o lexico.
