@@ -196,6 +196,7 @@ const REGRAS = [
   // futuro do subjuntivo: "se eu ver" → "se eu vir", "quando você poder" → "quando você puder"
   [P(`(quem|quando|se|assim\\s+que|logo\\s+que|caso|enquanto|sempre\\s+que)\\s+(eu\\s+|voc[eê]\\s+|ele\\s+|ela\\s+|a\\s+gente\\s+)?(ver|fazer|poder|ter|saber|querer|vir|dizer|trazer|estar|pôr|por)(?=\\s+(ele|ela|isso|isto|o|a|os|as|um|uma|algo|alguma|algu[eé]m|tempo|aqui|a[ií]|l[aá]|que|me|te|de|por|pra|para|com|em|no|na|mais|melhor|certo|lugar|ajuda)(?![${L}])|[.,!?]|$)`), (m, c, q, v) => {
     const t = { ver: "vir", fazer: "fizer", poder: "puder", ter: "tiver", saber: "souber", querer: "quiser", vir: "vier", dizer: "disser", trazer: "trouxer", estar: "estiver", "pôr": "puser", por: null }[v.toLowerCase()];
+    if (q && !/^quem$/i.test(c)) return null; // com "eu/você/ele..." a regra do subjuntivo com pronome corrige sozinha
     return t ? `${c} ${q || ""}${t}` : null; }, "concordancia", "futuro do verbo: “se eu vir”, “quando puder”, “se tiver”", "media"],
   // ----- 12/11/2026: mais regras com contexto -----
   // crase
@@ -220,7 +221,7 @@ const REGRAS = [
   [P(`((?:des)?obedec(?:er|e|em|emos|eu|eram|ia|iam|endo|o|a|am))\\s+(o|a|os|as)(?=\\s+\\p{L})`),
     (m, v, d) => ({ para: `${v} ${{ o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()]}`, conf: "media" }), "regencia", "“obedecer” pede “a”: obedecer às regras, ao pai"],
   // "prefiro mais isso" → "prefiro isso" (“preferir” já diz que é mais)
-  [P(`(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+mais(?=\\s+(?!(?:tarde|cedo|perto|longe|devagar|r[aá]pido|vezes|dias|horas|tempo|um|uma|de|do|da)(?![${L}]))\\p{L})`),
+  [P(`(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+mais(?![^.!?\\n]*do\\s+que)(?=\\s+(?!(?:tarde|cedo|perto|longe|devagar|r[aá]pido|vezes|dias|horas|tempo|um|uma|de|do|da)(?![${L}]))\\p{L})`),
     (m, v) => ({ para: v, conf: "media" }), "regencia", "“preferir” já quer dizer “gostar mais”: prefiro isso"],
   // "namorar com alguém" → "namorar alguém" (sugestão; "o meu namoro com ele" é substantivo)
   [P(`(?<!(?:meu|seu|nosso|o|um|esse|este|do|no|pelo)\\s)(namorar|namoro|namora|namorei|namorou|namoramos|namoram|namorava|namorando)\\s+com(?=\\s+\\p{L})`),
@@ -286,6 +287,12 @@ const REGRAS = [
     (m, v, s1) => `${v} ${s1 || ""}à vista`, "crase", "pagamento “à vista” leva crase"],
   [P(`(sa[ií]mos|sa[ií]|saio|sair|saiu|liguei|ligo|ligar|ligou|chego|chegou|cheguei|chegamos|volto|voltei|voltamos|voltou|trabalho|estudo|treino|abre|abrimos|abro|fecha|fechamos|vou|vamos|vai|vem|venho|durmo|acordo|janto|almo[cç]o|corro|caminho|saiu|ocorre|acontece|come[cç]a|termina|e\\s+de\\s+manh[aã]|ou)\\s+a\\s+(noite|tarde|tardinha|noitinha)(?!\\s+(?:toda|inteira|passada|anterior|de|do|da|em|que)(?![${L}]))`),
     "$1 à $2", "crase", "“à noite / à tarde” (quando) leva crase"],
+  // "fui ao mercado a noite", "liguei para ela a tarde": verbo de ação um pouco antes na mesma frase e "a noite" fechando a ideia
+  [new RegExp(`(?<![${L}])a\\s+(noite|tarde|tardinha|noitinha)(?=\\s*[,.;!?]|\\s*$|\\s+(?:e|mas|para|pra|com|porque|quando)(?![${L}]))`, "giu"), (m, q, off, str) => {
+    const antes = str.slice(Math.max(0, off - 60), off), frase = antes.split(/[.!?;\n]/).pop();
+    if (/(passa\p{L}*|adoro|adora|amo|ama|gosto|gosta|curt\p{L}*|aproveit\p{L}*|esper\p{L}*|toda|durante|pela|essa|esta|nessa|nesta|perdi|perdeu|vi|viu|ver)\s+$/iu.test(frase)) return null;
+    if (!/(?:^|\s)(fui|foi|fomos|foram|vou|vai|vamos|v[aã]o|sa[ií]|saiu|sa[ií]mos|saio|cheguei|chegou|chegamos|chego|voltei|voltou|voltamos|volto|liguei|ligou|ligo|passei\s+(?:no|na|em)|estive|esteve|estivemos|treino|treinei|estudo|estudei|trabalho|trabalhei|encontrei|encontrou|comprei|compramos|jantei|jantamos|corri|caminhei|viajei|viajo|viajamos|chego|abre|abrimos|fecha|fechamos|atendo|atendemos|marquei|marcamos)(?:\s|$)/iu.test(frase)) return null;
+    return `${m[0] === "A" ? "À" : "à"} ${q}`; }, "crase", "“à noite / à tarde” (quando) leva crase"],
   [P(`(estou|est[aá]|estamos|est[aã]o|estava|estavam|ando|anda|andamos|fico|fiquei|ficou|vivo|vive|sa[ií]|saiu|fui|foi|vou|vai|continuo|continua|sigo|segue|estar|ficar)\\s+a\\s+procura\\s+(de|do|da|dos|das)`),
     "$1 à procura $2", "crase", "“à procura de” leva crase"],
   [P(`(fiquei|fico|ficamos|ficou|fica|estou|est[aá]|estamos|est[aã]o|estava|estive|continuo|continua|sigo|seguimos)\\s+a\\s+espera(?=\\s*[.,!?]|\\s*$|\\s+(?:de|do|da|dos|das|que)(?![${L}]))`),
@@ -312,8 +319,8 @@ const REGRAS = [
     "$1 acerca $2", "ortografia", "“acerca de” (junto) = sobre"],
   [P(`(?<!(?:daqui|dentro\\s+de|em)\\s)a\\s+cerca\\s+de\\s+(\\d+|um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|vinte|trinta|cem|mil)\\s+(anos|meses|dias|semanas|horas|minutos|d[eé]cadas)(?![${L}])`),
     (m, n, t) => ({ para: `há cerca de ${n} ${t}`, conf: "media" }), "ortografia", "tempo que passou: “há cerca de”"],
-  [new RegExp(`(?<![${L}])(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+((?:\\p{L}+\\s+){1,3}?)do\\s+que\\s+(?:(o|a|os|as)\\s+)?(?=\\p{L})`, "giu"),
-    (m, v, x, d) => ({ para: `${v} ${x}${d ? { o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()] : "a"} `, conf: "media" }), "regencia", "preferir uma coisa “a” outra (não “do que”)"],
+  [new RegExp(`(?<![${L}])(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+((?:\\p{L}+\\s+){1,5}?)do\\s+que\\s+(?:(o|a|os|as)\\s+)?(?=\\p{L})`, "giu"),
+    (m, v, x, d) => ({ para: `${v} ${x.replace(/^mais\s+/i, "")}${d ? { o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()] : "a"} `, conf: "media" }), "regencia", "preferir uma coisa “a” outra (não “do que”)"],
   [P(`(?<=,)\\s*se\\s+n[aã]o\\s+(perco|chego|atraso|esque[cç]o|caio|levo|leva|apanho|apanha|perdemos|chegamos|atrasamos|perde|chega|esquece|cai)(?![${L}])`),
     (m, v) => ({ para: ` senão ${v}`, conf: "media" }), "ortografia", "“senão” = do contrário (corre, senão perde o ônibus)"],
   [P(`([eé]|era|for|sendo|s[aã]o|eram|seja|sou|somos)\\s+de\\s+menor(es)?(?![${L}])`), (m, v, p) => `${v} menor${p || ""} de idade`, "ortografia", "o certo é “menor de idade”"],

@@ -179,6 +179,13 @@ const CASOS = [
   ["pois é, foi assim", "Pois é, foi assim", "chat", true],
   ["sim eu vou", "Sim, eu vou", "chat"],
   ["não quero", "Não quero", "chat", true],
+  // texto de teste do dono (19/11/2026)
+  ["ontem eu fui ao mercado a noite e voltei", "Ontem eu fui ao mercado à noite e voltei", "chat"],
+  ["liguei para ela a tarde, mas não atendeu", "Liguei para ela à tarde, mas não atendeu", "chat"],
+  ["eu adoro a noite", "Eu adoro a noite", "chat", true],
+  ["passamos a noite toda conversando", "Passamos a noite toda conversando", "chat", true],
+  ["se eu ver o chefe dela, aviso", "Se eu vir o chefe dela, aviso", "chat"],
+  ["prefiro mais ir de manhã do que a tarde", "Prefiro ir de manhã à tarde", "chat", true],
 ];
 for (const [ent, esp, modo, tudo] of CASOS) {
   const r = corrigir(ent, modo, tudo);
