@@ -30,12 +30,19 @@ const PROVA = [
   ["Ela é de menor", "Ela é menor de idade"], ["Pode subir pra cima", "Pode subir"], ["Não precisa repetir de novo", "Não precisa repetir"],
   ["Isso foi há dois anos atrás", "Isso foi há dois anos"], ["Ganhe grátis uma sobremesa", "Ganhe uma sobremesa"], ["Contudo não consegui", "Contudo, não consegui"],
   ["Trouxe arroz, feijão, e etc", "Trouxe arroz, feijão etc."], ["Abrimos às 9:00h", "Abrimos às 9h"], ["Oi Carlos tudo certo?", "Oi, Carlos, tudo certo?"],
-  ["A festa é no Sábado", "A festa é no sábado"], ["Começa em Março", "Começa em março"], ["Eles vêem a novela", "Eles veem a novela"],
+  ["A festa é no Sábado", "A festa é no sábado"],
+  // verbo na forma errada (r sobrando/faltando), escritos ANTES das regras (19/11/2026)
+  ["Ontem eu não conseguir dormir direito", "Ontem eu não consegui dormir direito"], ["Acordei cedo e depois sair pra trabalhar", "Acordei cedo e depois saí pra trabalhar"],
+  ["Preciso compra pão amanhã", "Preciso comprar pão amanhã"], ["Vou fala com ela mais tarde", "Vou falar com ela mais tarde"],
+  ["Tive que corre pra pegar o ônibus", "Tive que correr pra pegar o ônibus"], ["Liguei pra ela mais ninguém atendeu", "Liguei pra ela, mas ninguém atendeu"],
+  ["Cheguei em casa e cair no sono", "Cheguei em casa e caí no sono"], ["Quero aprende a cozinhar", "Quero aprender a cozinhar"], ["Começa em Março", "Começa em março"], ["Eles vêem a novela", "Eles veem a novela"],
 ];
 const CERTAS = [
   "Vamos a pé.", "A reunião foi a partir das 9h.", "Ela ficou meio confusa.", "Prefiro pizza.", "Por que você ligou?", "Ninguém sabe por quê.",
   "Ele foi conosco.", "Faltou meia hora para acabar.", "Há cerca de três anos moro aqui.", "Março tem 31 dias.", "Ela chegou a uma decisão.",
   "Comprei meia dúzia de pães.", "Vou estar no escritório às 9h.", "Vende-se um carro.", "Ela mesma resolveu.",
+  "Quero sair cedo hoje.", "Depois de sair, me liga.", "Ele gosta de dormir tarde.", "A volta foi tranquila.", "Comprei mais pão.",
+  "Gosto mais de café.", "Vou comprar pão e voltar.", "Não consigo dormir.",
 ];
 const corr = (t) => { const r = C.corrigirTexto(t, { modo: "chat" }); return C.corrigirTexto(t, { modo: "chat", aceitar: new Set(r.mudancas.map((m) => m.chave)) }).texto; };
 const auto = (t) => C.corrigirTexto(t, { modo: "chat" }).texto;

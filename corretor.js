@@ -347,6 +347,66 @@ const REGRAS = [
   [P(`(vou|vai|vamos|v[aã]o|irei|iremos|ir[aá]|posso|pode|podemos|devo|deve|devemos)\\s+estar\\s+(\\p{Ll}+?)(ando|endo|indo)(?![${L}])`), (m, v, r, t) => {
     const inf = r + { ando: "ar", endo: "er", indo: "ir" }[t]; if (!LEX || !LEX.has(inf)) return null;
     return { para: `${v} ${inf}`, conf: "media" }; }, "estilo", "gerundismo: “vou enviar” é mais direto que “vou estar enviando”"],
+  // ---- verbo na forma errada (19/11/2026): "tive que volta" → "voltar"; "não conseguir toma" → "consegui tomar"; "mais esqueci" → "mas" ----
+  // depois de quem pede o infinitivo (tive que, vou, quero, posso, preciso, consegui, comecei a...) o verbo vai com R
+  [P(`(tive\\s+que|tenho\\s+que|tem\\s+que|temos\\s+que|tinha\\s+que|teve\\s+que|vou|vai|vamos|v[aã]o|ia|iam|quero|quer|queria|queremos|querem|posso|pode|podia|podemos|podem|preciso|precisa|precisava|precisamos|precisam|consegui|conseguir|consigo|consegue|conseguimos|conseguiu|devo|deve|devia|devemos|tentei|tento|tenta|tentou|comecei\\s+a|come[cç]ou\\s+a|come[cç]a\\s+a|parei\\s+de|parou\\s+de|acabei\\s+de|gosto\\s+de|gosta\\s+de|esqueci\\s+de|vim|veio|resolvi|decidi|pretendo|espero|prefiro|adoro|odeio)(\\s+n[aã]o)?\\s+(\\p{Ll}{3,}[aei])(?![${L}])(?!\\s*-)`), (m, v, nao, w) => {
+    if (!LEX || /^(mais|ela|ele|isso|essa|esse|aqui|ali|la|lá|me|se|te|nos|sua|minha|uma|toda|cada|nada|ninguem|ninguém|sempre|nunca|logo|tarde|noite|hoje|onde|aonde|bem|vez|sim|que|ate|até|pra|para)$/i.test(w)) return null;
+    const inf = w.replace(/[eé]$/, "e").replace(/i$/, "i") + "r";
+    if (!LEX.has(inf) || rank(inf) > 60000) return null;
+    // "conseguiu tutela", "quero comida": depois de verbo que aceita substantivo, a palavra-substantivo fica
+    if (classeSegura(w) === "N" && !/^(tive\s+que|tenho\s+que|tem\s+que|temos\s+que|tinha\s+que|teve\s+que|posso|pode|podia|podemos|podem|devo|deve|devia|devemos|preciso|precisa|precisava|precisamos|precisam|vou|vai|vamos|v[aã]o)$/i.test(v)) return null;
+    // a palavra precisa ser o verbo no presente (toma, volta, come) e não um substantivo depois de "vou/vai" ("vou casa" não existe)
+    if (/^(vou|vai|vamos|v[aã]o|vim|veio)$/i.test(v) && classeSegura(w) === "N" && !/^(fala|toma|come|bebe|corre|compra|faz|ve|volta|chega|passa|liga|manda|paga|joga|leva|busca|pega|olha|ajuda|trabalha|estuda)$/i.test(w)) return null;
+    return `${v}${nao || ""} ${inf}`; }, "concordancia", "depois de “tive que / vou / quero / consegui” o verbo vai com R: tive que voltar"],
+  // "pra compra pão" → "pra comprar pão" (sugestão: "pra volta" pode ser "para a volta")
+  [P(`(pra|para|sem|a\\s+fim\\s+de|antes\\s+de|depois\\s+de)\\s+(\\p{Ll}{3,}[ae])(?=\\s+(?:o|a|os|as|um|uma|meu|minha|seu|sua|isso|isto|tudo|ele|ela|p[aã]o|caf[eé]|casa|comida|[aà]gua|dinheiro|mais|logo|cedo|agora|hoje|amanh[aã])(?![${L}]))`), (m, p, w) => {
+    if (!LEX) return null; const inf = w + "r";
+    if (!LEX.has(inf) || rank(inf) > 40000 || /^[AN]$/.test(classeSegura(w))) return null; // "para casa", "para forma": substantivo
+    return { para: `${p} ${inf}`, conf: /^(volta|conta|compra|venda|troca|ajuda|entrega|busca|fala|pesca|caça|caca|cura|escolha|espera|luta|marcha|mudança|prova|reserva|sobra|visita|vida)$/i.test(w) ? "media" : "alta" }; }, "concordancia", "depois de “pra/para” o verbo vai com R: pra comprar"],
+  // "eu não conseguir", "depois sair correndo", "e cair no sono" → passado (consegui, saí, caí) quando a frase está contando o que aconteceu
+  [P(`(eu(?:\\s+n[aã]o)?|n[aã]o|depois|a[ií]|ent[aã]o|logo|j[aá]|e|mas|da[ií]|quando|s[oó]|tamb[eé]m|nem|ontem|hoje)\\s+(\\p{Ll}{2,}ir)(?![${L}])`), (m, a, w, off, str) => {
+    if (!LEX) return null;
+    // passado com acento quando a raiz acaba em vogal (sa-ir → saí, ca-ir → caí, possu-ir → possuí; consegu-ir → consegui)
+    const stem = w.slice(0, -2), comAcento = /[aeo]$/.test(stem) || (/u$/.test(stem) && !/[gq]u$/.test(stem));
+    const past = (comAcento ? [stem + "í", stem + "i"] : [stem + "i", stem + "í"]).find((x) => LEX.has(x));
+    if (!past || !LEX.has(w) || classeSegura(w) === "N") return null;
+    const antes = str.slice(Math.max(0, off - 18), off);
+    // infinitivo de verdade: depois de preposição/verbo que pede infinitivo ("antes de sair", "quero sair", "vou partir")
+    if (/(?:^|\s)(de|para|pra|a|ao|sem|vou|vai|vamos|quero|quer|posso|pode|preciso|precisa|devo|deve|consigo|consegue|gosto|gosta|prefiro|adoro|odeio|tenho\s+que|tem\s+que|tive\s+que|antes|pode|podia|ia)\s*$/i.test(antes)) return null;
+    // "se eu não conseguir", "quando sair": futuro do subjuntivo (está certo)
+    const oracao = str.slice(0, off).split(/[.!?;:,"“”«»\n]/).pop();
+    if (/(?:^|\s)(se|quando|caso|enquanto|assim\s+que|logo\s+que|depois\s+que|at[eé]\s+que|sempre\s+que)(?:\s|$)/i.test(oracao)) return null;
+    if (/^(e|mas|ou|nem)$/i.test(a) && /\p{L}+ndo(?:\s|$)/u.test(oracao)) return null; // "permitindo ... e invadir"
+    // "tentar reagir e impedir": o verbo antes do "e/mas" está no infinitivo, então este também fica
+    if (/^(e|mas|ou|nem)$/i.test(a)) { const ult = (antes.match(/\p{L}+/gu) || []).slice(-3); if (ult.some((x) => /[aei]r$/i.test(x) && LEX.has(x.toLowerCase()))) return null; }
+    const frase = (str.slice(0, off).split(/[.!?\n]/).pop() + m + str.slice(off + m.length).split(/[.!?\n]/)[0]).toLowerCase();
+    // só quando a frase conta o que EU fiz: "eu" ou outro verbo no passado (acordei, cheguei, comi)
+    const contando = /(?:^|\s)eu(?:\s|$)/.test(frase) || /(?:^|\s)\p{Ll}{3,}(?:ei|i)(?=[\s,.]|$)/u.test(frase.replace(w, "").replace(/\b(mais|aqui|ali|daqui|aí|ai|ali|si|li|vi|ti|mi)\b/g, ""));
+    if (!contando) return null;
+    // depois de "e/mas/então..." sem "eu" na frase: sugestão; com "eu"/"não" direto: alta
+    const alta = /^(eu|eu\s+n[aã]o|n[aã]o|depois|ontem|hoje|a[ií]|ent[aã]o|logo)$/i.test(a) || /(?:^|\s)eu(?:\s|$)/.test(frase);
+    return { para: `${a} ${past}`, conf: alta ? "alta" : "media" }; }, "concordancia", "a frase conta o que aconteceu: “consegui, saí, caí” (sem o R)"],
+  // "mais esqueci", "mais não consegui" → "mas" (verbo logo depois = “porém”)
+  [new RegExp(`(?<![${L}])mais\\s+(?=(\\p{Ll}{3,}(?:ei|i|ou|eu|iu)|n[aã]o|ningu[eé]m|nunca|nada|estava|estavam|era|eram|foi|foram|tinha|tinham|deu|teve|ficou|estou|está)(?![${L}]))`, "giu"), (m, w, off, str) => {
+    const antes = str.slice(Math.max(0, off - 20), off);
+    if (/(?:^|[\s\-—«"(])(cada\s+vez|um\s+pouco|muito|bem|nem|o|a|os|as|de|que|e|ou|cada|sempre|ainda|j[aá]|nada|ningu[eé]m|nunca|algo|algu[eé]m|quem|n[aã]o|muitos|muitas)\s*$/iu.test(antes)) return null;
+    if (/[-—–«"(]\s*$/.test(antes)) return null;
+    if (/^\s*\S+\s+(?:\S+\s+){0,4}?do\s+que(?![\p{L}])/iu.test(str.slice(off + m.length, off + m.length + 60))) return null; // "mais tumultuou do que jogou" (comparação)
+    if (/^(estava|estavam|era|eram|foi|foram|tinha|tinham|deu|teve|ficou|estou|está)$/i.test(w)) { if (!/\p{L}{3,}\s*$/u.test(antes)) return null; return "mas "; }
+    // "não ouvi mais nada", "não vem mais ninguém": “mais” de quantidade. Só vira “mas” com verbo no passado logo depois
+    // ("mais ninguém atendeu") e sem outro “não/sem/para” antes na frase.
+    if (/^(ningu[eé]m|nunca|nada)$/i.test(w)) {
+      const depois = (str.slice(off + m.length + w.length).match(/^\s+(\p{L}+)/u) || [])[1] || "";
+      const frase = str.slice(0, off).split(/[.!?;,\n]/).pop();
+      if (!/(ei|ou|eu|iu|ava|ia|eram|aram|iram)$/i.test(depois) || /(?:^|\s)(n[aã]o|sem)(?:\s|$)/i.test(frase) || /(?:^|\s)(para|pra)\s*$/i.test(frase)) return null;
+      return "mas ";
+    }
+    if (/^(n[aã]o)$/i.test(w)) {
+      if (/(?:^|\s)n[aã]o(?:\s|$)/i.test(str.slice(0, off).split(/[.!?;,\n]/).pop())) return null; if (!/\p{L}{3,}\s*$/u.test(antes)) return null; return "mas "; }
+    if (!LEX) return null;
+    const ok = /ei$/.test(w) ? LEX.has(w.slice(0, -2) + "ar") : /ou$/.test(w) ? LEX.has(w.slice(0, -2) + "ar") : /eu$/.test(w) ? LEX.has(w.slice(0, -2) + "er") : /iu$/.test(w) ? LEX.has(w.slice(0, -2) + "ir") : (LEX.has(w.slice(0, -1) + "er") || LEX.has(w.slice(0, -1) + "ir"));
+    if (!ok || classeSegura(w) === "N" || classeSegura(w) === "A") return null;
+    return "mas "; }, "ortografia", "“mas” (porém) é diferente de “mais” (quantidade)"],
   // ---- concordância ----
   // "Vende-se casas" → "Vendem-se casas" (a coisa vendida é quem manda no verbo)
   [P(`(\\p{L}{3,})-se\\s+((?:os|as|uns|umas|\\d+|dois|duas|tr[eê]s|v[aá]rios|v[aá]rias|muitos|muitas|alguns|algumas|novos|novas|lindos|lindas)\\s+)?(\\p{Ll}{3,}s)(?![${L}])`), (m, v, d, n) => {

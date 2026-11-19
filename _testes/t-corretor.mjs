@@ -186,6 +186,16 @@ const CASOS = [
   ["passamos a noite toda conversando", "Passamos a noite toda conversando", "chat", true],
   ["se eu ver o chefe dela, aviso", "Se eu vir o chefe dela, aviso", "chat"],
   ["prefiro mais ir de manhã do que a tarde", "Prefiro ir de manhã à tarde", "chat", true],
+  // verbo na forma errada (frase do dono, 19/11/2026)
+  ["Hoje de manhã eu acordei tarde e não conseguir toma café, depois sair correndo pra faculdade mais esqueci meus materiais em casa e tive que volta tudo de novo.",
+   "Hoje de manhã eu acordei tarde e não consegui tomar café, depois saí correndo pra faculdade, mas esqueci meus materiais em casa e tive que voltar tudo de novo.", "chat"],
+  ["tenho que estuda mais", "Tenho que estudar mais", "chat"],
+  ["se eu não conseguir, aviso", "Se eu não conseguir, aviso", "chat", true],
+  ["antes de sair, me liga", "Antes de sair, me liga", "chat", true],
+  ["ela conseguiu tutela antecipada", "Ela conseguiu tutela antecipada", "chat", true],
+  ["não ouvi mais nada", "Não ouvi mais nada", "chat", true],
+  ["ele mais tumultuou do que jogou", "Ele mais tumultuou do que jogou", "chat", true],
+  ["ele foi para casa cedo", "Ele foi para casa cedo", "chat", true],
 ];
 for (const [ent, esp, modo, tudo] of CASOS) {
   const r = corrigir(ent, modo, tudo);
