@@ -2957,6 +2957,27 @@ chat da equipe).
   `vocativo "Obrigado, Ana"` e ", mas" já existiam. Conferido em 37,5 mil frases certas (UD, baixadas para o scratchpad):
   66 automáticas + 21 sugestões, quase todas vírgulas que faltavam de verdade ("Porém o uso..."). Prova NILC 89,1 (só ortografia:
   os 2 "estragos" novos são "assistir aos jogos"/"à tv", corretos). Páginas do site: 0. t-corretor 177/177; t-corretor-tela ok.
+- **Corretor profissional (19/11/2026, mesmo PR #244, sem regra nova):** pedido dele ("mais profissional e completo").
+  `_testes/corretor-banco.mjs` (190 erros em 11 categorias + 41 certas) e `_testes/corretor-banco-prova.mjs` (65 erros + 15 certas
+  escritos ANTES das regras, nunca usados para ajustar). Antes → depois (com sugestões): banco 44,7% → 98,4%; prova do banco 38,5% →
+  98,5%, 0 frases certas mexidas. Regras novas (bloco "regras profissionais" nas REGRAS): por que/porque/por quê (pergunta direta,
+  fim, indireta), crase que não existe (à pé/prazo/ela/você/partir, à + verbo) e que falta (à disposição, à vista no pagamento,
+  à noite/tarde depois de verbo, à procura, à espera, à mão, à milanesa, à uma hora), nada a ver/tem a ver, a meu ver, haja vista,
+  sob medida/ponto de vista, iminente, infringir, vultoso, despercebido, em vez de (sugestão), acerca de, há cerca de (sugestão),
+  preferir X a Y (sugestão), senão, menor de idade, mal-humorado, consertar (o carro), futuro do subjuntivo com pronome (se eu vir,
+  se eles tiverem, quando nós pudermos), eu dei/eu caibo, tinha chegado/trazido, gerundismo (sugestão), vendem-se casas, meio
+  cansada, é proibida a entrada (sugestão), elas mesmas, conosco, para eu + verbo, hífen (ex-, pós-/pré-/pró-, vice-, recém-,
+  sem-terra, boas-vindas, mal-entendido; prefixo + hífen que o acordo juntou só com a lista `PREF`: autoestima, antirrugas,
+  minissérie, coautor, infraestrutura; não junta pronome "vende-se" nem "Mega-Sena"/"nova-iorquino"), repetição de ideia (tipo novo
+  `estilo`, sugestão: subir pra cima, repetir de novo, há anos atrás, elo de ligação, ganhe grátis...), "e etc"/"etc...", "10:00h"
+  → "10h" (em `unidades`: números são protegidos nas REGRAS), "....", dia/mês com minúscula no meio da frase ("Sete de Setembro"
+  fica). ORTOGRAFIA: fazerei/trazerei/dizerei, fazido, ponhei, trusse, manteu/deteu/interviu, requiz, microondas, dia-a-dia,
+  fim-de-semana, mão-de-obra. Bugs: "Quando eu puder, vou" ganhava "?" (`subordinada`), "Nos vemos" virava "Nós vemos"
+  (`naoSugerir`), "fazerei" virava "fazerem", "requiz" virava "cheques". Atenção nas REGRAS: regra com texto fixo e lookahead
+  POSITIVO não funciona (a troca reaplica a regex só no trecho casado) → use função; e P() termina com `(?![L])`, então padrão
+  que acaba em espaço precisa de `new RegExp` sem o P. Maiúscula não passa pelo `comoOriginal`. Conferido: páginas do site 0;
+  NILC 88,9 (os "estragos" novos são acertos: pós-venda, micro-ondas, pra eu descrever); UD +44 automáticas, quase todas ortografia
+  antiga (fim-de-semana, auto-estrada, co-autor) e passiva ("fez-se modificações"). t-corretor 177/177, t-corretor-tela ok.
 - **Rede neural do corretor testada e NÃO adotada (19/11/2026, PR depois do #242, site não muda):** pedido dele ("entender a
   frase toda"). `scripts/corretor/treinar-neural.py` (PyTorch, `pip install torch`, só CPU): GRU bidirecional sobre até 20
   palavras de cada lado, palavras por hashing FNV (V=2^14, 24 números por palavra, 48 de memória; 425 mil parâmetros ≈ 400 KB a
