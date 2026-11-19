@@ -1,0 +1,13 @@
+Prova independente do corretor (_testes/corretor-prova.mjs)
+
+nilc-ugc.json = NILC Benchmark Corpus to Evaluate Spelling Correction of UGC in Brazilian Portuguese
+(Magali Duran, Gustavo Mendonça et al., NILC/USP, 2014), https://github.com/gustavoauma/propor_2016_speller
+Licença CC0 1.0 (domínio público), texto em LICENSE-CC0.txt.
+1.699 frases de avaliações de produtos (site Buscapé) com 4.083 erros marcados à mão por linguistas:
+digitação (typo), pelo som (phono), acento (diac) e outros. Convertido do XML original para
+[[id, [palavra | [errada, certa, tipo, contextual(0/1)], ...]], ...].
+
+Regra de uso: frases ÍMPARES = ajuste (pode olhar os erros e melhorar o corretor por elas);
+frases PARES = prova (só a nota; não olhar caso a caso), para a nota medir texto novo.
+Obs.: o corpus não marcou gíria da internet (vc, tb, q) como erro; o script conta isso à parte.
+Ele também deixou passar alguns erros (tuudo, funçao, apos): parte dos "estragos" são acertos do corretor.

@@ -15,6 +15,7 @@ export const TIPOS_CORRECAO = {
   ortografia: "Escrita",
   abreviacao: "Abreviações",
   concordancia: "Concordância",
+  regencia: "Regência",
   crase: "Crase",
   pontuacao: "Pontuação",
   maiuscula: "Maiúsculas",
@@ -202,6 +203,45 @@ const REGRAS = [
   [P(`(ele|ela|voc[eê]|quem|isso|sempre|que)\\s+tr[aá]s(?![${L}])`), "$1 traz", "ortografia", "“traz” é do verbo trazer"],
   [P(`(vou|vai|pode|posso|quero|quer|preciso|precisa|tem\\s+que|temos\\s+que|vamos)\\s+por\\s+(o|a|os|as|no|na|nos|nas|mais)(?![${L}])`), "$1 pôr $2", "acento", "“pôr” (colocar) leva acento"],
   [P(`(eles|elas|voc[eê]s)\\s+vem(?![${L}])`), "$1 vêm", "acento", "“vêm” no plural leva acento"],
+  // ---- regência (19/11/2026): o verbo pede a preposição certa ----
+  // "assistir o filme" → "assistir ao filme" (assistir = ver pede "a"; "assistir o paciente" = ajudar, por isso só com o que se vê)
+  [P(`(assistir|assisti|assistiu|assistimos|assistiram|assisto|assiste|assistem|assistindo|assistia|assistiam|assistirei|assistiremos|assistirem)\\s+(o|a|os|as)\\s+(filmes?|jogos?|novelas?|s[eé]ries?|programas?|shows?|v[ií]deos?|aulas?|partidas?|apresenta[cç](?:[aã]o|[oõ]es)|palestras?|final|desenhos?|document[aá]rios?|epis[oó]dios?|lives?|missa|culto|lutas?|corridas?|tv|televis[aã]o|jornal|telejornal|treinos?|ensaios?|espet[aá]culos?|pe[cç]as?|musical|torneio|campeonato|copa|novelinha|reels|stories)(?![${L}])`),
+    (m, v, d, n) => (/^(a|o)$/i.test(d) && /s$/i.test(n) && !/^(reels|stories|lives?)$/i.test(n) ? null : `${v} ${{ o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()]} ${n}`), "regencia", "“assistir” (ver) pede “a”: assistir ao filme, à novela"],
+  // "obedecer as regras" → "obedecer às regras"
+  [P(`((?:des)?obedec(?:er|e|em|emos|eu|eram|ia|iam|endo|o|a|am))\\s+(o|a|os|as)(?=\\s+\\p{L})`),
+    (m, v, d) => ({ para: `${v} ${{ o: "ao", a: "à", os: "aos", as: "às" }[d.toLowerCase()]}`, conf: "media" }), "regencia", "“obedecer” pede “a”: obedecer às regras, ao pai"],
+  // "prefiro mais isso" → "prefiro isso" (“preferir” já diz que é mais)
+  [P(`(prefiro|prefere|preferimos|preferem|preferia|preferi|preferiu|preferir|preferiria)\\s+mais(?=\\s+(?!(?:tarde|cedo|perto|longe|devagar|r[aá]pido|vezes|dias|horas|tempo|um|uma|de|do|da)(?![${L}]))\\p{L})`),
+    (m, v) => ({ para: v, conf: "media" }), "regencia", "“preferir” já quer dizer “gostar mais”: prefiro isso"],
+  // "namorar com alguém" → "namorar alguém" (sugestão; "o meu namoro com ele" é substantivo)
+  [P(`(?<!(?:meu|seu|nosso|o|um|esse|este|do|no|pelo)\\s)(namorar|namoro|namora|namorei|namorou|namoramos|namoram|namorava|namorando)\\s+com(?=\\s+\\p{L})`),
+    (m, v) => ({ para: v, conf: "media" }), "regencia", "“namorar” não pede “com”: namorar alguém"],
+  // ---- quem faz a ação vem DEPOIS do verbo: "chegou as encomendas" → "chegaram as encomendas" ----
+  [new RegExp(`(^|[.!?;,:]\\s*|(?<![${L}])(?:que|quando|onde|ainda|j[aá]|n[aã]o|s[oó]|tamb[eé]m|hoje|ontem|amanh[aã]|aqui|ali|l[aá]|agora|depois|logo|ent[aã]o|sempre|nunca|se|como|mas|porque|pois|quase|finalmente)\\s+)`
+    + `(existe|existia|existiu|existir[aá]|falta|faltava|faltou|faltar[aá]|sobra|sobrava|sobrou|acontece|acontecia|aconteceu|chegou|chega|chegava|come[cç]ou|come[cç]a|terminou|acabou|saiu|sai|apareceu|aparece|surgiu|surge)`
+    + `\\s+(os|as|uns|umas|muitos|muitas|poucos|poucas|v[aá]rios|v[aá]rias|alguns|algumas|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove|dez|[2-9]|\\d{2,3})\\s+(\\p{Ll}{3,}s)(?![${L}])`, "giu"),
+    (m, pre, v, d, n) => {
+      if (!LEX || !LEX.has(n.toLowerCase()) || !/^[N?]$/.test(classeSegura(n.toLowerCase()))) return null;
+      // "aparece duas vezes", "chegou dois dias depois": tempo/vezes é quanto, não quem (menos “faltam dois dias”, “sobraram 3 horas”)
+      if (/^(vezes|horas|minutos|segundos|dias|semanas|meses|anos|metros|quil[oô]metros|km|reais|pontos|gols)$/i.test(n) && !/^(falt|sobr)/i.test(v)) return null;
+      // números: "chega 2 dias" sim; "as 10h" nem chega aqui (precisa de palavra no plural)
+      const pl = conjugar(v, "3p"); if (!pl || pl === v.toLowerCase()) return null;
+      const certo = /^(exist|falt|sobr|acontec)/i.test(v);
+      return { para: `${pre}${comoOriginal(v, pl)} ${d} ${n}`, conf: certo ? "alta" : "media" };
+    }, "concordancia", "quem faz a ação está no plural (e vem depois): o verbo vai para o plural"],
+  // "devem haver problemas" → "deve haver" (“haver” = existir não tem plural, nem o verbo que vai com ele)
+  [P(`(devem|podem|v[aã]o|costumam|precisam|deveriam|poderiam|parecem)\\s+haver`), (m, v) => `${{ devem: "deve", podem: "pode", "vão": "vai", vao: "vai", costumam: "costuma", precisam: "precisa", deveriam: "deveria", poderiam: "poderia", parecem: "parece" }[v.toLowerCase()]} haver`,
+    "concordancia", "com “haver” (existir) o verbo de antes fica no singular: deve haver"],
+  // ---- vírgula ----
+  // "Porém eu não fui" → "Porém, eu não fui" (palavra que liga as ideias no começo da frase)
+  [new RegExp(`(^|[.!?]\\s+)(por[eé]m|contudo|entretanto|no\\s+entanto|todavia|al[eé]m\\s+disso|ou\\s+seja|por\\s+exemplo|ou\\s+melhor|por\\s+outro\\s+lado|sendo\\s+assim|dessa\\s+forma|desse\\s+modo|desta\\s+forma|deste\\s+modo|por\\s+fim|al[ií][aá]s|de\\s+fato|na\\s+verdade|infelizmente|felizmente|em\\s+resumo|resumindo|ali[aá]s)\\s+(?=\\p{L})`, "giu"),
+    (m, pre, c) => ({ para: `${pre}${c}, `, conf: /^(al[ií][aá]s|ali[aá]s|de\s|na\s|infeliz|feliz|em\s+seguida|resumindo)/i.test(c) ? "media" : "alta" }), "pontuacao", "vírgula depois da palavra que liga as ideias (Porém, Além disso,...)"],
+  // "Fui embora pois estava cansado" → ", pois" (explicação)
+  [new RegExp(`(?<=[${L}]{2,})(?<!(?:^|\\s)(?:e|ou|mas|que|depois|ent[aã]o|n[aã]o))\\s+pois\\s+(?!(?:[eé]|n[aã]o|bem|sim|ent[aã]o)(?![${L}]))(?=\\p{L})`, "giu"),
+    () => ", pois ", "pontuacao", "vírgula antes de “pois” (explicação)"],
+  // "Sim eu vou" → "Sim, eu vou"; "Não eu não quero" → "Não, eu não quero"
+  [new RegExp(`(^|[.!?]\\s+)(sim|n[aã]o)\\s+(?=(eu|ele|ela|n[oó]s|a\\s+gente|voc[eê]s?|eles|elas|obrigad[oa]|claro|senhor|senhora)(?![${L}]))`, "giu"),
+    (m, pre, r, q) => ({ para: `${pre}${r}, `, conf: /^s/i.test(r) ? "alta" : "media" }), "pontuacao", "vírgula depois do “sim”/“não” da resposta"],
   // concordância do verbo com a pessoa
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)eu\\s+(vai|foi|est[aá]|tem|[ée]́?|pode|quer|sabe|fica|faz|precisa|gosta|acha|quis|teve)(?![${L}])(?!\\s+que(?![${L}]))`), (m, v) => { const t = { vai: "vou", foi: "fui", "está": "estou", esta: "estou", tem: "tenho", "é": "sou", pode: "posso", quer: "quero", sabe: "sei", fica: "fico", faz: "faço", precisa: "preciso", gosta: "gosto", acha: "acho", quis: "quis", teve: "tive" }[v.toLowerCase()]; return t && t !== v.toLowerCase() ? "eu " + t : null; }, "concordancia", "o verbo combina com “eu”"],
   [P(`(?<!(?:com|entre|de|para|pra|por|sem|contra|sobre|a|em|que)\\s)(voc[eê]s|eles|elas)\\s+(vai|est[aá]|foi|[ée]|pode|quer|sabe|fica|faz|precisa|gosta|acha|teve|fez|ficou)(?![${L}])`), (m, q, v) => { const t = { vai: "vão", "está": "estão", esta: "estão", foi: "foram", "é": "são", pode: "podem", quer: "querem", sabe: "sabem", fica: "ficam", faz: "fazem", precisa: "precisam", gosta: "gostam", acha: "acham", teve: "tiveram", fez: "fizeram", ficou: "ficaram" }[v.toLowerCase()]; return t && v !== "e" ? `${q} ${t}` : null; }, "concordancia", "o verbo vai para o plural"],
@@ -357,6 +397,7 @@ function concordarSujeito(s, anotar) {
     const w = lc(toks[a]), ant = a > 0 && !corta(a - 1, a) ? lc(toks[a - 1]) : "";
     let pessoa = null, fimSuj = a, conf = "alta", motivo = "o verbo combina com quem faz a ação";
     if (PREPOS.has(ant)) continue; // "pra nós", "com eles": não é quem faz a ação
+    // "para que eu possa", "se eu faça": depois de "que/se/caso/embora" o verbo pode estar no subjuntivo (possa, faça, seja)
     if (w === "nós" || w === "nois" || w === "nóis") pessoa = "1p";
     else if (w === "eu") pessoa = "1s";
     else if (/^(eles|elas|vocês|voces)$/.test(w)) pessoa = "3p";
@@ -378,6 +419,7 @@ function concordarSujeito(s, anotar) {
     if (j >= toks.length || corta(j - 1, j) || /,/.test(entre(j - 1, j))) continue;
     const v = lc(toks[j]);
     if (PARA_FRASE.has(v) || PREPOS.has(v)) continue;
+    if (pessoa === "1s" && /^(que|se|caso|embora|talvez|quando|enquanto)$/.test(ant) && /[ae]$/.test(v)) continue;
     // "eu é que", "os outros é que": construção com "é que" não muda
     if (/^(é|foi|era|seria|será)$/.test(v) && j + 1 < toks.length && lc(toks[j + 1]) === "que") continue;
     // com artigo + palavra, o verbo só muda se ele for verbo mesmo (classe) e "é/era" só como sugestão
@@ -465,7 +507,14 @@ const ESTRANGEIRAS = new Set(("pet pets petshop cookie cookies e-mail e-mails em
   "yoga coach coaching startup startups mei cnpj cpf rg cnh pix qr code ok okay hashtag hashtags stalker crush match like likes follow " +
   "web download upload backup bug bugs layout feedback deadline briefing job jobs freelancers drive pen pendrive bluetooth smart tv " +
   "check-in checkin check-out checkout self service drink drinks happy hour fast food food truck trucks gamer games game streaming live lives " +
-  "reel reels flash nº nºs vs etc").split(" "));
+  "reel reels flash nº nºs vs etc " +
+  // eletrônicos, marcas e termos técnicos (avaliações de produtos: "hd", "hdmi", "full hd", "xbox" não são erro)
+  "hd hdmi full fullhd pc pcs lg cce www wii xbox playstation ps2 ps3 ps4 ps5 slim vimeo plug pip rca usb dvd dvds led leds lcd plasma " +
+  "blu-ray bluray samsung sony philips motorola nokia apple ipad ipod kindle touch touchscreen screen display zoom player players gps " +
+  "tablet tablets netbook ultrabook headphone headphones headset wireless stereo dolby surround subwoofer home theater bass sd microsd " +
+  "mpg mpeg divx xvid avi mkv jpg jpeg png pdf mp3 mp4 router modem ram ssd hdd cpu gpu chip chips intel amd nvidia windows linux mac " +
+  "macbook dell lenovo acer asus positivo semp toshiba panasonic jbl multilaser britania mondial arno walita electrolux brastemp consul " +
+  "ok ok's ps sms driver drivers magic dlna smartv software hardware firmware widget widgets bike bikes premium plus pro").split(" "));
 const CHAVE_PESSOAL = "hf-dicionario";
 try { (JSON.parse(localStorage.getItem(CHAVE_PESSOAL) || "[]") || []).forEach((w) => PESSOAL.add(w)); } catch {}
 export const lexicoPronto = () => !!LEX;
@@ -605,6 +654,7 @@ function corrigirPeloContexto(s, anotar) {
     // limites medidos fora do treino (1 = nunca), com piso: só muda sozinho com 90%+ e sugere com 70%+
     const conf = lim[0] < 1 && pm > Math.max(lim[0], 0.9) ? "alta" : lim[1] < 1 && pm > Math.max(lim[1], 0.7) ? "media" : null;
     if (!conf) return;
+    if (conf === "media" && naoSugerir(k, melhor, toks, i)) return;
     const para = comoOriginal(t.w, melhor);
     const de = (i > 0 && !/[.,;:!?]/.test(toks[i - 1].w) ? toks[i - 1].w + " " : "") + t.w; // um pouco do contexto na lista
     const deAte = de === t.w ? para : de.slice(0, de.length - t.w.length) + para;
@@ -635,6 +685,32 @@ function corrigirPeloContexto(s, anotar) {
   });
   for (const t of troca.sort((a, b) => b.i - a.i)) s = s.slice(0, t.i) + t.para + s.slice(t.f);
   return s;
+}
+// Sugestões (conf "media") que o modelo erra em texto bem escrito: listas com "e", verbo depois de "não", "mais" + substantivo.
+// Medido em _testes/corretor-paginas.mjs (frases certas do site) e _testes/corretor-prova.mjs (erros reais).
+const DET_LISTA = /^(o|a|os|as|um|uma|uns|umas|quem|seu|sua|seus|suas|meu|minha|meus|minhas|nosso|nossa|outro|outra)$/;
+function naoSugerir(k, para, toks, i) {
+  const w = (j) => (j >= 0 && j < toks.length ? semAcento(toks[j].w.toLowerCase()) : "");
+  const c = (j) => (j >= 0 && j < toks.length ? classeCtx(w(j)) : "<");
+  if (k === "e" && para === "é") {
+    const dep = w(i + 1), ant = w(i - 1);
+    // "você e a pessoa", "você e quem votou": quem faz a ação são os dois
+    if (/^(voce|voces|eu|ele|ela|eles|elas|nos)$/.test(ant) && DET_LISTA.test(dep)) return true;
+    // "o plano e o período", "um documento e uma selfie", "a senha atual e a nova": dois itens com artigo
+    if (DET_LISTA.test(dep) && [i - 2, i - 3].some((j) => /^(o|a|os|as|um|uma|seu|sua|meu|minha|esse|essa|cada|do|da|dos|das|no|na|nos|nas|pelo|pela|ao|num|numa)$/.test(w(j)))) return true;
+    // "X, Y e Z" (enumeração): vírgula pouco antes, sem verbo no meio
+    if (i > 0 && !/^[.,;:!?]$/.test(toks[i - 1].w)) for (let j = i - 2; j >= Math.max(0, i - 4); j--) { if (toks[j].w === ",") return true; if (/^[.;:!?]$/.test(toks[j].w) || c(j) === "V") break; }
+    // "agora e edite", "e muito mais": o que vem depois é verbo no imperativo/presente ou "muito mais"
+    if (dep === "muito" && w(i + 2) === "mais") return true;
+    if (c(i + 1) === "V" && !/(ado|ada|ido|ida|ados|adas|idos|idas)$/.test(dep)) return true;
+    // "agora e edite", "e mande": forma do verbo (editar → edite) logo depois do "e"
+    if (/e$/.test(dep) && dep.length >= 4 && c(i + 1) !== "A" && LEX && LEX.has(dep.slice(0, -1) + "ar")) return true;
+  }
+  // "não publica, não avalia", "mensagens, publica, avalia": verbo, não "pública"
+  if (k === "publica" && (/^(nao|nunca|ja|tambem|se|me|ninguem|quem|so)$/.test(w(i - 1)) || toks[i - 1]?.w === "," || toks[i + 1]?.w === ",")) return true;
+  // "mais corridas", "mais fotos": quantidade, não "mas"
+  if (k === "mais" && para === "mas" && (c(i + 1) === "N" || c(i + 1) === "A")) return true;
+  return false;
 }
 const MAIS_ACENTO = new Set("e as esta nos pais da ai por pode publico duvida historia seria ate la le numero musica ultimo ultima publica mes manha".split(" "));
 
@@ -801,8 +877,11 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
     // 1) palavra por palavra
     s = s.replace(PALAVRA, (w, off, str) => {
       const k = w.toLowerCase(), ks = semAcento(k);
+      // colada em número/código ("mp4", "80cm", "n8", "v=abc") não é palavra para corrigir
+      const colada = /[\p{N}=_/@]/u.test(str[off - 1] || "") || /[\p{N}=_/@]/u.test(str[off + w.length] || "");
+      if (colada) return w;
       // risadas e "rs" ficam como estão
-      if (/^(k{2,}|(ha){2,}|(he){2,}|(hu){2,}|(rs)+|a?ha+|kk+)$/i.test(w)) return w;
+      if (/^(k{2,}|(ha){2,}|(he){2,}|(hu){2,}|(rs)+|a?ha+|kk+|[aeiu]?(h[aeiu]+){2,}h?|hu[ae](hu[ae])+)$/i.test(w)) return w;
       // letras repetidas: "muitoooo" → "muito" (no chat a pessoa pode querer; vale como sugestão)
       const rep = w.replace(/(\p{L})\1{2,}/gu, (m, l) => /[rs]/i.test(l) ? l + l : l);
       if (rep !== w && rep.length >= 2) { if (anotar(w, rep, "repeticao", "letras repetidas")) return rep; }
@@ -817,7 +896,10 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
       if (Object.prototype.hasOwnProperty.call(NOMES, ks) && w !== NOMES[ks]) {
         if (anotar(w, NOMES[ks], "maiuscula", "nome de lugar ou pessoa começa com maiúscula")) return NOMES[ks];
       }
-      if (k === ks && Object.prototype.hasOwnProperty.call(ACENTOS, k) && ACENTOS[k] && ACENTOS[k] !== k) {
+      // "eu/não/ou + palavra + artigo": a palavra sem acento é verbo ("ou silencio uma conversa", "eu pratico o")
+      const verboComObjeto = /(?:^|[\s,])(eu|n[ãa]o|ou|que|se|me|te|nos|j[áa]|tamb[ée]m|sempre|nunca)\s+$/i.test(str.slice(Math.max(0, off - 14), off))
+        && /^\s+(o|a|os|as|um|uma|uns|umas|meu|minha|seu|sua|esse|essa|este|esta|isso|isto|tudo|nada)\b/i.test(str.slice(off + w.length, off + w.length + 10));
+      if (k === ks && !verboComObjeto && Object.prototype.hasOwnProperty.call(ACENTOS, k) && ACENTOS[k] && ACENTOS[k] !== k) {
         const n = comoOriginal(w, ACENTOS[k]);
         if (anotar(w, n, "acento", "palavra com acento")) return n;
       }
@@ -840,12 +922,14 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
         if (n && n !== k && (!LEX || LEX.has(n))) { n = comoOriginal(w, n); if (anotar(w, n, "acento", "terminação com acento")) return n; }
       }
       // Dicionário: a palavra existe? (nomes próprios no meio da frase, siglas e palavras com número ficam de fora)
-      if (LEX && k.length >= 2 && !/\d/.test(w) && !PESSOAL.has(k) && !/\p{Lu}/u.test(w.slice(1))
+      // sem vogal ("hd", "pc": sigla) não é palavra para corrigir
+      if (LEX && k.length >= 2 && /[aeiouyáéíóúâêôãõàü]/.test(k) && !/\d/.test(w) && !PESSOAL.has(k) && !/\p{Lu}/u.test(w.slice(1))
           && !(/^\p{Lu}/u.test(w) && !inicioFrase(str, off, ip === 0))) {
         const existe = (x) => LEX.has(x) || PESSOAL.has(x) || ESTRANGEIRAS.has(x);
         const partesHifen = k.split("-");
         if (!existe(k) && !(partesHifen.length > 1 && partesHifen.every(existe))) {
           const sg = sugerirPalavra(k);
+          if (sg && k.length <= 3 && sg.como !== "acento") sg.conf = "media"; // 2–3 letras: muitas siglas e gírias, só sugere
           if (sg) {
             const n = comoOriginal(w, sg.para);
             return anotar(w, n, sg.como === "acento" ? "acento" : "ortografia", MOTIVO_SUG[sg.como], sg.conf) ? n : w;
@@ -947,7 +1031,7 @@ export function corrigirTexto(texto, { modo = "pub", pular = new Set(), aceitar 
 // Resumo curto: "3 acentos, 2 abreviações"
 export function resumoCorrecoes(porTipo) {
   const nomes = { acento: ["acento", "acentos"], ortografia: ["palavra", "palavras"], abreviacao: ["abreviação", "abreviações"],
-    concordancia: ["concordância", "concordâncias"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
+    concordancia: ["concordância", "concordâncias"], regencia: ["regência", "regências"], crase: ["crase", "crases"], pontuacao: ["pontuação", "pontuações"], maiuscula: ["maiúscula", "maiúsculas"],
     repeticao: ["repetição", "repetições"] };
   return Object.entries(porTipo).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${nomes[k][n > 1 ? 1 : 0]}`).join(", ");
 }

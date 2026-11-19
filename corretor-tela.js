@@ -5,7 +5,7 @@
 //   revisarTexto(texto, { modo, titulo, depois }) → Promise<string | null>   (null = manteve como estava)
 //   depois(texto) é aplicado ao resultado final (ex.: formatarTexto do Diário).
 // =====================================================
-import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario, aprenderEscolhas } from "./corretor.js?v=10";
+import { corrigirTexto, resumoCorrecoes, diferenca, TIPOS_CORRECAO, carregarLexico, adicionarAoDicionario, aprenderEscolhas } from "./corretor.js?v=12";
 
 const ICONES = {
   varinha: '<path d="M4 20l11-11M13 7l2-2 4 4-2 2"/><path d="M8 3v3M6.5 4.5h3M19 13v3M17.5 14.5h3"/>',
@@ -17,6 +17,7 @@ const ICONES = {
   pontuacao: '<path d="M8 6v8M8 18v.5M15 15a2 2 0 1 1 0 .1M15 17l-1 3"/>',
   maiuscula: '<path d="M3 19l5-14 5 14M4.8 14h6.4"/><path d="M15 19v-6.5a2.5 2.5 0 0 1 5 0V19M15 15.5h5"/>',
   crase: '<path d="M7 20l5-12 5 12M9 15h6M10 3l3 3"/>',
+  regencia: '<path d="M4 12h9M10 8l4 4-4 4"/><circle cx="18" cy="12" r="2.5"/>',
   repeticao: '<rect x="4" y="4" width="11" height="11" rx="2"/><rect x="9" y="9" width="11" height="11" rx="2"/>',
   cadeado: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   ok: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
@@ -86,7 +87,7 @@ function estilo() {
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const ORDEM = ["ortografia", "acento", "concordancia", "crase", "abreviacao", "pontuacao", "maiuscula", "repeticao"];
+const ORDEM = ["ortografia", "acento", "concordancia", "regencia", "crase", "abreviacao", "pontuacao", "maiuscula", "repeticao"];
 
 export function revisarTexto(texto, { modo = "pub", titulo = "Revisar texto", depois = (t) => t } = {}) {
   estilo();
