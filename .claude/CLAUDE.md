@@ -2435,7 +2435,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `npx firebase-tools@latest` (a @13 falha com "error retrieving the Firestore database"); foi preciso
   `gcloud services enable secretmanager.googleapis.com`; os 4 segredos (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID,
   CF_TURN_TOKEN) foram criados com o valor **`pendente`** (o deploy pede todos): trocar pelos de verdade antes de ligar
-  pagamento/TURN. Cleanup policy das imagens: 1 dia. Migração rodada por ele no mesmo dia: 46 fotos (2,9 MB) passaram para o Storage, 20 documentos mais leves (fotos do chat não migram). LEIA-MEs de `_regras/` atualizados com isso.
+  pagamento/TURN. Cleanup policy das imagens: 1 dia. Migração rodada por ele no mesmo dia: 46 fotos (2,9 MB) passaram para o Storage, 20 documentos mais leves (fotos do chat não migram). Os 32 índices do `firestore.indexes.json` foram criados por ele no mesmo dia pelo Cloud Shell (`deploy --only firestore:indexes`). LEIA-MEs de `_regras/` atualizados com isso.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
