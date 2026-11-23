@@ -366,7 +366,7 @@ import { COLECOES, fotosDoDoc, documentoNovo, lerData, linkDoStorage } from "./m
 
 async function ehDono(uid) {
   const a = await db.doc(`admins/${uid}`).get();
-  return a.exists && (a.get("papel") || "dono") === "dono";
+  return a.exists && a.get("papel") === "dono";
 }
 async function subir(bucket, pasta, valor) {
   const x = lerData(valor);

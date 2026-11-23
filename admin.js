@@ -3,11 +3,11 @@
 // Só entra quem tem o documento admins/{uid} (criado à mão no console do
 // Firebase). As regras do Firestore conferem isso em cada leitura e ação.
 // =====================================================
-import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=30";
-import * as S from "./admin-secoes.js?v=92";
-import { seguranca } from "./admin-seguranca.js?v=2";
-import { previa, tocarSom } from "./admin-chat.js?v=46";
-import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=1";
+import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=31";
+import * as S from "./admin-secoes.js?v=93";
+import { seguranca } from "./admin-seguranca.js?v=3";
+import { previa, tocarSom } from "./admin-chat.js?v=47";
+import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=2";
 
 const SECOES = {
   visao: S.visao, estatisticas: S.estatisticas, relatorios: S.relatorios, usuarios: S.usuarios, verificacoes: S.verificacoes,
@@ -145,7 +145,7 @@ function equipeAoVivo() {
   }, (e) => console.warn("Chat da equipe:", e.code || e.message));
   // Canais por setor: só o resumo de cada um (≤ 7 documentos); as mensagens são lidas quando o canal é aberto.
   C.canais = new Map(); C.canaisNaoLidas = 0;
-  C.papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+  C.papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "suporte";
   C.prefCanais = {};
   C.meusCanais = () => meusCanais(C.papelEu, C.prefCanais);
   const chaveCanais = "hf-canais-visto-" + C.eu.uid;
@@ -298,7 +298,7 @@ async function carregar(mostrar = true) {
     return;
   }
   C.nome = ficha?.nome || usuario.displayName || usuario.email || "Equipe";
-  C.papel = PAPEIS[ficha?.papel] ? ficha.papel : "dono";
+  C.papel = PAPEIS[ficha?.papel] ? ficha.papel : "suporte";
   C.tarefas = [];
   document.body.dataset.papel = C.papel;
   document.querySelectorAll("[data-so-dono]").forEach((b) => { b.hidden = !pode("dono"); });

@@ -2435,7 +2435,22 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `npx firebase-tools@latest` (a @13 falha com "error retrieving the Firestore database"); foi preciso
   `gcloud services enable secretmanager.googleapis.com`; os 4 segredos (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID,
   CF_TURN_TOKEN) foram criados com o valor **`pendente`** (o deploy pede todos): trocar pelos de verdade antes de ligar
-  pagamento/TURN. Cleanup policy das imagens: 1 dia. Migração rodada por ele no mesmo dia: 46 fotos (2,9 MB) passaram para o Storage, 20 documentos mais leves (fotos do chat não migram). LEIA-MEs de `_regras/` atualizados com isso.
+  pagamento/TURN. Cleanup policy das imagens: 1 dia. Migração rodada por ele no mesmo dia: 46 fotos (2,9 MB) passaram para o Storage, 20 documentos mais leves (fotos do chat não migram). Os 32 índices do `firestore.indexes.json` foram criados por ele no mesmo dia pelo Cloud Shell (`deploy --only firestore:indexes`). LEIA-MEs de `_regras/` atualizados com isso.
+- **Papel da equipe explícito (23/11/2026, auditoria do Storage feita por ele com outra ferramenta, MUDA REGRAS):** sem o
+  campo `admins/{uid}.papel` a pessoa NÃO é mais dono: regras `data.get('papel', 'nenhum')` (storage.rules — publicar no
+  console na hora — e firestore.rules, que vai com as 23 partes; 1286 testes, Storage 69), painel `C.papel || "suporte"`,
+  `equipe-canais.js`, `functions/index.js` (`ehDono`, vale no próximo deploy). Os 3 admins (Douglas, Edilson e Bianca) são
+  donos: ele precisa pôr `papel: "dono"` nos 3 ANTES de publicar o storage.rules. Seed e testes-regras dão `papel: "dono"`.
+  Os outros achados da auditoria foram conferidos e não eram brecha (apagar anexo = só o próprio arquivo; sanções
+  protegidas no Firestore; links com token = esperado).
+- **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
+  Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
+  e `pets_achados.local` dentro do Brasil. Brecha REAL ainda aberta: comentário "oculto" pelo dono da publicação é só
+  escondido pelo app (`comentarios` read = logado); a correção é guardar o conteúdo fora (esqueleto, como `guardados`),
+  porque as consultas por postId não podem filtrar. Não eram brecha (por desenho): `corridas/privado` do destinatário (PIN,
+  rota e contato são dele), `stories_restritos` (só autorId/criadoEm/negocios), `entregadores_online` (~100 m, só online),
+  ocorrências ativas (o objetivo é consultar IMEI/placa), `planos` (selo nas vitrines), `diario` list (escondidas viram
+  esqueleto; agendadas em coleção própria).
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
@@ -3027,7 +3042,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1282 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (23 partes em `_regras/`, 1286 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

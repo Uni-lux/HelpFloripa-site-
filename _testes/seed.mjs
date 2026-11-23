@@ -31,7 +31,7 @@ await db.doc(`usuarios/${U.bruno}`).set({ endereco: { cidade: "Florianópolis", 
 // Para anunciar a conta precisa ser verificada: o Bruno (negócios) é. O t-verif tira o selo dele no começo.
 await db.doc(`usuarios/${U.bruno}`).set({ verificado: true }, { merge: true });
 await db.doc(`perfis_publicos/${U.bruno}`).set({ verificado: true }, { merge: true });
-await db.doc(`admins/${U.admin}`).set({ nome: "Carla Equipe" });
+await db.doc(`admins/${U.admin}`).set({ nome: "Carla Equipe", papel: "dono" });
 await db.doc(`admins/${U.dani}`).set({ nome: "Daniel Moderação", papel: "moderacao" });
 // Áudio de teste (WAV 8 kHz): "fala" com sílabas de volumes diferentes.
 function wav(seg, semente) {

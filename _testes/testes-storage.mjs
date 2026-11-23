@@ -32,7 +32,7 @@ process.env.FIRESTORE_EMULATOR_HOST = `127.0.0.1:${FS_PORTA}`;
 const { initializeApp } = await import("firebase-admin/app");
 const { getFirestore } = await import("firebase-admin/firestore");
 const adm = getFirestore(initializeApp({ projectId: process.env.FS_PROJETO || "demo-hf" }));
-const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }],
+const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }], ["admins/st_sem", { nome: "Sem papel" }],
   ["sancoes/st_ban", { tipo: "banimento" }], ["sancoes/st_susp", { tipo: "suspensao", ate: new Date(Date.now() + 864e5) }],
   ["sancoes/st_venc", { tipo: "suspensao", ate: new Date(Date.now() - 864e5) }]];
 for (const [c, d] of APOIO) await adm.doc(c).set(d);
@@ -91,6 +91,7 @@ await t("suporte: quem não é da equipe NÃO usa equipe_", () => assertFails(su
 await t("comprovante: a pessoa envia", () => assertSucceeds(subir("ana", "negociacoes/ana/1_x.jpg")));
 await t("comprovante: a moderação NÃO lê (só os donos)", () => assertFails(getBytes(ref(st("st_adm"), "negociacoes/ana/1_x.jpg"))));
 await t("comprovante: o dono do site lê e apaga", async () => { await assertSucceeds(getBytes(ref(st("st_dono"), "negociacoes/ana/1_x.jpg"))); await assertSucceeds(deleteObject(ref(st("st_dono"), "negociacoes/ana/1_x.jpg"))); });
+await t("equipe SEM o campo papel NÃO vira dono (comprovante e apagar)", async () => { await assertSucceeds(subir("ana", "negociacoes/ana/2_x.jpg")); await assertFails(getBytes(ref(st("st_sem"), "negociacoes/ana/2_x.jpg"))); await assertFails(deleteObject(ref(st("st_sem"), "stories/ana/amigos_lz.jpg"))); });
 
 // ---------- resto ----------
 await t("pasta desconhecida NÃO", () => assertFails(subir("ana", "qualquer/ana.jpg")));

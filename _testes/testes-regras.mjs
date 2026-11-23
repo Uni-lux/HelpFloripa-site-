@@ -23,7 +23,7 @@ await semRegras(async (db) => {
   for (const u of ["ana", "bia", "dono"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: true });
   for (const u of ["loja", "med", "edu"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: true }, { merge: true });
   await setDoc(doc(db, "perfis_publicos", "bia"), { uid: "bia", nome: "Bia", cidade: "Florianópolis" });
-  await setDoc(doc(db, "admins", "adm"), { nome: "Adm" });
+  await setDoc(doc(db, "admins", "adm"), { nome: "Adm", papel: "dono" });
 });
 
 // ===================== ETAPA 3: endereço para o Brasil todo =====================
@@ -1308,6 +1308,8 @@ await t("registro: dono lê tudo", () => assertSucceeds(getDocs(query(collection
 await t("registro: dono lê o dia (histórico por pessoa)", () => assertSucceeds(getDocs(query(collection(ctx("adm"), "admin_log"), where("em", ">=", Timestamp.fromMillis(Date.now() - 864e5)), orderBy("em", "asc")))));
 await t("registro: moderação NÃO lê o registro", () => assertFails(getDocs(query(collection(ctx("mod"), "admin_log"), orderBy("em", "desc"), limit(50)))));
 await t("registro: comercial NÃO lê uma ação", () => assertFails(getDoc(doc(ctx("com"), "admin_log", "l1"))));
+await semRegras((db) => setDoc(doc(db, "admins", "semPapel"), { nome: "Sem papel" }));
+await t("registro: equipe SEM o campo papel NÃO vira dono", () => assertFails(getDoc(doc(ctx("semPapel"), "admin_log", "l1"))));
 await t("registro: moderação lê as cobranças das reclamações", () => assertSucceeds(getDocs(query(collection(ctx("mod"), "admin_log"), where("acao", "==", "cobrar_reclamacao")))));
 await t("registro: toda a equipe continua registrando", () => assertSucceeds(addDoc(collection(ctx("mod"), "admin_log"), { acao: "entrou", alvo: "", detalhe: "Entrou no painel", por: "mod", porNome: "Mod", em: serverTimestamp() })));
 await t("registro: fora da equipe não registra", () => assertFails(addDoc(collection(ctx("bia"), "admin_log"), { acao: "entrou", por: "bia", em: serverTimestamp() })));
@@ -1573,6 +1575,8 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("entregador: bike não faz corrida", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "" }))));
   await t("entregador: bike sem placa faz entrega", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "", servicos: ["entrega"] }))));
   await t("entregador: apaga o próprio cadastro", () => assertSucceeds(deleteDoc(doc(ctx("moto1"), "entregadores", "moto1"))));
+  await t("entregador: qualquer conta abre um cadastro pelo id (quem pede vê a placa de quem vai levar)", () => assertSucceeds(getDoc(doc(ctx("ana"), "entregadores", "moto2"))));
+  await t("entregador: conta comum NÃO lista todos os entregadores (placas)", () => assertFails(getDocs(query(collection(ctx("ana"), "entregadores"), limit(10)))));
   await t("entregador: cadastro de moto completo", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad())));
   await t("entregador: não se cadastra no lugar de outra pessoa", () => assertFails(setDoc(doc(ctx("cli"), "entregadores", "moto1"), cad())));
   await t("entregador: não se suspende/desuspende sozinho", () => assertFails(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "suspenso", atualizadoEm: serverTimestamp() })));
@@ -1808,6 +1812,7 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("achado: publica animal encontrado", () => assertSucceeds(setDoc(doc(ctx("sc"), "pets_achados", "a1"), achado())));
   await t("achado: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sa"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
   await t("achado: quem achou marca devolvido", () => assertSucceeds(updateDoc(doc(ctx("sc"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
+  await t("achado: recusa local fora do Brasil", () => assertFails(setDoc(doc(ctx("sc"), "pets_achados", "a9"), achado({ local: { lat: 48.85, lng: 2.35, nome: "Paris" } }))));
 }
 
 // ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================

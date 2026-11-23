@@ -84,7 +84,7 @@ então 5 GB ≈ 20 mil fotos. Passando disso, cerca de **US$ 0,02 por GB guardad
 O Firestore também fica mais leve com o Storage (documentos menores, menos dados baixados em cada lista).
 
 ## Testado antes de entregar
-- `_testes/testes-storage.mjs`: **68 testes** das regras do Storage no emulador (pastas, donos, tipos, tamanhos,
+- `_testes/testes-storage.mjs`: **69 testes** das regras do Storage no emulador (pastas, donos, tipos, tamanhos,
   participantes do chat, equipe, donos do site).
 - `_testes/t-storage.mjs`: o site com a chave ligada (emulador do Storage): fotos do Diário, do chat e da Comunidade
   vão para o Storage com nome único, o documento guarda só o link e as fotos aparecem para quem vê.

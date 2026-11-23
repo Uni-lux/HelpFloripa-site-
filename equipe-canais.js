@@ -23,7 +23,7 @@ export const idCanal = (conv) => (ehCanal(conv) ? conv.slice(6) : null);
 // Canal de cada fila do suporte (a fila "geral" vai para o Geral).
 export const canalDaFila = (fila) => CANAIS.find((c) => c.fila === fila)?.id || "equipe";
 // Quem pode escrever: Avisos só os donos.
-export const podeEscrever = (canal, papel) => !canalPorId(canal)?.soDonos || (papel || "dono") === "dono";
+export const podeEscrever = (canal, papel) => !canalPorId(canal)?.soDonos || papel === "dono";
 
 // Canais de cada pessoa: os do papel (dono = todos) + os que ela entrou − os que saiu. Avisos sempre.
 export function canaisPadrao(papel = "dono") {

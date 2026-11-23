@@ -6,9 +6,9 @@ import { cartaoComunicado } from "./comunicados.js?v=1";
 import { linha, linhaComparada, barras, cartao, destaque, num, baixarCSV } from "./graficos.js?v=7";
 import { baixarPlanilhaMulti } from "./planilha.js?v=5";
 import { buscarPessoas } from "./pessoas.js?v=6";
-import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=46";
-import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=1";
-import { verConteudoDenuncia } from "./admin-denuncia.js?v=28";
+import { montarChat, postarNaConversa, idPar } from "./admin-chat.js?v=47";
+import { CANAIS, canalDaFila, STATUS } from "./equipe-canais.js?v=2";
+import { verConteudoDenuncia } from "./admin-denuncia.js?v=29";
 import { prepararAnexo, blocoAnexo, previaAnexo, aceitos } from "./anexos-suporte.js?v=2";
 import { FILAS, filaDe, PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo, ordemFila } from "./suporte-fila.js?v=2";
 import { resolverCidade, textoCidade, NOME_UF } from "./endereco.js?v=1";
@@ -19,7 +19,7 @@ import {
   PAPEIS, DESC_PAPEIS, pode, semPermissao, nomeEquipe, vendoAgora, marcarItem, seloResp, confirmarItem, controlesResp, espera,
   PRIORIDADES, editarTarefa, moverTarefa, garantirNegocios, garantirTodasPessoas, carregarPessoas, guardarPessoas, abrirConversaSuporte, banirPrograma, seloEmail,
   esconderItem, mostrarItem
-} from "./admin-base.js?v=30";
+} from "./admin-base.js?v=31";
 import { completarGuardados, guardarItem } from "./guardar.js?v=1";
 
 const cab = (titulo, sub, extra) => { const c = h("div", "ad-cab"); const t = h("div"); t.append(h("h1", null, titulo)); if (sub) t.append(h("p", null, sub)); c.appendChild(t); if (extra) c.appendChild(extra); return c; };
@@ -744,7 +744,7 @@ export function suporte(el) {
   // Tempo da 1ª resposta (últimos 30 dias, chamados que já têm a hora gravada).
   const comPrim = D.suporte.filter((s) => s.primeiraRespostaEm && ms(s.criadoEm) > agora() - 30 * DIA);
   const mediaH = comPrim.length ? comPrim.reduce((a, s) => a + Math.max(0, ms(s.primeiraRespostaEm) - ms(s.criadoEm)), 0) / comPrim.length / 3600e3 : null;
-  const meuPapel = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+  const meuPapel = D.admins.find((a) => a.id === C.eu.uid)?.papel || "suporte";
   const escMeu = (s) => s.status !== "fechado" && ((s.escalonadoPara === "donos" && meuPapel === "dono") || (s.escalonadoPara === "moderacao" && (meuPapel === "moderacao" || meuPapel === "dono")));
   const kp = h("div", "ad-kpis");
   kp.append(
@@ -905,7 +905,7 @@ export function suporte(el) {
       if (campos.categoria) return postarNaConversa(canalDaFila(filaDe(campos.categoria)), `↪ ${quem} transferiu para este setor (prioridade ${PRIO_SUP[campos.prioridade]?.nome.toLowerCase() || "normal"}): ${tit}`);
       if (campos.escalonadoPara === "moderacao") return postarNaConversa("moderacao", `⬆ ${quem} escalou para a moderação: ${tit}`);
       if (campos.escalonadoPara === "donos") {
-        const donos = D.admins.filter((a) => (a.papel || "dono") === "dono" && a.id !== C.eu.uid);
+        const donos = D.admins.filter((a) => a.papel === "dono" && a.id !== C.eu.uid);
         return postarNaConversa("equipe", `⬆ ${quem} escalou para os donos ${donos.map((a) => "@" + (a.nome || nomeEquipe(a.id)).split(" ")[0]).join(" ")}: ${tit}`, donos.map((a) => a.id));
       }
     };
@@ -926,7 +926,7 @@ export function suporte(el) {
     };
     // Mandar o chamado (como cartão) para um canal ou para alguém da equipe.
     const enviarParaEquipe = async () => {
-      const papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "dono";
+      const papelEu = D.admins.find((a) => a.id === C.eu.uid)?.papel || "suporte";
       const destinos = [["equipe", "# Geral (toda a equipe)"], ...CANAIS.filter((c) => !c.soDonos || papelEu === "dono").map((c) => [c.id, `# ${c.nome}`]),
         ...D.admins.filter((a) => a.id !== C.eu.uid).map((a) => { const st = C.statusDe?.(a.id); return [idPar(C.eu.uid, a.id), `${a.nome || nomeEquipe(a.id)}${st ? " · " + STATUS[st].nome.toLowerCase() : ""}`]; })];
       const v = await modal({ titulo: "Enviar para a equipe", texto: "O chamado vai como cartão no chat (quem tocar abre direto).", campos: [
@@ -1582,7 +1582,7 @@ export function verificacoes(el) {
     if (pode("moderar")) {
       const apr = btn("Aprovar", "pri", () => aprovar(p, v));
       // Pedido antigo (sem formulário nem documento): as regras só deixam o dono aprovar.
-      const antigo = !(v && D.verificacoes.includes(v)), soDono = antigo && (C.papel || "dono") !== "dono";
+      const antigo = !(v && D.verificacoes.includes(v)), soDono = antigo && C.papel !== "dono";
       if (menor) { apr.disabled = true; apr.title = "Menores de 18 anos não podem ser verificados"; }
       else if (soDono) { apr.disabled = true; apr.title = "Pedido sem documento: só o dono do site pode aprovar"; c.appendChild(h("div", "ad-vf-nota", "Pedido sem documento: só o dono do site pode aprovar. Peça à pessoa que envie o pedido de novo pelo site, com o documento.")); }
       ac.append(btn("Recusar", "perigo", () => recusar(p, v, menor ? "idade" : "")), apr);
@@ -2023,7 +2023,7 @@ function historicoPorPessoa(el) {
       const p = { ...pessoa(uid), nome: nomeEquipe(uid) };
       const on = C.online(uid), pres = C.presenca.get(uid);
       const tt = h("div", "tx");
-      tt.append(h("b", null, p.nome), h("small", null, `${adm ? PAPEIS[adm.papel] || "Dono" : "Fora da equipe"} · ${on ? "online agora" : pres?.em ? "visto " + relativo(pres.em) : "sem sinal"}`));
+      tt.append(h("b", null, p.nome), h("small", null, `${adm ? PAPEIS[adm.papel] || "Equipe" : "Fora da equipe"} · ${on ? "online agora" : pres?.em ? "visto " + relativo(pres.em) : "sem sinal"}`));
       const n = h("div", "n"); n.append(h("strong", null, String(l.length)), h("span", null, l.length === 1 ? "ação" : "ações"));
       const top = h("div", "linha"); top.append(avatar(p), tt, n);
       if (on) top.firstChild.classList.add("on");

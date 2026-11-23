@@ -28,9 +28,10 @@ service cloud.firestore {
     }
 
     // Papel na equipe (campo "papel" no documento admins/{uid}, definido no console).
-    // Sem o campo = "dono" (acesso total). Outros: moderacao, suporte, comercial.
+    // Valores: dono, moderacao, suporte, comercial. Sem o campo = "nenhum" (só o que vale para qualquer pessoa da equipe;
+    // antes de 23/11/2026 era "dono": os 3 donos ganharam papel "dono" escrito no console).
     function papel() {
-      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'dono');
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
     }
     // Moderação: selo, esconder/remover conteúdo, suspender/banir, denúncias, comunicados.
     function podeModerar() {
@@ -3883,7 +3884,9 @@ service cloud.firestore {
             && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
             && d().atualizadoEm == request.time;
       }
-      allow read: if logado();
+      // Só por id (quem pede vê quem vai levar: veículo, placa, cor); listar todos os entregadores é da moderação.
+      allow get: if logado();
+      allow list: if podeModerar();
       allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
                     && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
       allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
@@ -4256,7 +4259,8 @@ service cloud.firestore {
                     && d().autorId == request.auth.uid && valorTextoAte(d().get('autorNome', ''), 80)
                     && petOk(d())
                     && d().local is map && d().local.keys().hasOnly(['lat', 'lng', 'nome'])
-                    && d().local.lat is number && d().local.lng is number && valorTextoAte(d().local.get('nome', ''), 120)
+                    && d().local.lat is number && d().local.lat >= -34 && d().local.lat <= 6
+                    && d().local.lng is number && d().local.lng >= -75 && d().local.lng <= -28 && valorTextoAte(d().local.get('nome', ''), 120)
                     && d().geo4 is string && d().geo4.matches('^[0-9a-z]{4}$')
                     && d().quando is timestamp && d().quando <= request.time
                     && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
