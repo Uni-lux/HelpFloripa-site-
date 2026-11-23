@@ -1575,6 +1575,8 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("entregador: bike não faz corrida", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "" }))));
   await t("entregador: bike sem placa faz entrega", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad({ veiculo: "bike", placa: "", cnh: "", servicos: ["entrega"] }))));
   await t("entregador: apaga o próprio cadastro", () => assertSucceeds(deleteDoc(doc(ctx("moto1"), "entregadores", "moto1"))));
+  await t("entregador: qualquer conta abre um cadastro pelo id (quem pede vê a placa de quem vai levar)", () => assertSucceeds(getDoc(doc(ctx("ana"), "entregadores", "moto2"))));
+  await t("entregador: conta comum NÃO lista todos os entregadores (placas)", () => assertFails(getDocs(query(collection(ctx("ana"), "entregadores"), limit(10)))));
   await t("entregador: cadastro de moto completo", () => assertSucceeds(setDoc(doc(ctx("moto1"), "entregadores", "moto1"), cad())));
   await t("entregador: não se cadastra no lugar de outra pessoa", () => assertFails(setDoc(doc(ctx("cli"), "entregadores", "moto1"), cad())));
   await t("entregador: não se suspende/desuspende sozinho", () => assertFails(updateDoc(doc(ctx("moto1"), "entregadores", "moto1"), { status: "suspenso", atualizadoEm: serverTimestamp() })));
@@ -1810,6 +1812,7 @@ await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSuc
   await t("achado: publica animal encontrado", () => assertSucceeds(setDoc(doc(ctx("sc"), "pets_achados", "a1"), achado())));
   await t("achado: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sa"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
   await t("achado: quem achou marca devolvido", () => assertSucceeds(updateDoc(doc(ctx("sc"), "pets_achados", "a1"), { status: "devolvido", atualizadoEm: serverTimestamp() })));
+  await t("achado: recusa local fora do Brasil", () => assertFails(setDoc(doc(ctx("sc"), "pets_achados", "a9"), achado({ local: { lat: 48.85, lng: 2.35, nome: "Paris" } }))));
 }
 
 // ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================

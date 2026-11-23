@@ -37,7 +37,9 @@
             && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
             && d().atualizadoEm == request.time;
       }
-      allow read: if logado();
+      // Só por id (quem pede vê quem vai levar: veículo, placa, cor); listar todos os entregadores é da moderação.
+      allow get: if logado();
+      allow list: if podeModerar();
       allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
                     && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
       allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
