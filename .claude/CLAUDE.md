@@ -2419,7 +2419,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   revisão das regras antes de publicar: "read" = get + list, então `storage.rules` agora usa `allow get` (abrir pelo nome) e
   `list` só do dono da pasta (Diário/Flash/Comunidade/negociacoes), da equipe (suporte) ou fechado (perfil, capa, negócios,
   anúncios, chat) — antes qualquer conta listava `stories/<uid>/` (flashes de Amigos próximos/vencidos) e `suporte/equipe_*`.
-  Apagar arquivo dos outros: `modera()` (dono|moderacao; antes qualquer papel da equipe). `testes-storage.mjs` 60.
+  Apagar arquivo dos outros: `modera()` (dono|moderacao; antes qualquer papel da equipe). `get` pelo SDK só o dono
+  (`meuArquivo`/`dono(uid)`) e a equipe: quem vê usa o link com token (nomes `_<Date.now base36>` são adivinháveis). Enviar
+  exige `envia()` = e-mail confirmado + sem `sancoes` (menos suporte e comprovantes). `testes-storage.mjs` 68, `t-storage` ok.
   Falta ele: publicar as regras, CORS no Cloud Shell; depois eu ligo `USAR_STORAGE = true`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa

@@ -19,7 +19,8 @@ async function t(nome, fn) {
   try { await fn(); ok++; res.push(["ok", nome]); }
   catch (e) { falhou++; res.push(["FALHOU", nome, String(e.message).split("\n")[0].slice(0, 200)]); }
 }
-const st = (uid) => (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).storage();
+// Contas de teste com e-mail confirmado; "semEmail" sem confirmar.
+const st = (uid) => (uid ? env.authenticatedContext(uid, { email_verified: uid !== "semEmail" }) : env.unauthenticatedContext()).storage();
 const MB = 1024 * 1024;
 const bytes = (n) => new Uint8Array(n);
 const subir = (uid, caminho, tipo = "image/jpeg", tam = 2000) => uploadBytes(ref(st(uid), caminho), bytes(tam), { contentType: tipo });
@@ -31,7 +32,9 @@ process.env.FIRESTORE_EMULATOR_HOST = `127.0.0.1:${FS_PORTA}`;
 const { initializeApp } = await import("firebase-admin/app");
 const { getFirestore } = await import("firebase-admin/firestore");
 const adm = getFirestore(initializeApp({ projectId: process.env.FS_PROJETO || "demo-hf" }));
-const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }]];
+const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }],
+  ["sancoes/st_ban", { tipo: "banimento" }], ["sancoes/st_susp", { tipo: "suspensao", ate: new Date(Date.now() + 864e5) }],
+  ["sancoes/st_venc", { tipo: "suspensao", ate: new Date(Date.now() - 864e5) }]];
 for (const [c, d] of APOIO) await adm.doc(c).set(d);
 await env.clearStorage();
 
@@ -43,7 +46,7 @@ await t("foto de perfil: uid parecido NÃO (anaX)", () => assertFails(subir("ana
 await t("foto de perfil: sem login NÃO", () => assertFails(subir(null, "fotosPerfil/ana_2.jpg")));
 await t("foto de perfil: PDF NÃO", () => assertFails(subir("ana", "fotosPerfil/ana_3.jpg", "application/pdf")));
 await t("foto de perfil: maior que 5 MB NÃO", () => assertFails(subir("ana", "fotosPerfil/ana_4.jpg", "image/jpeg", 5 * MB + 10)));
-await t("foto de perfil: quem tem conta vê", () => assertSucceeds(getBytes(ref(st("bruno"), "fotosPerfil/ana_lz3k9.jpg"))));
+await t("foto de perfil: outra conta NÃO abre pelo nome (só pelo link com código)", () => assertFails(getBytes(ref(st("bruno"), "fotosPerfil/ana_lz3k9.jpg"))));
 await t("sem login: não baixa nem lista pelo Storage", () => assertFails(getBytes(ref(st(null), "fotosPerfil/ana_lz3k9.jpg"))));
 await t("capa: a própria", () => assertSucceeds(subir("ana", "fotosCapa/ana_lz3k9.jpg")));
 await t("capa: apagar a de outra pessoa NÃO", () => assertFails(deleteObject(ref(st("bia"), "fotosCapa/ana_lz3k9.jpg"))));
@@ -98,16 +101,25 @@ await subir("ana", "stories/ana/amigos_lz.jpg");
 await subir("st_adm", "suporte/equipe_st_adm/2_x.jpg");
 await t("Flash: outra pessoa NÃO lista a pasta (Amigos próximos/vencidos)", () => assertFails(listAll(ref(st("bia"), "stories/ana"))));
 await t("Flash: o dono lista a própria pasta", () => assertSucceeds(listAll(ref(st("ana"), "stories/ana"))));
-await t("Flash: quem tem conta abre o arquivo pelo nome", () => assertSucceeds(getBytes(ref(st("bia"), "stories/ana/amigos_lz.jpg"))));
+await t("Flash: outra conta NÃO abre pelo nome (nome adivinhável)", () => assertFails(getBytes(ref(st("bia"), "stories/ana/amigos_lz.jpg"))));
 await t("Diário: outra pessoa NÃO lista", () => assertFails(listAll(ref(st("bia"), "diario/ana"))));
 await t("Comunidade: outra pessoa NÃO lista", () => assertFails(listAll(ref(st("bia"), "comunidade/ana"))));
 await t("perfil/capa/negócios/anúncios: ninguém lista", async () => { for (const p of ["fotosPerfil", "fotosCapa", "negocios", "anuncios"]) await assertFails(listAll(ref(st("ana"), p))); });
 await t("suporte: usuário NÃO lista a pasta da equipe", () => assertFails(listAll(ref(st("bia"), "suporte/equipe_st_adm"))));
-await t("suporte: usuário ainda abre o anexo da equipe pelo nome", () => assertSucceeds(getBytes(ref(st("bia"), "suporte/equipe_st_adm/2_x.jpg"))));
+await t("suporte: usuário NÃO abre anexo da equipe pelo nome", () => assertFails(getBytes(ref(st("bia"), "suporte/equipe_st_adm/2_x.jpg"))));
 await t("suporte: a equipe lista", () => assertSucceeds(listAll(ref(st("st_adm"), "suporte/equipe_st_adm"))));
 await t("chat: ninguém lista a conversa", () => assertFails(listAll(ref(st("ana"), "mensagens/st_ana_bia/ana"))));
 await t("Comercial NÃO apaga foto de outra pessoa", () => assertFails(deleteObject(ref(st("st_com"), "stories/ana/amigos_lz.jpg"))));
 await t("dono do site apaga foto de outra pessoa", () => assertSucceeds(deleteObject(ref(st("st_dono"), "stories/ana/amigos_lz.jpg"))));
+
+await t("o dono abre o próprio arquivo (getDownloadURL depois de enviar)", () => assertSucceeds(getBytes(ref(st("ana"), "fotosPerfil/ana_lz3k9.jpg"))));
+await t("equipe abre arquivo de usuário (moderação)", () => assertSucceeds(getBytes(ref(st("st_adm"), "fotosPerfil/ana_lz3k9.jpg"))));
+await t("e-mail não confirmado NÃO envia foto", () => assertFails(subir("semEmail", "diario/semEmail/1.jpg")));
+await t("e-mail não confirmado ainda anexa no suporte", () => assertSucceeds(subir("semEmail", "suporte/semEmail/1.jpg")));
+await t("conta banida NÃO envia", () => assertFails(subir("st_ban", "fotosPerfil/st_ban_1.jpg")));
+await t("conta suspensa NÃO envia", () => assertFails(subir("st_susp", "stories/st_susp/1.jpg")));
+await t("suspensão vencida volta a enviar", () => assertSucceeds(subir("st_venc", "comunidade/st_venc/1.jpg")));
+await t("conta suspensa anexa no suporte (contestar)", () => assertSucceeds(subir("st_susp", "suporte/st_susp/1.pdf", "application/pdf")));
 
 for (const r of res) if (r[0] !== "ok") console.log("✘", r[1], "→", r[2]);
 console.log(`${ok} passaram, ${falhou} falharam (${arquivo.split("/").pop()})`);
