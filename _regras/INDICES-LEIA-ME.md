@@ -1,5 +1,15 @@
 # Índices do Firestore — vitrines por cidade e Diário por região (site nacional)
 
+
+> **Jeito rápido (23/11/2026): todos de uma vez pelo Cloud Shell.** O `firebase.json` só aponta os ÍNDICES (de propósito não
+> aponta as regras: este comando não mexe nas regras do Firestore).
+> ```
+> cd ~/HelpFloripa-site- && git pull
+> npx firebase-tools@latest deploy --only firestore:indexes --project helpfloripa-61e0d
+> ```
+> Se perguntar se quer APAGAR índices que estão no console e não no arquivo, responda **N** (não).
+> Os índices ficam "Criando" por alguns minutos no console (Firestore → Índices) até virarem "Ativado".
+
 Com o filtro de **Estado/Cidade** escolhido, as vitrines (Freelances, Delivery, Shopping, Imóveis e Saúde) agora buscam
 **no servidor** os perfis daquela cidade. Antes vinham os 48 mais recentes do Brasil inteiro e o filtro era feito no
 celular: com muitos negócios no país, quem está em Recife podia ver a vitrine vazia mesmo havendo negócios em Recife.
