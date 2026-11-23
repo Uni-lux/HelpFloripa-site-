@@ -59,7 +59,9 @@ isso as fotos são bem comprimidas e não há vídeo).
    quando já está tudo passado só avisa. Fica no Registro de ações. As fotos das conversas do chat continuam onde estão.
 
 ## Segurança (o que as regras garantem)
-- Ninguém grava, troca ou apaga arquivo na pasta de outra pessoa.
+- Ninguém grava, troca ou apaga arquivo na pasta de outra pessoa (da equipe, só Moderação e donos apagam).
+- Ninguém **lista** a pasta de outra pessoa: o site só abre arquivos pelo nome/link. Assim não dá para descobrir flashes
+  de Amigos próximos, flashes vencidos ou fotos de itens escondidos varrendo as pastas.
 - Cada pasta só aceita o tipo e o tamanho que o site envia (foto até 5–10 MB, vídeo até 50 MB, áudio até 15 MB no chat,
   PDF até 20 MB só no suporte e nos comprovantes). Qualquer outra pasta é fechada.
 - Fotos e vídeos do **chat** só podem ser enviados e lidos por quem participa da conversa. Anexos do **suporte**: só a
@@ -75,7 +77,7 @@ então 5 GB ≈ 20 mil fotos. Passando disso, cerca de **US$ 0,02 por GB guardad
 O Firestore também fica mais leve com o Storage (documentos menores, menos dados baixados em cada lista).
 
 ## Testado antes de entregar
-- `_testes/testes-storage.mjs`: **47 testes** das regras do Storage no emulador (pastas, donos, tipos, tamanhos,
+- `_testes/testes-storage.mjs`: **68 testes** das regras do Storage no emulador (pastas, donos, tipos, tamanhos,
   participantes do chat, equipe, donos do site).
 - `_testes/t-storage.mjs`: o site com a chave ligada (emulador do Storage): fotos do Diário, do chat e da Comunidade
   vão para o Storage com nome único, o documento guarda só o link e as fotos aparecem para quem vê.
