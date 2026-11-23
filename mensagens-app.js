@@ -889,28 +889,36 @@ function notificar(titulo, corpo, aoClicar) {
   toast(`${titulo}: ${corpo}`, aoClicar);
 }
 
-// Lê a foto por um link local (blob:), sem FileReader: mais leve e não depende de ler o arquivo inteiro como texto.
-function comprimirImagem(arquivo, maxLado, qualidade) {
-  return new Promise((resolve, reject) => {
+// Desenha a foto reduzida. 1º createImageBitmap (lê o arquivo direto, sem <img>), 2º <img> com link blob:.
+// Os códigos (L1/D1/D2) no aviso ajudam a saber onde falhou.
+async function decodificar(arquivo) {
+  if (typeof createImageBitmap === "function") {
+    try { return await createImageBitmap(arquivo, { imageOrientation: "from-image" }); } catch {}
+    try { return await createImageBitmap(arquivo); } catch {}
+  }
+  return await new Promise((resolve, reject) => {
     let url;
-    try { url = URL.createObjectURL(arquivo); } catch { reject(new Error("Não foi possível ler a imagem.")); return; }
+    try { url = URL.createObjectURL(arquivo); } catch { reject(new Error("Não foi possível ler a imagem (L1). Escolha a foto de novo.")); return; }
     const img = new Image();
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível ler a imagem. Escolha a foto de novo.")); };
-    img.onload = () => {
-      try {
-        const escala = Math.min(maxLado / img.width, maxLado / img.height, 1);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * escala));
-        canvas.height = Math.max(1, Math.round(img.height * escala));
-        const g = canvas.getContext("2d");
-        g.fillStyle = "#fff"; // PNG com fundo transparente vira JPEG com fundo branco (não preto)
-        g.fillRect(0, 0, canvas.width, canvas.height);
-        g.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", qualidade));
-      } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível ler a imagem (D2). Escolha a foto de novo.")); };
+    img.onload = () => { resolve(img); setTimeout(() => URL.revokeObjectURL(url), 1000); };
     img.src = url;
   });
+}
+async function comprimirImagem(arquivo, maxLado, qualidade) {
+  const img = await decodificar(arquivo);
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+  if (!w || !h) throw new Error("Não foi possível ler a imagem (D1). Escolha a foto de novo.");
+  const escala = Math.min(maxLado / w, maxLado / h, 1);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w * escala));
+  canvas.height = Math.max(1, Math.round(h * escala));
+  const g = canvas.getContext("2d");
+  g.fillStyle = "#fff"; // PNG com fundo transparente vira JPEG com fundo branco (não preto)
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.drawImage(img, 0, 0, canvas.width, canvas.height);
+  try { img.close?.(); } catch {}
+  return canvas.toDataURL("image/jpeg", qualidade);
 }
 
 // ======================================================
@@ -3966,7 +3974,7 @@ $("inputArquivo").addEventListener("change", async () => {
       const buf = await arquivo.arrayBuffer();
       arquivo = new File([buf], arquivo.name || "foto", { type: arquivo.type, lastModified: arquivo.lastModified });
     } catch {
-      toast("Não deu para abrir este arquivo. Se ele está na nuvem, baixe no celular e escolha de novo.");
+      toast("Não deu para abrir este arquivo (C1). Se ele está na nuvem, baixe no celular e escolha de novo.");
       $("inputArquivo").value = "";
       return;
     }
@@ -4011,7 +4019,12 @@ async function prepararImagem(arquivo) {
       const reduzida = dataUrlParaBlob(await comprimirImagem(arquivo, 1600, 0.82));
       return await enviarParaStorage(reduzida, "jpg");
     } catch (e) {
-      console.warn("Storage indisponível, enviando foto comprimida:", e);
+      console.warn("Não deu para reduzir/enviar a foto, tentando o arquivo original:", e);
+      // O aparelho não conseguiu desenhar a foto: manda o arquivo como veio (JPEG/PNG/WebP até 10 MB).
+      const ext = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" }[arquivo.type];
+      if (ext && arquivo.size < 10 * 1024 * 1024) {
+        try { return await enviarParaStorage(arquivo, ext); } catch (e2) { console.warn("Storage indisponível:", e2); }
+      }
     }
   }
   // Sem Storage: foto comprimida dentro da própria mensagem (limite de 1 MB por documento).
