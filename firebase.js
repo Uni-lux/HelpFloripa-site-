@@ -10,10 +10,10 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com
 const RECAPTCHA_V3_SITE_KEY = "";
 
 // Firebase Storage: fotos, vídeos e arquivos guardados fora dos documentos (sem o limite de 1 MB por documento,
-// com vídeos no Diário, no Flash, no chat e no suporte). DESLIGADO até ativar o plano Blaze e o Storage no console.
+// com vídeos no Diário, no Flash, no chat e no suporte). LIGADO em 23/11/2026 (Blaze, bucket em US-EAST1, regras publicadas).
 // Para ligar: siga _regras/STORAGE-LEIA-ME.md (publicar o storage.rules) e troque para true.
 // Desligado, o site guarda as fotos dentro dos documentos, como hoje. Ligado, tudo o que é novo vai para o Storage.
-const USAR_STORAGE = false;
+const USAR_STORAGE = true;
 
 const statusElement = document.getElementById("firebase-status");
 
