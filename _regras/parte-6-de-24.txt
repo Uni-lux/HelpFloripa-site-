@@ -175,4 +175,4 @@
                 && request.resource.data[campo].diff(resource.data.get(campo, {})).affectedKeys().hasOnly([request.auth.uid]));
       }
 
-// ===== FIM DA PARTE 6 DE 23 =====
+// ===== FIM DA PARTE 6 DE 24 =====

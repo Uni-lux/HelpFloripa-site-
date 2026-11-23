@@ -185,4 +185,4 @@
             && p.ate is timestamp && p.ate < request.time + duration.value(62, 'd');
       }
 
-// ===== FIM DA PARTE 4 DE 23 =====
+// ===== FIM DA PARTE 4 DE 24 =====

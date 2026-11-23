@@ -190,4 +190,4 @@
                 && get(/databases/$(database)/documents/pedidos/$(d.pedidoId)).data.negocioId == negocioId);
       }
 
-// ===== FIM DA PARTE 8 DE 23 =====
+// ===== FIM DA PARTE 8 DE 24 =====

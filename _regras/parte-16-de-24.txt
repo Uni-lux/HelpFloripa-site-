@@ -182,4 +182,4 @@
                 ? (!d.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(autoria) && getAfter(autoria).data.uid == request.auth.uid)
                 : (d.uid == request.auth.uid && textoAte('nome', 80) && textoAte('foto', 2000)));
       }
-// ===== FIM DA PARTE 16 DE 23 =====
+// ===== FIM DA PARTE 16 DE 24 =====

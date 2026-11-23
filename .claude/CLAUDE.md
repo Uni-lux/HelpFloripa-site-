@@ -2445,9 +2445,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   protegidas no Firestore; links com token = esperado).
 - **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
   Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
-  e `pets_achados.local` dentro do Brasil. Brecha REAL ainda aberta: comentário "oculto" pelo dono da publicação é só
-  escondido pelo app (`comentarios` read = logado); a correção é guardar o conteúdo fora (esqueleto, como `guardados`),
-  porque as consultas por postId não podem filtrar. Não eram brecha (por desenho): `corridas/privado` do destinatário (PIN,
+  e `pets_achados.local` dentro do Brasil. Comentário "oculto" (era só escondido pelo app) CORRIGIDO no PR seguinte:
+  vira esqueleto {postId, postAutorId, autorId, respostaA?, respostaAutorId?, criadoEm, oculto: true} e o conteúdo vai, na
+  mesma gravação, para `comentarios_ocultos/{id}` {dados (o comentário inteiro, conferido igual), autorId, postAutorId, por,
+  em}; só quem escreveu, o dono da publicação e a moderação leem; mostrar = volta igual + apaga a cópia; oculto não se edita;
+  oculto antigo (com conteúdo) só pode voltar ou o dono passa sozinho para o jeito novo (`completarOcultos` em rede.js);
+  com as regras do ar cai no jeito antigo. Conta apagada leva as cópias. 24 partes, 1302 testes. `t-coment` confere. Não eram brecha (por desenho): `corridas/privado` do destinatário (PIN,
   rota e contato são dele), `stories_restritos` (só autorId/criadoEm/negocios), `entregadores_online` (~100 m, só online),
   ocorrências ativas (o objetivo é consultar IMEI/placa), `planos` (selo nas vitrines), `diario` list (escondidas viram
   esqueleto; agendadas em coleção própria).
@@ -3042,7 +3045,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (23 partes em `_regras/`, 1286 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (24 partes em `_regras/`, 1302 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

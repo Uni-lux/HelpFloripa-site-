@@ -733,6 +733,7 @@ export async function compartilharPerfil(uid, nome) {
 // Estrelas e comentários das publicações
 // curtidas/{postId}_{uid}        { postId, uid, postAutorId, nota (1 a 5), criadoEm, atualizadoEm? }
 // comentarios/{auto}             { postId, postAutorId, autorId, nome, foto, texto, respostaA?, respostaAutorId?, criadoEm, editadoEm?, oculto? }
+// comentarios_ocultos/{id}       { dados (o comentário inteiro), autorId, postAutorId, por, em } — oculto vira esqueleto
 // curtidas_comentarios/{cId}_{uid} { comentarioId, uid, criadoEm }
 // =====================================================
 const cacheEstrelas = new Map();   // postId -> { media, n, minha }
@@ -1611,7 +1612,7 @@ export async function verRespostasCaixa(item, alvo, aoMudar) {
       acao("chat", "Responder", () => responderNoChat(r.uid, cartaoRespostaCaixa(item.caixa, r, alvo)));
     }
     // Pôr a resposta no seu flash (como no Instagram): pergunta + resposta, sem o nome de quem respondeu.
-    acao("raio", "No flash", () => import("./stories.js?v=150").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
+    acao("raio", "No flash", () => import("./stories.js?v=151").then((m) => m.compartilharRespostaNoFlash({ pergunta: item.caixa.pergunta, texto: r.texto, cor: item.caixa.cor || "" }))).title = "Compartilhar esta resposta no seu flash";
     acao("lixo", "Apagar", async () => {
       if (!(await confirmarHF({ titulo: "Apagar esta resposta?", texto: "Ela some da sua caixa de perguntas.", ok: "Apagar", icone: "lixo" }))) return;
       try { await fb.deleteDoc(fb.doc(fb.db, "caixa_respostas", r.id)); todas = todas.filter((x) => x.id !== r.id); pintarNums(); pintarLista(); aoMudar?.(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
@@ -1845,6 +1846,48 @@ export function barraInteracao(post, { aoComentar } = {}) {
 export async function listarComentarios(postId) {
   const snap = await fb.getDocs(fb.query(fb.collection(fb.db, "comentarios"), fb.where("postId", "==", postId), fb.limit(300)));
   return snap.docs.map((d) => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })).filter((c) => !escondido(c.autorId)).sort((a, b) => ms(a.criadoEm) - ms(b.criadoEm));
+}
+// Comentário oculto pelo dono da publicação: o comentário vira esqueleto (sem texto, nome, foto, mídia) e o conteúdo vai,
+// na mesma gravação, para comentarios_ocultos/{id} (só quem escreveu, o dono da publicação e a moderação leem).
+// Com as regras de antes (permission-denied) cai no jeito antigo: só marca oculto (o conteúdo continua no comentário).
+const CAMPOS_ESQ_COMENT = ["postId", "postAutorId", "autorId", "respostaA", "respostaAutorId", "criadoEm"];
+async function ocultarComentario(id) {
+  const ref = fb.doc(fb.db, "comentarios", id);
+  const atual = (await fb.getDoc(ref)).data();
+  if (!atual) return;
+  const esq = { oculto: true }; CAMPOS_ESQ_COMENT.forEach((k) => { if (k in atual) esq[k] = atual[k]; });
+  try {
+    const b = fb.writeBatch(fb.db);
+    b.set(fb.doc(fb.db, "comentarios_ocultos", id), { dados: atual, autorId: atual.autorId, postAutorId: atual.postAutorId, por: eu.uid, em: fb.serverTimestamp() });
+    b.set(ref, esq);
+    await b.commit();
+  } catch (e) {
+    if (e?.code !== "permission-denied" || atual.oculto) throw e;
+    await fb.updateDoc(ref, { oculto: true });
+  }
+}
+async function mostrarComentario(c) {
+  const ref = fb.doc(fb.db, "comentarios", c.id);
+  if (!c._guardado) { await fb.updateDoc(ref, { oculto: false }); return; }
+  const oc = await fb.getDoc(fb.doc(fb.db, "comentarios_ocultos", c.id));
+  if (!oc.exists()) { await fb.updateDoc(ref, { oculto: false }); return; }
+  const dados = { ...oc.data().dados }; delete dados.oculto;
+  const b = fb.writeBatch(fb.db);
+  b.set(ref, dados); b.delete(oc.ref);
+  await b.commit();
+}
+// Quem escreveu e o dono da publicação veem o conteúdo do esqueleto; o dono passa os ocultos antigos para o jeito novo.
+async function completarOcultos(itens, dono) {
+  await Promise.all(itens.filter((c) => c.oculto && (dono || c.autorId === eu.uid)).map(async (c) => {
+    if (!("texto" in c)) {
+      try {
+        const oc = await fb.getDoc(fb.doc(fb.db, "comentarios_ocultos", c.id));
+        if (oc.exists()) Object.assign(c, oc.data().dados || {}, { oculto: true, _guardado: true });
+      } catch {}
+    } else if (dono) {
+      ocultarComentario(c.id).then(() => { c._guardado = true; }).catch(() => {});
+    }
+  }));
 }
 // Reações dos comentários (curtidas_comentarios/{comentarioId}_{uid}; sem "reacao" = curtida antiga, conta ❤️).
 export const REACOES = ["❤️", "👍", "😂", "😮", "😢", "👏"];
@@ -2089,6 +2132,7 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
   const pintar = async () => {
     let itens = [];
     try { itens = await listarComentarios(post.id); } catch { lista.replaceChildren(el("div", "lista-vazia", "Não foi possível carregar os comentários.")); return; }
+    await completarOcultos(itens, dono);
     cacheNComent.set(post.id, itens.length); guardarContador("c:" + post.id, itens.length);
     const fechados = quemComentaDe(post) === "ninguem" && !dono;
     const visiveis = itens.filter((c) => dono || c.autorId === eu.uid || !c.oculto);
@@ -2250,15 +2294,19 @@ export function montarComentarios(alvo, post, { aoMudar } = {}) {
         try { await fb.updateDoc(fb.doc(fb.db, "diario", post.id), { comentarioFixo: novo }); post.comentarioFixo = novo; toast(novo ? "Comentário fixado no topo" : "Comentário tirado do topo"); pintar(); }
         catch (e) { toast(e?.code === "permission-denied" ? "Fixar começa a funcionar quando as regras novas forem publicadas." : "Não foi possível: " + erroAmigavel(e)); }
       } },
-      meu && { rotulo: "Editar", icone: "lapis", fn: () => editar() },
+      meu && !c.oculto && { rotulo: "Editar", icone: "lapis", fn: () => editar() },
       dono && !meu && { rotulo: c.oculto ? "Mostrar comentário" : "Ocultar comentário", sub: c.oculto ? "" : "Só você e quem escreveu continuam vendo", icone: c.oculto ? "olho" : "restringir", fn: async () => {
-        try { await fb.updateDoc(fb.doc(fb.db, "comentarios", c.id), { oculto: !c.oculto }); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
+        try { if (c.oculto) await mostrarComentario(c); else await ocultarComentario(c.id); toast(c.oculto ? "Comentário visível" : "Comentário oculto"); pintar(); }
         catch (e) { toast("Não foi possível alterar: " + erroAmigavel(e)); }
       } },
       !meu && { rotulo: "Denunciar", sub: "Ofensa, golpe, spam...", icone: "alerta", perigo: true, fn: () => abrirDenunciaComentario(c) },
       (meu || dono) && { rotulo: "Apagar comentário", icone: "lixo", perigo: true, fn: async () => {
         if (!await confirmarHF({ titulo: "Apagar este comentário?", texto: "Ele some para todo mundo. Não dá para desfazer.", ok: "Apagar", icone: "lixo" })) return;
-        try { await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id)); toast("Comentário apagado"); pintar(); } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
+        try {
+          if (c._guardado) { const b = fb.writeBatch(fb.db); b.delete(fb.doc(fb.db, "comentarios", c.id)); b.delete(fb.doc(fb.db, "comentarios_ocultos", c.id)); await b.commit(); }
+          else await fb.deleteDoc(fb.doc(fb.db, "comentarios", c.id));
+          toast("Comentário apagado"); pintar();
+        } catch (e) { toast("Não foi possível apagar: " + erroAmigavel(e)); }
       } }
     ]));
     function editar() {
@@ -2382,7 +2430,7 @@ export const linkPublicacao = (post) => `${location.origin}${location.pathname.r
 // Compartilhar: no seu flash (como no Instagram), pelo Mensagens ou o link (outros apps).
 export async function compartilharPublicacao(post) {
   abrirOpcoes("Compartilhar", [
-    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=150").then((m) => m.compartilharNoFlash(post)); } },
+    post.mediaTipo !== "video" && { rotulo: "Adicionar ao seu flash", sub: "Com o crédito e o link para a publicação", icone: "raio", fn: () => { registrarGosto(post, PESO.compartilhar, eu.uid); import("./stories.js?v=151").then((m) => m.compartilharNoFlash(post)); } },
     { rotulo: "Enviar pelo Mensagens", sub: "Para quem você conversa ou segue", icone: "enviar", fn: () => enviarParaAmigos(post) },
     { rotulo: "Compartilhar link", sub: "WhatsApp, Instagram e outros apps", icone: "compartilhar", fn: () => compartilharLink(post) }
   ]);

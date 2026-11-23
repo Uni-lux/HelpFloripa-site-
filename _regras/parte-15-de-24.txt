@@ -180,4 +180,4 @@
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow update, delete: if false;
       }
-// ===== FIM DA PARTE 15 DE 23 =====
+// ===== FIM DA PARTE 15 DE 24 =====

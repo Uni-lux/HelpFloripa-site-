@@ -202,15 +202,19 @@
 > os outros só o publicado. Pistas em `desaparecidos/{id}/pistas` (anônima com `pistas_desap_autoria/{id}_{p}`, só a moderação
 > lê). Continuam **23 partes**, 1282 testes.
 
+> **Auditorias (23/11/2026):** equipe sem o campo `papel` não é mais dono (`'nenhum'`); listar `entregadores` só a
+> moderação; `pets_achados.local` dentro do Brasil; comentário oculto vira esqueleto e o conteúdo vai para
+> `comentarios_ocultos/{id}` (só quem escreveu, o dono da publicação e a moderação leem). Agora são **24 partes**, 1302 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **23 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **24 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (267.205 bytes. 4.103 linhas. sha256 começa com `3c81e4980a86a77d`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 23 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (284.929 bytes. 4.320 linhas. sha256 começa com `fcf2fa89a4a72f26`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 24 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 23 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1190 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 24 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1302 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

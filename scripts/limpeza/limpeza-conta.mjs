@@ -51,6 +51,8 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     }
     await apagar("diario", col("diario").where("autorId", "==", uid));
     await apagar("comentarios", col("comentarios").where("autorId", "==", uid));
+    await apagar("comentarios_ocultos", col("comentarios_ocultos").where("autorId", "==", uid));
+    await apagar("comentarios_ocultos", col("comentarios_ocultos").where("postAutorId", "==", uid));
     // Estrelas que a pessoa deu em publicações de outros: tira do resumo da publicação (diario_notas) também.
     const dadas = await col("curtidas").where("uid", "==", uid).get();
     for (const c of dadas.docs) {

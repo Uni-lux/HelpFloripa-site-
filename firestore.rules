@@ -3346,24 +3346,70 @@ service cloud.firestore {
                     && ritmoOk('com')
                     && request.resource.data.criadoEm == request.time;
 
+      // Comentário oculto pelo dono da publicação vira ESQUELETO (sem texto, nome, foto, mídia nem enquete) e o
+      // conteúdo vai, na mesma gravação, para comentarios_ocultos/{id} (só quem escreveu, o dono da publicação e a
+      // moderação leem). Assim a leitura de comentarios pode continuar livre para as consultas por postId.
+      function oculta(id) { return /databases/$(database)/documents/comentarios_ocultos/$(id); }
+      function viraEsqueletoComent() {
+        return request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'respostaA', 'respostaAutorId', 'criadoEm', 'oculto'])
+            && request.resource.data.oculto == true
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly(['oculto'])
+            && request.resource.data.diff(resource.data).addedKeys().hasOnly(['oculto'])
+            && !exists(oculta(id))
+            && getAfter(oculta(id)).data.dados == resource.data;
+      }
+      function voltaDoOculto() {
+        return exists(oculta(id)) && !existsAfter(oculta(id))
+            && request.resource.data.get('oculto', false) == false
+            && request.resource.data.diff(get(oculta(id)).data.dados).affectedKeys().hasOnly(['oculto']);
+      }
       allow update: if logado()
                     && emailOk()
                     && (
-                      // quem comentou corrige o texto
+                      // quem comentou corrige o texto (oculto não se edita)
                       (resource.data.autorId == request.auth.uid
+                        && resource.data.get('oculto', false) != true
                         && mudou().hasOnly(['texto', 'editadoEm'])
                         && textoComentarioOk(request.resource.data)
                         && request.resource.data.editadoEm == request.time)
                       ||
-                      // o dono da publicação oculta ou mostra o comentário
+                      // o dono da publicação oculta (esqueleto + cópia) ou mostra de volta
                       (resource.data.postAutorId == request.auth.uid
-                        && mudou().hasOnly(['oculto'])
-                        && request.resource.data.oculto is bool)
+                        && (viraEsqueletoComent() || voltaDoOculto()
+                            // comentário oculto do jeito antigo (com o conteúdo): só pode voltar a aparecer
+                            || (mudou().hasOnly(['oculto']) && request.resource.data.oculto == false)))
                     );
 
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
       allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // COMENTÁRIOS OCULTOS: comentarios_ocultos/{comentarioId}
+    // { dados (o comentário inteiro, igual ao que estava), autorId, postAutorId, por, em }
+    // Nasce na mesma gravação que troca o comentário pelo esqueleto; sai quando ele volta ou é apagado.
+    // =====================================================
+    match /comentarios_ocultos/{id} {
+      function coment() { return /databases/$(database)/documents/comentarios/$(id); }
+      allow get, list: if logado() && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid || podeModerar());
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['dados', 'autorId', 'postAutorId', 'por', 'em'])
+                    && exists(coment())
+                    && request.resource.data.dados == get(coment()).data
+                    && request.resource.data.autorId == get(coment()).data.autorId
+                    && request.resource.data.postAutorId == get(coment()).data.postAutorId
+                    && request.resource.data.postAutorId == request.auth.uid
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && getAfter(coment()).data.get('oculto', false) == true
+                    && !('texto' in getAfter(coment()).data);
+      allow update: if false;
+      // Sai junto com o comentário que voltou (dono da publicação) ou que foi apagado (quem escreveu ou o dono).
+      allow delete: if logado() && (
+                      podeModerar()
+                      || ((resource.data.postAutorId == request.auth.uid || resource.data.autorId == request.auth.uid)
+                          && (!existsAfter(coment()) || getAfter(coment()).data.get('oculto', false) == false)));
     }
 
     // =====================================================

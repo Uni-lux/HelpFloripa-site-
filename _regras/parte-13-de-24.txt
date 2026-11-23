@@ -168,4 +168,4 @@
           && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
           && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
     }
-// ===== FIM DA PARTE 13 DE 23 =====
+// ===== FIM DA PARTE 13 DE 24 =====
