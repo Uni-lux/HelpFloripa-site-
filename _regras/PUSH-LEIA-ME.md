@@ -1,5 +1,12 @@
 # Etapa B — Notificações com o app fechado (precisa do plano Blaze)
 
+
+> **Cloud Shell com Node 26 (23/11/2026):** use sempre `npx firebase-tools@latest` (a versão 13 dá "There was an error
+> retrieving the Firestore database"). Antes do 1º deploy de funções: `gcloud services enable secretmanager.googleapis.com`.
+> O deploy pede TODOS os segredos citados no código (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID, CF_TURN_TOKEN),
+> mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
+> Na pergunta "How many days ... container images" aperte Enter (1 dia).
+
 Pronto e **desligado**. Depois de ligado, a pessoa liga em **Configurações › Notificações no celular** (cada aparelho)
 e escolhe o que receber: Mensagens, Ligações, Seguidores, Publicações (estrelas, comentários, respostas, marcações),
 Social e Avisos/suporte. Tocar na notificação abre a conversa, a publicação, o perfil ou o chamado.
@@ -23,7 +30,7 @@ Firebase › ⚙ **Configurações do projeto** › aba **Cloud Messaging** › 
 ```bash
 cd HelpFloripa-site- && git pull
 cd functions && npm ci && cd ..
-npx firebase-tools@13 deploy --only functions:conferirMensagem,functions:pushChamada,functions:pushChamadaPerdida,functions:pushSeguidor,functions:pushEstrelas,functions:pushComentario,functions:pushMarcacao,functions:pushSocial,functions:pushAvisoEquipe,functions:pushSuporte,functions:pushTeste --project helpfloripa-61e0d
+npx firebase-tools@latest deploy --only functions:conferirMensagem,functions:pushChamada,functions:pushChamadaPerdida,functions:pushSeguidor,functions:pushEstrelas,functions:pushComentario,functions:pushMarcacao,functions:pushSocial,functions:pushAvisoEquipe,functions:pushSuporte,functions:pushTeste --project helpfloripa-61e0d
 ```
 (Se ainda não fez a Etapa A, inclua também `functions:montarRankingDiario` — veja `SERVIDOR-LEIA-ME.md`.)
 Pode pedir para ativar a API **Firebase Cloud Messaging**: responda **Y**.

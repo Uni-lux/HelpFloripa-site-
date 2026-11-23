@@ -1,5 +1,12 @@
 # Firebase Storage — como ligar (deixado pronto em 21/10/2026)
 
+
+> **Cloud Shell com Node 26 (23/11/2026):** use sempre `npx firebase-tools@latest` (a versão 13 dá "There was an error
+> retrieving the Firestore database"). Antes do 1º deploy de funções: `gcloud services enable secretmanager.googleapis.com`.
+> O deploy pede TODOS os segredos citados no código (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID, CF_TURN_TOKEN),
+> mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
+> Na pergunta "How many days ... container images" aperte Enter (1 dia).
+
 O site já está preparado para o Storage. Falta só **ativar no console** e **virar a chave**. Até lá, tudo
 continua como hoje: as fotos ficam dentro dos documentos do Firestore (com limite de ~1 MB por documento, por
 isso as fotos são bem comprimidas e não há vídeo).
@@ -27,7 +34,7 @@ isso as fotos são bem comprimidas e não há vídeo).
        centavos por GB).
 3. **Publicar as regras.** Ainda em Storage → aba **Regras** → apague o que estiver lá → copie **todo** o arquivo
    `storage.rules` (da raiz do repositório, cerca de 6 KB, cabe numa colagem só) → **Publicar**.
-   (Ou, no Cloud Shell: `npx firebase-tools@13 deploy --only storage --project helpfloripa-61e0d` — o `firebase.json` já aponta
+   (Ou, no Cloud Shell: `npx firebase-tools@latest deploy --only storage --project helpfloripa-61e0d` — o `firebase.json` já aponta
    para o `storage.rules`.)
    - O console vai pedir para **permitir que o Storage consulte o Firestore** (as regras conferem quem participa da
      conversa e quem é da equipe). Clique em **Permitir/Conceder**.
@@ -50,7 +57,7 @@ isso as fotos são bem comprimidas e não há vídeo).
 6. **Passar as fotos antigas para o Storage** (Etapa D, depois do passo 4). Publique a função, no Cloud Shell:
    ```bash
    cd HelpFloripa-site- && git pull && cd functions && npm ci && cd ..
-   npx firebase-tools@13 deploy --only functions:migrarFotos --project helpfloripa-61e0d
+   npx firebase-tools@latest deploy --only functions:migrarFotos --project helpfloripa-61e0d
    ```
    Depois, no **painel** (conta de dono) → **Publicações** → **Passar fotos para o Storage**. Ele primeiro **conta** (não mexe em
    nada) e mostra quantas fotos e de onde (contas, negócios, imóveis, Diário, Flash, Comunidade); você confirma e ele passa,
