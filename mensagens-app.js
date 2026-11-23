@@ -889,24 +889,27 @@ function notificar(titulo, corpo, aoClicar) {
   toast(`${titulo}: ${corpo}`, aoClicar);
 }
 
+// Lê a foto por um link local (blob:), sem FileReader: mais leve e não depende de ler o arquivo inteiro como texto.
 function comprimirImagem(arquivo, maxLado, qualidade) {
   return new Promise((resolve, reject) => {
-    const leitor = new FileReader();
-    leitor.onerror = () => reject(new Error("Não foi possível ler a imagem."));
-    leitor.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("Formato de imagem não suportado."));
-      img.onload = () => {
+    let url;
+    try { url = URL.createObjectURL(arquivo); } catch { reject(new Error("Não foi possível ler a imagem.")); return; }
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível ler a imagem. Escolha a foto de novo.")); };
+    img.onload = () => {
+      try {
         const escala = Math.min(maxLado / img.width, maxLado / img.height, 1);
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(img.width * escala));
         canvas.height = Math.max(1, Math.round(img.height * escala));
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        const g = canvas.getContext("2d");
+        g.fillStyle = "#fff"; // PNG com fundo transparente vira JPEG com fundo branco (não preto)
+        g.fillRect(0, 0, canvas.width, canvas.height);
+        g.drawImage(img, 0, 0, canvas.width, canvas.height);
         resolve(canvas.toDataURL("image/jpeg", qualidade));
-      };
-      img.src = leitor.result;
+      } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
     };
-    leitor.readAsDataURL(arquivo);
+    img.src = url;
   });
 }
 
@@ -3411,11 +3414,11 @@ $("btnAnexar").addEventListener("click", abrirAnexar);
 // Câmera: a foto entra no mesmo caminho da galeria (prévia, legenda e envio).
 $("inputCamera").addEventListener("change", () => {
   const f = $("inputCamera").files?.[0];
-  $("inputCamera").value = "";
   if (!f) return;
   const dt = new DataTransfer(); dt.items.add(f);
   $("inputArquivo").files = dt.files;
   $("inputArquivo").dispatchEvent(new Event("change"));
+  $("inputCamera").value = ""; // depois: a cópia da foto já começou a ser lida
 });
 // Gaveta "Anexar" (como nos mensageiros): galeria, câmera, localização, endereço e os cartões de negócio.
 async function abrirAnexar() {
@@ -3953,9 +3956,21 @@ async function usarMeuEndereco() {
   } catch { toast("Não foi possível ler o seu endereço agora."); }
 }
 
-$("inputArquivo").addEventListener("change", () => {
-  const arquivo = $("inputArquivo").files?.[0];
+$("inputArquivo").addEventListener("change", async () => {
+  let arquivo = $("inputArquivo").files?.[0];
   if (!arquivo) return;
+  // No Android a permissão de ler a foto escolhida na galeria pode acabar antes de enviar ("Não foi possível ler a
+  // imagem"). Por isso a foto/vídeo é copiada para a memória na hora em que é escolhida.
+  if (arquivo.size <= 50 * 1024 * 1024) {
+    try {
+      const buf = await arquivo.arrayBuffer();
+      arquivo = new File([buf], arquivo.name || "foto", { type: arquivo.type, lastModified: arquivo.lastModified });
+    } catch {
+      toast("Não deu para abrir este arquivo. Se ele está na nuvem, baixe no celular e escolha de novo.");
+      $("inputArquivo").value = "";
+      return;
+    }
+  }
   const ehVideo = arquivo.type.startsWith("video/");
   const ehImagem = arquivo.type.startsWith("image/");
   if (!ehImagem && !ehVideo) { toast("Escolha uma foto ou um vídeo."); $("inputArquivo").value = ""; return; }

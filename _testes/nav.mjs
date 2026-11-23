@@ -21,6 +21,8 @@ function firebasePatch() {
   s = s.replace("window.firebaseApp = app;", `connectFirestoreEmulator(db, "127.0.0.1", ${FS});\nwindow.firebaseApp = app;`);
   if (!s.includes("connectFirestoreEmulator(db")) throw new Error("patch do firebase.js falhou");
   // STORAGE=1: liga a chave USAR_STORAGE e aponta o Storage para o emulador (porta 9199; a CSP do servidor-csp.mjs libera).
+  // Sem STORAGE=1 os testes seguem sem o Storage (fotos dentro dos documentos), como antes de ele ser ligado.
+  if (process.env.STORAGE !== "1") s = s.replace("const USAR_STORAGE = true;", "const USAR_STORAGE = false;");
   if (process.env.STORAGE === "1") {
     s = s.replace("const USAR_STORAGE = false;", "const USAR_STORAGE = true;");
     s = s.replace('const { getStorage } = await import(', 'const { getStorage, connectStorageEmulator } = await import(');

@@ -58,6 +58,9 @@ if (USAR_STORAGE) {
   try {
     const { getStorage } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
     const storage = getStorage(app);
+    // Sem internet o envio tenta de novo por até 10 min (padrão): 45 s basta, depois o site avisa ou usa a reserva.
+    storage.maxUploadRetryTime = 45000;
+    storage.maxOperationRetryTime = 30000;
     window.firebaseStorage = storage;
   } catch (e) { console.warn("[Firebase] Storage indisponível, seguindo sem ele:", e?.message || e); }
 }

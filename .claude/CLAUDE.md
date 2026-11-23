@@ -2423,7 +2423,12 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   (`meuArquivo`/`dono(uid)`) e a equipe: quem vê usa o link com token (nomes `_<Date.now base36>` são adivinháveis). Enviar
   exige `envia()` = e-mail confirmado + sem `sancoes` (menos suporte e comprovantes). `testes-storage.mjs` 68, `t-storage` ok.
   Regras do Storage publicadas por ele em 23/11/2026; `USAR_STORAGE = true` (PR depois do #248; rede.html img-src com
-  firebasestorage para a cópia da barra). CORS aplicado por ele em 23/11/2026. Falta: deploy de `migrarFotos` e o botão do painel.
+  firebasestorage para a cópia da barra). CORS aplicado por ele em 23/11/2026; pasta `diario/` já com foto. Falta: deploy de
+  `migrarFotos` e o botão do painel. **Foto do chat "Não foi possível ler a imagem"** (print dele, Android): a permissão de
+  ler a foto da galeria acabava antes do envio → mensagens-app.js copia o arquivo para a memória na escolha
+  (`arrayBuffer` → `new File`) e `comprimirImagem` usa link blob: (sem FileReader; PNG transparente com fundo branco);
+  firebase.js `maxUploadRetryTime` 45 s (antes 10 min sem internet). **Testes:** nav.mjs agora DESLIGA o Storage sem
+  `STORAGE=1` (no repositório ele está ligado). Teste `t-chat-foto.mjs`.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
