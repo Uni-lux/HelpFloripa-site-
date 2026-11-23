@@ -202,4 +202,4 @@
       function janelaNova() {
         return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
       }
-// ===== FIM DA PARTE 14 DE 23 =====
+// ===== FIM DA PARTE 14 DE 24 =====

@@ -43,24 +43,70 @@
                     && ritmoOk('com')
                     && request.resource.data.criadoEm == request.time;
 
+      // Comentário oculto pelo dono da publicação vira ESQUELETO (sem texto, nome, foto, mídia nem enquete) e o
+      // conteúdo vai, na mesma gravação, para comentarios_ocultos/{id} (só quem escreveu, o dono da publicação e a
+      // moderação leem). Assim a leitura de comentarios pode continuar livre para as consultas por postId.
+      function oculta(id) { return /databases/$(database)/documents/comentarios_ocultos/$(id); }
+      function viraEsqueletoComent() {
+        return request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'respostaA', 'respostaAutorId', 'criadoEm', 'oculto'])
+            && request.resource.data.oculto == true
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly(['oculto'])
+            && request.resource.data.diff(resource.data).addedKeys().hasOnly(['oculto'])
+            && !exists(oculta(id))
+            && getAfter(oculta(id)).data.dados == resource.data;
+      }
+      function voltaDoOculto() {
+        return exists(oculta(id)) && !existsAfter(oculta(id))
+            && request.resource.data.get('oculto', false) == false
+            && request.resource.data.diff(get(oculta(id)).data.dados).affectedKeys().hasOnly(['oculto']);
+      }
       allow update: if logado()
                     && emailOk()
                     && (
-                      // quem comentou corrige o texto
+                      // quem comentou corrige o texto (oculto não se edita)
                       (resource.data.autorId == request.auth.uid
+                        && resource.data.get('oculto', false) != true
                         && mudou().hasOnly(['texto', 'editadoEm'])
                         && textoComentarioOk(request.resource.data)
                         && request.resource.data.editadoEm == request.time)
                       ||
-                      // o dono da publicação oculta ou mostra o comentário
+                      // o dono da publicação oculta (esqueleto + cópia) ou mostra de volta
                       (resource.data.postAutorId == request.auth.uid
-                        && mudou().hasOnly(['oculto'])
-                        && request.resource.data.oculto is bool)
+                        && (viraEsqueletoComent() || voltaDoOculto()
+                            // comentário oculto do jeito antigo (com o conteúdo): só pode voltar a aparecer
+                            || (mudou().hasOnly(['oculto']) && request.resource.data.oculto == false)))
                     );
 
       allow delete: if logado()
                     && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
       allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // COMENTÁRIOS OCULTOS: comentarios_ocultos/{comentarioId}
+    // { dados (o comentário inteiro, igual ao que estava), autorId, postAutorId, por, em }
+    // Nasce na mesma gravação que troca o comentário pelo esqueleto; sai quando ele volta ou é apagado.
+    // =====================================================
+    match /comentarios_ocultos/{id} {
+      function coment() { return /databases/$(database)/documents/comentarios/$(id); }
+      allow get, list: if logado() && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid || podeModerar());
+      allow create: if logado() && emailOk()
+                    && request.resource.data.keys().hasOnly(['dados', 'autorId', 'postAutorId', 'por', 'em'])
+                    && exists(coment())
+                    && request.resource.data.dados == get(coment()).data
+                    && request.resource.data.autorId == get(coment()).data.autorId
+                    && request.resource.data.postAutorId == get(coment()).data.postAutorId
+                    && request.resource.data.postAutorId == request.auth.uid
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && getAfter(coment()).data.get('oculto', false) == true
+                    && !('texto' in getAfter(coment()).data);
+      allow update: if false;
+      // Sai junto com o comentário que voltou (dono da publicação) ou que foi apagado (quem escreveu ou o dono).
+      allow delete: if logado() && (
+                      podeModerar()
+                      || ((resource.data.postAutorId == request.auth.uid || resource.data.autorId == request.auth.uid)
+                          && (!existsAfter(coment()) || getAfter(coment()).data.get('oculto', false) == false)));
     }
 
     // =====================================================
@@ -148,52 +194,4 @@
         return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
             && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
       }
-      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
-      function localPubOk(d) {
-        return !('local' in d) || d.local == null
-            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
-                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
-                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
-                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
-      }
-      // Público da publicação (direcionamento no Diário, Explorar e Reels): idade, gênero, lugar e seguidores.
-      function publicoOk(d) {
-        let p = d.get('publico', null);
-        return p == null
-            || (p is map && p.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
-                && (!('idadeMin' in p) || (p.idadeMin is int && p.idadeMin >= 16 && p.idadeMin <= 100))
-                && (!('idadeMax' in p) || (p.idadeMax is int && p.idadeMax >= 16 && p.idadeMax <= 100))
-                && (!('genero' in p) || p.genero in ['f', 'm'])
-                && (!('local' in p) || p.local in ['brasil', 'estados', 'cidades', 'perto'])
-                && (!('ufs' in p) || (p.ufs is list && p.ufs.size() >= 1 && p.ufs.size() <= 27 && p.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
-                && (!('cidades' in p) || (p.cidades is list && p.cidades.size() >= 1 && p.cidades.size() <= 10 && p.cidades.join(' ').matches('^[0-9]{7}( [0-9]{7}){0,9}$')))
-                && (!('perto' in p) || (p.perto is map && p.perto.keys().hasOnly(['lat', 'lng', 'km', 'nome'])
-                    && p.perto.lat is number && p.perto.lat >= -34 && p.perto.lat <= 6
-                    && p.perto.lng is number && p.perto.lng >= -75 && p.perto.lng <= -28
-                    && p.perto.km is int && p.perto.km >= 5 && p.perto.km <= 300
-                    && (!('nome' in p.perto) || (p.perto.nome is string && p.perto.nome.size() <= 60))))
-                && (!('seguidores' in p) || p.seguidores in ['todos', 'seguidores', 'novos']));
-      }
-      function fotoPubOk(u) {
-        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
-      }
-      // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
-      //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
-      //   foto: 1 a 4 fotos (mediaUrl + midias), legenda opcional; sem enquete/caixa/vídeo
-      //   video: um vídeo (mediaTipo 'video'), legenda opcional
-      //   enquete / caixa: a enquete ou a caixa de perguntas, com no máximo uma imagem (sem midias e sem vídeo)
-      function tipoOk(d) {
-        let t = d.get('tipo', '');
-        let midia = d.get('mediaUrl', '') != '';
-        let video = d.get('mediaTipo', '') == 'video';
-        let extra = ('enquete' in d) || ('caixa' in d);
-        return (t == '' && !('estilo' in d))
-            || (t == 'texto' && d.get('texto', '').size() >= 1 && !extra && !video && !('midias' in d)
-                && (midia ? (d.get('estilo', '') == 'casada' && d.texto.size() <= 500) : !('estilo' in d)))
-            || (t == 'foto' && midia && !video && !extra && !('estilo' in d))
-            || (t == 'video' && midia && video && !extra && !('midias' in d) && !('estilo' in d))
-            || (t in ['enquete', 'caixa'] && (t == 'enquete') == ('enquete' in d) && (t == 'caixa') == ('caixa' in d)
-                && !video && !('midias' in d) && !('estilo' in d));
-      }
-
-// ===== FIM DA PARTE 18 DE 23 =====
+// ===== FIM DA PARTE 18 DE 24 =====

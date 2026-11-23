@@ -7,7 +7,7 @@
 // Perdidos (18/11/2026): a aba "pets" tem Pets | Pessoas (?quem=pessoas); desaparecidos/{id} com boletim e conferência.
 // Parâmetros: ?aba=sos|pets|roubos|veiculos, ?sos=novo|ID, ?pet=ID, ?achado=ID, ?ocorrencia=ID, ?consultar=X, #config.
 // =====================================================
-import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=178";
+import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem, montarBarraRede } from "./rede.js?v=179";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { minhaPosicao } from "./perto.js?v=3";
 import {

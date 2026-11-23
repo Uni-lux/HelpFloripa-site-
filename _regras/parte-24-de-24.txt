@@ -1,0 +1,46 @@
+    // RG do pet: o dono cadastra; "visivel" deixa o pet entrar nas buscas de animais encontrados.
+    function petOk(d) {
+      return d.especie in ['cao', 'gato', 'ave', 'outro']
+          && d.cores is list && d.cores.size() <= 4
+          && d.get('porte', '') in ['', 'P', 'M', 'G'] && d.get('sexo', '') in ['', 'm', 'f', '?']
+          && valorTextoAte(d.get('raca', ''), 40) && valorTextoAte(d.get('sinais', ''), 300)
+          && d.get('microchip', '') is string && d.get('microchip', '').matches('^[A-Z0-9]{0,20}$')
+          && (!('foto' in d) || (fotoOk(d.foto) && d.foto.size() <= 300000));
+    }
+    match /pets/{id} {
+      function d() { return request.resource.data; }
+      allow get, list: if logado() && (resource.data.visivel == true || resource.data.donoId == request.auth.uid || podeModerar());
+      allow create, update: if logado() && emailOk() && d().donoId == request.auth.uid
+                    && (resource == null || resource.data.donoId == request.auth.uid)
+                    && d().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
+                    && d().nome is string && d().nome.size() >= 1 && d().nome.size() <= 40
+                    && valorTextoAte(d().get('donoNome', ''), 80) && valorTextoAte(d().get('idade', ''), 20)
+                    && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+                    && petOk(d())
+                    && d().status in ['casa', 'perdido'] && d().visivel is bool
+                    && d().get('geo4', '').matches('^([0-9a-z]{4})?$')
+                    && d().atualizadoEm == request.time;
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+    match /pets_achados/{id} {
+      function d() { return request.resource.data; }
+      allow get, list: if logado();
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().autorId == request.auth.uid && valorTextoAte(d().get('autorNome', ''), 80)
+                    && petOk(d())
+                    && d().local is map && d().local.keys().hasOnly(['lat', 'lng', 'nome'])
+                    && d().local.lat is number && d().local.lat >= -34 && d().local.lat <= 6
+                    && d().local.lng is number && d().local.lng >= -75 && d().local.lng <= -28 && valorTextoAte(d().local.get('nome', ''), 120)
+                    && d().geo4 is string && d().geo4.matches('^[0-9a-z]{4}$')
+                    && d().quando is timestamp && d().quando <= request.time
+                    && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && request.resource.data.atualizadoEm == request.time
+                    && ((resource.data.autorId == request.auth.uid && request.resource.data.status in ['ativo', 'devolvido', 'removido'])
+                        || (podeModerar() && request.resource.data.status == 'removido'));
+      allow delete: if false;
+    }
+
+  }
+}
+// ===== FIM DA PARTE 24 DE 24 =====

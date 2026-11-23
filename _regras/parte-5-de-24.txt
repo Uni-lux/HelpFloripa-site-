@@ -221,4 +221,4 @@
       allow update: if podeModerar() && moderacaoOk();
     }
 
-// ===== FIM DA PARTE 5 DE 23 =====
+// ===== FIM DA PARTE 5 DE 24 =====

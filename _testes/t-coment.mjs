@@ -76,6 +76,8 @@ ok((await db.doc("diario/pc").get()).data().quemComenta === "seguidores", "dono:
 await pb.locator("#folhaComentarios .fio-coment", { hasText: "sem engajamento" }).locator(".coment-mais").first().tap();
 await pb.locator("#opcoesCorpo button", { hasText: "Ocultar comentário" }).tap(); await pb.waitForTimeout(1200);
 ok((await db.doc("comentarios/k2").get()).data().oculto === true, "dono oculta comentário");
+ok(!("texto" in (await db.doc("comentarios/k2").get()).data()) && (await db.doc("comentarios_ocultos/k2").get()).data()?.dados?.texto?.includes("sem engajamento"), "oculto vira esqueleto e o texto fica em comentarios_ocultos");
+ok((await pb.locator("#folhaComentarios").textContent()).includes("sem engajamento"), "o dono continua vendo o comentário oculto");
 await pb.screenshot({ path: "saida/coment-dono.png" });
 // Ana (não segue o Bruno) não vê o campo
 await pa.keyboard.press("Escape"); await pa.reload(); await pa.waitForTimeout(3000);

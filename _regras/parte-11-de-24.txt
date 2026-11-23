@@ -157,4 +157,4 @@
             && d.status == 'pendente'
             && d.criadoEm == request.time && d.atualizadoEm == request.time;
       }
-// ===== FIM DA PARTE 11 DE 23 =====
+// ===== FIM DA PARTE 11 DE 24 =====

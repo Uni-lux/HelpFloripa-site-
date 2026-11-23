@@ -600,6 +600,38 @@ await t("comentário: opção que não existe é recusada", () => assertFails(vo
 await t("comentário: voto em comentário sem enquete é recusado", () => assertFails(votoC("bia", 0, "cFoto")));
 await t("comentário: voto em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "comentario_votos", "cEnq_edu"), { comentarioId: "cEnq", uid: "edu", opcao: 0, criadoEm: serverTimestamp() })));
 await t("comentário: quem comentou corrige o texto da foto", () => assertSucceeds(updateDoc(doc(ctx("ana"), "comentarios", "cFoto"), { texto: "olha isso", editadoEm: serverTimestamp() })));
+// Comentário oculto pelo dono da publicação: vira esqueleto e o conteúdo vai para comentarios_ocultos (só quem escreveu, o dono e a moderação leem).
+const ESQ = ["postId", "postAutorId", "autorId", "respostaA", "respostaAutorId", "criadoEm"];
+async function ocultarComent(quem, id, mexer = (x) => x) {
+  const db = ctx(quem), atual = (await getDoc(doc(db, "comentarios", id))).data();
+  const esq = { oculto: true }; ESQ.forEach((k) => { if (k in atual) esq[k] = atual[k]; });
+  const b = writeBatch(db);
+  b.set(doc(db, "comentarios_ocultos", id), mexer({ dados: atual, autorId: atual.autorId, postAutorId: atual.postAutorId, por: quem, em: serverTimestamp() }));
+  b.set(doc(db, "comentarios", id), esq);
+  return b.commit();
+}
+async function mostrarComent(quem, id) {
+  const db = ctx(quem), oc = (await getDoc(doc(db, "comentarios_ocultos", id))).data();
+  const b = writeBatch(db); b.set(doc(db, "comentarios", id), oc.dados); b.delete(doc(db, "comentarios_ocultos", id));
+  return b.commit();
+}
+await assertSucceeds(comentar("bia", "cOc", { texto: "comentário chato" }));
+await t("oculto: só a troca de oculto (conteúdo continua lá) é recusada", () => assertFails(updateDoc(doc(ctx("dono"), "comentarios", "cOc"), { oculto: true })));
+await t("oculto: outra pessoa não oculta", () => assertFails(ocultarComent("ana", "cOc")));
+await t("oculto: cópia com texto trocado é recusada", () => assertFails(ocultarComent("dono", "cOc", (x) => ({ ...x, dados: { ...x.dados, texto: "outra coisa" } }))));
+await t("oculto: o dono oculta (esqueleto + cópia)", () => assertSucceeds(ocultarComent("dono", "cOc")));
+await t("oculto: qualquer conta lê o esqueleto sem o texto", async () => { const d = (await assertSucceeds(getDoc(doc(ctx("ana"), "comentarios", "cOc")))).data(); if (d.texto !== undefined || d.oculto !== true) throw new Error("esqueleto com conteúdo"); });
+await t("oculto: outra conta NÃO lê o conteúdo", () => assertFails(getDoc(doc(ctx("ana"), "comentarios_ocultos", "cOc"))));
+await t("oculto: quem escreveu lê o conteúdo", () => assertSucceeds(getDoc(doc(ctx("bia"), "comentarios_ocultos", "cOc"))));
+await t("oculto: o dono da publicação lê o conteúdo", () => assertSucceeds(getDoc(doc(ctx("dono"), "comentarios_ocultos", "cOc"))));
+await t("oculto: quem escreveu NÃO edita para pôr o texto de volta", () => assertFails(updateDoc(doc(ctx("bia"), "comentarios", "cOc"), { texto: "voltei", editadoEm: serverTimestamp() })));
+await t("oculto: quem escreveu NÃO apaga a cópia com o comentário ainda oculto", () => assertFails(deleteDoc(doc(ctx("bia"), "comentarios_ocultos", "cOc"))));
+await t("oculto: mostrar com texto diferente é recusado", async () => { const db = ctx("dono"), oc = (await getDoc(doc(db, "comentarios_ocultos", "cOc"))).data(); const b = writeBatch(db); b.set(doc(db, "comentarios", "cOc"), { ...oc.dados, texto: "trocado" }); b.delete(doc(db, "comentarios_ocultos", "cOc")); await assertFails(b.commit()); });
+await t("oculto: o dono mostra de volta (igual ao original)", () => assertSucceeds(mostrarComent("dono", "cOc")));
+await t("oculto: depois de mostrar, o texto voltou", async () => { const d = (await getDoc(doc(ctx("ana"), "comentarios", "cOc"))).data(); if (d.texto !== "comentário chato") throw new Error("texto não voltou"); });
+await t("oculto: oculta de novo e quem escreveu apaga comentário + cópia", async () => { await assertSucceeds(ocultarComent("dono", "cOc")); const db = ctx("bia"), b = writeBatch(db); b.delete(doc(db, "comentarios", "cOc")); b.delete(doc(db, "comentarios_ocultos", "cOc")); await assertSucceeds(b.commit()); });
+await t("oculto (jeito antigo, com conteúdo): o dono pode mostrar", async () => { await semRegras((db) => setDoc(doc(db, "comentarios", "cVelho"), { postId: "pCom", postAutorId: "dono", autorId: "bia", nome: "bia", foto: "", texto: "velho", oculto: true, criadoEm: antigo })); await assertSucceeds(updateDoc(doc(ctx("dono"), "comentarios", "cVelho"), { oculto: false })); });
+await t("oculto (jeito antigo): o dono passa para o jeito novo", async () => { await semRegras((db) => updateDoc(doc(db, "comentarios", "cVelho"), { oculto: true })); await assertSucceeds(ocultarComent("dono", "cVelho")); });
 
 // Diário: hashtags, marcar pessoas, agendar; alcance; salvamentos; stories; rascunhos; aviso de reação.
 async function publicar2(quem, dadosPub) {

@@ -237,4 +237,4 @@
                     && falou(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
                     && contou();
 
-// ===== FIM DA PARTE 9 DE 23 =====
+// ===== FIM DA PARTE 9 DE 24 =====

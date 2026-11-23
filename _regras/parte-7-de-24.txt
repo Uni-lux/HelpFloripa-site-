@@ -193,4 +193,4 @@
               && v.em == resource.data.get('editadaEm', resource.data.criadoEm);
         }
 
-// ===== FIM DA PARTE 7 DE 23 =====
+// ===== FIM DA PARTE 7 DE 24 =====

@@ -153,4 +153,4 @@
             && valorTextoAte(d.get('responsavelNome', ''), 80)
             && (!('assumidoEm' in d) || d.assumidoEm == request.time || d.assumidoEm == resource.data.get('assumidoEm', null));
       }
-// ===== FIM DA PARTE 12 DE 23 =====
+// ===== FIM DA PARTE 12 DE 24 =====

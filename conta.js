@@ -107,7 +107,7 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
   const pegar = (n, campo, op = "==") => fb.getDocs(fb.query(col(n), fb.where(campo, op, uid))).catch(() => ({ docs: [] }));
   aoProgresso("Apagando publicações, comentários e estrelas...");
   const lotes = await Promise.all([
-    pegar("diario", "autorId"), pegar("comentarios", "autorId"), pegar("comentarios", "postAutorId"),
+    pegar("diario", "autorId"), pegar("comentarios", "autorId"), pegar("comentarios", "postAutorId"), pegar("comentarios_ocultos", "autorId"), pegar("comentarios_ocultos", "postAutorId"),
     pegar("curtidas", "uid"), pegar("curtidas_comentarios", "uid"), pegar("republicacoes", "uid"),
     pegar("relacoes", "seguidorId"), pegar("relacoes", "alvoId"), pegar("bloqueios", "bloqueadorId"),
     pegar("vinculos", "participantes", "array-contains"), pegar("negocios", "donoId"), pegar("anuncios", "donoId"), pegar("comunidade", "donoId"),
@@ -118,7 +118,7 @@ export async function apagarTudo(fb, authFns, usuario, aoProgresso = () => {}) {
   // Estrelas dadas: saem junto do resumo da publicação (diario_notas); publicação que já não existe, só a nota.
   const ehNota = (d) => d.ref.path.startsWith("curtidas/");
   // Guardados por último: só saem depois que o item (o esqueleto) já foi apagado.
-  const ehGuardado = (d) => d.ref.path.startsWith("guardados/");
+  const ehGuardado = (d) => d.ref.path.startsWith("guardados/") || d.ref.path.startsWith("comentarios_ocultos/");
   // Retratos do Social (vinculos_retrato/{id do vínculo}) saem antes do vínculo.
   await Promise.all(docs.filter((d) => d.ref.path.startsWith("vinculos/")).map((d) => fb.deleteDoc(fb.doc(fb.db, "vinculos_retrato", d.id)).catch(() => {})));
   await Promise.all(docs.filter((d) => !ehNota(d) && !ehGuardado(d)).map((d) => fb.deleteDoc(d.ref).catch(() => {})));

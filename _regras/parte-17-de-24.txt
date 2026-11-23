@@ -163,4 +163,4 @@
                      : '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
                 && (!('dur' in d.midia) || (d.midia.dur is number && d.midia.dur > 0 && d.midia.dur <= 61)));
       }
-// ===== FIM DA PARTE 17 DE 23 =====
+// ===== FIM DA PARTE 17 DE 24 =====
