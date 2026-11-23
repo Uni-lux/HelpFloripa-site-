@@ -1,5 +1,12 @@
 # Etapa A — Diário no servidor + conferências do chat (precisa do plano Blaze)
 
+
+> **Cloud Shell com Node 26 (23/11/2026):** use sempre `npx firebase-tools@latest` (a versão 13 dá "There was an error
+> retrieving the Firestore database"). Antes do 1º deploy de funções: `gcloud services enable secretmanager.googleapis.com`.
+> O deploy pede TODOS os segredos citados no código (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID, CF_TURN_TOKEN),
+> mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
+> Na pergunta "How many days ... container images" aperte Enter (1 dia).
+
 O código está pronto e **desligado**. Sem o Blaze o site funciona como hoje. Quando as funções forem publicadas:
 
 | Função | O que faz | Liga como |
@@ -18,13 +25,13 @@ Abra **console.cloud.google.com**, projeto **helpfloripa-61e0d**, ícone **>_** 
 ```bash
 git clone https://github.com/Uni-lux/HelpFloripa-site-.git
 cd HelpFloripa-site-/functions && npm ci && cd ..
-npx firebase-tools@13 login --no-localhost
+npx firebase-tools@latest login --no-localhost
 ```
 (Se já tiver a pasta de antes: `cd HelpFloripa-site- && git pull`.)
 
 Publique **só as duas funções novas** (as do pagamento pedem os segredos do Mercado Pago; ficam para quando você fizer o `PAGAMENTO-LEIA-ME.md`):
 ```bash
-npx firebase-tools@13 deploy --only functions:montarRankingDiario,functions:conferirMensagem,functions:apagarConta --project helpfloripa-61e0d
+npx firebase-tools@latest deploy --only functions:montarRankingDiario,functions:conferirMensagem,functions:apagarConta --project helpfloripa-61e0d
 ```
 Na primeira vez ele pede para ativar APIs (Cloud Functions, Cloud Build, Artifact Registry, Cloud Run, **Cloud Scheduler**, Eventarc, Pub/Sub): responda **Y**. Se reclamar de permissão do Eventarc na 1ª vez, espere 2 minutos e rode o mesmo comando de novo (é normal no primeiro gatilho do Firestore).
 

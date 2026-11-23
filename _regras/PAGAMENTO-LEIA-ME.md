@@ -1,5 +1,12 @@
 # Pagamento automático (Mercado Pago) — passo a passo
 
+
+> **Cloud Shell com Node 26 (23/11/2026):** use sempre `npx firebase-tools@latest` (a versão 13 dá "There was an error
+> retrieving the Firestore database"). Antes do 1º deploy de funções: `gcloud services enable secretmanager.googleapis.com`.
+> O deploy pede TODOS os segredos citados no código (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID, CF_TURN_TOKEN),
+> mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
+> Na pergunta "How many days ... container images" aperte Enter (1 dia).
+
 O que já está pronto no código:
 - **Servidor** (pasta `functions/`, região São Paulo):
   - `pagarPlano` cria o pagamento por Pix ou cartão.
@@ -29,21 +36,21 @@ Cole um bloco por vez:
 ```bash
 git clone https://github.com/Uni-lux/HelpFloripa-site-.git
 cd HelpFloripa-site-/functions && npm ci && cd ..
-npx firebase-tools@13 login --no-localhost
+npx firebase-tools@latest login --no-localhost
 ```
 O `login` mostra um link: abra, entre com a conta do Firebase e cole o código de volta. Se ele disser que já está conectado, siga em frente.
 
 Cadastre os dois segredos. O comando pede o valor: cole e aperte Enter. Nada aparece na tela, e é assim mesmo.
 ```bash
-npx firebase-tools@13 functions:secrets:set MP_ACCESS_TOKEN --project helpfloripa-61e0d
-npx firebase-tools@13 functions:secrets:set MP_WEBHOOK_SECRET --project helpfloripa-61e0d
+npx firebase-tools@latest functions:secrets:set MP_ACCESS_TOKEN --project helpfloripa-61e0d
+npx firebase-tools@latest functions:secrets:set MP_WEBHOOK_SECRET --project helpfloripa-61e0d
 ```
 - **MP_ACCESS_TOKEN**: comece com o **Access Token de TESTE** (Credenciais de teste, começa com `TEST-`).
 - **MP_WEBHOOK_SECRET**: a assinatura secreta do passo 2.
 
 Publique:
 ```bash
-npx firebase-tools@13 deploy --only functions --project helpfloripa-61e0d
+npx firebase-tools@latest deploy --only functions --project helpfloripa-61e0d
 ```
 Na primeira vez ele pode pedir para ativar APIs (Cloud Functions, Cloud Build, Artifact Registry, Secret Manager, Cloud Run): responda **Y**.
 No fim aparecem as duas funções com ✔.
@@ -64,8 +71,8 @@ Avise no chat: o Claude muda `automatico: true` no `planos-base.js` e abre o PR.
 1. No Mercado Pago, **Ativar credenciais** de produção.
 2. No Cloud Shell, troque o token pelo de produção (`APP_USR-...`) e publique de novo:
    ```bash
-   npx firebase-tools@13 functions:secrets:set MP_ACCESS_TOKEN --project helpfloripa-61e0d
-   npx firebase-tools@13 deploy --only functions --project helpfloripa-61e0d
+   npx firebase-tools@latest functions:secrets:set MP_ACCESS_TOKEN --project helpfloripa-61e0d
+   npx firebase-tools@latest deploy --only functions --project helpfloripa-61e0d
    ```
 3. Mande para o Claude a **Public Key de produção** (`APP_USR-...`; é pública): ele troca no `planos-base.js`.
 4. Faça um pagamento real de um plano com uma conta sua (Pix) e confira:

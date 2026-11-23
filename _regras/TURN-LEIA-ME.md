@@ -1,5 +1,12 @@
 # Etapa C — Ligações que conectam em qualquer rede (TURN do Cloudflare, precisa do plano Blaze)
 
+
+> **Cloud Shell com Node 26 (23/11/2026):** use sempre `npx firebase-tools@latest` (a versão 13 dá "There was an error
+> retrieving the Firestore database"). Antes do 1º deploy de funções: `gcloud services enable secretmanager.googleapis.com`.
+> O deploy pede TODOS os segredos citados no código (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, CF_TURN_KEY_ID, CF_TURN_TOKEN),
+> mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
+> Na pergunta "How many days ... container images" aperte Enter (1 dia).
+
 Hoje a ligação vai direto de um aparelho para o outro. Em alguns 4G, redes de empresa e de universidade a rede não deixa
 ("A rede não deixou conectar"). O **TURN** repassa o áudio e o vídeo nesses casos. Pronto e **desligado**
 (`TURN_LIGADO = false` em `servidor.js`).
@@ -17,9 +24,9 @@ segue pela conexão direta, como hoje, sem esperar mais de 3,5 s. Limite: 60 ped
 ```bash
 cd HelpFloripa-site- && git pull
 cd functions && npm ci && cd ..
-npx firebase-tools@13 functions:secrets:set CF_TURN_KEY_ID --project helpfloripa-61e0d
-npx firebase-tools@13 functions:secrets:set CF_TURN_TOKEN --project helpfloripa-61e0d
-npx firebase-tools@13 deploy --only functions:credenciaisTurn --project helpfloripa-61e0d
+npx firebase-tools@latest functions:secrets:set CF_TURN_KEY_ID --project helpfloripa-61e0d
+npx firebase-tools@latest functions:secrets:set CF_TURN_TOKEN --project helpfloripa-61e0d
+npx firebase-tools@latest deploy --only functions:credenciaisTurn --project helpfloripa-61e0d
 ```
 O `secrets:set` pede o valor: cole e aperte Enter (não aparece nada na tela, é normal).
 **CF_TURN_KEY_ID** = Turn Token ID · **CF_TURN_TOKEN** = API Token.
