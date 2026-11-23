@@ -15,7 +15,7 @@ service firebase.storage {
     function eu() { return request.auth.uid; }
     function doc(caminho) { return /databases/(default)/documents/$(caminho); }
     function equipe() { return logado() && firestore.exists(doc('admins/' + eu())); }
-    function papel() { return firestore.get(doc('admins/' + eu())).data.get('papel', 'dono'); }
+    function papel() { return firestore.get(doc('admins/' + eu())).data.get('papel', 'nenhum'); }
     // Apagar arquivo dos outros: só moderação e donos (igual ao Firestore, podeModerar).
     function modera() { return equipe() && papel() in ['dono', 'moderacao']; }
     function donoDoSite() { return equipe() && papel() == 'dono'; }

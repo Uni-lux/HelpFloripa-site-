@@ -10,8 +10,8 @@
 // Grupo: equipe_chat/{id} · individual: equipe_dm/{uidA_uidB}/mensagens/{id}
 // Canais por setor (nível nacional): equipe_canais/{canal}/mensagens/{id} (conversa "canal-<id>"; equipe-canais.js)
 // =====================================================
-import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=30";
-import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=1";
+import { C, D, h, ms, toast, avatar, relativo, editarTarefa, nomeEquipe, PAPEIS, modal, registrar } from "./admin-base.js?v=31";
+import { CANAIS, GERAL, canalPorId, convCanal, ehCanal, idCanal, podeEscrever, silenciado, STATUS, protocolosDoTexto } from "./equipe-canais.js?v=2";
 import { PRIORIDADES as PRIO_SUP, prioridadeChamado, situacaoPrazo } from "./suporte-fila.js?v=2";
 import { criarPlayerAudio } from "./audio-ondas.js?v=6";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
@@ -536,7 +536,7 @@ export function montarChat(el) {
     const itens = [];
     D.admins.filter((a) => a.id !== C.eu.uid).forEach((a) => {
       const par = idPar(C.eu.uid, a.id), d = dmDe(par);
-      itens.push({ id: par, uid: a.id, nome: a.nome || nomeDe(a.id), sub: d?.ultimaTexto ? `${d.ultimoAutor === C.eu.uid ? "Você: " : ""}${d.ultimaTexto}` : (PAPEIS[a.papel] || PAPEIS.dono), quando: d?.ultimaEm, nao: naoLidaDm(par) ? 1 : 0, st: C.statusDe ? C.statusDe(a.id) : (C.online(a.id) ? "disponivel" : null) });
+      itens.push({ id: par, uid: a.id, nome: a.nome || nomeDe(a.id), sub: d?.ultimaTexto ? `${d.ultimoAutor === C.eu.uid ? "Você: " : ""}${d.ultimaTexto}` : (PAPEIS[a.papel] || "Equipe"), quando: d?.ultimaEm, nao: naoLidaDm(par) ? 1 : 0, st: C.statusDe ? C.statusDe(a.id) : (C.online(a.id) ? "disponivel" : null) });
     });
     const ordemSt = { disponivel: 3, pausa: 2, fora: 1 };
     itens.sort((x, y) => ms(y.quando) - ms(x.quando) || ((ordemSt[y.st] || 0) - (ordemSt[x.st] || 0)) || x.nome.localeCompare(y.nome));
@@ -609,7 +609,7 @@ export function montarChat(el) {
       const on = C.online(uid), pr = C.presenca.get(uid), st = C.statusDe ? C.statusDe(uid) : (on ? "disponivel" : null);
       const av = avatar({ ...pessoa(uid), nome: a.nome || nomeDe(uid) }); av.classList.add("com-ponto"); av.appendChild(h("i", "ad-ponto " + (STATUS[st]?.cls || "")));
       const carga = [D.denuncias.filter((d) => d.responsavel === uid && ["nova", "em_analise"].includes(d.status)).length, D.suporte.filter((x) => x.responsavel === uid && x.status !== "fechado").length, C.tarefas.filter((t) => t.responsavel === uid && t.status !== "feito").length];
-      const status = h("small", st === "disponivel" ? "on" : null, `${st ? STATUS[st].nome.toLowerCase() : pr?.em ? "visto " + relativo(pr.em) : "ainda não abriu o painel"} · ${PAPEIS[a.papel] || PAPEIS.dono}`);
+      const status = h("small", st === "disponivel" ? "on" : null, `${st ? STATUS[st].nome.toLowerCase() : pr?.em ? "visto " + relativo(pr.em) : "ainda não abriu o painel"} · ${PAPEIS[a.papel] || "Equipe"}`);
       const tx = h("div", "tx"); tx.append(h("strong", null, a.nome || nomeDe(uid)), status);
       quem.append(av, tx);
       quem.title = `Com ${primeiro(a.nome || nomeDe(uid))}: ${carga[0]} denúncia(s), ${carga[1]} chamado(s) e ${carga[2]} tarefa(s)`;

@@ -290,7 +290,7 @@ export async function definirSelo(uid, sim, detalhe = "") {
 // (fica no Registro de ações) e nunca para menor de 18. A moderação dá o selo só pelo pedido aprovado.
 export const MOTIVOS_SELO = { parceiro: "Parceiro oficial do Help Floripa", orgao: "Órgão público ou instituição", conhecido: "Pessoa ou marca conhecida", imprensa: "Imprensa", outro: "Outro" };
 export async function darSeloDireto(uid) {
-  if ((C.papel || "dono") !== "dono") { semPermissao(); return false; }
+  if ((C.papel || "suporte") !== "dono") { semPermissao(); return false; }
   const p = D.pessoas.get(uid) || {};
   const anos = idade(p.dataNascimento);
   if (anos != null && anos < 18) { await avisoHF({ titulo: "Não dá para verificar", texto: `Pelo cadastro, esta pessoa tem ${anos} anos. O selo é só para maiores de 18.`, icone: "alerta" }); return false; }
@@ -424,12 +424,12 @@ export async function abrirFicha(uid) {
   bt("Criar tarefa", "", () => editarTarefa({ ligacao: `usuario:${uid}`, ligacaoNome: p.nome || uid }).then(() => false));
   // Selo: tirar (moderação); dar direto só o dono; a moderação vai pelo pedido (Verificações).
   if (mod && p.verificado) bt("Tirar selo", "", async () => { if (!(await confirmarHF({ titulo: "Tirar o selo?", texto: "O perfil deixa de aparecer como verificado.", ok: "Tirar o selo", icone: "olhoOff" }))) return false; await definirSelo(uid, false); toast("Selo retirado"); return true; });
-  else if ((C.papel || "dono") === "dono") bt("Dar selo direto", "", async () => { if (!(await darSeloDireto(uid))) return false; toast("Perfil verificado"); return true; });
+  else if ((C.papel || "suporte") === "dono") bt("Dar selo direto", "", async () => { if (!(await darSeloDireto(uid))) return false; toast("Perfil verificado"); return true; });
   else if (mod && D.pendVerif.includes(uid)) bt("Ver pedido de verificação", "", () => { C.irPara("verificacoes"); return false; });
   const ver = h("a", "ad-bt", "Ver perfil no site"); ver.href = `usuarios.html?perfil=${encodeURIComponent(uid)}`; ver.target = "_blank"; ac.appendChild(ver);
   if (p.email) { const em = h("a", "ad-bt", "E-mail"); em.href = `mailto:${p.email}`; ac.appendChild(em); }
   // Apagar a conta (só os donos): a mesma limpeza da exclusão automática, pela Cloud Function apagarConta.
-  if ((C.papel || "dono") === "dono" && uid !== C.eu.uid && !D.admins.some((a) => a.id === uid)) bt("Apagar conta", "perigo", () => apagarContaPeloPainel(uid, p));
+  if ((C.papel || "suporte") === "dono" && uid !== C.eu.uid && !D.admins.some((a) => a.id === uid)) bt("Apagar conta", "perigo", () => apagarContaPeloPainel(uid, p));
   const tel = String(p.telefone || "").replace(/\D/g, ""); if (tel.length >= 10) { const w = h("a", "ad-bt", "WhatsApp"); w.href = `https://wa.me/55${tel}`; w.target = "_blank"; w.rel = "noopener"; ac.appendChild(w); }
   corpo.appendChild(ac);
 
@@ -618,13 +618,13 @@ export async function banirPrograma(uid, tipoInicial = "comunidade", motivoInici
 }
 
 // ---------- equipe: papéis, quem assumiu cada item, quem está vendo ----------
-// Papel vem do documento admins/{uid} (campo "papel"); sem campo = dono (acesso total).
+// Papel vem do documento admins/{uid} (campo "papel"); sem campo = sem poderes extras (como suporte).
 // As regras do Firestore garantem as permissões; aqui o painel só esconde o que não vale.
 export const PAPEIS = { dono: "Dono", moderacao: "Moderação", suporte: "Suporte", comercial: "Comercial" };
 export const DESC_PAPEIS = { dono: "Acesso total: planos, receita, negociações e registro de ações", moderacao: "Denúncias, publicações, selos, suspensões e comunicados", suporte: "Chamados de suporte e avisos", comercial: "Propostas de sócios e parcerias" };
 // "dono": planos (pagamentos, negociações e parcerias pelos planos), receita e registro de ações.
 export function pode(acao) {
-  const p = C.papel || "dono";
+  const p = C.papel || "suporte";
   if (acao === "dono") return p === "dono";
   if (acao === "moderar") return p === "dono" || p === "moderacao";
   if (acao === "comercial") return p === "dono" || p === "comercial";

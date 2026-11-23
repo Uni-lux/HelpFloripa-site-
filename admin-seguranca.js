@@ -9,7 +9,7 @@
 // Ações: ver o anúncio, ficha do vendedor, esconder o negócio, avisar a vítima (pista da equipe), ver quem registrou
 // (autoria) e tirar ocorrência falsa do ar.
 // =====================================================
-import { C, h, ms, data, dataHora, relativo, selo, toast, registrar, abrirFicha, pode, semPermissao, esconderItem, enviarAviso } from "./admin-base.js?v=30";
+import { C, h, ms, data, dataHora, relativo, selo, toast, registrar, abrirFicha, pode, semPermissao, esconderItem, enviarAviso } from "./admin-base.js?v=31";
 import { destaque, num } from "./graficos.js?v=7";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";

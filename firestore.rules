@@ -28,9 +28,10 @@ service cloud.firestore {
     }
 
     // Papel na equipe (campo "papel" no documento admins/{uid}, definido no console).
-    // Sem o campo = "dono" (acesso total). Outros: moderacao, suporte, comercial.
+    // Valores: dono, moderacao, suporte, comercial. Sem o campo = "nenhum" (só o que vale para qualquer pessoa da equipe;
+    // antes de 23/11/2026 era "dono": os 3 donos ganharam papel "dono" escrito no console).
     function papel() {
-      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'dono');
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
     }
     // Moderação: selo, esconder/remover conteúdo, suspender/banir, denúncias, comunicados.
     function podeModerar() {
