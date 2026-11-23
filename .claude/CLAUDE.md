@@ -2454,6 +2454,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   rota e contato são dele), `stories_restritos` (só autorId/criadoEm/negocios), `entregadores_online` (~100 m, só online),
   ocorrências ativas (o objetivo é consultar IMEI/placa), `planos` (selo nas vitrines), `diario` list (escondidas viram
   esqueleto; agendadas em coleção própria).
+- **Hospedagem (23/11/2026, combinado para o dia seguinte):** ele quer o repositório privado. Cloudflare Pages tira o
+  `.html` dos endereços (redireciona /feed.html → /feed) e ~56 pontos do código dependem do nome com .html (rede-app.js
+  `nomeArq`, scripts do `<head>` do feed/mural, confirmar.js, mural.js, conta-acao.js...): exigiria adaptação. Recomendado e
+  aceito como mais vantajoso: **Firebase Hosting** (mantém .html, mesmo projeto, CDN do Google, repo privado de graça).
+  Plano: 1) eu: `hosting` no firebase.json com `public: "."` e `ignore` igual ao `_config.yml` (_*, .*, regras, functions,
+  scripts, README...) + workflow de deploy (segredo `FIREBASE_SERVICE_ACCOUNT`, que também serve à limpeza automática) e teste
+  no emulador do Hosting; 2) ele: deploy pelo Cloud Shell e testa em helpfloripa-61e0d.web.app; 3) domínio personalizado
+  helpfloripa.com.br no Firebase + DNS; 4) desligar o GitHub Pages e deixar o repositório privado. Alternativa: GitHub Pro US$ 4/mês.
 - **Comparação sem × com Storage (26/10/2026, pedida por ele):** `_testes/gerar-fotos.py` (JPEGs reais: post 176 KB,
   perfil/logo 34 KB, foto 89 KB) + `carga-fotos.mjs doc|storage` (por cima do carga-seed; lotes de 8, o emulador recusa
   envio > 4 MB) + `t-storage-compara.mjs` (4G simulado 10 Mbit/s, 70 ms; leituras, MB do Firestore, MB de fotos, LCP, memória).
