@@ -3,7 +3,7 @@
 // Uso: node testes-storage.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
-import { ref, uploadBytes, getBytes, deleteObject } from "firebase/storage";
+import { ref, uploadBytes, getBytes, deleteObject, listAll } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../storage.rules", import.meta.url).pathname;
@@ -31,7 +31,7 @@ process.env.FIRESTORE_EMULATOR_HOST = `127.0.0.1:${FS_PORTA}`;
 const { initializeApp } = await import("firebase-admin/app");
 const { getFirestore } = await import("firebase-admin/firestore");
 const adm = getFirestore(initializeApp({ projectId: process.env.FS_PROJETO || "demo-hf" }));
-const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }]];
+const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }]];
 for (const [c, d] of APOIO) await adm.doc(c).set(d);
 await env.clearStorage();
 
@@ -92,6 +92,22 @@ await t("comprovante: o dono do site lê e apaga", async () => { await assertSuc
 // ---------- resto ----------
 await t("pasta desconhecida NÃO", () => assertFails(subir("ana", "qualquer/ana.jpg")));
 await t("raiz NÃO", () => assertFails(subir("ana", "ana.jpg")));
+
+// ---------- listar pastas (read = get + list) e apagar arquivo dos outros ----------
+await subir("ana", "stories/ana/amigos_lz.jpg");
+await subir("st_adm", "suporte/equipe_st_adm/2_x.jpg");
+await t("Flash: outra pessoa NÃO lista a pasta (Amigos próximos/vencidos)", () => assertFails(listAll(ref(st("bia"), "stories/ana"))));
+await t("Flash: o dono lista a própria pasta", () => assertSucceeds(listAll(ref(st("ana"), "stories/ana"))));
+await t("Flash: quem tem conta abre o arquivo pelo nome", () => assertSucceeds(getBytes(ref(st("bia"), "stories/ana/amigos_lz.jpg"))));
+await t("Diário: outra pessoa NÃO lista", () => assertFails(listAll(ref(st("bia"), "diario/ana"))));
+await t("Comunidade: outra pessoa NÃO lista", () => assertFails(listAll(ref(st("bia"), "comunidade/ana"))));
+await t("perfil/capa/negócios/anúncios: ninguém lista", async () => { for (const p of ["fotosPerfil", "fotosCapa", "negocios", "anuncios"]) await assertFails(listAll(ref(st("ana"), p))); });
+await t("suporte: usuário NÃO lista a pasta da equipe", () => assertFails(listAll(ref(st("bia"), "suporte/equipe_st_adm"))));
+await t("suporte: usuário ainda abre o anexo da equipe pelo nome", () => assertSucceeds(getBytes(ref(st("bia"), "suporte/equipe_st_adm/2_x.jpg"))));
+await t("suporte: a equipe lista", () => assertSucceeds(listAll(ref(st("st_adm"), "suporte/equipe_st_adm"))));
+await t("chat: ninguém lista a conversa", () => assertFails(listAll(ref(st("ana"), "mensagens/st_ana_bia/ana"))));
+await t("Comercial NÃO apaga foto de outra pessoa", () => assertFails(deleteObject(ref(st("st_com"), "stories/ana/amigos_lz.jpg"))));
+await t("dono do site apaga foto de outra pessoa", () => assertSucceeds(deleteObject(ref(st("st_dono"), "stories/ana/amigos_lz.jpg"))));
 
 for (const r of res) if (r[0] !== "ok") console.log("✘", r[1], "→", r[2]);
 console.log(`${ok} passaram, ${falhou} falharam (${arquivo.split("/").pop()})`);
