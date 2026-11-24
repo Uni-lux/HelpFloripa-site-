@@ -158,8 +158,9 @@
       // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
       function prioridadeOk(d) {
         let p = d.get('prioridade', 'normal');
-        return p == 'normal'
-            || (p == 'urgente' && d.categoria in ['golpe', 'sos'])
+        // golpe e Help (sos) entram SEMPRE como urgentes (o site grava assim; ninguém joga um golpe para a fila normal)
+        return d.categoria in ['golpe', 'sos'] ? p == 'urgente'
+            : p == 'normal'
             || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
                 || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
                     && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']

@@ -1,3 +1,56 @@
+      // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
+      // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
+      // Quem pode ver (13/11/2026; antes qualquer pessoa logada lia, e só o app escondia): para todos (restrito false);
+      // Amigos próximos só quem está na lista; com gente ocultada, todos menos ela (esses a fileira acha pelo
+      // stories_restritos e abre um por um). Flash antigo, sem o campo, vale pelo publico/ocultoPara dele.
+      // ATENÇÃO: numa consulta (list) o campo que ela não filtra vale o padrão do .get(campo, padrão) — por isso a consulta
+      // só passa com "restrito == false" ou "lista array-contains eu"; a conferência de "ocultoPara" é só ao abrir (get).
+      allow get: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
+                         || resource.data.get('destacado', false) == true)
+                        && (resource.data.get('publico', 'todos') == 'amigos'
+                            ? request.auth.uid in resource.data.lista
+                            : !(request.auth.uid in resource.data.get('ocultoPara', [])))));
+      allow list: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
+                    || (resource.data.criadoEm > request.time - duration.value(26, 'h')
+                        && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
+      // Anti-spam: até 50 flashes por dia (ritmo/{uid}, gravado junto na mesma operação).
+      allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid) && ritmoOk('flash');
+      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+      // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
+      allow update: if logado() && resource.data.autorId == request.auth.uid
+                    && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
+                         && request.resource.data.destacado is bool)
+                        // Flash de antes do campo "restrito": o autor completa (só com o valor certo) e ele volta à fileira.
+                        || (!('restrito' in resource.data)
+                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
+                            && request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
+                                                                  || resource.data.get('ocultoPara', []).size() > 0)));
+      match /vistos/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm'])
+                      && request.resource.data.criadoEm == request.time
+                      && podeVerFlash();
+        allow read: if logado() && (uid == request.auth.uid
+                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
+        allow update, delete: if false;
+      }
+      // reacoes/{uid}: a estrela (curtir o flash) e o último emoji de quem viu, para o autor ver na lista de
+      // visualizações (como o coração e as reações do Instagram). Só a própria pessoa grava; só ela e o autor leem.
+      match /reacoes/{uid} {
+        allow create, update: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['curtiu', 'emoji', 'em'])
+                      && request.resource.data.em == request.time
+                      && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
+                      && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
+                      && get(/databases/$(database)/documents/stories/$(id)).data.autorId != request.auth.uid
+                      && podeVerFlash();
+        allow read: if logado() && (uid == request.auth.uid
+                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
+        allow delete: if logado() && uid == request.auth.uid;
+      }
+    }
+
     // ===================================================
     // DESTAQUES do Flash: destaques/{id} {uid, nome, ids, capa, capaMini, criadoEm, atualizadoEm} — ficam no perfil,
     // como os destaques do Instagram. Quem está logado lê (os flashes em si já são lidos assim); só o dono cria,
@@ -113,74 +166,4 @@
       allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
       allow update, delete: if false;
     }
-    // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
-    // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
-    // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
-    // (público em enquete_votos ou anônimo em enquete_anon), na fatia do voto, +1 na opção dele.
-    match /enquete_contas/{cid} {
-      allow read: if logado();
-      function partes() { return cid.split('_'); }
-      function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
-      function votoDeAgora() {
-        return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
-      }
-      function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
-      function pedacoDoVoto() {
-        return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
-            && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
-            && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
-      }
-      allow create: if logado() && pedacoDoVoto()
-                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == 1;
-      allow update: if logado() && pedacoDoVoto()
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
-                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
-      allow delete: if false;
-    }
-
-    // ===================================================
-    // CAIXA DE PERGUNTAS: caixa_respostas/{id} = { alvo, tipo, itemId, autorId (dono da publicação/flash),
-    //   uid, nome, foto (só se NÃO for anônima), texto (até 300), anonima, criadoEm }.
-    // Anônima: sem uid/nome/foto; quem respondeu fica em caixa_autoria/{id} (só a moderação lê).
-    // O dono lê e apaga as respostas; quem respondeu (não anônima) lê e apaga a sua.
-    // ===================================================
-    match /caixa_respostas/{id} {
-      function caixaDoItem(d) {
-        return get(d.tipo == 'd'
-          ? /databases/$(database)/documents/diario/$(d.itemId)
-          : /databases/$(database)/documents/stories/$(d.itemId)).data;
-      }
-      function respostaOk() {
-        let d = request.resource.data;
-        let item = caixaDoItem(d);
-        let autoria = /databases/$(database)/documents/caixa_autoria/$(id);
-        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
-            && d.tipo in ['d', 'f']
-            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
-            && d.alvo == d.tipo + '_' + d.itemId
-            && d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 300
-            && d.criadoEm == request.time
-            && 'caixa' in item && d.autorId == item.autorId
-            && d.anonima == item.caixa.anonima
-            && (d.anonima
-                ? (!d.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(autoria) && getAfter(autoria).data.uid == request.auth.uid)
-                : (d.uid == request.auth.uid && textoAte('nome', 80) && textoAte('foto', 2000)));
-      }
-      allow create: if logado() && emailOk() && !sancionado(request.auth.uid) && respostaOk();
-      allow read, delete: if logado() && (resource.data.autorId == request.auth.uid
-                                       || resource.data.get('uid', '') == request.auth.uid
-                                       || podeModerar());
-      allow update: if false;
-    }
-    match /caixa_autoria/{id} {
-      allow read, delete: if podeModerar();
-      allow create: if logado()
-                    && request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time
-                    && existsAfter(/databases/$(database)/documents/caixa_respostas/$(id));
-      allow update: if false;
-    }
-
 // ===== FIM DA PARTE 17 DE 25 =====

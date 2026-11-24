@@ -1,3 +1,73 @@
+    // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
+    // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
+    // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
+    // (público em enquete_votos ou anônimo em enquete_anon), na fatia do voto, +1 na opção dele.
+    match /enquete_contas/{cid} {
+      allow read: if logado();
+      function partes() { return cid.split('_'); }
+      function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
+      function votoDeAgora() {
+        return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
+      }
+      function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
+      function pedacoDoVoto() {
+        return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
+            && !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+            && string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
+      }
+      allow create: if logado() && pedacoDoVoto()
+                    && request.resource.data.keys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == 1;
+      allow update: if logado() && pedacoDoVoto()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
+                    && request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
+      allow delete: if false;
+    }
+
+    // ===================================================
+    // CAIXA DE PERGUNTAS: caixa_respostas/{id} = { alvo, tipo, itemId, autorId (dono da publicação/flash),
+    //   uid, nome, foto (só se NÃO for anônima), texto (até 300), anonima, criadoEm }.
+    // Anônima: sem uid/nome/foto; quem respondeu fica em caixa_autoria/{id} (só a moderação lê).
+    // O dono lê e apaga as respostas; quem respondeu (não anônima) lê e apaga a sua.
+    // ===================================================
+    match /caixa_respostas/{id} {
+      function caixaDoItem(d) {
+        return get(d.tipo == 'd'
+          ? /databases/$(database)/documents/diario/$(d.itemId)
+          : /databases/$(database)/documents/stories/$(d.itemId)).data;
+      }
+      function respostaOk() {
+        let d = request.resource.data;
+        let item = caixaDoItem(d);
+        let autoria = /databases/$(database)/documents/caixa_autoria/$(id);
+        return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
+            && d.tipo in ['d', 'f']
+            && d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+            && d.alvo == d.tipo + '_' + d.itemId
+            && d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 300
+            && d.criadoEm == request.time
+            && 'caixa' in item && d.autorId == item.autorId
+            && d.anonima == item.caixa.anonima
+            && (d.anonima
+                ? (!d.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(autoria) && getAfter(autoria).data.uid == request.auth.uid)
+                : (d.uid == request.auth.uid && textoAte('nome', 80) && textoAte('foto', 2000)));
+      }
+      allow create: if logado() && emailOk() && !sancionado(request.auth.uid) && respostaOk();
+      allow read, delete: if logado() && (resource.data.autorId == request.auth.uid
+                                       || resource.data.get('uid', '') == request.auth.uid
+                                       || podeModerar());
+      allow update: if false;
+    }
+    match /caixa_autoria/{id} {
+      allow read, delete: if podeModerar();
+      allow create: if logado()
+                    && request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.criadoEm == request.time
+                    && existsAfter(/databases/$(database)/documents/caixa_respostas/$(id));
+      allow update: if false;
+    }
+
     // ===================================================
     // PREFERÊNCIAS PÚBLICAS: pref_publicas/{uid} — o que os outros precisam saber antes de interagir
     // (quem pode marcar/mencionar a pessoa). Só o dono grava; qualquer pessoa logada lê.
@@ -93,68 +163,5 @@
     // ===================================================
     match /diario_notas/{postId} {
       allow read: if logado();
-
-      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
-      function contaCerta() {
-        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
-        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
-        let r = resource == null ? {} : resource.data;
-        let n = request.resource.data;
-        return a != d
-            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
-            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
-            && n.get('soma', 0) == r.get('soma', 0) + d - a
-            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
-            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
-            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
-            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
-            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
-      }
-      allow create, update: if logado() && contaCerta();
-      // Recalcular (moderação): números inteiros, sem campo estranho.
-      allow create, update: if podeModerar()
-                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
-                    && request.resource.data.total is int && request.resource.data.soma is int
-                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
-                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // COMENTÁRIOS: comentarios/{id}
-    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
-    //   e respostaAutorId = autor dele (para o aviso).
-    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
-    // - Quem comentou ou o dono da publicação apaga.
-    // - Publicação com comentários ocultos não recebe comentários novos.
-    // =====================================================
-    match /comentarios/{id} {
-
-      allow read: if logado();
-
-      // Texto até 500; pode ficar vazio quando o comentário é uma foto, um áudio, uma figurinha ou uma enquete.
-      function textoComentarioOk(d) {
-        return d.texto is string && d.texto.size() <= 500 && (d.texto.size() >= 1 || 'midia' in d || 'enquete' in d);
-      }
-      // Foto, áudio (até 60 s) ou figurinha no comentário: do próprio site (dentro do documento ou Storage).
-      function midiaComentOk(d) {
-        return !('midia' in d)
-            || (d.midia is map && d.midia.keys().hasOnly(['tipo', 'url', 'dur'])
-                && d.midia.tipo in ['imagem', 'audio', 'figurinha']
-                && d.midia.url is string && d.midia.url.size() <= 700000
-                && d.midia.url.matches(d.midia.tipo == 'audio'
-                     ? '^(data:audio/[a-z0-9.+-]{1,20}(;codecs=[a-z0-9.]{1,12})?;base64,|https://firebasestorage[.]googleapis[.]com/).*'
-                     : '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
-                && (!('dur' in d.midia) || (d.midia.dur is number && d.midia.dur > 0 && d.midia.dur <= 61)));
-      }
-      // Enquete no comentário (como no Instagram): só o autor da publicação; pergunta e 2 a 4 opções.
-      function enqueteComentOk(d) {
-        return !('enquete' in d)
-            || (d.postAutorId == request.auth.uid
-                && d.enquete is map && d.enquete.keys().hasOnly(['pergunta', 'opcoes'])
-                && d.enquete.pergunta is string && d.enquete.pergunta.size() >= 1 && d.enquete.pergunta.size() <= 120
-                && d.enquete.opcoes is list && d.enquete.opcoes.size() >= 2 && d.enquete.opcoes.size() <= 4
-                && d.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
-      }
 
 // ===== FIM DA PARTE 18 DE 25 =====

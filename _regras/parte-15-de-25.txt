@@ -1,3 +1,31 @@
+    // Apagar para todos no chat da equipe: fica "apagou esta mensagem"; o conteúdo vai para
+    // equipe_apagadas/{id} (abre por 24 horas), gravado junto.
+    function apagarEquipeOk(id) {
+      let d = request.resource.data;
+      let a = resource.data;
+      return a.autorId == request.auth.uid
+          && request.time < a.em + duration.value(10, 'm')
+          && !('apagada' in a)
+          && d.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+          && d.autorId == a.autorId && d.em == a.em && d.get('nome', '') == a.get('nome', '')
+          && d.apagada is map && d.apagada.keys().hasOnly(['por', 'em'])
+          && d.apagada.por == request.auth.uid && d.apagada.em == request.time
+          && existsAfter(/databases/$(database)/documents/equipe_apagadas/$(id));
+    }
+    match /equipe_chat/{id} {
+      allow read: if admin();
+      allow create: if admin() && msgEquipeOk('equipe');
+      allow update: if admin() && reacaoValida();
+      allow update: if admin() && (edicaoEquipeOk() || apagarEquipeOk(id));
+      allow delete: if false;
+    }
+    // Canais da equipe por setor (equipe-canais.js): equipe_canais/{canal} guarda só o resumo da última
+    // mensagem; as mensagens ficam em equipe_canais/{canal}/mensagens. Toda a equipe lê; em "avisos" só
+    // os donos escrevem.
+    function canalEquipeOk(canal) {
+      return canal.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
+          && (canal != 'avisos' || papel() == 'dono');
+    }
     match /equipe_canais/{canal} {
       allow read: if admin();
       allow create, update: if admin() && canalEquipeOk(canal)
@@ -30,7 +58,11 @@
                     && request.resource.data.participantes == par.split('_')
                     && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
                     && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
-                    && request.resource.data.get('lidoEm', {}) is map;
+                    && request.resource.data.get('lidoEm', {}) is map
+                    // cada um marca só a própria leitura, e "última mensagem" só de quem está gravando
+                    && request.resource.data.get('lidoEm', {}).diff(resource == null ? {} : resource.data.get('lidoEm', {})).affectedKeys().hasOnly([request.auth.uid])
+                    && (!request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['ultimaEm', 'ultimaTexto', 'ultimoAutor'])
+                        || (request.resource.data.get('ultimoAutor', null) == request.auth.uid && request.resource.data.get('ultimaEm', null) == request.time));
       allow delete: if false;
       match /mensagens/{id} {
         allow read: if admin() && request.auth.uid in par.split('_');
@@ -43,6 +75,12 @@
     // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
     // depois disso qualquer um da conversa apaga de vez).
     match /equipe_apagadas/{id} {
+      function equipeCopiaIgual(c, o) {
+        return c.get('tipoArquivo', null) == o.get('tipoArquivo', null) && c.get('nomeArquivo', null) == o.get('nomeArquivo', null)
+            && c.get('tamanho', null) == o.get('tamanho', null) && c.get('miniatura', null) == o.get('miniatura', null)
+            && c.get('duracao', null) == o.get('duracao', null) && c.get('resposta', null) == o.get('resposta', null)
+            && c.get('mencoes', null) == o.get('mencoes', null) && c.get('edicoes', null) == o.get('edicoes', null);
+      }
       function daConversaEq(c) { return c == 'equipe' || c.matches('^canal-[a-z]+$') || request.auth.uid in c.split('_'); }
       function msgEq(c) {
         return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
@@ -61,7 +99,8 @@
                     && request.resource.data.conteudo is map
                     && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
                     && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
-                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '')
+                    && equipeCopiaIgual(request.resource.data.conteudo, get(msgEq(request.resource.data.conversa)).data);
       allow update: if false;
       allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
     }
@@ -114,6 +153,10 @@
             && valorTextoAte(d.get('ligacao', null), 160)
             && valorTextoAte(d.get('ligacaoNome', null), 120)
             && valorTextoAte(d.get('criadoPorNome', null), 80)
+            // concluída: a data é a do servidor quando vira "feito", fica a mesma enquanto continua feita e some ao reabrir
+            && (d.status != 'feito' ? d.get('concluidaEm', null) == null
+                : (resource == null || resource.data.status != 'feito') ? d.get('concluidaEm', null) == request.time
+                : d.get('concluidaEm', null) == resource.data.get('concluidaEm', null))
             && d.atualizadoEm == request.time;
       }
       allow read: if admin();
@@ -139,64 +182,5 @@
       allow update: if false;
       allow delete: if admin() && (resource.data.autorId == request.auth.uid || papel() == 'dono');
     }
-
-    match /admin_log/{id} {
-      // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
-      allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
-      allow create: if admin()
-                    && request.resource.data.por == request.auth.uid
-                    && request.resource.data.em == request.time
-                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
-                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
-      allow update, delete: if false;
-    }
-
-    match /estatisticas/{id} {
-      allow read: if admin();
-      allow write: if false;
-    }
-
-    match /relatorios/{id} {
-      allow read: if admin();
-      allow write: if false;
-    }
-
-
-    // =====================================================
-    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
-    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
-    // 20 publicações, 200 comentários, 3 propostas e 50 flashes. Cada ação soma exatamente 1 no seu tipo.
-    // =====================================================
-    match /ritmo/{uid} {
-      function limite(t) {
-        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : (t == 'sup' ? 5 : 200))));
-      }
-      function janelaNova() {
-        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
-      }
-      function contaOk(k, t) {
-        let v = request.resource.data.get(k, 0);
-        return v is int
-            && v == (k == t ? (janelaNova() ? 1 : resource.data.get(k, 0) + 1)
-                            : (janelaNova() ? 0 : resource.data.get(k, 0)));
-      }
-      allow get: if logado() && request.auth.uid == uid;
-      allow read: if admin();
-      allow create, update: if logado()
-                    && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'sup', 'ultimaEm', 'ultimoTipo'])
-                    && request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash', 'sup']
-                    && request.resource.data.ultimaEm == request.time
-                    && request.resource.data.inicio == (janelaNova() ? request.time : resource.data.inicio)
-                    && contaOk('msg', request.resource.data.ultimoTipo)
-                    && contaOk('pub', request.resource.data.ultimoTipo)
-                    && contaOk('com', request.resource.data.ultimoTipo)
-                    && contaOk('parc', request.resource.data.ultimoTipo)
-                    && contaOk('flash', request.resource.data.ultimoTipo)
-                    && contaOk('sup', request.resource.data.ultimoTipo)
-                    && request.resource.data.get(request.resource.data.ultimoTipo, 0) <= limite(request.resource.data.ultimoTipo);
-      allow delete: if false;
-    }
-
 
 // ===== FIM DA PARTE 15 DE 25 =====

@@ -1,3 +1,66 @@
+      function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
+      function contaCerta() {
+        let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
+        let d = existsAfter(minhaNota()) ? getAfter(minhaNota()).data.nota : 0;
+        let r = resource == null ? {} : resource.data;
+        let n = request.resource.data;
+        return a != d
+            && n.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+            && n.get('total', 0) == r.get('total', 0) + (d > 0 ? 1 : 0) - (a > 0 ? 1 : 0)
+            && n.get('soma', 0) == r.get('soma', 0) + d - a
+            && n.get('n1', 0) == r.get('n1', 0) + (d == 1 ? 1 : 0) - (a == 1 ? 1 : 0)
+            && n.get('n2', 0) == r.get('n2', 0) + (d == 2 ? 1 : 0) - (a == 2 ? 1 : 0)
+            && n.get('n3', 0) == r.get('n3', 0) + (d == 3 ? 1 : 0) - (a == 3 ? 1 : 0)
+            && n.get('n4', 0) == r.get('n4', 0) + (d == 4 ? 1 : 0) - (a == 4 ? 1 : 0)
+            && n.get('n5', 0) == r.get('n5', 0) + (d == 5 ? 1 : 0) - (a == 5 ? 1 : 0);
+      }
+      allow create, update: if logado() && contaCerta();
+      // Recalcular (moderação): números inteiros, sem campo estranho.
+      allow create, update: if podeModerar()
+                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+                    && request.resource.data.total is int && request.resource.data.soma is int
+                    && request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
+                    && request.resource.data.n4 is int && request.resource.data.n5 is int;
+      allow delete: if podeModerar();
+    }
+
+    // =====================================================
+    // COMENTÁRIOS: comentarios/{id}
+    // - Resposta: respostaA = id do comentário respondido (mesma publicação)
+    //   e respostaAutorId = autor dele (para o aviso).
+    // - Quem comentou edita o texto. O dono da publicação oculta um comentário.
+    // - Quem comentou ou o dono da publicação apaga.
+    // - Publicação com comentários ocultos não recebe comentários novos.
+    // =====================================================
+    match /comentarios/{id} {
+
+      allow read: if logado();
+
+      // Texto até 500; pode ficar vazio quando o comentário é uma foto, um áudio, uma figurinha ou uma enquete.
+      function textoComentarioOk(d) {
+        return d.texto is string && d.texto.size() <= 500 && (d.texto.size() >= 1 || 'midia' in d || 'enquete' in d);
+      }
+      // Foto, áudio (até 60 s) ou figurinha no comentário: do próprio site (dentro do documento ou Storage).
+      function midiaComentOk(d) {
+        return !('midia' in d)
+            || (d.midia is map && d.midia.keys().hasOnly(['tipo', 'url', 'dur'])
+                && d.midia.tipo in ['imagem', 'audio', 'figurinha']
+                && d.midia.url is string && d.midia.url.size() <= 700000
+                && d.midia.url.matches(d.midia.tipo == 'audio'
+                     ? '^(data:audio/[a-z0-9.+-]{1,20}(;codecs=[a-z0-9.]{1,12})?;base64,|https://firebasestorage[.]googleapis[.]com/).*'
+                     : '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
+                && (!('dur' in d.midia) || (d.midia.dur is number && d.midia.dur > 0 && d.midia.dur <= 61)));
+      }
+      // Enquete no comentário (como no Instagram): só o autor da publicação; pergunta e 2 a 4 opções.
+      function enqueteComentOk(d) {
+        return !('enquete' in d)
+            || (d.postAutorId == request.auth.uid
+                && d.enquete is map && d.enquete.keys().hasOnly(['pergunta', 'opcoes'])
+                && d.enquete.pergunta is string && d.enquete.pergunta.size() >= 1 && d.enquete.pergunta.size() <= 120
+                && d.enquete.opcoes is list && d.enquete.opcoes.size() >= 2 && d.enquete.opcoes.size() <= 4
+                && d.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
+      }
+
       // Quem pode comentar (escolha do autor): o autor sempre pode.
       function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
       function podeComentar(p) {
@@ -126,70 +189,4 @@
       // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
       function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
 
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
-                    // quem escreveu o comentário (para avisar da reação)
-                    && (!('comentarioAutorId' in request.resource.data)
-                        || request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
-                    && exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
-                    && reacaoOk(request.resource.data)
-                    && request.resource.data.criadoEm == request.time;
-
-      // Trocar a reação (só o emoji).
-      allow update: if logado()
-                    && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['reacao'])
-                    && reacaoOk(request.resource.data);
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-    }
-
-
-    // =====================================================
-    // DIÁRIO / PUBLICAÇÕES
-    // =====================================================
-    match /diario/{postId} {
-
-      allow get: if logado() && podeAbrir('autorId');
-      allow list: if logado();
-
-      function publicacaoOk() {
-        let d = request.resource.data;
-        return textoAte('texto', 1000)
-            // título em cima (opcional) e o modelo escolhido (como a publicação é desenhada)
-            && (!('titulo' in d) || (d.titulo is string && d.titulo.size() >= 1 && d.titulo.size() <= 90))
-            && (!('layout' in d) || (d.layout is string && d.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
-            && textoAte('nome', 80)
-            && campoFotoOk('fotoPerfil')
-            && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
-            && (!('mediaUrl' in d) || d.mediaUrl == ''
-                || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
-            // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
-            && (!('midias' in d)
-                || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
-                    && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
-                    && fotoPubOk(d.midias[1])
-                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
-                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
-      }
-      // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
-      function tagsOk(d) {
-        return !('tags' in d) || (d.tags is list && d.tags.size() <= 10
-            && (d.tags.size() == 0 || d.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
-      }
-      function marcadosOk(d) {
-        return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
-            && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
-      }
-      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
-      function localPubOk(d) {
-        return !('local' in d) || d.local == null
-            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
-                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
-                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
-                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
-      }
 // ===== FIM DA PARTE 19 DE 25 =====

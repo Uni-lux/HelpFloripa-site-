@@ -69,7 +69,8 @@
               && x.tipo in ['imagem', 'video', 'arquivo']
               && valorTextoAte(x.get('nome', ''), 120)
               && x.url is string && x.url.size() <= 750000
-              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+              // arquivo no Storage: só da pasta suporte/ (a sua ou a da equipe), nunca um link qualquer
+              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/suporte%2F(' + request.auth.uid + '|equipe_[A-Za-z0-9]+)%2F).*');
         }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
@@ -123,37 +124,10 @@
             && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
             // Selfie segurando o documento: prova que quem pede é a pessoa do documento.
             && d.selfie is string && d.selfie.size() <= 450000 && d.selfie.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
-            && (!('links' in d) || (d.links is list && d.links.size() <= 3))
+            && (!('links' in d) || (d.links is list && d.links.size() <= 3
+                && d.links.join('\n').matches('^(https?://[^\\s]{3,192}(\nhttps?://[^\\s]{3,192}){0,2})?$')))
             && valorTextoAte(d.get('motivo', ''), 500)
             && d.status == 'pendente'
             && d.criadoEm == request.time && d.atualizadoEm == request.time;
       }
-      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
-      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
-      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
-      allow update: if logado() && request.auth.uid == uid
-                    && resource.data.status in ['recusada', 'cancelada']
-                    // recusado: pedir de novo só 30 dias depois da decisão (cancelado pela pessoa: na hora)
-                    && (resource.data.status == 'cancelada'
-                        || request.time > resource.data.get('analisadaEm', resource.data.atualizadoEm) + duration.value(30, 'd'))
-                    && pedidoOk(request.resource.data);
-      // Cancelar o próprio pedido (a foto do documento sai junto).
-      allow update: if logado() && request.auth.uid == uid
-                    && resource.data.status in ['pendente', 'em_analise']
-                    && request.resource.data.status == 'cancelada'
-                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
-                    && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
-                    && request.resource.data.atualizadoEm == request.time;
-      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
-      // Ninguém da moderação decide o próprio pedido (só um dono).
-      allow update: if podeModerar() && (uid != request.auth.uid || papel() == 'dono')
-                    && resource.data.status in ['pendente', 'em_analise']
-                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
-                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
-                    && request.resource.data.analisadaPor == request.auth.uid
-                    && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
-                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
-      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
-    }
-
 // ===== FIM DA PARTE 12 DE 25 =====

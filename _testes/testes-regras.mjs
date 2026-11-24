@@ -134,7 +134,9 @@ await t("suporte: o usuário responde", async () => { const db = ctx("ana"), b =
 const msgSup = (quem, extra) => setDoc(doc(ctx(quem), "suporte", idSup, "mensagens", "ax" + Math.random().toString(36).slice(2, 8)), { autorId: quem, equipe: quem === "adm", texto: "", em: serverTimestamp(), ...extra });
 await t("suporte: usuário manda foto sem texto", () => assertSucceeds(msgSup("ana", { anexo: { tipo: "imagem", url: "data:image/jpeg;base64,AAAA", nome: "print.jpg" } })));
 await t("suporte: usuário manda PDF", () => assertSucceeds(msgSup("ana", { texto: "Segue o comprovante", anexo: { tipo: "arquivo", url: "data:application/pdf;base64,JVBE", nome: "comprovante.pdf" } })));
-await t("suporte: vídeo pelo Storage", () => assertSucceeds(msgSup("ana", { anexo: { tipo: "video", url: "https://firebasestorage.googleapis.com/v0/b/x/o/v.mp4", nome: "tela.mp4" } })));
+await t("suporte: vídeo pelo Storage", () => assertSucceeds(msgSup("ana", { anexo: { tipo: "video", url: "https://firebasestorage.googleapis.com/v0/b/x/o/suporte%2Fana%2Fv.mp4?alt=media", nome: "tela.mp4" } })));
+await t("suporte: anexo de outra pasta do Storage é recusado", () => assertFails(msgSup("ana", { anexo: { tipo: "imagem", url: "https://firebasestorage.googleapis.com/v0/b/x/o/negocios%2Fbia_servicos.jpg?alt=media", nome: "x.jpg" } })));
+await t("suporte: anexo na pasta de suporte de outra pessoa é recusado", () => assertFails(msgSup("ana", { anexo: { tipo: "imagem", url: "https://firebasestorage.googleapis.com/v0/b/x/o/suporte%2Fbia%2Fx.jpg?alt=media", nome: "x.jpg" } })));
 await t("suporte: equipe responde com foto", () => assertSucceeds(msgSup("adm", { texto: "Veja como fazer", anexo: { tipo: "imagem", url: "data:image/jpeg;base64,AAAA", nome: "passo.jpg" } })));
 await t("suporte: recusa anexo de outro site", () => assertFails(msgSup("ana", { anexo: { tipo: "imagem", url: "https://exemplo.com/x.jpg" } })));
 await t("suporte: recusa PNG/HTML em data:", () => assertFails(msgSup("ana", { anexo: { tipo: "arquivo", url: "data:text/html;base64,PGgxPg==" } })));
@@ -186,6 +188,7 @@ let idFila = null;
 await t("fila: chamado de golpe nasce urgente", async () => { idFila = await abrirChamadoUsuario("ana", { categoria: "golpe", prioridade: "urgente" }); });
 await t("fila: chamado de pagamento nasce com prioridade alta", () => abrirChamadoUsuario("ana", { categoria: "pagamento", prioridade: "alta" }));
 await t("fila: quem abre não se dá urgente num assunto comum", () => assertFails(abrirChamadoUsuario("ana", { categoria: "conta", prioridade: "urgente" })));
+await t("fila: golpe não entra na fila normal", () => assertFails(abrirChamadoUsuario("ana", { categoria: "golpe", prioridade: "normal" })));
 await t("suporte: chamado sem somar no ritmo é recusado", () => assertFails(abrirChamadoUsuario("ana", {}, undefined, true)));
 await t("suporte: e-mail do chamado diferente do login é recusado", () => assertFails(abrirChamadoUsuario("ana", { email: "outra@pessoa.com" })));
 await t("suporte: e-mail do login com maiúsculas é aceito", () => assertSucceeds(abrirChamadoUsuario("sup_lim", { email: "SUP_LIM@t.com" })));
@@ -349,6 +352,8 @@ await t("equipe: anexo de outra conversa é recusado", async () => {
 });
 await t("equipe: reage na conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq, "mensagens", "d1"), { "reacoes.mod": "❤️" })));
 await t("equipe: marca a leitura da conversa individual", () => assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_dm", parEq), { "lidoEm.mod": serverTimestamp() })));
+await t("equipe: não marca a leitura do outro", () => assertFails(updateDoc(doc(ctx("mod"), "equipe_dm", parEq), { [`lidoEm.${parEq.split("_").find((x) => x !== "mod")}`]: serverTimestamp() })));
+await t("equipe: não põe o outro como autor da última mensagem", () => assertFails(updateDoc(doc(ctx("mod"), "equipe_dm", parEq), { ultimoAutor: parEq.split("_").find((x) => x !== "mod"), ultimaTexto: "falso" })));
 
 // Editar e apagar mensagens (para todos fica "apagou esta mensagem"; o conteúdo abre por 24 horas).
 // Só até 10 minutos depois de enviar: "recente" = enviada há 1 minuto.
@@ -789,6 +794,15 @@ await t("flash privado: quem NÃO está nos Amigos próximos não abre", () => a
 await t("flash privado: Amigos próximos aparecem na consulta da lista", () => assertSucceeds(getDocs(query(collection(ctx("bia"), "stories"), where("lista", "array-contains", "bia"), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))))));
 await t("flash privado: com ocultados publica (e o índice junto)", () => assertSucceeds(criarFlash(doc(ctx("ana"), "stories", "pvOc"), { autorId: "ana", nome: "Ana", tipo: "imagem", midia: fotoS, ocultoPara: ["edu"], criadoEm: serverTimestamp() })));
 await t("flash privado: quem foi ocultado não abre", () => assertFails(getDoc(doc(ctx("edu"), "stories", "pvOc"))));
+await t("flash: quem foi ocultado não marca visto nem reage", async () => {
+  await assertFails(setDoc(doc(ctx("edu"), "stories", "pvOc", "vistos", "edu"), { criadoEm: serverTimestamp() }));
+  await assertFails(setDoc(doc(ctx("edu"), "stories", "pvOc", "reacoes", "edu"), { curtiu: true, em: serverTimestamp() }));
+});
+await t("flash: quem pode ver marca visto", () => assertSucceeds(setDoc(doc(ctx("bia"), "stories", "pvOc", "vistos", "bia"), { criadoEm: serverTimestamp() })));
+await t("flash: a consulta dos 'para todos' não traz o flash de quem foi ocultado", async () => {
+  const q = await getDocs(query(collection(ctx("edu"), "stories"), where("autorId", "in", ["ana"]), where("restrito", "==", false), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))));
+  if (q.docs.some((d) => d.id === "pvOc")) throw new Error("veio o flash ocultado");
+});
 await t("flash privado: quem não foi ocultado abre", () => assertSucceeds(getDoc(doc(ctx("bia"), "stories", "pvOc"))));
 await t("flash privado: consulta sem 'restrito == false' é recusada", () => assertFails(getDocs(query(collection(ctx("edu"), "stories"), where("autorId", "in", ["ana"]), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))))));
 await t("flash privado: consulta dos para todos funciona", () => assertSucceeds(getDocs(query(collection(ctx("edu"), "stories"), where("autorId", "in", ["ana"]), where("restrito", "==", false), where("criadoEm", ">=", Timestamp.fromMillis(Date.now() - 864e5))))));
@@ -1057,6 +1071,19 @@ await t("reporte: usuário comum não reporta como equipe", () => assertFails(se
 await t("nota do atendimento: quem abriu dá 5 estrelas", () => assertSucceeds(setDoc(doc(ctx("bia"), "suporte_notas", "cb1"), { uid: "bia", nota: 5, comentario: "Rápido!", atendidoPor: "mod2", criadoEm: serverTimestamp() })));
 await t("nota do atendimento: não troca depois", () => assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cb1"), { uid: "bia", nota: 1, criadoEm: serverTimestamp() })));
 await t("nota do atendimento: outra pessoa não avalia", () => assertFails(setDoc(doc(ctx("ana"), "suporte_notas", "cb1"), { uid: "ana", nota: 1, criadoEm: serverTimestamp() })));
+await t("nota do atendimento: atendente inventado é recusado", async () => {
+  await semRegras((db) => setDoc(doc(db, "suporte", "cbNota"), { uid: "bia", status: "fechado", atendidoPor: "mod2" }));
+  await assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cbNota"), { uid: "bia", nota: 1, atendidoPor: "mod", criadoEm: serverTimestamp() }));
+});
+await t("reporte: resolvido não volta para novo", async () => {
+  await semRegras((db) => setDoc(doc(db, "reportes", "repFim"), { tipo: "atendimento", chamadoId: "cb1", autorId: "bia", alvoId: "mod2", motivo: "grosseria", status: "resolvido", criadoEm: Timestamp.now() }));
+  await assertFails(updateDoc(doc(ctx("mod"), "reportes", "repFim"), { status: "novo", analisadaPor: "mod", analisadaEm: serverTimestamp() }));
+});
+await t("reporte: novo → em análise com a hora do servidor", async () => {
+  await semRegras((db) => setDoc(doc(db, "reportes", "repNovo"), { tipo: "atendimento", chamadoId: "cb1", autorId: "bia", alvoId: "mod2", motivo: "grosseria", status: "novo", criadoEm: Timestamp.now() }));
+  await assertFails(updateDoc(doc(ctx("mod"), "reportes", "repNovo"), { status: "em_analise", analisadaPor: "mod", analisadaEm: Timestamp.fromMillis(Date.now() - 864e5) }));
+  await assertSucceeds(updateDoc(doc(ctx("mod"), "reportes", "repNovo"), { status: "em_analise", analisadaPor: "mod", analisadaEm: serverTimestamp() }));
+});
 await t("nota do atendimento: nota 6 é recusada", async () => { await semRegras((db) => setDoc(doc(db, "suporte", "cb9"), { uid: "bia", assunto: "x", categoria: "conta", status: "fechado" })); await assertFails(setDoc(doc(ctx("bia"), "suporte_notas", "cb9"), { uid: "bia", nota: 6, criadoEm: serverTimestamp() })); });
 await t("nota do atendimento: a equipe lê", () => assertSucceeds(getDoc(doc(ctx("mod2"), "suporte_notas", "cb1"))));
 
@@ -1108,7 +1135,7 @@ await t("verificação: moderação não aprova o próprio pedido", async () => 
 await t("verificação: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("mod"), "verificacoes", "bia"))));
 await t("verificação: aprovar sem apagar a foto do documento é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp() })));
 await t("verificação: a pessoa não muda o pedido em análise (só cancela)", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { nomeLegal: "Outro Nome" })));
-await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
+await t("verificação: a moderação recusa com motivo e apaga a foto", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "recusada", motivoRecusa: "Documento ilegível.", analisadaPor: "mod", analisadaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 await t("verificação: recusada, não pede de novo antes de 30 dias", () => assertFails(setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV())));
 await t("verificação: 30 dias depois da recusa, pede de novo", async () => {
   await semRegras((db) => updateDoc(doc(db, "verificacoes", "bia"), { analisadaEm: Timestamp.fromMillis(Date.now() - 31 * 864e5) }));
@@ -1117,8 +1144,13 @@ await t("verificação: 30 dias depois da recusa, pede de novo", async () => {
 await t("verificação: cancelar sem apagar a selfie é recusado", () => assertFails(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField() })));
 await t("verificação: a pessoa cancela (as fotos saem junto)", () => assertSucceeds(updateDoc(doc(ctx("bia"), "verificacoes", "bia"), { status: "cancelada", atualizadoEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
 await t("verificação: a moderação não aprova em nome de outro", async () => { await setDoc(doc(ctx("bia"), "verificacoes", "bia"), pedidoV()); await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "adm", analisadaEm: serverTimestamp(), documento: deleteField() })); });
-await t("verificação: aprovar apagando o documento mas não a selfie é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField() })));
-await t("verificação: a moderação aprova e apaga as fotos", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
+await t("verificação: aprovar apagando o documento mas não a selfie é recusado", () => assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), documento: deleteField() })));
+await t("verificação: a moderação aprova e apaga as fotos", () => assertSucceeds(updateDoc(doc(ctx("mod"), "verificacoes", "bia"), { status: "aprovada", analisadaPor: "mod", analisadaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), documento: deleteField(), selfie: deleteField() })));
+await t("verificação: decisão com data inventada é recusada", async () => {
+  await semRegras((db) => setDoc(doc(db, "verificacoes", "vfData"), { uid: "vfData", status: "pendente", documento: "x" }));
+  await assertFails(updateDoc(doc(ctx("mod"), "verificacoes", "vfData"), { status: "recusada", analisadaPor: "mod", analisadaEm: Timestamp.fromMillis(Date.now() - 864e5), atualizadoEm: serverTimestamp(), documento: deleteField() }));
+});
+await t("verificação: link que não é https/http é recusado", () => assertFails(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", links: ["javascript:alert(1)"] }))));
 
 await t("verificação: documento de tamanho real (~600 KB) passa", () => assertSucceeds(setDoc(doc(ctx("edu"), "verificacoes", "edu"), pedidoV({ uid: "edu", documento: "data:image/jpeg;base64," + "Q".repeat(598000) }))));
 await t("verificação: sem a selfie com o documento é recusado", () => assertFails(setDoc(doc(ctx("gui"), "verificacoes", "gui"), (() => { const o = pedidoV({ uid: "gui" }); delete o.selfie; return o; })())));
@@ -1380,6 +1412,14 @@ await t("registro: moderação NÃO lê o registro", () => assertFails(getDocs(q
 await t("registro: comercial NÃO lê uma ação", () => assertFails(getDoc(doc(ctx("com"), "admin_log", "l1"))));
 await semRegras((db) => setDoc(doc(db, "admins", "semPapel"), { nome: "Sem papel" }));
 await t("registro: equipe SEM o campo papel NÃO vira dono", () => assertFails(getDoc(doc(ctx("semPapel"), "admin_log", "l1"))));
+await t("registro: a equipe grava uma ação como o painel", () => assertSucceeds(addDoc(collection(ctx("mod"), "admin_log"), { acao: "aviso", alvo: "bia", detalhe: "x", ref: "suporte:1", por: "mod", porNome: "Mod", em: serverTimestamp() })));
+await t("registro: campo a mais no registro é recusado", () => assertFails(addDoc(collection(ctx("mod"), "admin_log"), { acao: "aviso", por: "mod", em: serverTimestamp(), extra: "x".repeat(5000) })));
+await t("tarefa: concluir com data inventada é recusado; com a do servidor passa", async () => {
+  await assertSucceeds(setDoc(doc(ctx("mod"), "equipe_tarefas", "tfC"), { titulo: "Ligar para a loja", status: "a_fazer", prioridade: "normal", criadoPor: "mod", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(doc(ctx("mod"), "equipe_tarefas", "tfC"), { status: "feito", concluidaEm: Timestamp.fromMillis(Date.now() - 30 * 864e5), atualizadoEm: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_tarefas", "tfC"), { status: "feito", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(ctx("mod"), "equipe_tarefas", "tfC"), { status: "a_fazer", concluidaEm: null, atualizadoEm: serverTimestamp() }));
+});
 await t("registro: moderação lê as cobranças das reclamações", () => assertSucceeds(getDocs(query(collection(ctx("mod"), "admin_log"), where("acao", "==", "cobrar_reclamacao")))));
 await t("registro: toda a equipe continua registrando", () => assertSucceeds(addDoc(collection(ctx("mod"), "admin_log"), { acao: "entrou", alvo: "", detalhe: "Entrou no painel", por: "mod", porNome: "Mod", em: serverTimestamp() })));
 await t("registro: fora da equipe não registra", () => assertFails(addDoc(collection(ctx("bia"), "admin_log"), { acao: "entrou", por: "bia", em: serverTimestamp() })));

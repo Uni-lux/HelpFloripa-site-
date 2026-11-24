@@ -1,3 +1,45 @@
+    match /sos/{id} {
+      function d() { return request.resource.data; }
+      function r() { return resource.data; }
+      // Quem está perto só lê enquanto o pedido está aberto (depois de resolvido, o lugar e o nome não ficam expostos).
+      allow get, list: if logado() && ((resource.data.publico == true && resource.data.status in ['aberto', 'atendido']) || resource.data.uid == request.auth.uid
+                    || resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || podeModerar());
+      allow create: if logado() && emailOk()
+                    && d().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
+                    && d().get('equipe', false) is bool && d().get('escalarMin', 0) is int && d().get('escalarMin', 0) >= 0 && d().get('escalarMin', 0) <= 15
+                    && d().uid == request.auth.uid && valorTextoAte(d().get('nome', ''), 80)
+                    && d().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
+                    && valorTextoAte(d().get('texto', ''), 300)
+                    && pontoAlertaOk(d()) && d().precisao is number
+                    && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
+                    && d().status == 'aberto' && d().ajudanteId == ''
+                    && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
+      function sosMuda(k, st, ns) {
+        let dono = r().uid == request.auth.uid;
+        let ajudante = r().ajudanteId == request.auth.uid;
+        return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
+            // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
+            || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
+                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
+            || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
+                && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
+            || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
+                && !bloqueioEntre(request.auth.uid, r().uid)
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
+                && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
+            || (ajudante && st == 'atendido' && ns == 'aberto'
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
+      }
+      allow delete: if false;
+    }
+
+    // Ocorrências (roubo, furto, golpe, suspeita). Anônima = sem autorId; quem fez fica em ocorrencias_autoria/{id}
+    // (só a pessoa e a moderação leem) e é por ele que a pessoa marca "recuperado".
+    function autorOcorrencia(oc) {
+      let a = /databases/$(database)/documents/ocorrencias_autoria/$(oc);
+      return exists(a) && get(a).data.uid == request.auth.uid;
+    }
     match /ocorrencias/{id} {
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
@@ -99,53 +141,6 @@
       allow read: if podeModerar();
       allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
                     && getAfter(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
-      allow update, delete: if false;
-    }
-
-    // DESAPARECIDOS (18/11/2026): aviso de pessoa desaparecida com o número do boletim de ocorrência. Nasce "analise" e só
-    // a equipe publica ("ativo") depois de conferir — evita usar o site para achar quem fugiu de uma situação de violência.
-    // Quem registrou e a moderação leem sempre; os outros só o publicado. Pistas como nas ocorrências (anônima = autoria
-    // só para a moderação).
-    match /desaparecidos/{id} {
-      function d() { return request.resource.data; }
-      allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar());
-      allow create: if logado() && emailOk() && d().autorId == request.auth.uid
-                    && d().keys().hasOnly(['autorId', 'autorNome', 'nome', 'idade', 'condicao', 'parentesco', 'descricao', 'sinais', 'visto', 'quando', 'bo', 'foto', 'lat', 'lng', 'geo4', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm'])
-                    && d().nome is string && d().nome.size() >= 3 && d().nome.size() <= 80 && valorTextoAte(d().get('autorNome', ''), 80)
-                    && (!('idade' in d()) || (d().idade is int && d().idade >= 0 && d().idade <= 120))
-                    && d().condicao in ['crianca', 'idoso', 'demencia', 'deficiencia', 'adulto', 'outro']
-                    && d().parentesco in ['pais', 'filho', 'conjuge', 'irmao', 'parente', 'responsavel', 'amigo']
-                    && d().descricao is string && d().descricao.size() >= 10 && d().descricao.size() <= 500
-                    && valorTextoAte(d().get('sinais', ''), 300) && valorTextoAte(d().get('visto', ''), 120)
-                    && d().quando is timestamp && d().quando <= request.time
-                    && d().bo is string && d().bo.matches('^[A-Za-z0-9./-]{4,40}$')
-                    && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
-                    && pontoAlertaOk(d()) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
-                    && d().status == 'analise' && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
-                    && ((resource.data.autorId == request.auth.uid && d().status in ['encontrado', 'removido'])
-                        || (podeModerar() && d().status in ['ativo', 'removido', 'encontrado']));
-      allow delete: if false;
-      match /pistas/{p} {
-        allow read: if logado() && (get(/databases/$(database)/documents/desaparecidos/$(id)).data.autorId == request.auth.uid || podeModerar());
-        allow create: if logado() && emailOk()
-                      && get(/databases/$(database)/documents/desaparecidos/$(id)).data.status == 'ativo'
-                      && request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'lat', 'lng', 'criadoEm'])
-                      && request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
-                      && request.resource.data.get('lat', 0) is number && request.resource.data.get('lng', 0) is number
-                      && request.resource.data.anonimo is bool
-                      && (request.resource.data.anonimo
-                          ? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
-                             && getAfter(/databases/$(database)/documents/pistas_desap_autoria/$(id + '_' + p)).data.uid == request.auth.uid)
-                          : (request.resource.data.uid == request.auth.uid && valorTextoAte(request.resource.data.get('nome', ''), 80)))
-                      && request.resource.data.criadoEm == request.time;
-        allow update, delete: if false;
-      }
-    }
-    match /pistas_desap_autoria/{id} {
-      allow read: if podeModerar();
-      allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-                    && getAfter(/databases/$(database)/documents/desaparecidos/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
       allow update, delete: if false;
     }
 
