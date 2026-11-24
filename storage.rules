@@ -19,17 +19,23 @@ service firebase.storage {
     // Apagar arquivo dos outros: só moderação e donos (igual ao Firestore, podeModerar).
     function modera() { return equipe() && papel() in ['dono', 'moderacao']; }
     function donoDoSite() { return equipe() && papel() == 'dono'; }
+    // Abrir pelo SDK o arquivo de outra pessoa (perfil, negócios, Diário, Flash, Comunidade, conversas): só moderação
+    // e donos, como no Firestore (mensagens das conversas: podeModerar). Suporte e comercial não precisam.
+    function leEquipe() { return modera(); }
     // Tamanho e tipo do que chega.
     function foto(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('image/(jpeg|png|webp)'); }
     function video(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('video/.*'); }
     function audio(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType.matches('audio/.*'); }
     function pdf(mb) { return request.resource.size < mb * 1024 * 1024 && request.resource.contentType == 'application/pdf'; }
     // Enviar arquivo: e-mail confirmado e conta sem suspensão/banimento (como o emailOk do Firestore).
+    // Fecha no erro: só a suspensão com data no passado libera. Banimento, suspensão sem data válida ou documento
+    // com tipo estranho continuam bloqueando (as regras do Firestore já só aceitam tipo e ate certos).
     function sancionado() {
       let s = doc('sancoes/' + eu());
       return firestore.exists(s)
-          && (firestore.get(s).data.tipo == 'banimento'
-              || (firestore.get(s).data.get('ate', null) is timestamp && firestore.get(s).data.ate > request.time));
+          && !(firestore.get(s).data.get('tipo', '') == 'suspensao'
+               && firestore.get(s).data.get('ate', null) is timestamp
+               && firestore.get(s).data.ate <= request.time);
     }
     function envia() { return logado() && request.auth.token.email_verified == true && !sancionado(); }
     // Abrir pelo SDK: só o dono (e a equipe). Quem vê a foto no site usa o link com o código (token) do
@@ -37,51 +43,52 @@ service firebase.storage {
     // abrir pelo nome sem o código ficaria aberto a quem tentasse vários nomes.
     function dono(uid) { return logado() && uid == eu(); }
     // Arquivo que começa com o uid de quem envia ("UID.jpg", "UID_lz3k9.jpg", "UID_servicos_capa_lz3k9.jpg").
-    function meuArquivo(arq) { return logado() && arq.matches('^' + eu() + '([_.].*)?$'); }
+    // Compara o pedaço antes do 1º "_" ou "." com o uid (sem montar expressão regular com o uid).
+    function meuArquivo(arq) { return logado() && arq.split('[_.]')[0] == eu(); }
 
     // "read" = get + list. O site só abre arquivos (get); listar uma pasta revelaria flashes de Amigos próximos,
     // flashes vencidos e arquivos escondidos. Por isso list fica só para o dono da pasta (ou fechado).
 
     // ---------- de quem tem conta (perfil, negócios, anúncios, Diário, Flash, Comunidade): sem login não lista nem baixa pelo Storage ----------
     match /fotosPerfil/{arq} {
-      allow get: if meuArquivo(arq) || equipe();
+      allow get: if meuArquivo(arq) || leEquipe();
       allow create, update: if meuArquivo(arq) && envia() && foto(5);
       allow delete: if meuArquivo(arq) || modera();
     }
     match /fotosCapa/{arq} {
-      allow get: if meuArquivo(arq) || equipe();
+      allow get: if meuArquivo(arq) || leEquipe();
       allow create, update: if meuArquivo(arq) && envia() && foto(5);
       allow delete: if meuArquivo(arq) || modera();
     }
     // negocios/UID_tipo.jpg, UID_tipo_capa_*.jpg, UID_tipo_f0_*.jpg (galeria), UID_tipo_i0_*.jpg (itens)
     match /negocios/{arq} {
-      allow get: if meuArquivo(arq) || equipe();
+      allow get: if meuArquivo(arq) || leEquipe();
       allow create, update: if meuArquivo(arq) && envia() && foto(5);
       allow delete: if meuArquivo(arq) || modera();
     }
     // anuncios/UID_ANUNCIO_f0_*.jpg (imóveis)
     match /anuncios/{arq} {
-      allow get: if meuArquivo(arq) || equipe();
+      allow get: if meuArquivo(arq) || leEquipe();
       allow create, update: if meuArquivo(arq) && envia() && foto(5);
       allow delete: if meuArquivo(arq) || modera();
     }
     // Diário: fotos (até 4) e vídeo curto (até 50 MB).
     match /diario/{uid}/{arq} {
-      allow get: if dono(uid) || equipe();
+      allow get: if dono(uid) || leEquipe();
       allow list: if logado() && uid == eu();
       allow create, update: if dono(uid) && envia() && (foto(8) || video(50));
       allow delete: if (logado() && uid == eu()) || modera();
     }
     // Flash (24 h): foto desenhada pelo site ou vídeo (até 40 MB no site).
     match /stories/{uid}/{arq} {
-      allow get: if dono(uid) || equipe();
+      allow get: if dono(uid) || leEquipe();
       allow list: if logado() && uid == eu();
       allow create, update: if dono(uid) && envia() && (foto(8) || video(50));
       allow delete: if (logado() && uid == eu()) || modera();
     }
     // Comunidade: fotos dos anúncios (doação, troca, quarto, achados).
     match /comunidade/{uid}/{arq} {
-      allow get: if dono(uid) || equipe();
+      allow get: if dono(uid) || leEquipe();
       allow list: if logado() && uid == eu();
       allow create, update: if dono(uid) && envia() && foto(5);
       allow delete: if (logado() && uid == eu()) || modera();
@@ -93,7 +100,7 @@ service firebase.storage {
       function participa() {
         return logado() && eu() in firestore.get(doc('conversas/' + conversa)).data.participantes;
       }
-      allow get: if participa() || equipe();
+      allow get: if participa() || leEquipe();
       allow list: if false;
       allow create: if uid == eu() && envia() && participa() && (foto(10) || video(50) || audio(15));
       allow delete: if (logado() && uid == eu()) || modera();
@@ -106,12 +113,14 @@ service firebase.storage {
       allow list: if (logado() && pasta == eu()) || equipe();
       allow create: if ((logado() && pasta == eu()) || (equipe() && pasta == 'equipe_' + eu()))
                     && (foto(10) || video(50) || pdf(20));
-      allow delete: if equipe();
+      // Apagar anexo de chamado (prova de reclamação/contestação): só moderação e donos, ou quem da equipe enviou.
+      allow delete: if modera() || (equipe() && pasta == 'equipe_' + eu());
     }
     // Comprovantes da condição especial dos planos: só a pessoa e os donos do site.
     match /negociacoes/{uid}/{arq} {
       allow get, list: if (logado() && uid == eu()) || donoDoSite();
-      allow create: if logado() && uid == eu() && (foto(10) || pdf(20));
+      // Igual ao Firestore (planos_negociacoes pede emailOk): e-mail confirmado e conta sem sanção.
+      allow create: if logado() && uid == eu() && envia() && (foto(10) || pdf(20));
       allow delete: if (logado() && uid == eu()) || donoDoSite();
     }
 
