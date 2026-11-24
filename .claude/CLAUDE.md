@@ -2443,6 +2443,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   donos: ele precisa pôr `papel: "dono"` nos 3 ANTES de publicar o storage.rules. Seed e testes-regras dão `papel: "dono"`.
   Os outros achados da auditoria foram conferidos e não eram brecha (apagar anexo = só o próprio arquivo; sanções
   protegidas no Firestore; links com token = esperado).
+- **3ª auditoria do Storage (24/11/2026, .docx dele, 10 pontos; PR depois do #255, MUDA storage.rules — publicar no console):**
+  abrir arquivo dos outros pelo SDK (perfil, negócios, Diário, Flash, Comunidade, chat) só `modera()` (`leEquipe`; igual ao
+  Firestore, onde as mensagens são só `podeModerar`); suporte continua para toda a equipe ler; apagar anexo de chamado só
+  moderação/donos ou quem da equipe enviou (`equipe_UID`); comprovante (`negociacoes`) exige `envia()` (o Firestore já pedia
+  emailOk); `sancionado()` fecha no erro (só suspensão com `ate` timestamp no passado libera); `meuArquivo` compara
+  `arq.split('[_.]')[0] == eu()` (sem regex com o uid). Não eram brecha / ficam para depois: links com token (por desenho;
+  revogar = apagar o arquivo ou o token no console), participantes imutáveis no Firestore, conferir o conteúdo real do arquivo
+  (magic bytes) precisaria de Cloud Function no upload. O site não apaga arquivos pelo navegador (só scripts/Admin).
+  `testes-storage.mjs` 81 (8 deles falham nas regras antigas).
 - **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
   Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
   e `pets_achados.local` dentro do Brasil. Comentário "oculto" (era só escondido pelo app) CORRIGIDO no PR seguinte:

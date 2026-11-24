@@ -32,7 +32,8 @@ process.env.FIRESTORE_EMULATOR_HOST = `127.0.0.1:${FS_PORTA}`;
 const { initializeApp } = await import("firebase-admin/app");
 const { getFirestore } = await import("firebase-admin/firestore");
 const adm = getFirestore(initializeApp({ projectId: process.env.FS_PROJETO || "demo-hf" }));
-const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }], ["admins/st_sem", { nome: "Sem papel" }],
+const APOIO = [["conversas/st_ana_bia", { participantes: ["ana", "bia"] }], ["admins/st_adm", { papel: "moderacao" }], ["admins/st_dono", { papel: "dono" }], ["admins/st_com", { papel: "comercial" }], ["admins/st_sem", { nome: "Sem papel" }], ["admins/st_sup", { papel: "suporte" }],
+  ["sancoes/st_torta", { tipo: "suspensao", ate: "2099-01-01" }], ["sancoes/st_estranho", { tipo: "outro" }],
   ["sancoes/st_ban", { tipo: "banimento" }], ["sancoes/st_susp", { tipo: "suspensao", ate: new Date(Date.now() + 864e5) }],
   ["sancoes/st_venc", { tipo: "suspensao", ate: new Date(Date.now() - 864e5) }]];
 for (const [c, d] of APOIO) await adm.doc(c).set(d);
@@ -94,6 +95,21 @@ await t("comprovante: o dono do site lê e apaga", async () => { await assertSuc
 await t("equipe SEM o campo papel NÃO vira dono (comprovante e apagar)", async () => { await assertSucceeds(subir("ana", "negociacoes/ana/2_x.jpg")); await assertFails(getBytes(ref(st("st_sem"), "negociacoes/ana/2_x.jpg"))); await assertFails(deleteObject(ref(st("st_sem"), "stories/ana/amigos_lz.jpg"))); });
 
 // ---------- resto ----------
+
+// ---------- auditoria de 24/11/2026 ----------
+await t("suporte (papel) NÃO abre foto do chat pelo SDK", () => assertFails(getBytes(ref(st("st_sup"), "mensagens/st_ana_bia/ana/1.jpg"))));
+await t("comercial NÃO abre arquivo de usuário pelo SDK", () => assertFails(getBytes(ref(st("st_com"), "fotosPerfil/ana_lz3k9.jpg"))));
+await t("moderação abre foto do chat (denúncia)", () => assertSucceeds(getBytes(ref(st("st_adm"), "mensagens/st_ana_bia/ana/1.jpg"))));
+await t("suporte (papel) lê anexo de chamado", () => assertSucceeds(getBytes(ref(st("st_sup"), "suporte/ana/1_x.pdf"))));
+await t("suporte (papel) NÃO apaga anexo do cliente", () => assertFails(deleteObject(ref(st("st_sup"), "suporte/ana/1_x.pdf"))));
+await t("suporte (papel) apaga o que a própria equipe enviou", async () => { await assertSucceeds(subir("st_sup", "suporte/equipe_st_sup/1_x.jpg")); await assertSucceeds(deleteObject(ref(st("st_sup"), "suporte/equipe_st_sup/1_x.jpg"))); });
+await t("moderação apaga anexo de chamado", () => assertSucceeds(deleteObject(ref(st("st_adm"), "suporte/ana/1_x.pdf"))));
+await t("comprovante: conta suspensa NÃO envia", () => assertFails(subir("st_susp", "negociacoes/st_susp/1_x.jpg")));
+await t("comprovante: e-mail não confirmado NÃO envia", () => assertFails(subir("semEmail", "negociacoes/semEmail/1_x.jpg")));
+await t("sanção com data em texto (malformada) bloqueia", () => assertFails(subir("st_torta", "diario/st_torta/1.jpg")));
+await t("sanção com tipo estranho bloqueia", () => assertFails(subir("st_estranho", "diario/st_estranho/1.jpg")));
+await t("uid com ponto/sublinhado no nome não engana (ana.x)", () => assertFails(subir("ana.x", "fotosPerfil/ana_1.jpg")));
+
 await t("pasta desconhecida NÃO", () => assertFails(subir("ana", "qualquer/ana.jpg")));
 await t("raiz NÃO", () => assertFails(subir("ana", "ana.jpg")));
 
