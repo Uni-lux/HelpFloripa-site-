@@ -2463,7 +2463,16 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   via guardados; contato/endereço do negócio são públicos de propósito), `usuarios` sem lista fechada de campos (só
   verificado/criadoEm/email/emailConfirmado/uid importam e estão travados; lista fechada quebraria os muitos campos do
   dono), `gravou()` sem removidos (os campos que importam são conferidos com `affectedKeys`/igualdade), horário noturno
-  (22:00-02:00 é válido), CNPJ (dígitos conferidos no site). Aguardando as partes 6 a 25 da auditoria dele.
+  (22:00-02:00 é válido), CNPJ (dígitos conferidos no site).
+  **Partes 6 a 10 (mesmo PR #257; 25 partes, 1336 testes):** corrigido: `apagadas` compara nomeArquivo/cartao/avaliacao/
+  resposta/edicoes com a mensagem original; `pedidoMudaOk` só de "pendente" e `decididoEm == request.time`; `agendadas`
+  criadoEm/atualizadoEm do servidor; `notas_clientes.etiquetas` textos ≤24 (join+regex); `comunicados` link só do site
+  (mesmo regex do comunicados.js), `em` = request.time, `ate` data; `queixas` nasce/reabre com respondidaEm/resolvidaEm
+  nulos (primeiros testes de queixas); `denuncias.contexto` só ids alfanuméricos; `sancoes.historico` só cresce no fim
+  (`historicoSoCresce`, com 50 a mais antiga sai) e apagar sanção só dono. Explicado como por desenho: `queixas` lidas por
+  qualquer conta (página Reclamações pública, como o Reclame Aqui — perguntado se ele quer mudar), limite de 3 chamados já
+  conferido no create de `suporte` (`abertosOk`), chamada: o id da conversa já é o par ordenado dos participantes.
+  Aguardando as partes 11 a 25.
 - **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
   Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
   e `pets_achados.local` dentro do Brasil. Comentário "oculto" (era só escondido pelo app) CORRIGIDO no PR seguinte:
@@ -3066,7 +3075,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (25 partes em `_regras/`, 1321 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (25 partes em `_regras/`, 1336 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

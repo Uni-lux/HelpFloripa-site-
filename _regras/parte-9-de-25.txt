@@ -13,7 +13,12 @@
                       // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
                       && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
                       && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
-                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '')
+                      && request.resource.data.conteudo.get('nomeArquivo', null) == original().get('nomeArquivo', null)
+                      && request.resource.data.conteudo.get('cartao', null) == original().get('cartao', null)
+                      && request.resource.data.conteudo.get('avaliacao', null) == original().get('avaliacao', null)
+                      && request.resource.data.conteudo.get('resposta', null) == original().get('resposta', null)
+                      && request.resource.data.conteudo.get('edicoes', null) == original().get('edicoes', null);
         // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
         allow update: if logado() && daConversa() && noPrazo()
                       && request.auth.uid != resource.data.remetenteId
@@ -204,15 +209,5 @@
       }
 
       allow read: if logado();
-
-      allow create: if logado()
-                    && avaliacaoNova()
-                    && request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
-                    && request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
-                    && request.resource.data.total == 1
-                    && request.resource.data.soma == getAfter(caminhoNova()).data.nota
-                    && request.resource.data[estrela()] == 1
-                    && request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
-                       + request.resource.data.n4 + request.resource.data.n5 == 1;
 
 // ===== FIM DA PARTE 9 DE 25 =====

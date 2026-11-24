@@ -96,7 +96,12 @@
                     && request.resource.data.quando > request.time
                     && request.resource.data.quando < request.time + duration.value(60, 'd')
                     && request.resource.data.dados is map
-                    && request.resource.data.dados.get('autorId', '') == request.auth.uid;
+                    && request.resource.data.dados.get('autorId', '') == request.auth.uid
+                    // datas do servidor: criadoEm na criação (e não muda), atualizadoEm quando muda algo
+                    && (resource == null
+                        ? request.resource.data.get('criadoEm', request.time) == request.time && !('atualizadoEm' in request.resource.data)
+                        : request.resource.data.get('criadoEm', null) == resource.data.get('criadoEm', null)
+                          && request.resource.data.get('atualizadoEm', null) == request.time);
       allow delete: if logado() && resource.data.autorId == request.auth.uid;
     }
 
@@ -133,6 +138,7 @@
                     && request.resource.data.clienteId is string
                     && id == request.auth.uid + '_' + request.resource.data.clienteId
                     && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && request.resource.data.etiquetas.join('\n').matches('^([^\n]{1,24}(\n[^\n]{1,24}){0,7})?$')
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000)
                     && request.resource.data.atualizadoEm == request.time;
       allow delete: if logado() && resource.data.donoId == request.auth.uid;

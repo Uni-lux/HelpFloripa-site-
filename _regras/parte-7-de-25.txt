@@ -117,7 +117,9 @@
         return a != null && n is map && request.auth.uid != a.de
             && n.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
             && n.de == a.de && n.em == a.em
-            && n.status in ['aceito', 'recusado'];
+            && a.get('status', 'pendente') == 'pendente'
+            && n.status in ['aceito', 'recusado']
+            && n.get('decididoEm', null) == request.time;
       }
 
       // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.

@@ -1,3 +1,25 @@
+      function itemDoAlvo(d) {
+        return (d.tipo == 'perfil' && d.itemId == d.alvoId)
+            || (d.tipo == 'publicacao' && get(/databases/$(database)/documents/diario/$(d.itemId)).data.autorId == d.alvoId)
+            || (d.tipo == 'comentario' && get(/databases/$(database)/documents/comentarios/$(d.itemId)).data.autorId == d.alvoId)
+            || (d.tipo == 'negocio' && get(/databases/$(database)/documents/negocios/$(d.itemId)).data.donoId == d.alvoId)
+            || (d.tipo == 'comunidade' && get(/databases/$(database)/documents/comunidade/$(d.itemId)).data.donoId == d.alvoId)
+            || (d.tipo == 'mensagem'
+                && d.conversaId is string
+                && request.auth.uid in get(/databases/$(database)/documents/conversas/$(d.conversaId)).data.participantes
+                && get(/databases/$(database)/documents/conversas/$(d.conversaId)/mensagens/$(d.itemId)).data.remetenteId == d.alvoId);
+      }
+
+      allow get: if logado() && resource.data.autorId == request.auth.uid;
+      allow read: if admin();
+      // A equipe registra a análise e quem assumiu o caso (para ninguém fazer o mesmo trabalho).
+      allow update: if podeModerar()
+                    && mudou().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+                    && request.resource.data.status in ['nova', 'em_analise', 'resolvida', 'descartada']
+                    && (!mudou().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    && responsavelOk()
+                    && valorTextoAte(request.resource.data.get('nota', ''), 1000);
+
       allow create: if logado()
                     && emailOk()
                     && request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'contexto', 'status', 'criadoEm'])
@@ -14,7 +36,8 @@
                     && (!('contexto' in request.resource.data)
                         || (request.resource.data.tipo == 'mensagem'
                             && request.resource.data.contexto is list
-                            && request.resource.data.contexto.size() <= 12))
+                            && request.resource.data.contexto.size() <= 12
+                            && request.resource.data.contexto.join('\n').matches('^([A-Za-z0-9]{1,40}(\n[A-Za-z0-9]{1,40}){0,11})?$')))
                     && request.resource.data.status == 'nova'
                     && request.resource.data.criadoEm == request.time
                     && itemDoAlvo(request.resource.data);
@@ -41,6 +64,14 @@
     }
 
     match /sancoes/{uid} {
+      // O histórico só ganha uma entrada no fim (com 50, a mais antiga sai): ninguém reescreve o que já aconteceu.
+      function historicoSoCresce() {
+        let a = resource == null ? [] : resource.data.get('historico', []);
+        let n = request.resource.data.get('historico', []);
+        return a.size() == 0 ? n.size() <= 1
+             : (n.size() == a.size() + 1 && n[0:a.size()] == a)
+               || (a.size() == 50 && n.size() == 50 && n[0:49] == a[1:50]);
+      }
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
       // Quem é da equipe só recebe (ou perde) sanção pelas mãos de um dono: um moderador não suspende o dono nem
@@ -52,8 +83,10 @@
                     && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
-                    && listaAte('historico', 50);
-      allow delete: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)));
+                    && listaAte('historico', 50)
+                    && historicoSoCresce();
+      // Apagar a sanção (e o histórico junto): só os donos. O painel tira a sanção gravando "removida" no histórico.
+      allow delete: if podeModerar() && papel() == 'dono';
     }
 
     match /avisos/{id} {
@@ -84,7 +117,12 @@
                     && valorTextoAte(request.resource.data.get('texto', ''), 600)
                     && request.resource.data.tipo in ['info', 'novidade', 'alerta']
                     && request.resource.data.ativo is bool
-                    && request.resource.data.por == request.auth.uid;
+                    && request.resource.data.por == request.auth.uid
+                    // link só para uma página do site (o comunicados.js também só abre esse tipo)
+                    && (!('link' in request.resource.data) || (request.resource.data.link is string
+                        && request.resource.data.link.matches('^[A-Za-z0-9_./?=&#-]{1,200}$') && !request.resource.data.link.matches('^//.*')))
+                    && request.resource.data.get('em', request.time) == request.time
+                    && dataOuNulo('ate');
       allow delete: if podeModerar();
     }
 

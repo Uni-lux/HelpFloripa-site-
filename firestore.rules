@@ -1160,7 +1160,12 @@ service cloud.firestore {
                     && request.resource.data.quando > request.time
                     && request.resource.data.quando < request.time + duration.value(60, 'd')
                     && request.resource.data.dados is map
-                    && request.resource.data.dados.get('autorId', '') == request.auth.uid;
+                    && request.resource.data.dados.get('autorId', '') == request.auth.uid
+                    // datas do servidor: criadoEm na criação (e não muda), atualizadoEm quando muda algo
+                    && (resource == null
+                        ? request.resource.data.get('criadoEm', request.time) == request.time && !('atualizadoEm' in request.resource.data)
+                        : request.resource.data.get('criadoEm', null) == resource.data.get('criadoEm', null)
+                          && request.resource.data.get('atualizadoEm', null) == request.time);
       allow delete: if logado() && resource.data.autorId == request.auth.uid;
     }
 
@@ -1197,6 +1202,7 @@ service cloud.firestore {
                     && request.resource.data.clienteId is string
                     && id == request.auth.uid + '_' + request.resource.data.clienteId
                     && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && request.resource.data.etiquetas.join('\n').matches('^([^\n]{1,24}(\n[^\n]{1,24}){0,7})?$')
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000)
                     && request.resource.data.atualizadoEm == request.time;
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
@@ -1321,7 +1327,9 @@ service cloud.firestore {
         return a != null && n is map && request.auth.uid != a.de
             && n.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
             && n.de == a.de && n.em == a.em
-            && n.status in ['aceito', 'recusado'];
+            && a.get('status', 'pendente') == 'pendente'
+            && n.status in ['aceito', 'recusado']
+            && n.get('decididoEm', null) == request.time;
       }
 
       // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
@@ -1559,7 +1567,12 @@ service cloud.firestore {
                       // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
                       && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
                       && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
-                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '')
+                      && request.resource.data.conteudo.get('nomeArquivo', null) == original().get('nomeArquivo', null)
+                      && request.resource.data.conteudo.get('cartao', null) == original().get('cartao', null)
+                      && request.resource.data.conteudo.get('avaliacao', null) == original().get('avaliacao', null)
+                      && request.resource.data.conteudo.get('resposta', null) == original().get('resposta', null)
+                      && request.resource.data.conteudo.get('edicoes', null) == original().get('edicoes', null);
         // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
         allow update: if logado() && daConversa() && noPrazo()
                       && request.auth.uid != resource.data.remetenteId
@@ -1885,6 +1898,8 @@ service cloud.firestore {
                     && request.resource.data.status == 'aberta'
                     && request.resource.data.aberturas == 1
                     && request.resource.data.get('resposta', null) == null
+                    && request.resource.data.get('respondidaEm', null) == null
+                    && request.resource.data.get('resolvidaEm', null) == null
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.abertaEm == request.time
                     && contaAntiga(request.auth.uid)
@@ -1921,6 +1936,8 @@ service cloud.firestore {
                         && request.resource.data.abertaEm == request.time
                         && request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
                         && request.resource.data.get('resposta', null) == null
+                        && request.resource.data.get('respondidaEm', null) == null
+                        && request.resource.data.get('resolvidaEm', null) == null
                         && contou())
                     );
 
@@ -2004,7 +2021,8 @@ service cloud.firestore {
                     && (!('contexto' in request.resource.data)
                         || (request.resource.data.tipo == 'mensagem'
                             && request.resource.data.contexto is list
-                            && request.resource.data.contexto.size() <= 12))
+                            && request.resource.data.contexto.size() <= 12
+                            && request.resource.data.contexto.join('\n').matches('^([A-Za-z0-9]{1,40}(\n[A-Za-z0-9]{1,40}){0,11})?$')))
                     && request.resource.data.status == 'nova'
                     && request.resource.data.criadoEm == request.time
                     && itemDoAlvo(request.resource.data);
@@ -2031,6 +2049,14 @@ service cloud.firestore {
     }
 
     match /sancoes/{uid} {
+      // O histórico só ganha uma entrada no fim (com 50, a mais antiga sai): ninguém reescreve o que já aconteceu.
+      function historicoSoCresce() {
+        let a = resource == null ? [] : resource.data.get('historico', []);
+        let n = request.resource.data.get('historico', []);
+        return a.size() == 0 ? n.size() <= 1
+             : (n.size() == a.size() + 1 && n[0:a.size()] == a)
+               || (a.size() == 50 && n.size() == 50 && n[0:49] == a[1:50]);
+      }
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
       // Quem é da equipe só recebe (ou perde) sanção pelas mãos de um dono: um moderador não suspende o dono nem
@@ -2042,8 +2068,10 @@ service cloud.firestore {
                     && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
-                    && listaAte('historico', 50);
-      allow delete: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)));
+                    && listaAte('historico', 50)
+                    && historicoSoCresce();
+      // Apagar a sanção (e o histórico junto): só os donos. O painel tira a sanção gravando "removida" no histórico.
+      allow delete: if podeModerar() && papel() == 'dono';
     }
 
     match /avisos/{id} {
@@ -2074,7 +2102,12 @@ service cloud.firestore {
                     && valorTextoAte(request.resource.data.get('texto', ''), 600)
                     && request.resource.data.tipo in ['info', 'novidade', 'alerta']
                     && request.resource.data.ativo is bool
-                    && request.resource.data.por == request.auth.uid;
+                    && request.resource.data.por == request.auth.uid
+                    // link só para uma página do site (o comunicados.js também só abre esse tipo)
+                    && (!('link' in request.resource.data) || (request.resource.data.link is string
+                        && request.resource.data.link.matches('^[A-Za-z0-9_./?=&#-]{1,200}$') && !request.resource.data.link.matches('^//.*')))
+                    && request.resource.data.get('em', request.time) == request.time
+                    && dataOuNulo('ate');
       allow delete: if podeModerar();
     }
 
