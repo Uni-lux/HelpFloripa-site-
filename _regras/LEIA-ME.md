@@ -206,15 +206,21 @@
 > moderação; `pets_achados.local` dentro do Brasil; comentário oculto vira esqueleto e o conteúdo vai para
 > `comentarios_ocultos/{id}` (só quem escreveu, o dono da publicação e a moderação leem). Agora são **24 partes**, 1302 testes.
 
+> **4ª auditoria, partes 1 a 5 (24/11/2026):** cadastro não aceita `plano`/`valorPlanoMensal` e `tipoUsuario` só "usuario";
+> anúncio de imóvel com números de verdade (preço, condomínio, IPTU, quartos, área... nunca negativos nem absurdos),
+> finalidade e tipo só das listas do site; promoção não pode já ter acabado; Comunidade confere venda também no tipo do item,
+> nas regras do quarto e no local do achado, e recusa "R $", "50 reais", "30 conto", "aceito proposta". Agora são
+> **25 partes**, 1321 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **24 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **25 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (284.929 bytes. 4.320 linhas. sha256 começa com `fcf2fa89a4a72f26`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 24 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (286.788 bytes. 4.339 linhas. sha256 começa com `51186376be1eb730`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 25 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 24 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1302 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1321 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

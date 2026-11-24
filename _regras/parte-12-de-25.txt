@@ -1,32 +1,3 @@
-    match /suporte/{id} {
-      function camposChamado() {
-        return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
-                'prioridade', 'escalonadoPara', 'primeiraRespostaEm'];
-      }
-      // Suporte nacional (suporte-fila.js): golpe = urgente; pagamento, contestação ou plano Pro/Premium = alta; o resto = normal.
-      // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
-      function prioridadeOk(d) {
-        let p = d.get('prioridade', 'normal');
-        return p == 'normal'
-            || (p == 'urgente' && d.categoria in ['golpe', 'sos'])
-            || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
-                || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
-                    && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
-      }
-      // A equipe: prioridade, transferir de setor (categoria), escalar (moderação ou donos) e a hora da 1ª resposta.
-      function filaEquipeOk(d) {
-        return d.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
-            && d.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
-            && d.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
-            && (!mudou().hasAny(['primeiraRespostaEm']) || d.primeiraRespostaEm == request.time);
-      }
-      // No máximo 3 chamados em andamento por pessoa (SOS fora): a lista suporte_abertos/{uid} muda na MESMA gravação
-      // e as regras dela só deixam tirar um chamado que já foi encerrado.
-      function abertosOk() {
-        let a = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
-        return a.acao == 'entrou' && a.ultimo == id && a.ids.size() <= 3;
-      }
       allow read: if logado() && resource.data.uid == request.auth.uid;
       allow read: if admin();
       // Abrir chamado: não exige e-mail confirmado nem conta livre (quem foi suspenso pode contestar).
@@ -157,4 +128,32 @@
             && d.status == 'pendente'
             && d.criadoEm == request.time && d.atualizadoEm == request.time;
       }
-// ===== FIM DA PARTE 11 DE 24 =====
+      allow read: if (logado() && request.auth.uid == uid) || podeModerar();
+      // Pedir (ou pedir de novo depois de não aprovado ou cancelado).
+      allow create: if logado() && request.auth.uid == uid && pedidoOk(request.resource.data);
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['recusada', 'cancelada']
+                    // recusado: pedir de novo só 30 dias depois da decisão (cancelado pela pessoa: na hora)
+                    && (resource.data.status == 'cancelada'
+                        || request.time > resource.data.get('analisadaEm', resource.data.atualizadoEm) + duration.value(30, 'd'))
+                    && pedidoOk(request.resource.data);
+      // Cancelar o próprio pedido (a foto do documento sai junto).
+      allow update: if logado() && request.auth.uid == uid
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && request.resource.data.status == 'cancelada'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
+                    && !('documento' in request.resource.data) && !('selfie' in request.resource.data)
+                    && request.resource.data.atualizadoEm == request.time;
+      // A moderação analisa e decide um pedido em aberto; ao aprovar ou recusar, a foto do documento é apagada.
+      // Ninguém da moderação decide o próprio pedido (só um dono).
+      allow update: if podeModerar() && (uid != request.auth.uid || papel() == 'dono')
+                    && resource.data.status in ['pendente', 'em_analise']
+                    && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
+                    && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
+                    && request.resource.data.analisadaPor == request.auth.uid
+                    && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
+                    && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
+      allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
+    }
+
+// ===== FIM DA PARTE 12 DE 25 =====

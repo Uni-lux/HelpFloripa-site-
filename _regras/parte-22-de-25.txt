@@ -1,12 +1,3 @@
-      // Quem leva desiste antes de sair: o pedido volta a procurar outra pessoa.
-      function desistirOk(k, st) {
-        return souEu('entregadorId') && st in ['aceita', 'chegou']
-            && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'chegouEm', 'pos', 'desistencias', 'atualizadoEm'])
-            && n().entregadorId == '' && n().get('entregador', null) == null
-            && n().get('chegouEm', null) == null && n().get('pos', null) == null && n().get('aceitaEm', null) == null
-            && n().desistencias == c().get('desistencias', 0) + 1
-            && n().atualizadoEm == request.time;
-      }
       // Quem leva avança as etapas, com o PIN onde precisa.
       function etapaOk(k, st, ns) {
         return souEu('entregadorId')
@@ -144,4 +135,4 @@
       let c = get(/databases/$(database)/documents/corridas/$(d.corridaId)).data;
       return d.tipo == 'pix' && c.clienteId == request.auth.uid && c.entregadorId == d.para && c.status == 'concluida';
     }
-// ===== FIM DA PARTE 21 DE 24 =====
+// ===== FIM DA PARTE 22 DE 25 =====

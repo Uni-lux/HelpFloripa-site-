@@ -1,13 +1,3 @@
-      // Enquete no comentário (como no Instagram): só o autor da publicação; pergunta e 2 a 4 opções.
-      function enqueteComentOk(d) {
-        return !('enquete' in d)
-            || (d.postAutorId == request.auth.uid
-                && d.enquete is map && d.enquete.keys().hasOnly(['pergunta', 'opcoes'])
-                && d.enquete.pergunta is string && d.enquete.pergunta.size() >= 1 && d.enquete.pergunta.size() <= 120
-                && d.enquete.opcoes is list && d.enquete.opcoes.size() >= 2 && d.enquete.opcoes.size() <= 4
-                && d.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
-      }
-
       // Quem pode comentar (escolha do autor): o autor sempre pode.
       function segue(a, b) { return exists(/databases/$(database)/documents/relacoes/$(a + '_' + b)); }
       function podeComentar(p) {
@@ -194,4 +184,12 @@
         return !('marcados' in d) || (d.marcados is list && d.marcados.size() <= 10
             && (d.marcados.size() == 0 || d.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
       }
-// ===== FIM DA PARTE 18 DE 24 =====
+      // Local da publicação ("Trindade, Florianópolis"): nome e o ponto arredondado, dentro do Brasil.
+      function localPubOk(d) {
+        return !('local' in d) || d.local == null
+            || (d.local is map && d.local.keys().hasOnly(['nome', 'lat', 'lng'])
+                && d.local.nome is string && d.local.nome.size() >= 2 && d.local.nome.size() <= 80
+                && d.local.lat is number && d.local.lat >= -34 && d.local.lat <= 6
+                && d.local.lng is number && d.local.lng >= -75 && d.local.lng <= -28);
+      }
+// ===== FIM DA PARTE 19 DE 25 =====

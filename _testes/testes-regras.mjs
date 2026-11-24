@@ -64,6 +64,13 @@ await t("negócio: recusa geo com campo a mais", () => assertFails(setDoc(doc(ct
 await t("anúncio: ponto do endereço (geo)", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "a6"), anuncio({ geo: { lat: -27.6, lng: -48.52 } }))));
 await t("anúncio: recusa geo como texto", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a7"), anuncio({ geo: { lat: "-27.6", lng: -48.52 } }))));
 await t("anúncio: recusa campo desconhecido", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "a3"), anuncio({ estado: "SC" }))));
+await t("anúncio: preço e números de verdade passam", () => assertSucceeds(setDoc(doc(ctx("dono"), "anuncios", "aNum1"), anuncio({ preco: 2500, condominio: 450.5, iptu: 90, quartos: 2, suites: 1, banheiros: 2, vagas: 1, area: 68.5, hospedes: 4, ativo: true, mobiliado: false }))));
+await t("anúncio: preço negativo é recusado", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum2"), anuncio({ preco: -100 }))));
+await t("anúncio: quartos como texto é recusado", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum3"), anuncio({ quartos: "dois" }))));
+await t("anúncio: área absurda é recusada", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum4"), anuncio({ area: 99999999999 }))));
+await t("anúncio: 'ativo' como texto é recusado", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum5"), anuncio({ ativo: "sim" }))));
+await t("anúncio: finalidade fora da lista é recusada", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum6"), anuncio({ finalidade: "permuta" }))));
+await t("anúncio: tipo de imóvel fora da lista é recusado", () => assertFails(setDoc(doc(ctx("dono"), "anuncios", "aNum7"), anuncio({ categoria: "castelo" }))));
 await t("usuário: endereço completo na parte privada", () => assertSucceeds(setDoc(doc(ctx("ana"), "usuarios", "ana"), { cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, endereco: { cep: "88010001", uf: "SC", cidade: "Florianópolis", cidadeIbge: 4205407, bairro: "Centro", rua: "Rua A", numero: "1", complemento: "" } }, { merge: true })));
 await t("usuário: outra pessoa não lê o endereço", () => assertFails(getDoc(doc(ctx("bia"), "usuarios", "ana"))));
 
@@ -1147,6 +1154,7 @@ await t("negócio: horário com 6 dias é recusado", () => assertFails(grava({ s
 await t("negócio: horário inválido (25:00) é recusado", () => assertFails(grava({ semana: ["25:00-26:00", "", "", "", "", "", ""] })));
 await t("negócio: promoção de 90 dias é recusada (máx. 62)", () => assertFails(grava({ promocao: { titulo: "Promo longa", ate: Timestamp.fromMillis(Date.now() + 90 * 864e5) } })));
 await t("negócio: cupom com minúsculas é recusado", () => assertFails(grava({ promocao: { titulo: "Promo", codigo: "abc10", ate: Timestamp.fromMillis(Date.now() + 864e5) } })));
+await t("negócio: promoção que já acabou é recusada", () => assertFails(grava({ promocao: { titulo: "Promo velha", ate: Timestamp.fromMillis(Date.now() - 864e5) } })));
 await t("negócio: promoção e campos novos vazios valem", () => assertSucceeds(grava({ instagram: "", site: "", cnpj: "", promocao: null, semana: null })));
 
 const agoraBR = () => { const d = new Date(Date.now() - 3 * 3600e3); return { dia: `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`, hora: d.getUTCHours() }; };
@@ -1419,6 +1427,13 @@ await t("comunidade: sem aceitar as regras é recusado", () => assertFails(setDo
 await t("comunidade: 'vendo' no texto é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { titulo: "Vendo sofá" }))));
 await t("comunidade: 'VENDA' na descrição é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Faço VENDA barato" }))));
 await t("comunidade: 'R$' na doação é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Só R$ 20 do frete" }))));
+await t("comunidade: 'R $' com espaço é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Só R $ 20 do frete" }))));
+await t("comunidade: '50 reais' sem R$ é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Deixo por 50 reais" }))));
+await t("comunidade: '30 conto' é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Me dá 30 conto" }))));
+await t("comunidade: 'aceito proposta' é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Aceito proposta" }))));
+await t("comunidade: venda escondida no tipo do item é recusada", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { tipoItem: "vendo" }))));
+await t("comunidade: venda escondida no local do achado é recusada", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { categoria: "achados", tipoItem: "", achado: { tipo: "encontrado", data: "", local: "Centro, vendo por 50 reais" } }))));
+await t("comunidade: 'problemas reais' (sem valor) passa", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "cReais"), com("ana", { descricao: "Ajuda com problemas reais da casa, sem custo." }))));
 await t("comunidade: palavra parecida (vendedor) passa", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c2"), com("ana", { descricao: "Era do meu avô, que foi vendedor ambulante." }))));
 await t("comunidade: quarto compartilhado com divisão das despesas", () => assertSucceeds(setDoc(doc(ctx("ana"), "comunidade", "c3"), com("ana", { categoria: "quarto", titulo: "Vaga no Pantanal", tipoItem: "", estado: "usado", quarto: { vaga: "compartilhado", rateio: 600, contasInclusas: true, mobiliado: true, vagas: 1, para: "mulheres", disponivelEm: "2026-11-01", regras: "Não fumantes" }, descricao: "Divisão R$ 600 com contas." }))));
 await t("comunidade: quarto sem os dados da vaga é recusado", () => assertFails(setDoc(doc(ctx("ana"), "comunidade", "c4"), com("ana", { categoria: "quarto" }))));
@@ -1586,6 +1601,10 @@ await t("e-mail da conta: maiúsculas não contam", () => assertSucceeds(setDoc(
 await t("e-mail da conta: não grava o de outra pessoa", () => assertFails(setDoc(doc(ctx("ana"), "usuarios", "ana"), { email: "bia@t.com" }, { merge: true })));
 await t("e-mail da conta: cadastro com o e-mail de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "ana@t.com" })));
 await t("e-mail da conta: cadastro com o próprio e-mail passa", () => assertSucceeds(setDoc(doc(ctx("novoEmail"), "usuarios", "novoEmail"), { uid: "novoEmail", aceiteTermos: true, email: "novoEmail@t.com" })));
+await t("cadastro: plano no cadastro é recusado", () => assertFails(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, plano: "premium" })));
+await t("cadastro: valorPlanoMensal no cadastro é recusado", () => assertFails(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, valorPlanoMensal: 0 })));
+await t("cadastro: tipoUsuario diferente de 'usuario' é recusado", () => assertFails(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, tipoUsuario: "admin" })));
+await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => assertSucceeds(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, tipoUsuario: "usuario" })));
 
 // ===================== Entregas e corridas =====================
 {

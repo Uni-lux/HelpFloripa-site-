@@ -75,8 +75,11 @@ service cloud.firestore {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
     }
 
+    // No cadastro: nada de selo/avaliações, nem plano/valor (o plano de verdade fica em planos/{uid}) e tipoUsuario só
+    // "usuario" (nenhuma regra dá poder por esses campos, mas assim não ficam números falsos na conta).
     function naoTocaCamposProtegidosNoCreate() {
-      return !request.resource.data.keys().hasAny(camposProtegidos());
+      return !request.resource.data.keys().hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal']))
+          && request.resource.data.get('tipoUsuario', 'usuario') == 'usuario';
     }
 
     // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
@@ -843,7 +846,7 @@ service cloud.firestore {
             && p.titulo is string && p.titulo.size() >= 3 && p.titulo.size() <= 60
             && valorTextoAte(p.get('texto', ''), 200)
             && (p.get('codigo', '') == '' || (p.codigo is string && p.codigo.matches('^[A-Z0-9]{3,20}$')))
-            && p.ate is timestamp && p.ate < request.time + duration.value(62, 'd');
+            && p.ate is timestamp && p.ate > request.time && p.ate < request.time + duration.value(62, 'd');
       }
 
       // Instagram (só o @, sem link), site (http/https, até 120) e CNPJ (14 números) num regex só;
@@ -952,7 +955,20 @@ service cloud.firestore {
             && listaAte('busca', 100)
             && listaAte('caracteristicas', 20)
             && listaAte('condicoes', 12)
-            && dataOuNulo('ocultoAte');
+            && dataOuNulo('ocultoAte')
+            && numerosImovelOk(request.resource.data);
+      }
+      // Números do imóvel: número (ou vazio), nunca negativo e dentro do possível; escolhas só das listas do site.
+      function numAte(v, max) { return v == null || ((v is int || v is float) && v >= 0 && v <= max); }
+      function numerosImovelOk(d) {
+        return numAte(d.get('preco', null), 1000000000)
+            && numAte(d.get('condominio', null), 10000000) && numAte(d.get('iptu', null), 10000000)
+            && numAte(d.get('quartos', null), 100) && numAte(d.get('suites', null), 100)
+            && numAte(d.get('banheiros', null), 100) && numAte(d.get('vagas', null), 100)
+            && numAte(d.get('area', null), 10000000) && numAte(d.get('hospedes', null), 999)
+            && d.get('ativo', true) is bool && d.get('mobiliado', false) is bool
+            && d.get('finalidade', 'aluguel') in ['aluguel', 'venda', 'temporada']
+            && d.get('categoria', 'outros') in ['apartamento', 'casa', 'kitnet', 'terreno', 'comercial', 'outros'];
       }
 
       allow get: if logado() && podeAbrir('donoId');
@@ -1021,7 +1037,9 @@ service cloud.firestore {
       }
       function comunidadeOk() {
         let d = request.resource.data;
-        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
+        // Todo texto que a pessoa escreve entra na conferência de venda (antes só título e descrição).
+        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '') + ' ' + d.get('tipoItem', '')
+                    + ' ' + d.get('quarto', {}).get('regras', '') + ' ' + d.get('achado', {}).get('local', '');
         return d.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
             && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
             && textoAte('descricao', 1000)
@@ -1039,8 +1057,9 @@ service cloud.firestore {
             && (d.categoria == 'quarto' ? quartoOk(d.get('quarto', null)) : !('quarto' in d))
             && (d.categoria == 'achados' ? achadoOk(d.get('achado', null)) : !('achado' in d))
             // Sem venda: nada de "vendo/venda/vende..." e, fora do quarto, nada de "R$".
-            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas)\\b.*')
-            && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
+            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas|vendido|vendida|neg[oó]cio por|aceito proposta)\\b.*')
+            // Fora do quarto: nem "R$", nem valor com número ("50 reais", "50 conto", "20 pila").
+            && (d.categoria == 'quarto' || !texto.matches('(?i)(?s).*([Rr] *[$]|\\b[0-9]+ ?(reais|real|conto|contos|pila|pilas)\\b).*'))
             && dataOuNulo('ocultoAte');
       }
       allow get: if logado() && podeAbrir('donoId');

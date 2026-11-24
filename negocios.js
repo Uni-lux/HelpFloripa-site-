@@ -686,7 +686,7 @@ const CONFIG_EXTRAS = {
 };
 let negExtra = {};
 let negMaisAberto = false;
-const numeroBR = (v) => { const t = String(v ?? "").replace(/[^\d,.-]/g, ""); if (!t) return null; const milhar = !t.includes(",") && /^-?\d{1,3}(\.\d{3})+$/.test(t); const n = Number(t.includes(",") || milhar ? t.replace(/\./g, "").replace(",", ".") : t); return Number.isFinite(n) ? n : null; };
+const numeroBR = (v) => { const t = String(v ?? "").replace(/[^\d,.]/g, ""); if (!t) return null; const milhar = !t.includes(",") && /^-?\d{1,3}(\.\d{3})+$/.test(t); const n = Number(t.includes(",") || milhar ? t.replace(/\./g, "").replace(",", ".") : t); return Number.isFinite(n) ? n : null; };
 const mostrarNumero = (v) => (v === null || v === undefined || v === "" ? "" : String(v).replace(".", ","));
 
 function campo(rotulo, input, ajuda) {

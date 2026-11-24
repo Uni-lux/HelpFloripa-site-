@@ -122,4 +122,4 @@
       let a = /databases/$(database)/documents/ocorrencias_autoria/$(oc);
       return exists(a) && get(a).data.uid == request.auth.uid;
     }
-// ===== FIM DA PARTE 22 DE 24 =====
+// ===== FIM DA PARTE 23 DE 25 =====

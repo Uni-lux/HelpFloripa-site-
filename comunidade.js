@@ -34,8 +34,8 @@ const PARA = { todos: "Qualquer pessoa", mulheres: "Só mulheres", homens: "Só 
 const STATUS = { disponivel: "Disponível", reservado: "Reservado", concluido: "Concluído" };
 const VALIDADE_DIAS = 60; // depois disso o anúncio sai da lista até o dono renovar
 // Palavras que indicam venda (as regras recusam as mesmas; aqui o aviso é antes, com explicação).
-const VENDA = /\b(vendo|venda|vende|vender|vendem|vendas)\b/i;
-const DINHEIRO = /r\s*\$/i;
+const VENDA = /\b(vendo|venda|vende|vender|vendem|vendas|vendido|vendida|neg[oó]cio por|aceito proposta)\b/i;
+const DINHEIRO = /r\s*\$|\b\d+ ?(reais|real|conto|contos|pila|pilas)\b/i;
 export const REGRAS = [
   "É proibido vender ou cobrar qualquer valor, mesmo \"simbólico\" ou \"só o frete\".",
   "Quarto compartilhado: só a divisão das despesas entre moradores. Aluguel com lucro vai em Imóveis.",
@@ -489,8 +489,8 @@ function abrirForm(a = null, catInicial = "doacao") {
     const descricao = String(d.descricao || "").trim();
     if (titulo.length < 3) { toast("Dê um título ao anúncio."); return; }
     if ((k === "doacao" || k === "troca" || k === "pedido") && !d.tipoItem) { toast("Escolha o que é."); return; }
-    const texto = `${titulo} ${descricao} ${d.quarto?.regras || ""}`;
-    if (VENDA.test(texto) || (k !== "quarto" && DINHEIRO.test(texto))) { toast("Aqui não pode vender nem falar de preço. Tire \"venda\", \"vendo\" ou \"R$\" do texto (para vender, use o Shopping)."); return; }
+    const texto = `${titulo} ${descricao} ${d.tipoItem || ""} ${d.quarto?.regras || ""} ${d.achado?.local || ""}`;
+    if (VENDA.test(texto) || (k !== "quarto" && DINHEIRO.test(texto))) { toast("Aqui não pode vender nem falar de preço. Tire \"venda\", \"vendo\", \"R$\" ou valores como \"50 reais\" do texto (para vender, use o Shopping)."); return; }
     if (k === "achados" && !String(d.achado.local || "").trim()) { toast("Diga onde perdeu ou encontrou."); return; }
     if (k === "quarto" && d.quarto.disponivelEm && !/^\d{4}-\d{2}-\d{2}$/.test(d.quarto.disponivelEm)) { toast("Confira a data."); return; }
     const erroLocal = local?.validar(); if (erroLocal) { toast(erroLocal); return; }

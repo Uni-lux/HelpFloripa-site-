@@ -75,8 +75,11 @@ service cloud.firestore {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
     }
 
+    // No cadastro: nada de selo/avaliações, nem plano/valor (o plano de verdade fica em planos/{uid}) e tipoUsuario só
+    // "usuario" (nenhuma regra dá poder por esses campos, mas assim não ficam números falsos na conta).
     function naoTocaCamposProtegidosNoCreate() {
-      return !request.resource.data.keys().hasAny(camposProtegidos());
+      return !request.resource.data.keys().hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal']))
+          && request.resource.data.get('tipoUsuario', 'usuario') == 'usuario';
     }
 
     // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
@@ -190,4 +193,4 @@ service cloud.firestore {
           && (!('repostDe' in d) || repostOk(d.repostDe))
           && (!('postDe' in d) || postFlashOk(d.postDe));
     }
-// ===== FIM DA PARTE 1 DE 24 =====
+// ===== FIM DA PARTE 1 DE 25 =====

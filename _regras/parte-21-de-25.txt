@@ -1,11 +1,3 @@
-      // A própria pessoa confere a visita do dia (inclusive se ela ainda não existe).
-      allow read: if logado() && (resource == null || resource.data.uid == request.auth.uid);
-      allow create: if logado() && visitaNova();
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && (novoNaLista('acoes', 12) || novoNaLista('itens', 40));
-      allow delete: if false;
-    }
-
     match /neg_stats/{id} {
       function statsNovo() {
         let d = request.resource.data;
@@ -182,4 +174,13 @@
             && valorTextoAte(n().entregador.get('nome', ''), 80)
             && n().aceitaEm == request.time && n().atualizadoEm == request.time;
       }
-// ===== FIM DA PARTE 20 DE 24 =====
+      // Quem leva desiste antes de sair: o pedido volta a procurar outra pessoa.
+      function desistirOk(k, st) {
+        return souEu('entregadorId') && st in ['aceita', 'chegou']
+            && k.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'chegouEm', 'pos', 'desistencias', 'atualizadoEm'])
+            && n().entregadorId == '' && n().get('entregador', null) == null
+            && n().get('chegouEm', null) == null && n().get('pos', null) == null && n().get('aceitaEm', null) == null
+            && n().desistencias == c().get('desistencias', 0) + 1
+            && n().atualizadoEm == request.time;
+      }
+// ===== FIM DA PARTE 21 DE 25 =====
