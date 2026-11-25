@@ -77,15 +77,25 @@
         return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
           && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
           && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          // ids de flash (só letras e números) e sem repetir
+          && d.ids.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,99}$')
+          && d.ids.toSet().size() == d.ids.size()
           && d.atualizadoEm == request.time
           && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
           && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
       }
+      // A capa, quando muda, tem que ser um flash da própria pessoa.
+      function capaMinha(d, antes) {
+        return !('capa' in d) || d.capa == antes
+            || get(/databases/$(database)/documents/stories/$(d.capa)).data.autorId == request.auth.uid;
+      }
       allow read: if logado();
       allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, '');
       allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, resource.data.get('capa', ''));
       allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
@@ -160,10 +170,4 @@
             // a contagem da opção sobe exatamente 1 junto com o voto
             && fatiaSobe(d);
       }
-      allow get: if logado() && id.matches('.*_' + request.auth.uid);
-      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
-      allow list: if logado() && resource.data.uid == request.auth.uid;
-      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
-      allow update, delete: if false;
-    }
 // ===== FIM DA PARTE 17 DE 25 =====

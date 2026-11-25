@@ -614,6 +614,8 @@ await t("comentário: vota na enquete", () => assertSucceeds(votoC("ana", 1)));
 await t("comentário: não vota duas vezes (não muda)", () => assertFails(votoC("ana", 2)));
 await t("comentário: opção que não existe é recusada", () => assertFails(votoC("bia", 3)));
 await t("comentário: voto em comentário sem enquete é recusado", () => assertFails(votoC("bia", 0, "cFoto")));
+await t("comentário: bloqueado com quem fez a enquete não vota", async () => { await semRegras((db) => setDoc(doc(db, "bloqueios", "dono_edu"), { bloqueadorId: "dono", bloqueadoId: "edu" })); await assertFails(votoC("edu", 0)); await semRegras((db) => deleteDoc(doc(db, "bloqueios", "dono_edu"))); });
+await t("comentário: enquete escondida não recebe voto", async () => { await semRegras(async (db) => { const x = (await getDoc(doc(db, "comentarios", "cEnq"))).data(); await setDoc(doc(db, "comentarios", "cEnqO"), { ...x, oculto: true }); }); await assertFails(votoC("bia", 0, "cEnqO")); });
 await t("comentário: voto em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "comentario_votos", "cEnq_edu"), { comentarioId: "cEnq", uid: "edu", opcao: 0, criadoEm: serverTimestamp() })));
 await t("comentário: quem comentou corrige o texto da foto", () => assertSucceeds(updateDoc(doc(ctx("ana"), "comentarios", "cFoto"), { texto: "olha isso", editadoEm: serverTimestamp() })));
 // Comentário oculto pelo dono da publicação: vira esqueleto e o conteúdo vai para comentarios_ocultos (só quem escreveu, o dono e a moderação leem).
@@ -670,6 +672,7 @@ await t("público: gênero fora da lista é recusado", () => assertFails(publica
 await t("público: estado inválido é recusado", () => assertFails(publicar2("bia", { publico: { local: "estados", ufs: ["sc"] } })));
 await t("público: mais de 10 cidades é recusado", () => assertFails(publicar2("bia", { publico: { local: "cidades", cidades: Array.from({ length: 11 }, (_, i) => String(4205400 + i)) } })));
 await t("público: raio fora do Brasil é recusado", () => assertFails(publicar2("bia", { publico: { local: "perto", perto: { lat: 48.8, lng: 2.3, km: 25 } } })));
+await t("público: idade mínima maior que a máxima é recusada", () => assertFails(publicar2("bia", { publico: { idadeMin: 40, idadeMax: 20 } })));
 await t("público: campo estranho é recusado", () => assertFails(publicar2("bia", { publico: { idadeMin: 18, renda: "alta" } })));
 await semRegras((db) => setDoc(doc(db, "diario", "pPub"), { autorId: "bia", nome: "Bia", texto: "x", criadoEm: antigo }));
 await t("público: o autor muda o público depois", () => assertSucceeds(updateDoc(doc(ctx("bia"), "diario", "pPub"), { publico: { local: "cidades", cidades: ["4205407"], seguidores: "seguidores" } })));
@@ -694,7 +697,9 @@ await t("tipo foto: 4 fotos e legenda", () => assertSucceeds(publicar2("edu", { 
 await t("tipo foto: sem foto é recusado", () => assertFails(publicar2("edu", { tipo: "foto", texto: "Obra" })));
 await t("tipo foto: com enquete é recusado", () => assertFails(publicar2("edu", { tipo: "foto", mediaUrl: fP(10), mediaTipo: "image", enquete: enqT })));
 await t("tipo foto: estilo casada é recusado", () => assertFails(publicar2("edu", { tipo: "foto", mediaUrl: fP(10), mediaTipo: "image", estilo: "casada" })));
-await t("tipo vídeo: um vídeo", () => assertSucceeds(publicar2("edu", { tipo: "video", mediaUrl: "https://firebasestorage.googleapis.com/v/x.mp4", mediaTipo: "video" })));
+await t("tipo vídeo: um vídeo", () => assertSucceeds(publicar2("edu", { tipo: "video", mediaUrl: "https://firebasestorage.googleapis.com/v0/b/hf.appspot.com/o/diario%2Fedu%2F1.mp4?alt=media", mediaTipo: "video" })));
+await t("publicação: vídeo da pasta de outra pessoa é recusado", () => assertFails(publicar2("edu", { tipo: "video", mediaUrl: "https://firebasestorage.googleapis.com/v0/b/hf.appspot.com/o/diario%2Fana%2F1.mp4?alt=media", mediaTipo: "video" })));
+await t("publicação: foto de outra pasta do Storage é recusada", () => assertFails(publicar2("edu", { tipo: "foto", mediaUrl: "https://firebasestorage.googleapis.com/v0/b/hf.appspot.com/o/mensagens%2Fx%2F1.jpg?alt=media", mediaTipo: "image" })));
 await t("tipo vídeo: com foto (image) é recusado", () => assertFails(publicar2("edu", { tipo: "video", mediaUrl: fP(10), mediaTipo: "image" })));
 await t("tipo enquete: enquete com uma imagem", () => assertSucceeds(publicar2("edu", { tipo: "enquete", texto: "", enquete: enqT, mediaUrl: fP(10), mediaTipo: "image" })));
 await t("tipo enquete: sem a enquete é recusado", () => assertFails(publicar2("edu", { tipo: "enquete", texto: "oi" })));
@@ -828,6 +833,8 @@ await t("notas: só a própria pessoa lê e grava", async () => {
   await assertFails(setDoc(doc(ctx("bia"), "notas", "ana", "itens", "n2"), n));
   await assertFails(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n3"), { ...n, texto: "x".repeat(20001) }));
   await assertFails(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n4"), { ...n, publica: true }));
+  await assertFails(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n1"), { ...n, criadoEm: 99, em: 3 }));
+  await assertSucceeds(setDoc(doc(ctx("ana"), "notas", "ana", "itens", "n1"), { ...n, texto: "mudou", em: 3 }));
   await assertSucceeds(deleteDoc(doc(ctx("ana"), "notas", "ana", "itens", "n1")));
 });
 await t("rascunhos: só a própria pessoa", async () => { await assertSucceeds(setDoc(doc(ctx("ana"), "rascunhos", "ana", "itens", "r1"), { texto: "ideia", fotos: [], atualizadoEm: serverTimestamp() })); await assertFails(getDoc(doc(ctx("bia"), "rascunhos", "ana", "itens", "r1"))); });
@@ -1628,7 +1635,12 @@ await t("arquivo: destacado tem que ser sim/não", () => assertFails(updateDoc(d
 // Destaques do Flash (destaques/{id}): ficam no perfil; só o dono mexe.
 const dqMini = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==";
 const dqNovo = (extra = {}) => ({ uid: "ana", nome: "Viagem", ids: ["s1", "s2"], capa: "s2", capaMini: dqMini, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+await semRegras(async (db) => { for (const [i, a] of [["s1", "ana"], ["s2", "ana"], ["s3", "ana"], ["sB", "bia"]]) await setDoc(doc(db, "stories", i), { autorId: a, nome: a, tipo: "imagem", midia: "data:image/jpeg;base64,AA", criadoEm: Timestamp.now() }); });
 await t("destaque: a dona cria", () => assertSucceeds(setDoc(doc(ctx("ana"), "destaques", "dq1"), dqNovo())));
+await t("destaque: capa com flash de outra pessoa é recusada", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dqX"), dqNovo({ ids: ["s1", "sB"], capa: "sB" }))));
+await t("destaque: capa que não existe é recusada", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dqX"), dqNovo({ ids: ["s1", "nada"], capa: "nada" }))));
+await t("destaque: flash repetido é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dqX"), dqNovo({ ids: ["s1", "s2", "s2"] }))));
+await t("destaque: id estranho é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dqX"), dqNovo({ ids: ["s1", "../x"], capa: "s1" }))));
 await t("destaque: em nome de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("bia"), "destaques", "dq2"), dqNovo())));
 await t("destaque: nome com mais de 30 letras é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ nome: "x".repeat(31) }))));
 await t("destaque: sem flash é recusado", () => assertFails(setDoc(doc(ctx("ana"), "destaques", "dq3"), dqNovo({ ids: [] }))));

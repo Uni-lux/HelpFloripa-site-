@@ -2497,7 +2497,15 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   pediu (não dá para conferir 30 vínculos: limite de 10–20 leituras por gravação), itens do presente não são conferidos com
   o cardápio (o pedido vai para a loja, que confere — `conferirCardapio`), pets_achados com 4 casas (~11 m, lugar onde o
   bicho foi achado, ajuda o dono). Testes `testes-regras` com `createHash` (node:crypto) para o código da placa.
-  Aguardando as partes 16 a 20.
+  **Partes 16 a 20 (25/11/2026, mesmo PR; 25 partes, 1375 testes):** corrigido: `destaques` ids por regex, sem
+  repetidos (`toSet`) e capa (quando muda) = flash da própria pessoa (`capaMinha`, get); `notas/{uid}/itens` não muda
+  `criadoEm` (notas.js grava o `criadoEm` uma vez no `salvar`); `comentario_votos` recusa comentário oculto e bloqueio com o
+  autor; `publicoOk` idadeMin ≤ idadeMax (com `get` padrão 16/100, numa conta só: o "enquete com TUDO junto" estava no
+  limite de 1.000); foto/vídeo do Storage no Diário só de `diario%2F<autorId>%2F` (`FOTO_PUB`, midias num regex só com
+  `join`). Explicado como por desenho: list do Diário (escondidas viram esqueleto, agendadas em outra coleção, público é
+  direcionamento), `pref_publicas` (lista fechada, só campos públicos), `stories_restritos` (só metadados), `neg_stats`
+  (sobe +1 na mesma gravação da visita única por pessoa/dia), corridas (já conferidas nas partes 21–24). As 4 auditorias das
+  regras (1 a 24) estão feitas.
 - **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
   Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
   e `pets_achados.local` dentro do Brasil. Comentário "oculto" (era só escondido pelo app) CORRIGIDO no PR seguinte:

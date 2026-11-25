@@ -1,3 +1,9 @@
+      allow get: if logado() && id.matches('.*_' + request.auth.uid);
+      // listar só os próprios votos (o resultado chega nas notificações de quem votou)
+      allow list: if logado() && resource.data.uid == request.auth.uid;
+      allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
+      allow update, delete: if false;
+    }
     // CONTAGEM DAS ENQUETES em 10 pedaços: enquete_contas/{alvo}_{fatia} = { n0..n3 } (fatia 0–9). Cada voto sobe
     // 1 pedaço sorteado: um documento só aguentava ~1 voto por segundo; assim a enquete aguenta ~10× mais, e ler o
     // resultado custa no máximo 10 leituras, com quantos votos for. Só sobe junto com o voto de quem grava
@@ -134,7 +140,10 @@
                     && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
                     && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
                     && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
-                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number
+                    // a data de criação não muda depois de gravada
+                    && (resource == null || !('criadoEm' in resource.data)
+                        || request.resource.data.get('criadoEm', null) == resource.data.criadoEm);
     }
 
     match /rascunhos/{uid}/itens/{id} {
@@ -154,14 +163,5 @@
       allow read: if logado();
       allow write: if false;
     }
-
-    // ===================================================
-    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
-    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
-    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
-    // a nota de antes sai e a nova entra. A moderação pode recalcular.
-    // ===================================================
-    match /diario_notas/{postId} {
-      allow read: if logado();
 
 // ===== FIM DA PARTE 18 DE 25 =====

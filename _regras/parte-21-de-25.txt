@@ -1,3 +1,44 @@
+      allow update: if logado() && !ehEsqueleto()
+                    && emailOk()
+                    && resource.data.autorId == request.auth.uid
+                    && request.resource.data.autorId == resource.data.autorId
+                    && gravou().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
+                    && (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+                    // texto com imagem casada continua até 500 letras ao editar
+                    && (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
+                    && localPubOk(request.resource.data) && publicoOk(request.resource.data)
+                    && tagsOk(request.resource.data) && marcadosOk(request.resource.data)
+                    // agendada antiga (de antes de agendadas/{id}): só "publicar agora" (agendadoPara = agora)
+                    && (!mudou().hasAny(['agendadoPara']) || request.resource.data.agendadoPara == request.time)
+                    // quem pode comentar: todos, seguidores, seguidores que o autor segue de volta, ninguém
+                    && (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+                    // comentário fixado no topo (id) ou nulo
+                    && (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+                        || (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+                    && dataOuNulo('ocultoAte')
+                    && travaModeracao()
+                    // texto editado: marca a data da edição
+                    && (!mudou().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+                    && (!mudou().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+                    && (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+                    && publicacaoOk();
+
+      // Esconder de verdade / devolver (guardar.js): quem pode é conferido em guardados.
+      allow update: if logado() && (viraEsqueleto('diario', postId, 'autorId') || voltaDoGuardado('diario', postId));
+
+      allow delete: if logado()
+                    && resource.data.autorId == request.auth.uid;
+
+      // Alcance: cada conta que viu a publicação (uma vez). Só o autor lista/conta.
+      match /vistas/{uid} {
+        allow create: if logado() && uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+                      && request.resource.data.criadoEm == request.time
+                      && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+        allow read: if logado() && get(/databases/$(database)/documents/diario/$(postId)).data.autorId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
       // A equipe esconde ou remove publicações que violam os Termos.
       allow update: if podeModerar()
                     && moderacaoOk();

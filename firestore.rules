@@ -3083,15 +3083,25 @@ service cloud.firestore {
         return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
           && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
           && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          // ids de flash (só letras e números) e sem repetir
+          && d.ids.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,99}$')
+          && d.ids.toSet().size() == d.ids.size()
           && d.atualizadoEm == request.time
           && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
           && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
       }
+      // A capa, quando muda, tem que ser um flash da própria pessoa.
+      function capaMinha(d, antes) {
+        return !('capa' in d) || d.capa == antes
+            || get(/databases/$(database)/documents/stories/$(d.capa)).data.autorId == request.auth.uid;
+      }
       allow read: if logado();
       allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, '');
       allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, resource.data.get('capa', ''));
       allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
@@ -3308,7 +3318,10 @@ service cloud.firestore {
                     && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
                     && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
                     && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
-                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number
+                    // a data de criação não muda depois de gravada
+                    && (resource == null || !('criadoEm' in resource.data)
+                        || request.resource.data.get('criadoEm', null) == resource.data.criadoEm);
     }
 
     match /rascunhos/{uid}/itens/{id} {
@@ -3515,6 +3528,9 @@ service cloud.firestore {
                     && id == request.resource.data.comentarioId + '_' + request.auth.uid
                     && request.resource.data.opcao is int && request.resource.data.opcao >= 0
                     && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
+                    // comentário escondido não recebe voto; bloqueado com o autor não vota (suspenso já cai no emailOk)
+                    && get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.get('oculto', false) == false
+                    && !bloqueioEntre(request.auth.uid, get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
                     && request.resource.data.criadoEm == request.time;
       allow delete: if podeModerar();
     }
@@ -3569,14 +3585,12 @@ service cloud.firestore {
             && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
             && (!('mediaUrl' in d) || d.mediaUrl == ''
                 || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+                    && fotoPubOk(d.mediaUrl, d.autorId)))
             // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
             && (!('midias' in d)
                 || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
                     && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
-                    && fotoPubOk(d.midias[1])
-                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
-                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+                    && d.midias.join(' ').matches('^(' + FOTO_PUB(d.autorId) + ')( (' + FOTO_PUB(d.autorId) + ')){1,3}$')));
       }
       // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
       function tagsOk(d) {
@@ -3600,8 +3614,9 @@ service cloud.firestore {
         let p = d.get('publico', null);
         return p == null
             || (p is map && p.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
-                && (!('idadeMin' in p) || (p.idadeMin is int && p.idadeMin >= 16 && p.idadeMin <= 100))
-                && (!('idadeMax' in p) || (p.idadeMax is int && p.idadeMax >= 16 && p.idadeMax <= 100))
+                // idade de 16 a 100 e a mínima não passa da máxima
+                && p.get('idadeMin', 16) is int && p.get('idadeMax', 100) is int
+                && 16 <= p.get('idadeMin', 16) && p.get('idadeMin', 16) <= p.get('idadeMax', 100) && p.get('idadeMax', 100) <= 100
                 && (!('genero' in p) || p.genero in ['f', 'm'])
                 && (!('local' in p) || p.local in ['brasil', 'estados', 'cidades', 'perto'])
                 && (!('ufs' in p) || (p.ufs is list && p.ufs.size() >= 1 && p.ufs.size() <= 27 && p.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
@@ -3613,8 +3628,12 @@ service cloud.firestore {
                     && (!('nome' in p.perto) || (p.perto.nome is string && p.perto.nome.size() <= 60))))
                 && (!('seguidores' in p) || p.seguidores in ['todos', 'seguidores', 'novos']));
       }
-      function fotoPubOk(u) {
-        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      // Foto/vídeo do Storage só da pasta diario/<autor>/ (não dá para usar arquivo de outra pessoa ou de outra pasta).
+      function FOTO_PUB(uid) {
+        return '(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/diario%2F' + uid + '%2F)[^ ]*';
+      }
+      function fotoPubOk(u, uid) {
+        return u is string && u.matches('^' + FOTO_PUB(uid) + '$');
       }
       // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
       //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo

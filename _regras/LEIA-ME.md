@@ -234,15 +234,20 @@
 > região (até 3 casas, ~100 m); ao publicar um desaparecido o boletim sai do aviso (fica no registro de ações); cores do pet
 > só da lista; código da placa do veículo conferido na regra (SHA-256 da placa). Continuam **25 partes**, 1366 testes.
 
+> **4ª auditoria, partes 16 a 20 (25/11/2026):** destaque do Flash sem flash repetido, ids só de flash e capa (quando
+> muda) tem que ser um flash da própria pessoa; nota pessoal não muda a data de criação; voto na enquete de um comentário
+> recusado se o comentário está escondido ou há bloqueio com quem fez; público da publicação com idade mínima ≤ máxima;
+> foto/vídeo do Storage numa publicação só da pasta `diario/<autor>/`. Continuam **25 partes**, 1375 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **25 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (296.845 bytes. 4.448 linhas. sha256 começa com `3afdcea9a4638c44`).
+- Arquivo de origem: `firestore.rules` (298.320 bytes. 4.467 linhas. sha256 começa com `bc4c611a43dcafba`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 25 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1366 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1375 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

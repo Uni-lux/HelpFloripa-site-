@@ -1,3 +1,12 @@
+    // ===================================================
+    // RESUMO DAS ESTRELAS DE UMA PUBLICAÇÃO: diario_notas/{postId} { total, soma, n1..n5 }
+    // Uma leitura mostra a média e quantas pessoas deram 5, 4, 3, 2 e 1 estrela, com mil ou um milhão
+    // de notas. Só muda junto com a nota de quem grava (curtidas/{postId}_{uid}), na conta exata:
+    // a nota de antes sai e a nova entra. A moderação pode recalcular.
+    // ===================================================
+    match /diario_notas/{postId} {
+      allow read: if logado();
+
       function minhaNota() { return /databases/$(database)/documents/curtidas/$(postId + '_' + request.auth.uid); }
       function contaCerta() {
         let a = exists(minhaNota()) ? get(minhaNota()).data.nota : 0;
@@ -161,32 +170,5 @@
                       || ((resource.data.postAutorId == request.auth.uid || resource.data.autorId == request.auth.uid)
                           && (!existsAfter(coment()) || getAfter(coment()).data.get('oculto', false) == false)));
     }
-
-    // =====================================================
-    // VOTOS NA ENQUETE DE UM COMENTÁRIO: comentario_votos/{comentarioId}_{uid}
-    // Um voto por pessoa (não muda); a opção tem que existir na enquete do comentário. Todos contam.
-    // =====================================================
-    match /comentario_votos/{id} {
-      allow read: if logado();
-      allow create: if logado()
-                    && emailOk()
-                    && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
-                    && request.resource.data.uid == request.auth.uid
-                    && id == request.resource.data.comentarioId + '_' + request.auth.uid
-                    && request.resource.data.opcao is int && request.resource.data.opcao >= 0
-                    && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
-                    && request.resource.data.criadoEm == request.time;
-      allow delete: if podeModerar();
-    }
-
-    // =====================================================
-    // CURTIDAS EM COMENTÁRIOS: curtidas_comentarios/{comentarioId}_{uid}
-    // =====================================================
-    match /curtidas_comentarios/{id} {
-
-      allow read: if logado();
-
-      // Reação (emoji); sem o campo = curtida antiga (conta como ❤️).
-      function reacaoOk(d) { return !('reacao' in d) || d.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
 
 // ===== FIM DA PARTE 19 DE 25 =====
