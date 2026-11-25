@@ -26,7 +26,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   atalhos N/R/U/T/D + let, protegendo stories e negocios do limite de 1.000 expressões → partes + `_regras/firestore-publicar.rules`).
   Medir sem mexer no ar: `_regras/medir-regras.py` (Cloud Shell, arquivos em `_regras/medir/`); se o deploy der 409,
   `_regras/ligar-regras.py`. Medido: nomes curtos ~1 byte compilado por letra, expressão ~2 por letra, chamada de função ~36.
-  **Corridas/entregas, roubos/veículos e desaparecidos guardados** em `_regras/proxima-atualizacao.rules` (25/11/2026,
+  **Roubos/veículos e desaparecidos guardados** (corridas voltaram em 25/11 pelo servidor, função `corrida`) em `_regras/proxima-atualizacao.rules` (25/11/2026,
   decisão dele) com o site em "Em breve" (`em-breve.js` `EM_BREVE`); testes delas pulados quando as regras não as têm.
   Para voltar: colar os blocos de volta, virar `EM_BREVE` false e medir (vai precisar enxugar outra coisa ou separar a rede social).
 - Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
@@ -3168,6 +3168,20 @@ chat da equipe).
   respostas de cada negócio). `t-perfil-negocio` grava `respostaServ`. Próximo combinado: corridas/entregas, roubos/veículos e
   desaparecidos pelo servidor (Cloud Functions) para caberem nas regras sem separar a Ponte (ele ainda não confirmou se isso
   substitui o "lançar só a Help agora").
+- **Corridas e entregas de volta, pelo servidor (25/11/2026, PR depois do #262, MUDA REGRAS — não publicadas; 12 partes,
+  1280 testes):** decidido por ele: Cloud Functions no lugar das regras grandes, para o projeto continuar um só (substitui o
+  "lançar só a Help agora"). Função **`corrida`** (onCall, `functions/corridas.js` + `corridas-base.js` copiado no predeploy/
+  emulador.sh): ações criar (servidor gera o PIN, região × privado/rota/contato, valorSugerido, geohash, presente usado na
+  mesma transação, máx. 3 pedidos abertos), oferta (só sobe), raio, cancelar (entregador só depois de 5 min no local), aceitar
+  (transação; veículo/placa do cadastro; bloqueio; banido), desistir, etapa (PIN: 5 erros = 10 min, `privado/pin.erros/
+  bloqueadoAte`), avaliar (+ `entregadores_notas`), avaliarCliente. Site: `acaoCorrida(acao, dados)` em entregas-comum.js
+  (`__hfFuncoesEmulador` nos testes); entregas.js/entregador.js sem gravação direta (só `pos`). Regras: corridas get/list como
+  antes, update só `pos`, create/delete false; privado só leitura; entregadores_notas só leitura; entregadores e
+  entregadores_online voltaram iguais; servicoOk da corrida (`servicoCorrida`), gorjeta (`gorjetaOk`) e presente de
+  corrida/entrega de volta. `EM_BREVE.corridas = false`; Início, Automotivo, menu, Configurações, Ajuda, Sobre, Termos,
+  Privacidade e Presentes com as corridas de volta. Testes `t-corridas-servidor.mjs` (36), `t-entregas` (46), `t-presentes-vivo`,
+  `t-em-breve` atualizados. Para publicar: deploy de `functions:corrida` + medir + regras (`_regras/LEIA-ME.md`). Próximo:
+  roubos/veículos e desaparecidos pelo mesmo caminho.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

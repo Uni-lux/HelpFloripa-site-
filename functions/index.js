@@ -437,3 +437,13 @@ export const apagarConta = onCall({ region: REGIAO, memory: "512MiB", timeoutSec
   await db.collection("admin_log").add({ acao: "apagar_conta", alvo: uid, detalhe: `${antes.nome || "sem nome"}${antes.email ? " · " + antes.email : ""}${motivo ? " · " + String(motivo).slice(0, 200) : ""}`, por: req.auth.uid, porNome: quem.get("nome") || "", em: FieldValue.serverTimestamp() });
   return { ok: true, resumo: r };
 });
+
+// =====================================================
+// Entregas e corridas (25/11/2026): todas as mudanças nos pedidos passam por aqui (functions/corridas.js).
+// O aparelho só grava direto a posição ao vivo de quem leva. corridas-base.js é copiado no predeploy.
+// =====================================================
+import { acaoCorrida } from "./corridas.js";
+export const corrida = onCall({ region: REGIAO, maxInstances: 20, concurrency: 40 }, async (req) => {
+  try { return await acaoCorrida(db, req.auth, req.data); }
+  catch (e) { if (e instanceof HttpsError) throw e; logger.error("corrida", req.data?.acao, e?.message || e); throw new HttpsError("internal", "Não foi possível agora. Tente de novo."); }
+});

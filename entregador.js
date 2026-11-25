@@ -15,8 +15,8 @@ import {
   textoStatus, passo, expirada, distanciaKm, kmPelaRua, minutosAte, geohash, vizinhos, noBrasil, reais, textoKm, textoMin,
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=6";
-import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=1";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos, acaoCorrida } from "./entregas-comum.js?v=7";
+import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=2";
 if (EM_BREVE.corridas) await pararComEmBreve("Seja entregador", "Pedir corrida e enviar entregas pelo Help Floripa chega na próxima atualização.");
 
 const params = new URLSearchParams(location.search);
@@ -370,26 +370,18 @@ function cartaoPedido(c) {
   b.addEventListener("click", (e) => { if (!e.target.closest("button")) M?.enquadrar([pos, c.origem, c.destino], { baixo: innerWidth >= 900 ? 0 : painel().offsetHeight }); });
   return b;
 }
-// Só um aceita: transação confere que o pedido ainda está procurando.
+// Só um aceita: o servidor (função "corrida") confere numa transação que o pedido ainda está procurando.
 async function aceitar(c, b) {
   b.disabled = true; b.textContent = "Aceitando...";
   if (!pos && !(await pedirGps())) { b.disabled = false; b.textContent = "Aceitar"; toast("Para aceitar, permita a localização: quem pediu acompanha você no mapa."); return; }
-  const ref = fb.doc(fb.db, "corridas", c.id);
   try {
-    await fb.runTransaction(fb.db, async (tx) => {
-      const s = await tx.get(ref);
-      if (!s.exists() || s.data().status !== "procurando") throw new Error("pego");
-      tx.update(ref, {
-        status: "aceita", entregadorId: eu.uid, aceitaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(),
-        entregador: { nome: String(dados.nome || cad.nome || "").slice(0, 80), veiculo: cad.veiculo, modelo: cad.modelo || "", cor: cad.cor || "", placa: cad.placa || "" }
-      });
-    });
+    await acaoCorrida("aceitar", { id: c.id });
     avisarSom("status");
     toast("Pedido aceito! Siga para " + (c.servico === "corrida" ? "o passageiro" : "a coleta") + ".");
   } catch (e) {
     pedidos.delete(c.id);
     pintarPedidos();
-    toast(e?.message === "pego" ? "Outra pessoa aceitou antes." : "Não foi possível aceitar: " + erroAmigavel(e));
+    toast(/aceitou antes/.test(e?.message || "") ? "Outra pessoa aceitou antes." : "Não foi possível aceitar: " + e.message);
   }
 }
 
@@ -530,12 +522,12 @@ async function avancar(status, pin = "") {
   const campo = status === "chegou" ? "chegouEm" : status === "em_rota" ? "coletadoEm" : "concluidaEm";
   try {
     if (pos) await enviarPosicao(true);
-    await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { status, [campo]: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ...(pin ? { pinInformado: pin } : {}) });
+    await acaoCorrida("etapa", { id: c.id, para: status, pin });
     avisarSom("status");
     return true;
   } catch (e) {
     if (bt) bt.disabled = false;
-    toast(e?.code === "permission-denied" && pin ? "PIN errado. Peça o código de novo." : "Não foi possível: " + erroAmigavel(e));
+    toast(pin && /PIN/.test(e?.message || "") ? e.message : "Não foi possível: " + e.message);
     return false;
   }
 }
@@ -562,7 +554,7 @@ function desistir() {
     titulo: "Desistir deste pedido?", texto: "O pedido volta a procurar outra pessoa. Desistir muitas vezes pode tirar você dos próximos pedidos.", ok: "Desistir", icone: "alerta",
     aoConfirmar: async () => {
       const c = trabalho; if (!c) return;
-      await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { status: "procurando", entregadorId: "", entregador: fb.deleteField(), aceitaEm: fb.deleteField(), chegouEm: fb.deleteField(), pos: fb.deleteField(), desistencias: (c.desistencias || 0) + 1, atualizadoEm: fb.serverTimestamp() });
+      try { await acaoCorrida("desistir", { id: c.id }); } catch (e) { toast("Não foi possível: " + e.message); }
     }
   });
 }
@@ -572,7 +564,7 @@ function naoApareceu() {
     titulo: corrida ? "Passageiro não apareceu?" : "Ninguém entregou a encomenda?", texto: "O pedido será cancelado. Combine pelo chat se houver algum valor pela espera.", ok: "Cancelar pedido", icone: "alerta",
     aoConfirmar: async () => {
       const c = trabalho; if (!c) return;
-      await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { status: "cancelada", canceladaPor: "entregador", motivo: corrida ? "Passageiro não apareceu" : "Encomenda não foi entregue na coleta", canceladaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
+      try { await acaoCorrida("cancelar", { id: c.id, motivo: corrida ? "Passageiro não apareceu" : "Encomenda não foi entregue na coleta" }); } catch (e) { toast("Não foi possível: " + e.message); }
     }
   });
 }
@@ -591,7 +583,7 @@ function telaFim(c) {
       b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
       b.addEventListener("click", async () => {
         est.querySelectorAll("button").forEach((x, k) => x.classList.toggle("on", k < n));
-        try { await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { avaliacaoEntregador: { nota: n, em: fb.serverTimestamp() } }); toast("Obrigado!"); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+        try { await acaoCorrida("avaliarCliente", { id: c.id, nota: n }); toast("Obrigado!"); } catch (e) { toast("Não foi possível: " + e.message); }
       });
       est.appendChild(b);
     }

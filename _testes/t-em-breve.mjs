@@ -1,5 +1,5 @@
-// Funções guardadas para a próxima atualização (em-breve.js): corridas/entregas, roubos/veículos e desaparecidos
-// mostram "Em breve" ou somem, sem erro na tela. Uso: node seed.mjs && node t-em-breve.mjs
+// Funções guardadas para a próxima atualização (em-breve.js): roubos/veículos e desaparecidos mostram "Em breve" ou
+// somem, sem erro na tela. Corridas/entregas voltaram em 25/11/2026 (pelo servidor): aparecem de novo. Uso: node seed.mjs && node t-em-breve.mjs
 import { navegador, entrar, BASE } from "./nav.mjs";
 let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", m); };
@@ -7,11 +7,11 @@ const { browser: nav, ctx } = await navegador({ mobile: true });
 const p = await entrar(ctx, "ana", "index.html");
 const erros = []; p.on("pageerror", (e) => erros.push(e.message));
 await p.goto(BASE + "entregas.html", { waitUntil: "domcontentloaded" });
-await p.waitForSelector(".hf-em-breve", { timeout: 15000 }).catch(() => {});
-ok(await p.locator(".hf-em-breve").isVisible().catch(() => false), "Entregas e corridas: tela Em breve");
+await p.waitForTimeout(3500);
+ok(await p.locator(".hf-em-breve").count() === 0, "Entregas e corridas: abre (sem Em breve)");
 await p.goto(BASE + "entregador.html", { waitUntil: "domcontentloaded" });
-await p.waitForSelector(".hf-em-breve", { timeout: 15000 }).catch(() => {});
-ok(await p.locator(".hf-em-breve").isVisible().catch(() => false), "Seja entregador: tela Em breve");
+await p.waitForTimeout(3500);
+ok(await p.locator(".hf-em-breve").count() === 0, "Seja entregador: abre (sem Em breve)");
 await p.goto(BASE + "alertas.html?aba=roubos", { waitUntil: "domcontentloaded" });
 await p.waitForTimeout(4000);
 ok(await p.locator('[data-aba="roubos"]').count() === 0 && await p.locator('[data-aba="veiculos"]').count() === 0, "Help e alertas: sem as abas Roubos e Veículos");
@@ -20,11 +20,11 @@ await p.click('[data-aba="pets"]'); await p.waitForTimeout(1500);
 ok(await p.locator('[data-quem="pessoas"]').count() === 0, "Perdidos: sem Pessoas (desaparecidos)");
 ok(await p.getByText("Cadastrar meu pet").count() > 0, "Pets continua");
 await p.goto(BASE + "index.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(2500);
-ok(await p.locator(".mob-chip.corrida, .mob-chip.entrega").count() === 0 && await p.locator(".mob-chip.presente").count() === 1, "Início: sem corrida/entrega, com presente");
+ok(await p.locator(".mob-chip.corrida, .mob-chip.entrega").count() === 2 && await p.locator(".mob-chip.presente").count() === 1, "Início: corrida, entrega e presente");
 await p.goto(BASE + "automotivo.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(2000);
-ok(await p.locator(".mob-op").count() === 0, "Automotivo: sem o bloco de corridas");
+ok(await p.locator(".mob-op").count() > 0, "Automotivo: com o bloco de corridas");
 await p.goto(BASE + "presentes.html?aba=enviar", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(3500);
-ok(!(await p.content()).includes(">Mobilidade<"), "Presentes: sem o grupo Mobilidade");
+ok((await p.content()).includes(">Mobilidade<"), "Presentes: com o grupo Mobilidade");
 await p.goto(BASE + "mural.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(3000);
 ok(await p.locator(".mu-al.roubos").count() === 0, "Comunidade: sem o cartão Alertas de roubos");
 // Painel dos admins: Segurança e alertas só com Help e Pets

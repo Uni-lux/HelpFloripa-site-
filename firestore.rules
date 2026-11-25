@@ -1285,10 +1285,14 @@ service cloud.firestore {
       // tipo de um perfil que quem recebe tem) usa a escolha dos negócios (padrão todos); pessoal, padrão "seguindo".
       // Conversa de serviço (servico {tipo, id}: corrida, SOS, pet perdido, animal achado) vai direto quando o documento
       // do serviço mostra que os dois fazem parte dele.
+      function servicoCorrida(cr, p) {
+        return [cr.clienteId, cr.get('entregadorId', ''), cr.get('destinatarioId', ''), cr.get('pagadorId', '')].hasAll(p);
+      }
       function servicoOk(sv, p) {
         return sv is map && sv.keys().hasOnly(['tipo', 'id']) && sv.id is string && sv.id.size() <= 64
-            // (corrida volta com as regras de entregas, na próxima atualização: _regras/proxima-atualizacao.rules)
-            && (sv.tipo == 'sos'
+            && (sv.tipo == 'corrida'
+                  ? servicoCorrida(get(/databases/$(database)/documents/corridas/$(sv.id)).data, p)
+              : sv.tipo == 'sos'
                   ? get(/databases/$(database)/documents/sos/$(sv.id)).data.uid in p
                     && get(/databases/$(database)/documents/sos/$(sv.id)).data.status in ['aberto', 'atendido']
               : sv.tipo == 'pet'
@@ -3823,6 +3827,105 @@ service cloud.firestore {
 
 
       // =====================================================
+    // ENTREGAS E CORRIDAS (entregas.html = quem pede; entregador.html = quem leva) — pelo SERVIDOR desde 25/11/2026
+    // Pedido em corridas/{id}: procurando → aceita → chegou → em_rota → concluida (ou cancelada). Criar, mudar a oferta,
+    // aceitar, avançar as etapas (com o PIN, 5 erros = 10 min de espera), cancelar e avaliar são feitos pela Cloud
+    // Function "corrida" (functions/corridas.js), que confere tudo. Aqui fica só quem lê e a posição ao vivo de quem leva.
+    // O pagamento é direto entre as pessoas: o site não cobra nem recebe.
+    function entregadorAtivo(uid) {
+      let e = /databases/$(database)/documents/entregadores/$(uid);
+      return exists(e) && get(e).data.get('status', '') == 'ativo';
+    }
+    function posOk(p) {
+      return p is map && p.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
+          && p.lat is number && p.lat >= -34 && p.lat <= 6
+          && p.lng is number && p.lng >= -75 && p.lng <= -28
+          && p.get('rumo', 0) is number && p.get('vel', 0) is number
+          && p.em == request.time;
+    }
+
+    match /corridas/{id} {
+      function c() { return resource.data; }
+      function souEu(campo) { return c().get(campo, '') == request.auth.uid; }
+      allow get, list: if logado() && (souEu('clienteId') || souEu('entregadorId') || souEu('destinatarioId') || souEu('pagadorId')
+                    || (c().status == 'procurando' && (c().paraId == '' ? entregadorAtivo(request.auth.uid) : c().paraId == request.auth.uid))
+                    || podeModerar());
+      // Posição ao vivo de quem leva (só durante o pedido). O resto: só o servidor.
+      allow update: if logado() && mudou().hasOnly(['pos']) && souEu('entregadorId')
+                    && c().status in ['aceita', 'chegou', 'em_rota'] && posOk(request.resource.data.pos);
+      allow create, delete: if false;
+
+      // PIN, endereço exato e contato: quem pediu e quem recebe; o contato e a rota também quem aceitou; a rota quem paga.
+      match /privado/{doc} {
+        function cor() { return get(/databases/$(database)/documents/corridas/$(id)).data; }
+        allow get: if logado() && doc in ['rota', 'contato', 'pin']
+                    && (cor().clienteId == request.auth.uid || cor().get('destinatarioId', '') == request.auth.uid || podeModerar()
+                    || (doc == 'contato' && cor().get('entregadorId', '') == request.auth.uid && cor().status in ['aceita', 'chegou', 'em_rota'])
+                    || (doc == 'rota' && (cor().get('entregadorId', '') == request.auth.uid || cor().get('pagadorId', '') == request.auth.uid)));
+        allow write: if false;
+      }
+    }
+
+    // Cadastro de quem leva: conta verificada (selo), maior de idade, CNH para moto/carro/utilitário.
+    match /entregadores/{uid} {
+      function d() { return request.resource.data; }
+      function cadastroOk() {
+        return d().keys().hasOnly(['uid', 'nome', 'servicos', 'veiculo', 'modelo', 'cor', 'placa', 'cnh', 'cidade', 'uf', 'declaracoes', 'status', 'suspensoMotivo', 'criadoEm', 'atualizadoEm'])
+            && d().uid == uid
+            && valorTextoAte(d().get('nome', ''), 80)
+            && d().servicos is list && d().servicos.size() >= 1 && d().servicos.size() <= 2 && d().servicos.hasOnly(['entrega', 'corrida'])
+            && d().veiculo in ['bike', 'moto', 'carro', 'utilitario']
+            && (!('corrida' in d().servicos) || d().veiculo in ['moto', 'carro'])
+            && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
+            && (d().veiculo == 'bike'
+                ? (d().get('placa', '') == '' && d().get('cnh', '') == '')
+                : (d().get('placa', '').matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$') && d().get('cnh', '') in ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE']))
+            && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+            && d().declaracoes is map && d().declaracoes.get('maior', false) == true
+            && d().declaracoes.get('documentos', false) == true && d().declaracoes.get('autonomo', false) == true
+            && d().atualizadoEm == request.time;
+      }
+      // Só por id (quem pede vê quem vai levar: veículo, placa, cor); listar todos os entregadores é da moderação.
+      allow get: if logado();
+      allow list: if podeModerar();
+      allow create: if logado() && request.auth.uid == uid && emailOk() && contaVerificada() && !banidoDoPrograma(uid, 'entregas')
+                    && cadastroOk() && d().status == 'ativo' && d().get('suspensoMotivo', null) == null && d().criadoEm == request.time;
+      allow update: if logado() && request.auth.uid == uid && emailOk() && !banidoDoPrograma(uid, 'entregas')
+                    && resource.data.status != 'suspenso' && cadastroOk()
+                    && d().status in ['ativo', 'pausado'] && !mudou().hasAny(['suspensoMotivo', 'criadoEm']);
+      // A equipe suspende (ou devolve) quem leva.
+      allow update: if podeModerar() && mudou().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
+                    && d().status in ['ativo', 'pausado', 'suspenso'] && valorTextoAte(d().get('suspensoMotivo', ''), 200);
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+    // Quem está online agora (posição arredondada, para quem pede ver os veículos perto e quanto tempo levam).
+    match /entregadores_online/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && request.auth.uid == uid && entregadorAtivo(uid)
+                    && request.resource.data.keys().hasOnly(['uid', 'lat', 'lng', 'geo4', 'geo5', 'veiculo', 'servicos', 'ocupado', 'em'])
+                    && request.resource.data.uid == uid
+                    && request.resource.data.lat is number && request.resource.data.lat >= -34 && request.resource.data.lat <= 6
+                    && request.resource.data.lng is number && request.resource.data.lng >= -75 && request.resource.data.lng <= -28
+                    // posição arredondada (3 casas, ~100 m): todo mundo logado lê, então nunca o ponto exato de quem leva
+                    && math.abs(request.resource.data.lat * 1000 - math.round(request.resource.data.lat * 1000)) < 0.001
+                    && math.abs(request.resource.data.lng * 1000 - math.round(request.resource.data.lng * 1000)) < 0.001
+                    && request.resource.data.geo4 is string && request.resource.data.geo4.matches('^[0-9a-z]{4}$')
+                    && request.resource.data.geo5 is string && request.resource.data.geo5.matches('^' + request.resource.data.geo4 + '[0-9a-z]$')
+                    && request.resource.data.veiculo == get(/databases/$(database)/documents/entregadores/$(uid)).data.veiculo
+                    && request.resource.data.servicos is list && request.resource.data.servicos.hasOnly(['entrega', 'corrida'])
+                    && request.resource.data.ocupado is bool
+                    && request.resource.data.em == request.time;
+      allow delete: if logado() && request.auth.uid == uid;
+    }
+
+    // Resumo das notas de quem leva: só o servidor grava (junto com a avaliação do pedido).
+    match /entregadores_notas/{uid} {
+      allow read: if logado();
+      allow write: if false;
+    }
+
+      // =====================================================
     // PRESENTES (presentes.html): alguém manda um presente (mimo, dinheiro por Pix, produto ou lanche de um negócio,
     // corrida ou entrega) e quem recebe aceita ou recusa. Quem pode mandar: pref_publicas/{uid}.presentes
     // (todos | seguindo = quem eu sigo e meus vínculos do Social | vinculos | ninguem; padrão "seguindo").
@@ -3835,15 +3938,20 @@ service cloud.firestore {
           || (q in ['seguindo', 'vinculos'] && exists(v) && get(v).data.status == 'aceito')
           || (q == 'seguindo' && exists(/databases/$(database)/documents/relacoes/$(para + '_' + de)));
     }
+    // Gorjeta (Pix) para quem levou uma entrega/corrida concluída: vale sempre, mesmo sem o "quem pode me mandar".
+    function gorjetaOk(d) {
+      let c = get(/databases/$(database)/documents/corridas/$(d.corridaId)).data;
+      return d.tipo == 'pix' && c.clienteId == request.auth.uid && c.entregadorId == d.para && c.status == 'concluida';
+    }
     match /presentes/{id} {
       function d() { return request.resource.data; }
       function r() { return resource.data; }
       allow get, list: if logado() && (r().de == request.auth.uid || r().para == request.auth.uid);
       allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'status', 'criadoEm', 'atualizadoEm'])
+                    && d().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
                     && d().de == request.auth.uid && d().para is string && d().para != request.auth.uid
                     && !bloqueioEntre(request.auth.uid, d().para)
-                    && d().tipo in ['mimo', 'pix', 'produto', 'vale']
+                    && d().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega', 'vale']
                     && d().status == 'pendente'
                     && valorTextoAte(d().get('mensagem', ''), 300) && valorTextoAte(d().get('deNome', ''), 80) && valorTextoAte(d().get('paraNome', ''), 80)
                     && (d().tipo != 'mimo' || d().get('mimo', '').matches('^[a-z]{2,20}$'))
@@ -3860,7 +3968,7 @@ service cloud.firestore {
                     && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
                            && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
                            && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
-                    && presentePermitido(request.auth.uid, d().para)
+                    && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
       // Cada item do presente: {nome ≤60, preco 0–100 mil, qtd 1–99} (o que o site grava).
       function itemPresenteOk(l, i) {
@@ -3881,7 +3989,7 @@ service cloud.firestore {
               && k.hasOnly(['status', 'respondidoEm', 'atualizadoEm']) && d().respondidoEm == request.time)
              // quem mandou desiste antes da resposta
           || (request.auth.uid == r().de && st == 'pendente' && ns == 'cancelado' && k.hasOnly(['status', 'atualizadoEm']))
-             // quem recebe usa o pedido na loja ou o vale (corrida/entrega e gorjeta voltam na próxima atualização)
+             // quem recebe usa o pedido na loja ou o vale (corrida/entrega: o servidor marca "usado" ao criar o pedido)
           || (request.auth.uid == r().para && st == 'aceito' && ns == 'usado' && r().tipo in ['produto', 'vale']
               && k.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && d().usadoEm == request.time)
              // pago/recebido: qualquer um dos dois fecha

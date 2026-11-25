@@ -16,8 +16,8 @@ import {
   modalidadesDe, modalidadesDoVeiculo, textoStatus, passo, pinEm, expirada, faixaValor, valorSugerido, minutosAte, distanciaKm, kmPelaRua,
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
-import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=6";
-import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=1";
+import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos, acaoCorrida } from "./entregas-comum.js?v=7";
+import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=2";
 if (EM_BREVE.corridas) await pararComEmBreve("Entregas e corridas", "Pedir corrida e enviar entregas pelo Help Floripa chega na próxima atualização.");
 
 const params = new URLSearchParams(location.search);
@@ -626,36 +626,21 @@ async function criarPedido() {
   enviando = true; atualizarBotao();
   const km = Math.round((S.rota?.km || kmPelaRua(S.origem, S.destino)) * 10) / 10;
   const min = Math.round(minutosDe(S.mod) || minutosAte(km, m.veiculo));
-  const ref = fb.doc(fb.collection(fb.db, "corridas"));
-  const pin = gerarPin();
-  const pedido = {
-    servico: S.servico, modalidade: S.mod, veiculo: m.veiculo,
-    clienteId: eu.uid, clienteNome: String(dados.nome || "").slice(0, 80),
-    // Só a região (uns 500 m) fica à vista dos entregadores; o endereço exato vai em privado/rota (entregas-comum.js).
-    origem: aproximar(S.origem), destino: aproximar(S.destino),
-    km: Math.min(400, km), min: Math.min(900, min),
-    valor: S.valor, valorSugerido: valorSugerido(S.mod, km, min),
-    pagamento: S.pagamento,
-    pacote: S.servico === "entrega" ? { tamanho: S.tamanho, oque: S.oque.trim().slice(0, 80) } : null,
-    status: "procurando",
-    paraId: S.para?.uid || "", destinatarioId: S.dest?.uid || "",
-    geo4: geohash(S.origem.lat, S.origem.lng, 4), geo5: geohash(S.origem.lat, S.origem.lng, 5),
-    raioKm: S.para ? 40 : RAIOS[0], pinEm: pinEm(S.servico),
-    ...(S.presente ? { presenteId: S.presente.id, pagadorId: S.presente.de, pagamento: "presente" } : {}),
-    criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
-  };
+  // O servidor confere tudo, gera o PIN e grava o pedido (só a região à vista; endereço exato em privado/rota).
+  const ref = { id: "" };
   try {
-    const lote = fb.writeBatch(fb.db);
-    lote.set(ref, pedido);
-    lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "pin"), { pin });
-    lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "rota"), { origem: pontoExato(S.origem), destino: pontoExato(S.destino) });
-    if (S.presente) lote.update(fb.doc(fb.db, "presentes", S.presente.id), { status: "usado", corridaId: ref.id, usadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
-    lote.set(fb.doc(fb.db, "corridas", ref.id, "privado", "contato"), { nome: S.contato.nome.trim().slice(0, 80), telefone: S.contato.telefone.trim().slice(0, 20), obs: S.contato.obs.trim().slice(0, 300) });
-    await lote.commit();
+    const r = await acaoCorrida("criar", {
+      modalidade: S.mod, origem: pontoExato(S.origem), destino: pontoExato(S.destino),
+      km: Math.min(400, km), min: Math.min(900, min), valor: S.valor, pagamento: S.pagamento,
+      pacote: S.servico === "entrega" ? { tamanho: S.tamanho, oque: S.oque.trim().slice(0, 80) } : null,
+      paraId: S.para?.uid || "", destinatarioId: S.dest?.uid || "",
+      presenteId: S.presente?.id || "",
+      contato: { nome: S.contato.nome.trim().slice(0, 80), telefone: S.contato.telefone.trim().slice(0, 20), obs: S.contato.obs.trim().slice(0, 300) }
+    });
+    ref.id = r.id;
   } catch (e) {
     enviando = false; atualizarBotao();
-    toast(e?.code === "permission-denied" && S.dest ? "Não foi possível pedir: a entrega só vai para quem já conversa com você (conversa aceita e sem bloqueio)."
-      : e?.code === "permission-denied" ? "Não foi possível pedir: confirme seu e-mail (e, se for a primeira vez, aguarde a liberação desta função)." : "Não foi possível pedir: " + erroAmigavel(e));
+    toast("Não foi possível pedir: " + e.message);
     return;
   }
   enviando = false;
@@ -711,7 +696,7 @@ async function crescerRaio() {
   if (papel !== "cliente" || !atual || atual.status !== "procurando" || atual.paraId) return;
   const seg = (Date.now() - ms(atual.criadoEm)) / 1000;
   const alvo = seg > 240 ? 40 : seg > 150 ? 20 : seg > 60 ? 10 : 5;
-  if (alvo > (atual.raioKm || 5)) { try { await fb.updateDoc(fb.doc(fb.db, "corridas", atual.id), { raioKm: alvo, atualizadoEm: fb.serverTimestamp() }); } catch {} }
+  if (alvo > (atual.raioKm || 5)) { try { await acaoCorrida("raio", { id: atual.id, raioKm: alvo }); } catch {} }
 }
 
 function desenharPedido() {
@@ -761,8 +746,8 @@ function telaProcurando() {
       const b = h("button", "ent-acao"); b.type = "button"; b.dataset.mais = String(add);
       b.append(h("b", null, `+ ${reais(add)}`), document.createTextNode(`Oferta: ${reais(c.valor + add)}`));
       b.addEventListener("click", async () => {
-        try { await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { valor: Math.min(VALOR_MAX, c.valor + add), atualizadoEm: fb.serverTimestamp() }); toast("Oferta aumentada"); }
-        catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+        try { await acaoCorrida("oferta", { id: c.id, valor: Math.min(VALOR_MAX, c.valor + add) }); toast("Oferta aumentada"); }
+        catch (e) { toast("Não foi possível: " + e.message); }
       });
       ac.appendChild(b);
     }
@@ -804,7 +789,7 @@ function telaExpirada() {
   p.replaceChildren(frag);
 }
 async function cancelarSilencioso(motivo) {
-  try { await fb.updateDoc(fb.doc(fb.db, "corridas", atual.id), { status: "cancelada", canceladaPor: "cliente", motivo, canceladaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() }); } catch {}
+  try { await acaoCorrida("cancelar", { id: atual.id, motivo }); } catch {}
 }
 
 // Andamento: o carrinho (ou a encomenda) anda no mapa com o GPS de quem leva.
@@ -978,16 +963,9 @@ function blocoAvaliar(c) {
     if (!nota) return;
     enviar.disabled = true; enviar.textContent = "Enviando...";
     try {
-      const refC = fb.doc(fb.db, "corridas", c.id), refN = fb.doc(fb.db, "entregadores_notas", c.entregadorId);
-      await fb.runTransaction(fb.db, async (tx) => {
-        const n = await tx.get(refN);
-        const atualN = n.exists() ? n.data() : null;
-        tx.update(refC, { avaliacao: { nota, elogios: [...elogios].slice(0, 5), texto: texto.trim().slice(0, 300), em: fb.serverTimestamp() } });
-        if (atualN) tx.update(refN, { soma: (atualN.soma || 0) + nota, n: (atualN.n || 0) + 1, ultima: c.id });
-        else tx.set(refN, { soma: nota, n: 1, ultima: c.id });
-      });
+      await acaoCorrida("avaliar", { id: c.id, nota, elogios: [...elogios].slice(0, 5), texto: texto.trim().slice(0, 300) });
       toast("Obrigado pela avaliação!");
-    } catch (e) { enviar.disabled = false; enviar.textContent = "Enviar avaliação"; toast("Não foi possível enviar: " + erroAmigavel(e)); }
+    } catch (e) { enviar.disabled = false; enviar.textContent = "Enviar avaliação"; toast("Não foi possível enviar: " + e.message); }
   });
   enviar.disabled = true;
   box.appendChild(enviar);
@@ -1021,9 +999,9 @@ function cancelar() {
   const ok = botao("Cancelar o pedido", "ent-btn perigo", async () => {
     ok.disabled = true;
     try {
-      await fb.updateDoc(fb.doc(fb.db, "corridas", c.id), { status: "cancelada", canceladaPor: "cliente", motivo, canceladaEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() });
+      await acaoCorrida("cancelar", { id: c.id, motivo });
       fechar();
-    } catch (e) { ok.disabled = false; toast("Não foi possível cancelar: " + erroAmigavel(e)); }
+    } catch (e) { ok.disabled = false; toast("Não foi possível cancelar: " + e.message); }
   });
   ok.disabled = true;
   corpo.append(ok, botao("Voltar", "ent-btn sec", fechar));
