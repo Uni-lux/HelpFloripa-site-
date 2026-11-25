@@ -3113,6 +3113,13 @@ chat da equipe).
   19.071 × 22.987); média das duas +4% de correções (6.730; 23.922) mas estraga o dobro de palavras certas (15 × 6; 19 × 13).
   Não compensa o download nem o risco. Caminhos se ele quiser de novo: rede "por cima" do modelo atual (empilhada), muito mais
   texto, ou revisão por IA no servidor (Claude API numa Cloud Function, precisa do Blaze).
+- **REGRAS PUBLICADAS por ele em 25/11/2026 às 01:55** pelo Cloud Shell (`deploy --only firestore:rules`, "Deploy complete!"):
+  a versão de `_regras/firestore-publicar.rules` (11 partes, 133.633 de texto, "CABE" no medidor), com tudo desde 26/10 MENOS
+  corridas/entregas, roubos/veículos e desaparecidos (guardados em `_regras/proxima-atualizacao.rules`, site em "Em breve").
+  Aviso do deploy "Unused function: d3" = `pontoAproxOk`, que só as regras guardadas usavam (inofensivo; sai quando
+  elas voltarem ou na próxima limpeza). Faltava ele: "Recalcular estrelas" e "Guardar o que já está escondido" no painel.
+  Ele está pensando em SEPARAR a rede social (Ponte) da plataforma: opções explicadas (1 só o banco, 2 marca/entrada própria
+  com a mesma conta — recomendada, Mensagens fica na plataforma —, 3 tudo separado); esperando a escolha dele.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
