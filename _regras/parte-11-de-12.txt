@@ -1,5 +1,5 @@
 allow get, list: if A170();
-allow update: if b() && k().hasOnly(['pos']) && aI('entregadorId')
+allow update: if b() && l().hasOnly(['pos']) && aI('entregadorId')
 && m().status in ['aceita', 'chegou', 'em_rota'] && d2(Nq().pos);
 allow create, delete: if false;
 match /privado/{R} {
@@ -7,7 +7,7 @@ function ax() { return get(Dq('corridas', c)).data; }
 function A171() {
 let uL = Uq();
 return b() && R in ['rota', 'contato', 'pin']
-&& (ax().clienteId == uL || ax().get('destinatarioId', '') == uL || l()
+&& (ax().clienteId == uL || ax().get('destinatarioId', '') == uL || k()
 || (R == 'contato' && ax().get('entregadorId', '') == uL && ax().status in ['aceita', 'chegou', 'em_rota'])
 || (R == 'rota' && (ax().get('entregadorId', '') == uL || ax().get('pagadorId', '') == uL)));
 }
@@ -17,7 +17,7 @@ allow write: if false;
 }
 match /entregadores/{g} {
 allow get: if b();
-allow list: if l();
+allow list: if k();
 allow delete: if b() && Uq() == g;
 }
 match /entregadores_online/{g} {
@@ -102,7 +102,7 @@ function d5(o) {
 return S(o, 0) && S(o, 1) && S(o, 2) && S(o, 3) && S(o, 4)
 && S(o, 5) && S(o, 6) && S(o, 7) && S(o, 8) && S(o, 9);
 }
-allow update: if b() && d6(k(), j().status, Nq().get('status', ''));
+allow update: if b() && d6(l(), j().status, Nq().get('status', ''));
 function d6(s, E, Z) {
 let uL = Uq();
 let tL = Tq();
@@ -150,7 +150,7 @@ function A177() {
 let rL = Rq();
 let tL = Tq();
 return b() && rL.uid == Uq()
-&& k().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
+&& l().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
 && cF() && a().ate <= rL.ate && a().parado is bool
 && (rL.ate > tL || a().parado == true)
 && (a().parado == true || !z(rL.participantes[0], rL.participantes[1]))
@@ -173,7 +173,7 @@ function A179() {
 let rL = Rq();
 let uL = Uq();
 return b() && ((rL.publico == true && rL.status in ['aberto', 'atendido']) || rL.uid == uL
-|| rL.ajudanteId == uL || uL in rL.avisados || l());
+|| rL.ajudanteId == uL || uL in rL.avisados || k());
 }
 allow get, list: if A179();
 function A180() {
@@ -193,7 +193,7 @@ return b() && n()
 && a().criadoEm == tL && a().atualizadoEm == tL;
 }
 allow create: if A180();
-allow update: if b() && a().atualizadoEm == Tq() && d7(k(), j().status, a().get('status', ''));
+allow update: if b() && a().atualizadoEm == Tq() && d7(l(), j().status, a().get('status', ''));
 function d7(s, E, Z) {
 let uL = Uq();
 let tL = Tq();
@@ -223,24 +223,24 @@ return exists(d) && get(d).data.uid == Uq();
 match /ocorrencias/{c} {
 function A181() {
 let rL = Rq();
-return b() && (rL.status == 'ativo' || rL.autorId == Uq() || l() || cI(c));
+return b() && (rL.status == 'ativo' || rL.autorId == Uq() || k() || cI(c));
 }
 allow get, list: if A181();
 match /pistas/{e} {
-allow read: if b() && (get(Dq('ocorrencias', c)).data.autorId == Uq() || cI(c) || l());
+allow read: if b() && (get(Dq('ocorrencias', c)).data.autorId == Uq() || cI(c) || k());
 }
 }
 match /ocorrencias_autoria/{c} {
 function A182() {
-return b() && (Rq().uid == Uq() || l());
+return b() && (Rq().uid == Uq() || k());
 }
 allow get: if A182();
-allow list: if l();
+allow list: if k();
 }
-match /pistas_autoria/{c} { allow read: if l(); }
+match /pistas_autoria/{c} { allow read: if k(); }
 match /veiculos/{c} {
 function A183() {
-return b() && (Rq().donoId == Uq() || l());
+return b() && (Rq().donoId == Uq() || k());
 }
 allow get, list: if A183();
 function A184() {
@@ -251,10 +251,21 @@ allow delete: if A184();
 match /veiculos_venda/{c} {
 allow get, list: if b();
 function A185() {
-return b() && (Rq().donoId == Uq() || l());
+return b() && (Rq().donoId == Uq() || k());
 }
 allow delete: if A185();
 }
+match /desaparecidos/{c} {
+function A186() {
+let rL = Rq();
+return b() && (rL.status == 'ativo' || rL.autorId == Uq() || k());
+}
+allow get, list: if A186();
+match /pistas/{e} {
+allow read: if b() && (get(Dq('desaparecidos', c)).data.autorId == Uq() || k());
+}
+}
+match /pistas_desap_autoria/{c} { allow read: if k(); }
 function cJ(a) {
 return a.especie in ['cao', 'gato', 'ave', 'outro']
 && a.cores is list && a.cores.size() <= 4
@@ -266,12 +277,12 @@ return a.especie in ['cao', 'gato', 'ave', 'outro']
 }
 match /pets/{c} {
 function a() { return Nq(); }
-function A186() {
-let rL = Rq();
-return b() && (rL.visivel == true || rL.donoId == Uq() || l());
-}
-allow get, list: if A186();
 function A187() {
+let rL = Rq();
+return b() && (rL.visivel == true || rL.donoId == Uq() || k());
+}
+allow get, list: if A187();
+function A188() {
 let uL = Uq();
 return b() && n() && a().donoId == uL
 && (resource == null || Rq().donoId == uL)
@@ -284,26 +295,10 @@ return b() && n() && a().donoId == uL
 && a().get('geo4', '').matches('^([0-9a-z]{4})?$')
 && a().atualizadoEm == Tq();
 }
-allow create, update: if A187();
-function A188() {
+allow create, update: if A188();
+function A189() {
 return b() && Rq().donoId == Uq();
 }
-allow delete: if A188();
-}
-match /pets_achados/{c} {
-function a() { return Nq(); }
-allow get, list: if b();
-function A189() {
-let tL = Tq();
-return b() && n()
-&& a().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
-&& a().autorId == Uq() && f(a().get('autorNome', ''), 80)
-&& cJ(a())
-&& a().local is map && a().local.keys().hasOnly(['lat', 'lng', 'nome'])
-&& a().local.lat is number && a().local.lat >= -34 && a().local.lat <= 6
-&& a().local.lng is number && a().local.lng >= -75 && a().local.lng <= -28 && f(a().local.get('nome', ''), 120)
-&& a().geo4 is string && a().geo4.matches('^[0-9a-z]{4}$')
-&& a().quando is timestamp && a().quando <= tL
-&& a().status == 'ativo' && a().criadoEm == tL && a().atualizadoEm == tL;
+allow delete: if A189();
 }
 // ===== FIM DA PARTE 11 DE 12 =====

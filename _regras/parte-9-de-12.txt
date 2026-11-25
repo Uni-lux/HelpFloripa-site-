@@ -2,7 +2,7 @@ match /enquete_votos/{c} {
 function A139() {
 let rL = Rq();
 let uL = Uq();
-return b() && (rL.uid == uL || rL.autorId == uL || l());
+return b() && (rL.uid == uL || rL.autorId == uL || k());
 }
 allow read: if A139();
 function dJ() {
@@ -120,13 +120,13 @@ let rL = Rq();
 let uL = Uq();
 return b() && (rL.autorId == uL
 || rL.get('uid', '') == uL
-|| l());
+|| k());
 }
 allow read, delete: if A144();
 allow update: if false;
 }
 match /caixa_autoria/{c} {
-allow read, delete: if l();
+allow read, delete: if k();
 function A145() {
 let nL = Nq();
 return b()
@@ -251,14 +251,14 @@ return d != a
 allow create, update: if b() && dN();
 function A152() {
 let nL = Nq();
-return l()
+return k()
 && nL.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
 && nL.total is int && nL.soma is int
 && nL.n1 is int && nL.n2 is int && nL.n3 is int
 && nL.n4 is int && nL.n5 is int;
 }
 allow create, update: if A152();
-allow delete: if l();
+allow delete: if k();
 }
 match /comentarios/{c} {
 allow read: if b();
@@ -346,13 +346,13 @@ return b()
 && (
 (rL.autorId == uL
 && rL.get('oculto', false) != true
-&& k().hasOnly(['texto', 'editadoEm'])
+&& l().hasOnly(['texto', 'editadoEm'])
 && ct(nL)
 && nL.editadoEm == Tq())
 ||
 (rL.postAutorId == uL
 && (dR() || dS()
-|| (k().hasOnly(['oculto']) && nL.oculto == false)))
+|| (l().hasOnly(['oculto']) && nL.oculto == false)))
 );
 }
 allow update: if A154();
@@ -363,13 +363,13 @@ return b()
 && (rL.autorId == uL || rL.postAutorId == uL);
 }
 allow delete: if A155();
-allow delete: if l();
+allow delete: if k();
 }
 match /comentarios_ocultos/{c} {
 function ad() { return Dq('comentarios', c); }
 function A156() {
 let rL = Rq();
 let uL = Uq();
-return b() && (rL.autorId == uL || rL.postAutorId == uL || l());
+return b() && (rL.autorId == uL || rL.postAutorId == uL || k());
 }
 // ===== FIM DA PARTE 9 DE 12 =====

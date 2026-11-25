@@ -4,10 +4,10 @@ let rL = Rq();
 return b()
 && Uq() == G
 && nL.uid == rL.uid
-&& (!k().hasAny(['criadoEm'])
+&& (!l().hasAny(['criadoEm'])
 || (!('criadoEm' in rL) && nL.criadoEm == Tq()))
-&& (!k().hasAny(['emailConfirmado']) || bM())
-&& (!k().hasAny(['email']) || bN())
+&& (!l().hasAny(['emailConfirmado']) || bM())
+&& (!l().hasAny(['email']) || bN())
 && aL();
 }
 allow update: if A2();
@@ -82,8 +82,8 @@ return d == null
 && d.resposta.n is int && d.resposta.n >= 0 && d.resposta.n <= 1000)));
 }
 function bS() {
-return ((resource != null && !k().hasAny(['fotoPerfil'])) || aP('fotoPerfil'))
-&& ((resource != null && !k().hasAny(['fotoCapa'])) || aP('fotoCapa'));
+return ((resource != null && !l().hasAny(['fotoPerfil'])) || aP('fotoPerfil'))
+&& ((resource != null && !l().hasAny(['fotoCapa'])) || aP('fotoCapa'));
 }
 function A3() {
 let uL = Uq();
@@ -94,7 +94,7 @@ allow get: if A3();
 allow list: if b();
 function A4() {
 let nL = Nq();
-return l()
+return k()
 && nL.diff(Rq()).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
 && aa('desativadaAte')
 && (nL.get('verificado', false) != true
@@ -125,7 +125,7 @@ return b()
 && (!nL.diff(rL).affectedKeys().hasAny(['nickname'])
 || (bO() && cY()))
 && az().hasOnly(bQ())
-&& (!k().hasAny(['desativadaAte']) || !ae(uL))
+&& (!l().hasAny(['desativadaAte']) || !ae(uL))
 && bP()
 && bR()
 && bS();
@@ -295,7 +295,7 @@ match /momentos/{c} {
 function ah(d, D) { return exists(Dq('relacoes', d + '_' + D)); }
 function c2(a) {
 let uL = Uq();
-return a.uid == uL || l()
+return a.uid == uL || k()
 || (!z(uL, a.uid)
 && (a.ver == 'todos'
 || (a.ver == 'seguidores' && ah(uL, a.uid))
@@ -331,7 +331,7 @@ return b() && rL.uid == Uq() && bV(nL)
 }
 allow update: if A22();
 function A23() {
-return b() && (Rq().uid == Uq() || l());
+return b() && (Rq().uid == Uq() || k());
 }
 allow delete: if A23();
 }
@@ -352,7 +352,7 @@ return b() && n() && bW()
 && nL.em == Tq();
 }
 allow create, update: if A24();
-allow delete: if b() && (Uq() in c.split('_') || l());
+allow delete: if b() && (Uq() in c.split('_') || k());
 }
 match /negocios/{c} {
 function bX() {

@@ -22,7 +22,7 @@ return request.auth != null
 function M() {
 return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
 }
-function l() {
+function k() {
 return i() && M() in ['dono', 'moderacao'];
 }
 function cK(g) {
@@ -201,12 +201,12 @@ return u == null || u == ''
 function aP(w) {
 return !(w in request.resource.data) || af(request.resource.data[w]);
 }
-function k() {
+function l() {
 return request.resource.data.diff(resource.data).affectedKeys();
 }
 function aQ() {
-return !k().hasAny(['ocultoPelaEquipe'])
-&& !(resource.data.get('ocultoPelaEquipe', false) == true && k().hasAny(['ocultoAte']));
+return !l().hasAny(['ocultoPelaEquipe'])
+&& !(resource.data.get('ocultoPelaEquipe', false) == true && l().hasAny(['ocultoAte']));
 }
 function bc(a) {
 return !(a.get('ocultoAte', null) is timestamp && a.ocultoAte > request.time)
@@ -282,7 +282,7 @@ let nL = Nq();
 let j = nL.get('responsavel', null);
 return (j == null || (j is string && exists(Dq('admins', j))))
 && f(nL.get('responsavelNome', null), 80)
-&& (!k().hasAny(['responsavel']) || nL.get('assumidoEm', null) == Tq());
+&& (!l().hasAny(['responsavel']) || nL.get('assumidoEm', null) == Tq());
 }
 function at(a_) {
 let j = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
@@ -294,9 +294,9 @@ return get(Dq('negocios', ag)).data.donoId;
 match /usuarios/{G} {
 allow read: if b()
 && Uq() == G;
-allow read: if l();
+allow read: if k();
 function A0() {
-return l() && (G != Uq() || M() == 'dono')
+return k() && (G != Uq() || M() == 'dono')
 && Nq().diff(Rq()).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
 && cK(G);
 }

@@ -17,7 +17,7 @@ import {
   geohash, vizinhos, gerarPin, noBrasil, reais, textoKm, textoMin, formatarPlaca
 } from "./corridas-base.js?v=1";
 import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, lerGps, garantirConversa, irPara, abrirTela, aproximar, pontoExato, lerEnderecos, comEnderecos, acaoCorrida } from "./entregas-comum.js?v=8";
-import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=3";
+import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=4";
 if (EM_BREVE.corridas) await pararComEmBreve("Entregas e corridas", "Pedir corrida e enviar entregas pelo Help Floripa chega na próxima atualização.");
 
 const params = new URLSearchParams(location.search);

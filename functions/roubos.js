@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { TIPOS_OCORRENCIA, OBJETOS, normalizarId, identificadorOk, geohash } from "./alertas-base.js";
 import { placaOk, placaMercosul, formasPlaca, idVenda } from "./veiculos-base.js";
 
-export const LIMITES = { ocorrencia: 5, pista: 30, veiculos: 10, vendas: 40 };
+export const LIMITES = { ocorrencia: 5, pista: 30, desaparecido: 3, veiculos: 10, vendas: 40 };
 const erro = (codigo, texto) => new HttpsError(codigo, texto);
 const txt = (v, n) => String(v ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, n);
 const idOk = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(v);
@@ -46,8 +46,9 @@ async function contar(db, uid, tipo) {
   await db.runTransaction(async (tx) => {
     const d = (await tx.get(ref)).data() || {};
     const n = d.dia === dia ? Number(d[tipo] || 0) : 0;
-    if (n >= LIMITES[tipo]) throw erro("resource-exhausted", tipo === "ocorrencia" ? "Você já registrou 5 ocorrências hoje. Tente amanhã." : "Muitas pistas hoje. Tente amanhã.");
-    tx.set(ref, d.dia === dia ? { [tipo]: n + 1 } : { dia, ocorrencia: 0, pista: 0, [tipo]: 1 }, { merge: true });
+    if (n >= LIMITES[tipo]) throw erro("resource-exhausted", { ocorrencia: "Você já registrou 5 ocorrências hoje. Tente amanhã.", desaparecido: "Você já registrou 3 avisos hoje. Fale com o Suporte se precisar de mais." }[tipo] || "Muitas pistas hoje. Tente amanhã.");
+    // Dia novo: começa do zero (sem merge, para não sobrar contagem de outro tipo do dia anterior).
+    if (d.dia === dia) tx.set(ref, { [tipo]: n + 1 }, { merge: true }); else tx.set(ref, { dia, [tipo]: 1 });
   });
 }
 async function autorDe(db, id, o) {
@@ -261,7 +262,93 @@ async function vendas(db, auth, d) {
   return { ok: true, n: novos.size };
 }
 
-const ACOES = { ocorrencia, status, pista, veiculo, conferirPlacas, vendas };
+
+// ---------- pessoas desaparecidas (etapa 3) ----------
+// Nasce "analise" com um chamado URGENTE para a equipe conferir o boletim; só a moderação publica ("ativo") e, ao
+// publicar, o número do boletim sai do aviso. Evita usar o site para achar quem fugiu de uma situação de violência.
+export const CONDICOES = ["crianca", "idoso", "demencia", "deficiencia", "adulto", "outro"];
+export const PARENTESCOS = ["pais", "filho", "conjuge", "irmao", "parente", "responsavel", "amigo"];
+const NOME_COND = { crianca: "Criança ou adolescente", idoso: "Pessoa idosa", demencia: "Alzheimer ou confusão", deficiencia: "Deficiência ou autismo", adulto: "Adulto", outro: "Outra situação" };
+const NOME_PAR = { pais: "Pai ou mãe", filho: "Filho ou filha", conjuge: "Cônjuge", irmao: "Irmão ou irmã", parente: "Outro parente", responsavel: "Responsável legal", amigo: "Amigo ou vizinho" };
+const fotoOk = (f) => typeof f === "string" && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(f) && f.length <= 300000
+  || f.startsWith("https://firebasestorage.googleapis.com/v0/b/") && f.length <= 2000);
+export function montarDesaparecido(d, uid, perfil, agora = Date.now()) {
+  const nome = txt(d?.nome, 80);
+  if (nome.length < 3) throw erro("invalid-argument", "Escreva o nome da pessoa.");
+  const idade = d.idade === null || d.idade === undefined || d.idade === "" ? null : Number(d.idade);
+  if (idade !== null && !(Number.isInteger(idade) && idade >= 0 && idade <= 120)) throw erro("invalid-argument", "Confira a idade.");
+  if (!CONDICOES.includes(d.condicao)) throw erro("invalid-argument", "Escolha a situação da pessoa.");
+  if (!PARENTESCOS.includes(d.parentesco)) throw erro("invalid-argument", "Diga quem você é para a pessoa.");
+  const descricao = txt(d.descricao, 500);
+  if (descricao.length < 10) throw erro("invalid-argument", "Descreva a pessoa com pelo menos 10 letras.");
+  const bo = String(d.bo || "").replace(/\s+/g, "");
+  if (!/^[A-Za-z0-9./-]{4,40}$/.test(bo)) throw erro("invalid-argument", "Informe o número do boletim de ocorrência.");
+  if (d.declaro !== true) throw erro("invalid-argument", "Marque a declaração para continuar.");
+  const quando = Number(d.quando);
+  if (!(quando <= agora + 60e3 && quando >= agora - 366 * 864e5)) throw erro("invalid-argument", "Escolha uma data do último ano.");
+  const lat = Number(d.lat), lng = Number(d.lng);
+  if (!noBrasil(lat, lng)) throw erro("invalid-argument", "Ative a localização para marcar a região (dentro do Brasil).");
+  if (d.foto && !fotoOk(d.foto)) throw erro("invalid-argument", "Não foi possível usar essa foto.");
+  return {
+    autorId: uid, autorNome: txt(perfil.nome, 80), nome, ...(idade !== null ? { idade } : {}),
+    condicao: d.condicao, parentesco: d.parentesco, descricao, sinais: txt(d.sinais, 300), visto: txt(d.visto, 120),
+    quando: Timestamp.fromMillis(Math.min(quando, agora - 1000)), bo,
+    lat: Math.round(lat * 1e3) / 1e3, lng: Math.round(lng * 1e3) / 1e3, geo4: geohash(lat, lng, 4),
+    cidade: txt(perfil.cidade, 60), uf: uf(perfil.uf), status: "analise", ...(d.foto ? { foto: d.foto } : {})
+  };
+}
+async function desaparecido(db, auth, d) {
+  await contaLiberada(db, auth);
+  const uid = auth.uid, u = (await db.doc(`usuarios/${uid}`).get()).data() || {};
+  const doc = montarDesaparecido(d, uid, u);
+  await contar(db, uid, "desaparecido");
+  const ref = db.collection("desaparecidos").doc(), sref = db.collection("suporte").doc(), agora = FieldValue.serverTimestamp();
+  const lote = db.batch();
+  lote.set(ref, { ...doc, criadoEm: agora, atualizadoEm: agora });
+  // Chamado URGENTE na fila de Segurança para a equipe conferir o boletim e publicar.
+  lote.set(sref, { prioridade: "urgente", uid, nome: doc.autorNome, email: txt(auth.token?.email, 120), assunto: `Desaparecimento: ${doc.nome}`.slice(0, 120),
+    categoria: "sos", status: "aberto", desaparecidoId: ref.id, criadoEm: agora, atualizadoEm: agora, ultimaDe: "usuario" });
+  lote.set(sref.collection("mensagens").doc("inicio"), { autorId: uid, equipe: false, em: agora,
+    texto: `DESAPARECIMENTO · conferir e publicar\nPessoa: ${doc.nome}${doc.idade !== undefined ? ", " + doc.idade + " anos" : ""} (${NOME_COND[doc.condicao]})\nBoletim: ${doc.bo}\nQuem registrou: ${NOME_PAR[doc.parentesco]}\nPainel › Segurança e alertas › Desaparecidos`.slice(0, 2000) });
+  await lote.commit();
+  return { id: ref.id };
+}
+async function statusDesap(db, auth, d) {
+  if (!idOk(d.id)) throw erro("invalid-argument", "Aviso inválido.");
+  const ref = db.doc(`desaparecidos/${d.id}`), s = await ref.get();
+  if (!s.exists) throw erro("not-found", "Aviso não encontrado.");
+  const x = s.data(), uid = auth.uid, autor = x.autorId === uid, mod = await podeModerar(db, uid), agora = FieldValue.serverTimestamp();
+  if (d.status === "ativo") {
+    if (!mod) throw erro("permission-denied", "Só a equipe publica o aviso.");
+    if (x.status !== "analise") throw erro("failed-precondition", "Este aviso não está esperando conferência.");
+    await ref.update({ status: "ativo", bo: FieldValue.delete(), publicadoPor: uid, atualizadoEm: agora }); // o boletim fica no registro de ações
+    return { ok: true };
+  }
+  const ok = ["encontrado", "removido"].includes(d.status) && (mod || (autor && ["analise", "ativo"].includes(x.status)));
+  if (!ok) throw erro("permission-denied", "Você não pode mudar este aviso.");
+  await ref.update({ status: d.status, atualizadoEm: agora });
+  return { ok: true };
+}
+async function pistaDesap(db, auth, d) {
+  await contaLiberada(db, auth);
+  if (!idOk(d.id)) throw erro("invalid-argument", "Aviso inválido.");
+  const s = await db.doc(`desaparecidos/${d.id}`).get();
+  if (!s.exists || s.get("status") !== "ativo") throw erro("failed-precondition", "Este aviso não está mais ativo.");
+  const texto = txt(d.texto, 400);
+  if (texto.length < 3) throw erro("invalid-argument", "Escreva o que você viu.");
+  const uid = auth.uid;
+  await contar(db, uid, "pista");
+  const lat = Number(d.lat), lng = Number(d.lng), comLugar = d.lat !== undefined && d.lat !== null && noBrasil(lat, lng);
+  const base = { texto, criadoEm: FieldValue.serverTimestamp(), ...(comLugar ? { lat: Math.round(lat * 1e3) / 1e3, lng: Math.round(lng * 1e3) / 1e3 } : {}) };
+  const anonimo = d.anonimo !== false;
+  const ref = db.collection(`desaparecidos/${d.id}/pistas`).doc(), lote = db.batch();
+  if (anonimo) { lote.set(ref, { ...base, anonimo: true }); lote.set(db.doc(`pistas_desap_autoria/${d.id}_${ref.id}`), { uid }); }
+  else lote.set(ref, { ...base, anonimo: false, uid, nome: txt((await db.doc(`usuarios/${uid}`).get()).get("nome"), 80) });
+  await lote.commit();
+  return { id: ref.id };
+}
+
+const ACOES = { ocorrencia, status, pista, veiculo, conferirPlacas, vendas, desaparecido, statusDesap, pistaDesap };
 export async function acaoRoubos(db, auth, dados) {
   if (!auth) throw erro("unauthenticated", "Entre na sua conta.");
   const fn = ACOES[dados?.acao];

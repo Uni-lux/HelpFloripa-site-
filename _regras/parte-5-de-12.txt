@@ -56,11 +56,11 @@ return b()
 && n()
 && rL.autorId == uL
 && (c.matches('^n_.*') || c.matches('^c_.*'))
-&& k().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
+&& l().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
 && nL.nota is int && nL.nota >= 1 && nL.nota <= 5
 && f(nL.get('comentario', ''), 500)
 && nL.atualizadoEm == Tq()
-&& (!k().hasAny(['pedidoId'])
+&& (!l().hasAny(['pedidoId'])
 || (!('pedidoId' in rL)
 && au(nL, c.matches('^n_.*') ? uL : rL.alvoId, rL.negocioId)))
 && !z(uL, rL.alvoId)
@@ -165,12 +165,12 @@ return b()
 && nL.autorId == rL.autorId
 && (
 (rL.autorId == uL
-&& k().hasOnly(['texto', 'editadoEm'])
+&& l().hasOnly(['texto', 'editadoEm'])
 && ab(nL)
 && nL.editadoEm == tL)
 ||
 (a4().autorId == uL
-&& k().hasOnly(['resolvido', 'resolvidoEm'])
+&& l().hasOnly(['resolvido', 'resolvidoEm'])
 && nL.resolvido is bool
 && nL.resolvidoEm == tL)
 );
@@ -232,20 +232,20 @@ return b()
 && (
 (rL.alvoId == uL
 && rL.status == 'aberta'
-&& k().hasOnly(['resposta', 'respondidaEm'])
+&& l().hasOnly(['resposta', 'respondidaEm'])
 && nL.resposta is string
 && nL.resposta.size() >= 2 && nL.resposta.size() <= 1000
 && nL.respondidaEm == tL)
 ||
 (rL.autorId == uL
 && rL.status == 'aberta'
-&& k().hasOnly(['status', 'resolvidaEm'])
+&& l().hasOnly(['status', 'resolvidaEm'])
 && nL.status == 'resolvida'
 && nL.resolvidaEm == tL)
 ||
 (rL.autorId == uL
 && rL.status == 'resolvida'
-&& k().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+&& l().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
 && ca(nL)
 && nL.status == 'aberta'
 && nL.abertaEm == tL
@@ -312,10 +312,10 @@ allow get: if A69();
 allow read: if i();
 function A70() {
 let nL = Nq();
-return l()
-&& k().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+return k()
+&& l().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
 && nL.status in ['nova', 'em_analise', 'resolvida', 'descartada']
-&& (!k().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || nL.analisadaPor == Uq())
+&& (!l().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || nL.analisadaPor == Uq())
 && aB()
 && f(nL.get('nota', ''), 1000);
 }
@@ -364,7 +364,7 @@ allow get: if b() && Uq() == g;
 allow read: if i();
 function A72() {
 let nL = Nq();
-return l() && (M() == 'dono' || !exists(Dq('admins', g)))
+return k() && (M() == 'dono' || !exists(Dq('admins', g)))
 && nL.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
 && nL.tipo in ['suspensao', 'banimento']
 && f(nL.get('motivo', ''), 500)
@@ -375,7 +375,7 @@ return l() && (M() == 'dono' || !exists(Dq('admins', g)))
 && dw();
 }
 allow create, update: if A72();
-allow delete: if l() && M() == 'dono';
+allow delete: if k() && M() == 'dono';
 }
 match /avisos/{c} {
 function A73() {
@@ -399,7 +399,7 @@ allow create: if A74();
 function A75() {
 return b()
 && Rq().uid == Uq()
-&& k().hasOnly(['lidoEm'])
+&& l().hasOnly(['lidoEm'])
 && Nq().lidoEm == Tq();
 }
 allow update: if A75();
@@ -410,7 +410,7 @@ allow read: if b();
 function A76() {
 let nL = Nq();
 let tL = Tq();
-return l()
+return k()
 && nL.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
 && f(nL.get('titulo', ''), 120)
 && f(nL.get('texto', ''), 600)
@@ -423,7 +423,7 @@ return l()
 && aa('ate');
 }
 allow create, update: if A76();
-allow delete: if l();
+allow delete: if k();
 }
 match /suporte_abertos/{g} {
 function A() { return Nq(); }

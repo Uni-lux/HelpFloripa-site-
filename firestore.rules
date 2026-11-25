@@ -4089,6 +4089,17 @@ service cloud.firestore {
       allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
     }
 
+    // DESAPARECIDOS (25/11/2026, etapa 3): quem grava é o servidor (função "roubos", ações desaparecido/statusDesap/pistaDesap).
+    // Nasce "analise" e só a equipe publica ("ativo") depois de conferir o boletim. Quem registrou e a moderação leem sempre;
+    // os outros só o publicado. Pistas: só quem registrou e a moderação; autoria das anônimas só a moderação.
+    match /desaparecidos/{id} {
+      allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar());
+      match /pistas/{p} {
+        allow read: if logado() && (get(/databases/$(database)/documents/desaparecidos/$(id)).data.autorId == request.auth.uid || podeModerar());
+      }
+    }
+    match /pistas_desap_autoria/{id} { allow read: if podeModerar(); }
+
     // RG do pet: o dono cadastra; "visivel" deixa o pet entrar nas buscas de animais encontrados.
     function petOk(d) {
       return d.especie in ['cao', 'gato', 'ave', 'outro']

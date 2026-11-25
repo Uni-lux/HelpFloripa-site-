@@ -1984,25 +1984,29 @@ if (!GUARDADAS) {
 
 // ===================== Desaparecidos (18/11/2026) =====================
 if (!SEM_DESAP) {
-  await semRegras(async (db) => { await setDoc(doc(db, "admins", "dsMod"), { papel: "moderacao" }); });
-  const des = (extra) => ({ autorId: "dsA", autorNome: "Ds A", nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", quando: Timestamp.fromMillis(Date.now() - 3600e3), bo: "2026/123456", lat: -27.59, lng: -48.54, geo4: "6gj7", cidade: "Florianópolis", uf: "SC", status: "analise", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  await t("desaparecido: registra com boletim (em análise)", () => assertSucceeds(setDoc(doc(ctx("dsA"), "desaparecidos", "d1"), des())));
-  await t("desaparecido: posição exata é recusada", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "dP"), des({ lat: -27.59412, lng: -48.54871 }))));
-  await t("desaparecido: sem boletim é recusado", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "d2"), des({ bo: "" }))));
-  await t("desaparecido: já publicado na criação é recusado", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "d3"), des({ status: "ativo" }))));
+  // Desaparecidos (25/11/2026): quem grava é o servidor (functions/roubos.js); aqui só a leitura e "o aparelho não grava".
+  const des = (extra) => ({ autorId: "dsA", autorNome: "Ds A", nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", quando: Timestamp.fromMillis(Date.now() - 3600e3), bo: "2026/123456", lat: -27.59, lng: -48.54, geo4: "6gj7", cidade: "Florianópolis", uf: "SC", status: "analise", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now(), ...extra });
+  await t("desaparecido: o aparelho não registra direto (só o servidor)", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "d0"), des({ criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }))));
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "admins", "dsMod"), { papel: "moderacao" });
+    await setDoc(doc(db, "desaparecidos", "d1"), des());
+    await setDoc(doc(db, "desaparecidos", "d2"), des({ status: "ativo" }));
+    await setDoc(doc(db, "desaparecidos", "d2", "pistas", "p1"), { texto: "Vi perto do terminal", anonimo: true, criadoEm: Timestamp.now() });
+    await setDoc(doc(db, "pistas_desap_autoria", "d2_p1"), { uid: "dsB" });
+  });
   await t("desaparecido: em análise outra pessoa não lê", () => assertFails(getDoc(doc(ctx("dsB"), "desaparecidos", "d1"))));
-  await t("desaparecido: quem registrou não publica sozinho", () => assertFails(updateDoc(doc(ctx("dsA"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
-  await t("desaparecido: pista antes de publicar é recusada", () => assertFails(setDoc(doc(ctx("dsB"), "desaparecidos", "d1", "pistas", "p0"), { texto: "Vi na praça", anonimo: false, uid: "dsB", nome: "B", criadoEm: serverTimestamp() })));
-  await t("desaparecido: publicar sem tirar o boletim do aviso é recusado", () => assertFails(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
-  await t("desaparecido: a moderação publica (o boletim sai do aviso)", () => assertSucceeds(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", bo: deleteField(), atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: em análise quem registrou lê", () => assertSucceeds(getDoc(doc(ctx("dsA"), "desaparecidos", "d1"))));
+  await t("desaparecido: em análise a moderação lê", () => assertSucceeds(getDoc(doc(ctx("dsMod"), "desaparecidos", "d1"))));
   await t("desaparecido: publicado, quem está perto lê", () => assertSucceeds(getDocs(query(collection(ctx("dsB"), "desaparecidos"), where("status", "==", "ativo"), where("geo4", "in", ["6gj7"])))));
-  await t("desaparecido: pista anônima com a autoria", () => { const db = ctx("dsB"); const b = writeBatch(db); b.set(doc(db, "desaparecidos", "d1", "pistas", "p1"), { texto: "Vi perto do terminal", anonimo: true, lat: -27.59, lng: -48.55, criadoEm: serverTimestamp() }); b.set(doc(db, "pistas_desap_autoria", "d1_p1"), { uid: "dsB" }); return assertSucceeds(b.commit()); });
-  await t("desaparecido: pista anônima sem autoria é recusada", () => assertFails(setDoc(doc(ctx("dsB"), "desaparecidos", "d1", "pistas", "p2"), { texto: "Vi", anonimo: true, criadoEm: serverTimestamp() })));
-  await t("desaparecido: quem registrou lê as pistas", () => assertSucceeds(getDocs(collection(ctx("dsA"), "desaparecidos", "d1", "pistas"))));
-  await t("desaparecido: outra pessoa não lê as pistas", () => assertFails(getDocs(collection(ctx("dsC"), "desaparecidos", "d1", "pistas"))));
-  await t("desaparecido: autoria da pista só para a moderação", () => assertFails(getDoc(doc(ctx("dsA"), "pistas_desap_autoria", "d1_p1"))));
-  await t("desaparecido: quem registrou marca encontrado", () => assertSucceeds(updateDoc(doc(ctx("dsA"), "desaparecidos", "d1"), { status: "encontrado", atualizadoEm: serverTimestamp() })));
-  await t("desaparecido: outra pessoa não muda", () => assertFails(updateDoc(doc(ctx("dsB"), "desaparecidos", "d1"), { status: "removido", atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: lista sem filtrar os publicados é recusada", () => assertFails(getDocs(query(collection(ctx("dsB"), "desaparecidos"), where("geo4", "in", ["6gj7"])))));
+  await t("desaparecido: quem registrou lista os seus", () => assertSucceeds(getDocs(query(collection(ctx("dsA"), "desaparecidos"), where("autorId", "==", "dsA")))));
+  await t("desaparecido: quem registrou não publica sozinho", () => assertFails(updateDoc(doc(ctx("dsA"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: nem a moderação muda direto (pelo servidor)", () => assertFails(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", bo: deleteField(), atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: pista direta é recusada (só o servidor)", () => assertFails(setDoc(doc(ctx("dsB"), "desaparecidos", "d2", "pistas", "p9"), { texto: "Vi", anonimo: false, uid: "dsB", nome: "B", criadoEm: serverTimestamp() })));
+  await t("desaparecido: quem registrou lê as pistas", () => assertSucceeds(getDocs(collection(ctx("dsA"), "desaparecidos", "d2", "pistas"))));
+  await t("desaparecido: outra pessoa não lê as pistas", () => assertFails(getDocs(collection(ctx("dsC"), "desaparecidos", "d2", "pistas"))));
+  await t("desaparecido: autoria da pista só para a moderação", () => assertFails(getDoc(doc(ctx("dsA"), "pistas_desap_autoria", "d2_p1"))));
+  await t("desaparecido: a moderação lê a autoria", () => assertSucceeds(getDoc(doc(ctx("dsMod"), "pistas_desap_autoria", "d2_p1"))));
   await t("desaparecido: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("dsA"), "desaparecidos", "d1"))));
 }
 

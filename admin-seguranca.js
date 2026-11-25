@@ -15,7 +15,7 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";
 import { hashPlaca, formatarPlaca, placaEscondida, semelhancaVeiculo, textoSemelhancaVeiculo, nomeVeiculo } from "./veiculos-base.js?v=1";
 // Roubos/veículos e desaparecidos ficaram para a próxima atualização (em-breve.js): enquanto isso, não lê nem mostra.
-import { EM_BREVE } from "./em-breve.js?v=3";
+import { EM_BREVE } from "./em-breve.js?v=4";
 import { acaoRoubos } from "./funcoes.js?v=1";
 const ROUBOS = !EM_BREVE.roubos, DESAP = !EM_BREVE.desaparecidos;
 
@@ -193,14 +193,14 @@ export function seguranca(el) {
     if (pode("moderar")) {
       if (x.status === "analise") ac.appendChild(btn("Boletim conferido: publicar", "mini", async () => {
         // O boletim sai do aviso público (as regras exigem); ele fica no registro de ações logo abaixo.
-        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "ativo", bo: C.fb.deleteField(), atualizadoEm: C.fb.serverTimestamp() });
+        try { await acaoRoubos("statusDesap", { id: x.id, status: "ativo" }); } catch (e) { toast(e.message); return; }
         await enviarAviso(x.autorId, { titulo: "Aviso de desaparecimento publicado", texto: `O aviso de ${x.nome} foi publicado para quem está perto. Pistas chegam em Help e alertas › Perdidos › Pessoas.`, tipo: "info" }).catch(() => {});
         await registrar("publicar_desaparecido", x.autorId, `${x.nome} · BO ${x.bo}`, `desaparecidos:${x.id}`);
         x.status = "ativo"; cache = null; toast("Aviso publicado"); pintar();
       }));
       ac.appendChild(btn(x.status === "analise" ? "Recusar" : "Tirar do ar", "mini perigo", async () => {
         if (!(await confirmarHF({ titulo: x.status === "analise" ? "Recusar este aviso?" : "Tirar o aviso do ar?", texto: "Use quando o boletim não confere, a pessoa já foi encontrada ou há sinal de abuso (alguém tentando achar quem fugiu).", ok: x.status === "analise" ? "Recusar" : "Tirar do ar", icone: "escudo" }))) return;
-        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "removido", atualizadoEm: C.fb.serverTimestamp() });
+        try { await acaoRoubos("statusDesap", { id: x.id, status: "removido" }); } catch (e) { toast(e.message); return; }
         await enviarAviso(x.autorId, { titulo: "Aviso de desaparecimento não publicado", texto: "A equipe não conseguiu confirmar o aviso. Fale com a polícia (190) e, se precisar, com o Suporte.", tipo: "alerta" }).catch(() => {});
         await registrar("remover_desaparecido", x.autorId, `${x.nome} · BO ${x.bo}`, `desaparecidos:${x.id}`);
         d.desap = d.desap.filter((y) => y !== x); cache = null; toast("Feito"); pintar();
