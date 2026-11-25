@@ -1,6 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
 match /databases/{database}/documents {
+function Dq(c, i) { return /databases/$(database)/documents/$(c)/$(i); }
 function b() {
 return request.auth != null;
 }
@@ -8,14 +9,14 @@ function p() {
 return request.auth.token.email_verified == true && !ai(request.auth.uid);
 }
 function a_() {
-return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('verificado', false) == true;
+return get(Dq('usuarios', request.auth.uid)).data.get('verificado', false) == true;
 }
 function j() {
 return request.auth != null
-&& exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+&& exists(Dq('admins', request.auth.uid));
 }
 function Q() {
-return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
+return get(Dq('admins', request.auth.uid)).data.get('papel', 'nenhum');
 }
 function l() {
 return j() && Q() in ['dono', 'moderacao'];
@@ -24,8 +25,8 @@ function cT(i) {
 return request.resource.data.get('verificado', false) != true
 || resource.data.get('verificado', false) == true
 || Q() == 'dono'
-|| (exists(/databases/$(database)/documents/verificacoes/$(i))
-&& get(/databases/$(database)/documents/verificacoes/$(i)).data.status == 'aprovada');
+|| (exists(Dq('verificacoes', i))
+&& get(Dq('verificacoes', i)).data.status == 'aprovada');
 }
 function bI() {
 return j() && Q() in ['dono', 'comercial'];
@@ -34,13 +35,13 @@ function W() {
 return j() && Q() == 'dono';
 }
 function ai(i) {
-let v = /databases/$(database)/documents/sancoes/$(i);
+let v = Dq('sancoes', i);
 return exists(v)
 && (get(v).data.tipo == 'banimento'
 || (get(v).data.get('ate', null) is timestamp && get(v).data.ate > request.time));
 }
 function ad(i, ba) {
-let F = /databases/$(database)/documents/programa_banidos/$(i + '_' + ba);
+let F = Dq('programa_banidos', i + '_' + ba);
 return exists(F) && (get(F).data.get('ate', null) == null || get(F).data.ate > request.time);
 }
 function bJ() {
@@ -83,13 +84,13 @@ return n is map && n.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'k', 'cor'
 function cV(s) {
 return s is map && s.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y', 'k'])
 && s.negocioId is string && s.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
-&& exists(/databases/$(database)/documents/negocios/$(s.negocioId))
+&& exists(Dq('negocios', s.negocioId))
 && d(s.get('nome', ''), 80)
 && s.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
 && (string(s.get('x', 0)) + ' ' + string(s.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
 }
 function cW(k) {
-let ar = /databases/$(database)/documents/stories/$(k.storyId);
+let ar = Dq('stories', k.storyId);
 return k is map && k.keys().hasOnly(['storyId', 'autorId', 'nome'])
 && k.storyId is string && k.storyId.matches('^[A-Za-z0-9]{1,64}$')
 && exists(ar)
@@ -104,8 +105,8 @@ return (!('negocios' in a) || (a.negocios is list && a.negocios.size() >= 1 && a
 && (!('perfil' in a) || (a.perfil is bool && (a.perfil || 'negocios' in a)));
 }
 function cY(k) {
-let ar = /databases/$(database)/documents/diario/$(k.postId);
-let bO = /databases/$(database)/documents/pref_publicas/$(k.autorId);
+let ar = Dq('diario', k.postId);
+let bO = Dq('pref_publicas', k.autorId);
 return k is map && k.keys().hasOnly(['postId', 'autorId', 'nome'])
 && k.postId is string && k.postId.matches('^[A-Za-z0-9]{1,64}$')
 && k.autorId is string
@@ -212,7 +213,7 @@ return resource == null || bd(resource.data)
 || resource.data.get(be, '') == request.auth.uid || j();
 }
 function aU(Z, c) {
-return /databases/$(database)/documents/guardados/$(Z + '_' + c);
+return Dq('guardados', Z + '_' + c);
 }
 function av() {
 return resource.data.get('guardado', false) == true;
@@ -243,7 +244,7 @@ let a = request.resource.data.diff(resource.data);
 return a.addedKeys().union(a.changedKeys());
 }
 function bf(g, F) {
-return exists(/databases/$(database)/documents/bloqueios/$(g + '_' + F));
+return exists(Dq('bloqueios', g + '_' + F));
 }
 function A(g, F) {
 return bf(g, F) || bf(F, g);
@@ -252,17 +253,17 @@ function H(g, F) {
 return g < F ? g + '_' + F : F + '_' + g;
 }
 function bQ(i) {
-let aw = /databases/$(database)/documents/usuarios/$(i);
+let aw = Dq('usuarios', i);
 return exists(aw)
 && get(aw).data.get('criadoEm', null) is timestamp
 && get(aw).data.criadoEm < request.time - duration.value(3, 'd');
 }
 function aD(g, F, c5) {
-let n = /databases/$(database)/documents/conversas/$(H(g, F));
+let n = Dq('conversas', H(g, F));
 return exists(n) && get(n).data.get('falaram', {}).get(c5, false) == true;
 }
 function c6(i) {
-let f = /databases/$(database)/documents/perfis_publicos/$(i);
+let f = Dq('perfis_publicos', i);
 return exists(f)
 && get(f).data.get('desativadaAte', null) is timestamp
 && get(f).data.desativadaAte > request.time;
@@ -274,16 +275,16 @@ return !(x in request.resource.data)
 }
 function aE() {
 let k = request.resource.data.get('responsavel', null);
-return (k == null || (k is string && exists(/databases/$(database)/documents/admins/$(k))))
+return (k == null || (k is string && exists(Dq('admins', k))))
 && d(request.resource.data.get('responsavelNome', null), 80)
 && (!m().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
 }
 function ax(ba) {
-let k = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+let k = getAfter(Dq('ritmo', request.auth.uid)).data;
 return k.ultimaEm == request.time && k.ultimoTipo == ba;
 }
 function bg(aj) {
-return get(/databases/$(database)/documents/negocios/$(aj)).data.donoId;
+return get(Dq('negocios', aj)).data.donoId;
 }
 match /usuarios/{I} {
 allow read: if b()
@@ -326,12 +327,12 @@ let a = request.resource.data;
 return !('nickname' in a)
 || a.nickname == null
 || a.nickname == ''
-|| getAfter(/databases/$(database)/documents/nicknames/$(a.nickname)).data.uid == request.auth.uid;
+|| getAfter(Dq('nicknames', a.nickname)).data.uid == request.auth.uid;
 }
 function c7() {
 let aY = resource.data.get('nickname', '');
 return aY == null || aY == '' || aY == request.resource.data.get('nickname', '')
-|| !existsAfter(/databases/$(database)/documents/nicknames/$(aY));
+|| !existsAfter(Dq('nicknames', aY));
 }
 function bU() {
 return w('nome', 80)
@@ -397,7 +398,7 @@ allow update: if l()
 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
 && ae('desativadaAte')
 && (request.resource.data.get('verificado', false) != true
-|| get(/databases/$(database)/documents/usuarios/$(I)).data.get('verificado', false) == true);
+|| get(Dq('usuarios', I)).data.get('verificado', false) == true);
 allow create: if b()
 && request.auth.uid == I
 && request.resource.data.uid == I
@@ -421,7 +422,7 @@ allow update: if b()
 allow delete: if b()
 && request.auth.uid == I
 && (resource.data.get('nickname', '') == ''
-|| !existsAfter(/databases/$(database)/documents/nicknames/$(resource.data.nickname)));
+|| !existsAfter(Dq('nicknames', resource.data.nickname)));
 }
 match /nicknames/{bY} {
 allow get: if true;
@@ -429,7 +430,7 @@ allow list: if b();
 allow create: if b()
 && request.auth.uid == request.resource.data.uid
 && bY.matches('^[a-z0-9._]{3,20}$')
-&& getAfter(/databases/$(database)/documents/perfis_publicos/$(request.auth.uid)).data.get('nickname', '') == bY;
+&& getAfter(Dq('perfis_publicos', request.auth.uid)).data.get('nickname', '') == bY;
 allow update: if false;
 allow delete: if b()
 && request.auth.uid == resource.data.uid;
@@ -518,7 +519,7 @@ allow delete: if b()
 && request.auth.uid in resource.data.participantes;
 }
 match /momentos/{c} {
-function ak(g, F) { return exists(/databases/$(database)/documents/relacoes/$(g + '_' + F)); }
+function ak(g, F) { return exists(Dq('relacoes', g + '_' + F)); }
 function da(a) {
 return a.uid == request.auth.uid || l()
 || (!A(request.auth.uid, a.uid)
@@ -549,8 +550,8 @@ allow update: if b() && resource.data.uid == request.auth.uid && b0(request.reso
 allow delete: if b() && (resource.data.uid == request.auth.uid || l());
 }
 match /vinculos_retrato/{c} {
-function al() { return get(/databases/$(database)/documents/vinculos/$(c)).data; }
-function b1() { return exists(/databases/$(database)/documents/vinculos/$(c)); }
+function al() { return get(Dq('vinculos', c)).data; }
+function b1() { return exists(Dq('vinculos', c)); }
 allow get: if b() && b1() && (al().status == 'aceito' || request.auth.uid in al().participantes);
 allow list: if false;
 allow create, update: if b() && p() && b1()
@@ -885,12 +886,12 @@ allow create: if b()
 && request.resource.data.para is string && request.resource.data.para != request.auth.uid
 && request.resource.data.conv == (request.auth.uid < request.resource.data.para
 ? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
-&& (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
-|| exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
+&& (exists(Dq('conversas', request.resource.data.conv))
+|| exists(Dq('equipe_dm', request.resource.data.conv)))
 && !A(request.auth.uid, request.resource.data.para)
-&& (!exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
-|| get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.get('pedido', null) == null
-|| get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.pedido.status == 'aceito')
+&& (!exists(Dq('conversas', request.resource.data.conv))
+|| get(Dq('conversas', request.resource.data.conv)).data.get('pedido', null) == null
+|| get(Dq('conversas', request.resource.data.conv)).data.pedido.status == 'aceito')
 && request.resource.data.tipo in ['audio', 'video']
 && request.resource.data.status == 'chamando'
 && b9(request.resource.data.oferta)
@@ -909,7 +910,7 @@ allow update: if bh()
 && request.resource.data.fimEm == request.time;
 allow delete: if false;
 match /candidatos/{n} {
-function aF() { return get(/databases/$(database)/documents/chamadas/$(c)).data; }
+function aF() { return get(Dq('chamadas', c)).data; }
 allow read: if b() && request.auth.uid in [aF().de, aF().para];
 allow create: if b() && request.auth.uid in [aF().de, aF().para]
 && aF().status in ['chamando', 'aceita']
@@ -937,34 +938,34 @@ return n == null
 function dk(G, f) {
 return G is map && G.keys().hasOnly(['tipo', 'id']) && G.id is string && G.id.size() <= 64
 && (G.tipo == 'corrida'
-? [get(/databases/$(database)/documents/corridas/$(G.id)).data.clienteId,
-get(/databases/$(database)/documents/corridas/$(G.id)).data.get('entregadorId', ''),
-get(/databases/$(database)/documents/corridas/$(G.id)).data.get('destinatarioId', ''),
-get(/databases/$(database)/documents/corridas/$(G.id)).data.get('pagadorId', '')].hasAll(f)
+? [get(Dq('corridas', G.id)).data.clienteId,
+get(Dq('corridas', G.id)).data.get('entregadorId', ''),
+get(Dq('corridas', G.id)).data.get('destinatarioId', ''),
+get(Dq('corridas', G.id)).data.get('pagadorId', '')].hasAll(f)
 : G.tipo == 'sos'
-? get(/databases/$(database)/documents/sos/$(G.id)).data.uid in f
-&& get(/databases/$(database)/documents/sos/$(G.id)).data.status in ['aberto', 'atendido']
+? get(Dq('sos', G.id)).data.uid in f
+&& get(Dq('sos', G.id)).data.status in ['aberto', 'atendido']
 : G.tipo == 'pet'
-? get(/databases/$(database)/documents/pets/$(G.id)).data.donoId in f
-&& get(/databases/$(database)/documents/pets/$(G.id)).data.status == 'perdido'
+? get(Dq('pets', G.id)).data.donoId in f
+&& get(Dq('pets', G.id)).data.status == 'perdido'
 : G.tipo == 'achado'
-&& get(/databases/$(database)/documents/pets_achados/$(G.id)).data.autorId in f
-&& get(/databases/$(database)/documents/pets_achados/$(G.id)).data.status == 'ativo');
+&& get(Dq('pets_achados', G.id)).data.autorId in f
+&& get(Dq('pets_achados', G.id)).data.status == 'ativo');
 }
 function dl() {
 let a = request.resource.data;
 let bi = a.participantes[0] == request.auth.uid ? a.participantes[1] : a.participantes[0];
-let ca = /databases/$(database)/documents/pref_publicas/$(bi);
+let ca = Dq('pref_publicas', bi);
 let bj = a.get('contexto', null);
-let aB = bj != null && bj.tipo != 'comunidade' && exists(/databases/$(database)/documents/negocios/$(bi + '_' + bj.tipo));
+let aB = bj != null && bj.tipo != 'comunidade' && exists(Dq('negocios', bi + '_' + bj.tipo));
 let cb = exists(ca) ? get(ca).data.get(aB ? 'msgNegocios' : 'msgPessoal', aB ? 'todos' : 'seguindo') : (aB ? 'todos' : 'seguindo');
-let al = /databases/$(database)/documents/vinculos/$(J);
+let al = Dq('vinculos', J);
 let f = a.get('pedido', null);
 return ('servico' in a)
 ? (f == null && dk(a.servico, a.participantes))
 : f == null
 ? (cb == 'todos'
-|| exists(/databases/$(database)/documents/relacoes/$(bi + '_' + request.auth.uid))
+|| exists(Dq('relacoes', bi + '_' + request.auth.uid))
 || (exists(al) && get(al).data.status == 'aceito'))
 : (cb != 'fechado' && f is map && f.keys().hasOnly(['de', 'status', 'em'])
 && f.de == request.auth.uid && f.status == 'pendente' && f.em == request.time);
@@ -1033,18 +1034,18 @@ allow delete: if l();
 match /mensagens/{am} {
 function bk() {
 return request.auth.uid in
-get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+get(Dq('conversas', J)).data.participantes;
 }
 function dn() {
-let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+let f = get(Dq('conversas', J)).data.participantes;
 return !A(f[0], f[1]);
 }
 function dp() {
-let an = get(/databases/$(database)/documents/conversas/$(J)).data.get('pedido', null);
+let an = get(Dq('conversas', J)).data.get('pedido', null);
 return an == null || an.status == 'aceito' || (an.status == 'pendente' && an.de == request.auth.uid);
 }
 function dq() {
-let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+let f = get(Dq('conversas', J)).data.participantes;
 return !c6(f[0] == request.auth.uid ? f[1] : f[0]);
 }
 function af(k) {
@@ -1063,7 +1064,7 @@ return a.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoAr
 && (!('avaliacao' in a)
 || (a.avaliacao is map && a.get('tipoArquivo', '') == 'avaliacao'
 && a.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
-&& get(/databases/$(database)/documents/pedidos/$(a.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
+&& get(Dq('pedidos', a.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
 && d(a.avaliacao.get('titulo', ''), 120)
 && d(a.avaliacao.get('negocioNome', ''), 80)))
 && (!('arquivoUrl' in a)
@@ -1133,7 +1134,7 @@ allow delete: if b()
 }
 match /apagadas/{am} {
 function bm() {
-return request.auth.uid in get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+return request.auth.uid in get(Dq('conversas', J)).data.participantes;
 }
 function ac() {
 return get(/databases/$(database)/documents/conversas/$(J)/mensagens/$(am)).data;
@@ -1163,9 +1164,9 @@ allow update: if b() && bm() && bn()
 && m().hasOnly(['denunciada'])
 && request.resource.data.denunciada == true;
 function dt() {
-let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+let f = get(Dq('conversas', J)).data.participantes;
 let du = f[0] == resource.data.remetenteId ? f[1] : f[0];
-return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + am + '_' + du));
+return exists(Dq('denuncias', 'mensagem_' + am + '_' + du));
 }
 allow delete: if b() && bm() && !bn() && resource.data.get('denunciada', false) != true && !dt();
 allow delete: if l();
@@ -1184,9 +1185,9 @@ allow create: if b()
 && request.resource.data.clienteId != request.auth.uid
 && request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
 && request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
-&& exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
-&& request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
-&& request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+&& exists(Dq('negocios', request.resource.data.negocioId))
+&& request.auth.uid in get(Dq('conversas', request.resource.data.conversaId)).data.participantes
+&& request.resource.data.clienteId in get(Dq('conversas', request.resource.data.conversaId)).data.participantes
 && d(request.resource.data.get('titulo', ''), 120)
 && request.resource.data.criadoEm == request.time
 && !A(request.auth.uid, request.resource.data.clienteId);
@@ -1201,7 +1202,7 @@ return a.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 
 && d(a.get('comentario', ''), 500)
 && d(a.get('autorNome', ''), 80)
 && Y(a.get('autorFoto', ''))
-&& dw(a, /databases/$(database)/documents/perfis_publicos/$(request.auth.uid))
+&& dw(a, Dq('perfis_publicos', request.auth.uid))
 && a.criadoEm == request.time;
 }
 function dw(a, bp) {
@@ -1210,12 +1211,12 @@ return (a.get('autorNome', '') == '' && a.get('autorFoto', '') == '')
 && a.get('autorFoto', '') in ['', get(bp).data.get('fotoPerfil', '')]);
 }
 function a0(a1) {
-return getAfter(/databases/$(database)/documents/notas/$(a1)).data.ultima == c;
+return getAfter(Dq('notas', a1)).data.ultima == c;
 }
 function ay(a, dx, aj) {
 return !('pedidoId' in a)
-|| (get(/databases/$(database)/documents/pedidos/$(a.pedidoId)).data.clienteId == dx
-&& get(/databases/$(database)/documents/pedidos/$(a.pedidoId)).data.negocioId == aj);
+|| (get(Dq('pedidos', a.pedidoId)).data.clienteId == dx
+&& get(Dq('pedidos', a.pedidoId)).data.negocioId == aj);
 }
 function dy() {
 let a = request.resource.data;
@@ -1247,7 +1248,7 @@ return c == 'c_' + a.negocioId + '_' + a.alvoId
 }
 function dA() {
 let a = request.resource.data;
-let a2 = get(/databases/$(database)/documents/diario/$(a.postId)).data;
+let a2 = get(Dq('diario', a.postId)).data;
 return c == 'd_' + a.postId + '_' + request.auth.uid
 && a2.autorId != request.auth.uid
 && a.alvoId == a2.autorId
@@ -1275,15 +1276,15 @@ allow update: if b()
 && ay(request.resource.data, c.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
 && !A(request.auth.uid, resource.data.alvoId)
 && (request.resource.data.nota == resource.data.nota
-|| (getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == c
-&& getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
-== get(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
+|| (getAfter(Dq('notas', resource.data.chaves[0])).data.ultima == c
+&& getAfter(Dq('notas', resource.data.chaves[0])).data.soma
+== get(Dq('notas', resource.data.chaves[0])).data.soma
 - resource.data.nota + request.resource.data.nota));
 allow delete: if false;
 }
 match /notas/{a1} {
 function U() {
-return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
+return Dq('avaliacoes', request.resource.data.ultima);
 }
 function cd() {
 return request.resource.data.ultima is string
@@ -1332,14 +1333,14 @@ allow delete: if false;
 match /reclamacoes/{ce} {
 allow read: if b();
 function a4() {
-return get(/databases/$(database)/documents/avaliacoes/$(ce)).data;
+return get(Dq('avaliacoes', ce)).data;
 }
 function af(a) {
 return a.texto is string && a.texto.size() >= 2 && a.texto.size() <= 1000;
 }
 allow create: if b()
 && p()
-&& exists(/databases/$(database)/documents/avaliacoes/$(ce))
+&& exists(Dq('avaliacoes', ce))
 && a4().tipo == 'negocio'
 && a4().nota <= 2
 && a4().alvoId == request.auth.uid
@@ -1373,7 +1374,7 @@ return dC(a.motivo)
 && Y(a.get('foto', ''));
 }
 function cg() {
-return getAfter(/databases/$(database)/documents/cotas/$(request.auth.uid)).data.ultimaEm == request.time;
+return getAfter(Dq('cotas', request.auth.uid)).data.ultimaEm == request.time;
 }
 allow read: if b();
 allow create: if b()
@@ -1457,13 +1458,13 @@ allow delete: if false;
 match /denuncias/{c} {
 function dD(a) {
 return (a.tipo == 'perfil' && a.itemId == a.alvoId)
-|| (a.tipo == 'publicacao' && get(/databases/$(database)/documents/diario/$(a.itemId)).data.autorId == a.alvoId)
-|| (a.tipo == 'comentario' && get(/databases/$(database)/documents/comentarios/$(a.itemId)).data.autorId == a.alvoId)
-|| (a.tipo == 'negocio' && get(/databases/$(database)/documents/negocios/$(a.itemId)).data.donoId == a.alvoId)
-|| (a.tipo == 'comunidade' && get(/databases/$(database)/documents/comunidade/$(a.itemId)).data.donoId == a.alvoId)
+|| (a.tipo == 'publicacao' && get(Dq('diario', a.itemId)).data.autorId == a.alvoId)
+|| (a.tipo == 'comentario' && get(Dq('comentarios', a.itemId)).data.autorId == a.alvoId)
+|| (a.tipo == 'negocio' && get(Dq('negocios', a.itemId)).data.donoId == a.alvoId)
+|| (a.tipo == 'comunidade' && get(Dq('comunidade', a.itemId)).data.donoId == a.alvoId)
 || (a.tipo == 'mensagem'
 && a.conversaId is string
-&& request.auth.uid in get(/databases/$(database)/documents/conversas/$(a.conversaId)).data.participantes
+&& request.auth.uid in get(Dq('conversas', a.conversaId)).data.participantes
 && get(/databases/$(database)/documents/conversas/$(a.conversaId)/mensagens/$(a.itemId)).data.remetenteId == a.alvoId);
 }
 allow get: if b() && resource.data.autorId == request.auth.uid;
@@ -1511,7 +1512,7 @@ return g.size() == 0 ? e.size() <= 1
 }
 allow get: if b() && request.auth.uid == i;
 allow read: if j();
-allow create, update: if l() && (Q() == 'dono' || !exists(/databases/$(database)/documents/admins/$(i)))
+allow create, update: if l() && (Q() == 'dono' || !exists(Dq('admins', i)))
 && request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
 && request.resource.data.tipo in ['suspensao', 'banimento']
 && d(request.resource.data.get('motivo', ''), 500)
@@ -1558,7 +1559,7 @@ allow delete: if l();
 match /suporte_abertos/{i} {
 function C() { return request.resource.data; }
 function B() { return resource == null ? [] : resource.data.ids; }
-function aG() { return /databases/$(database)/documents/suporte/$(C().ultimo); }
+function aG() { return Dq('suporte', C().ultimo); }
 allow read: if b() && (i == request.auth.uid || j());
 allow create, update: if b() && i == request.auth.uid
 && C().keys().hasOnly(['ids', 'ultimo', 'acao', 'atualizadoEm'])
@@ -1585,9 +1586,9 @@ let f = a.get('prioridade', 'normal');
 return a.categoria in ['golpe', 'sos'] ? f == 'urgente'
 : f == 'normal'
 || (f == 'alta' && (a.categoria in ['pagamento', 'contestacao']
-|| (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
-&& get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
-&& get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
+|| (exists(Dq('planos', request.auth.uid))
+&& get(Dq('planos', request.auth.uid)).data.plano in ['pro', 'premium']
+&& get(Dq('planos', request.auth.uid)).data.ate > request.time)));
 }
 function ci(a) {
 return a.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
@@ -1596,7 +1597,7 @@ return a.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
 && (!m().hasAny(['primeiraRespostaEm']) || a.primeiraRespostaEm == request.time);
 }
 function cj() {
-let g = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
+let g = getAfter(Dq('suporte_abertos', request.auth.uid)).data;
 return g.acao == 'entrou' && g.ultimo == c && g.ids.size() <= 3;
 }
 allow read: if b() && resource.data.uid == request.auth.uid;
@@ -1619,7 +1620,7 @@ allow create: if b()
 allow create: if j()
 && request.resource.data.keys().hasOnly(ch().concat(['abertoPor']))
 && request.resource.data.uid is string
-&& exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
+&& exists(Dq('usuarios', request.resource.data.uid))
 && request.resource.data.abertoPor == request.auth.uid
 && request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
 && request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
@@ -1651,8 +1652,8 @@ allow update: if j()
 && aE() && ci(request.resource.data);
 allow delete: if false;
 match /mensagens/{ex} {
-function dG() { return get(/databases/$(database)/documents/suporte/$(c)).data; }
-function dH() { return getAfter(/databases/$(database)/documents/suporte/$(c)).data; }
+function dG() { return get(Dq('suporte', c)).data; }
+function dH() { return getAfter(Dq('suporte', c)).data; }
 function dI(u) {
 return u is map
 && u.keys().hasOnly(['tipo', 'url', 'nome'])
@@ -1736,7 +1737,7 @@ allow update: if l() && (i != request.auth.uid || Q() == 'dono')
 allow delete: if (b() && request.auth.uid == i) || l();
 }
 match /reportes/{c} {
-function ck(n) { return get(/databases/$(database)/documents/suporte/$(n)).data; }
+function ck(n) { return get(Dq('suporte', n)).data; }
 allow get: if b() && resource.data.autorId == request.auth.uid;
 allow read: if l();
 allow create: if b()
@@ -1773,18 +1774,18 @@ allow read: if j() || (b() && resource.data.uid == request.auth.uid);
 allow create: if b()
 && request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
 && request.resource.data.uid == request.auth.uid
-&& get(/databases/$(database)/documents/suporte/$(cl)).data.uid == request.auth.uid
+&& get(Dq('suporte', cl)).data.uid == request.auth.uid
 && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
 && d(request.resource.data.get('comentario', ''), 500)
 && (!('atendidoPor' in request.resource.data)
-|| request.resource.data.atendidoPor == get(/databases/$(database)/documents/suporte/$(cl)).data.get('atendidoPor', ''))
+|| request.resource.data.atendidoPor == get(Dq('suporte', cl)).data.get('atendidoPor', ''))
 && request.resource.data.criadoEm == request.time;
 allow update, delete: if false;
 }
 match /planos_pedidos/{c} {
 allow read: if (b() && resource.data.uid == request.auth.uid) || W();
 function dJ(a) {
-let e = get(/databases/$(database)/documents/planos_negociacoes/$(request.auth.uid)).data;
+let e = get(Dq('planos_negociacoes', request.auth.uid)).data;
 return a.negociacaoId == request.auth.uid
 && e.status == 'aguardando_pagamento'
 && a.plano == e.planoConcedido
@@ -1967,8 +1968,8 @@ return a.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArqui
 && (!('anexo' in a)
 || (a.anexo is string
 && a.tipoArquivo in ['imagem', 'audio', 'arquivo']
-&& getAfter(/databases/$(database)/documents/equipe_anexos/$(a.anexo)).data.autorId == request.auth.uid
-&& getAfter(/databases/$(database)/documents/equipe_anexos/$(a.anexo)).data.conversa == dM))
+&& getAfter(Dq('equipe_anexos', a.anexo)).data.autorId == request.auth.uid
+&& getAfter(Dq('equipe_anexos', a.anexo)).data.conversa == dM))
 && (!('tipoArquivo' in a) || 'anexo' in a)
 && d(a.get('nomeArquivo', ''), 120)
 && (!('tamanho' in a) || (a.tamanho is int && a.tamanho >= 0))
@@ -2013,7 +2014,7 @@ return g.autorId == request.auth.uid
 && a.autorId == g.autorId && a.em == g.em && a.get('nome', '') == g.get('nome', '')
 && a.apagada is map && a.apagada.keys().hasOnly(['por', 'em'])
 && a.apagada.por == request.auth.uid && a.apagada.em == request.time
-&& existsAfter(/databases/$(database)/documents/equipe_apagadas/$(c));
+&& existsAfter(Dq('equipe_apagadas', c));
 }
 match /equipe_chat/{c} {
 allow read: if j();
@@ -2047,8 +2048,8 @@ allow delete: if false;
 match /equipe_dm/{H} {
 function dN() {
 return j() && H.split('_').size() == 2 && request.auth.uid in H.split('_')
-&& exists(/databases/$(database)/documents/admins/$(H.split('_')[0]))
-&& exists(/databases/$(database)/documents/admins/$(H.split('_')[1]));
+&& exists(Dq('admins', H.split('_')[0]))
+&& exists(Dq('admins', H.split('_')[1]));
 }
 allow read: if j() && request.auth.uid in resource.data.participantes;
 allow create, update: if dN()
@@ -2078,7 +2079,7 @@ return n.get('tipoArquivo', null) == ag.get('tipoArquivo', null) && n.get('nomeA
 }
 function bu(n) { return n == 'equipe' || n.matches('^canal-[a-z]+$') || request.auth.uid in n.split('_'); }
 function aH(n) {
-return n == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(c)
+return n == 'equipe' ? Dq('equipe_chat', c)
 : n.matches('^canal-[a-z]+$') ? /databases/$(database)/documents/equipe_canais/$(n.split('-')[1])/mensagens/$(c)
 : /databases/$(database)/documents/equipe_dm/$(n)/mensagens/$(c);
 }
@@ -2135,7 +2136,7 @@ return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'respons
 && d(a.get('descricao', null), 2000)
 && a.status in ['a_fazer', 'fazendo', 'feito']
 && a.prioridade in ['baixa', 'normal', 'alta', 'urgente']
-&& (a.get('responsavel', null) == null || (a.responsavel is string && exists(/databases/$(database)/documents/admins/$(a.responsavel))))
+&& (a.get('responsavel', null) == null || (a.responsavel is string && exists(Dq('admins', a.responsavel))))
 && d(a.get('responsavelNome', null), 80)
 && (a.get('prazo', null) == null || a.prazo is timestamp)
 && d(a.get('ligacao', null), 160)
@@ -2234,7 +2235,7 @@ function cq(a) {
 return a.nota is int && a.nota >= 1 && a.nota <= 5;
 }
 function bw(ap) {
-let k = /databases/$(database)/documents/diario_notas/$(ap);
+let k = Dq('diario_notas', ap);
 return existsAfter(k)
 && getAfter(k).data.get('soma', 0) != (exists(k) ? get(k).data.get('soma', 0) : 0);
 }
@@ -2244,8 +2245,8 @@ allow create: if b()
 && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
 && request.resource.data.uid == request.auth.uid
 && c == request.resource.data.postId + '_' + request.auth.uid
-&& exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& exists(Dq('diario', request.resource.data.postId))
+&& get(Dq('diario', request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
 && cq(request.resource.data)
 && !A(request.auth.uid, request.resource.data.postAutorId)
 && request.resource.data.criadoEm == request.time
@@ -2259,14 +2260,14 @@ allow update: if b()
 && bw(resource.data.postId);
 allow delete: if b() && resource.data.uid == request.auth.uid
 && (bw(resource.data.postId)
-|| !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+|| !exists(Dq('diario', resource.data.postId)));
 }
 match /salvamentos/{c} {
 allow create: if b()
 && request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
 && request.resource.data.uid == request.auth.uid
 && c == request.resource.data.postId + '_' + request.auth.uid
-&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& get(Dq('diario', request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
 && request.resource.data.criadoEm == request.time;
 allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
 allow delete: if b() && resource.data.uid == request.auth.uid;
@@ -2281,7 +2282,7 @@ allow create: if b() && p()
 && c == request.resource.data.postId + '_' + request.auth.uid
 && request.resource.data.postAutorId != request.auth.uid
 && (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
-&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& get(Dq('diario', request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
 && !A(request.auth.uid, request.resource.data.postAutorId)
 && request.resource.data.criadoEm == request.time;
 allow delete: if b() && (resource.data.uid == request.auth.uid || l());
@@ -2292,9 +2293,9 @@ allow create: if b() && request.resource.data.uid == request.auth.uid
 && dQ == request.resource.data.flashId + '_' + request.auth.uid
 && request.resource.data.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
 && request.resource.data.criadoEm == request.time
-&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.autorId == request.resource.data.autorId
-&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.fim == request.resource.data.fim
-&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.titulo == request.resource.data.titulo
+&& get(Dq('stories', request.resource.data.flashId)).data.autorId == request.resource.data.autorId
+&& get(Dq('stories', request.resource.data.flashId)).data.contagem.fim == request.resource.data.fim
+&& get(Dq('stories', request.resource.data.flashId)).data.contagem.titulo == request.resource.data.titulo
 && request.resource.data.autorId != request.auth.uid;
 allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid);
 allow delete: if b() && resource.data.uid == request.auth.uid;
@@ -2302,7 +2303,7 @@ allow update: if false;
 }
 match /stories/{c} {
 function cr() {
-let v = get(/databases/$(database)/documents/stories/$(c)).data;
+let v = get(Dq('stories', c)).data;
 return v.autorId == request.auth.uid
 || (v.criadoEm > request.time - duration.value(26, 'h') || v.get('destacado', false) == true)
 && (v.get('publico', 'todos') == 'amigos' ? request.auth.uid in v.lista : !(request.auth.uid in v.get('ocultoPara', [])));
@@ -2331,7 +2332,7 @@ allow create: if b() && i == request.auth.uid
 && request.resource.data.criadoEm == request.time
 && cr();
 allow read: if b() && (i == request.auth.uid
-|| get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
+|| get(Dq('stories', c)).data.autorId == request.auth.uid);
 allow update, delete: if false;
 }
 match /reacoes/{i} {
@@ -2340,10 +2341,10 @@ allow create, update: if b() && i == request.auth.uid
 && request.resource.data.em == request.time
 && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
 && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
-&& get(/databases/$(database)/documents/stories/$(c)).data.autorId != request.auth.uid
+&& get(Dq('stories', c)).data.autorId != request.auth.uid
 && cr();
 allow read: if b() && (i == request.auth.uid
-|| get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
+|| get(Dq('stories', c)).data.autorId == request.auth.uid);
 allow delete: if b() && i == request.auth.uid;
 }
 }
@@ -2352,12 +2353,12 @@ allow read: if b();
 allow create: if b()
 && request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
 && request.resource.data.autorId == request.auth.uid
-&& request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(c)).data.criadoEm
-&& getAfter(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid
-&& getAfter(/databases/$(database)/documents/stories/$(c)).data.restrito == true
-&& getAfter(/databases/$(database)/documents/stories/$(c)).data.get('publico', 'todos') != 'amigos'
-&& request.resource.data.get('negocios', []) == getAfter(/databases/$(database)/documents/stories/$(c)).data.get('negocios', [])
-&& request.resource.data.get('perfil', true) == getAfter(/databases/$(database)/documents/stories/$(c)).data.get('perfil', true);
+&& request.resource.data.criadoEm == getAfter(Dq('stories', c)).data.criadoEm
+&& getAfter(Dq('stories', c)).data.autorId == request.auth.uid
+&& getAfter(Dq('stories', c)).data.restrito == true
+&& getAfter(Dq('stories', c)).data.get('publico', 'todos') != 'amigos'
+&& request.resource.data.get('negocios', []) == getAfter(Dq('stories', c)).data.get('negocios', [])
+&& request.resource.data.get('perfil', true) == getAfter(Dq('stories', c)).data.get('perfil', true);
 allow update: if false;
 allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
 }
@@ -2374,7 +2375,7 @@ return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', '
 }
 function ct(a, B) {
 return !('capa' in a) || a.capa == B
-|| get(/databases/$(database)/documents/stories/$(a.capa)).data.autorId == request.auth.uid;
+|| get(Dq('stories', a.capa)).data.autorId == request.auth.uid;
 }
 allow read: if b();
 allow create: if b() && p() && request.resource.data.uid == request.auth.uid
@@ -2386,7 +2387,7 @@ allow update: if b() && resource.data.uid == request.auth.uid && request.resourc
 allow delete: if b() && (resource.data.uid == request.auth.uid || l());
 }
 function cu(a) {
-let bx = /databases/$(database)/documents/enquete_contas/$(a.alvo + '_' + string(a.fatia));
+let bx = Dq('enquete_contas', a.alvo + '_' + string(a.fatia));
 let o = 'n' + string(a.opcao);
 return a.fatia is int && a.fatia >= 0 && a.fatia < 10
 && getAfter(bx).data.get(o, 0) == (exists(bx) ? get(bx).data.get(o, 0) : 0) + 1;
@@ -2396,8 +2397,8 @@ allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.au
 function dR() {
 let a = request.resource.data;
 let N = a.tipo == 'd'
-? /databases/$(database)/documents/diario/$(a.itemId)
-: /databases/$(database)/documents/stories/$(a.itemId);
+? Dq('diario', a.itemId)
+: Dq('stories', a.itemId);
 let q = get(N).data.enquete;
 return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm', 'autorId'])
 && a.uid == request.auth.uid
@@ -2420,8 +2421,8 @@ match /enquete_anon/{c} {
 function dS() {
 let a = request.resource.data;
 let N = a.tipo == 'd'
-? /databases/$(database)/documents/diario/$(a.itemId)
-: /databases/$(database)/documents/stories/$(a.itemId);
+? Dq('diario', a.itemId)
+: Dq('stories', a.itemId);
 let q = get(N).data.enquete;
 return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
 && a.uid == request.auth.uid && a.criadoEm == request.time
@@ -2464,13 +2465,13 @@ allow delete: if false;
 match /caixa_respostas/{c} {
 function dU(a) {
 return get(a.tipo == 'd'
-? /databases/$(database)/documents/diario/$(a.itemId)
-: /databases/$(database)/documents/stories/$(a.itemId)).data;
+? Dq('diario', a.itemId)
+: Dq('stories', a.itemId)).data;
 }
 function af() {
 let a = request.resource.data;
 let at = dU(a);
-let cx = /databases/$(database)/documents/caixa_autoria/$(c);
+let cx = Dq('caixa_autoria', c);
 return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
 && a.tipo in ['d', 'f']
 && a.itemId is string && a.itemId.matches('^[A-Za-z0-9]{1,64}$')
@@ -2495,7 +2496,7 @@ allow create: if b()
 && request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
 && request.resource.data.uid == request.auth.uid
 && request.resource.data.criadoEm == request.time
-&& existsAfter(/databases/$(database)/documents/caixa_respostas/$(c));
+&& existsAfter(Dq('caixa_respostas', c));
 allow update: if false;
 }
 match /pref_publicas/{i} {
@@ -2525,9 +2526,9 @@ allow get: if b() && resource != null
 || (!A(request.auth.uid, resource.data.uid)
 && (resource.data.ver == 'todos'
 || (resource.data.ver in ['seguidores', 'amigos']
-&& exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))
+&& exists(Dq('relacoes', request.auth.uid + '_' + resource.data.uid))
 && (resource.data.ver == 'seguidores'
-|| exists(/databases/$(database)/documents/relacoes/$(resource.data.uid + '_' + request.auth.uid)))))));
+|| exists(Dq('relacoes', resource.data.uid + '_' + request.auth.uid)))))));
 allow list: if false;
 allow create, update: if b()
 && request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
@@ -2566,7 +2567,7 @@ allow write: if false;
 }
 match /diario_notas/{ap} {
 allow read: if b();
-function a7() { return /databases/$(database)/documents/curtidas/$(ap + '_' + request.auth.uid); }
+function a7() { return Dq('curtidas', ap + '_' + request.auth.uid); }
 function dV() {
 let g = exists(a7()) ? get(a7()).data.nota : 0;
 let a = existsAfter(a7()) ? getAfter(a7()).data.nota : 0;
@@ -2613,7 +2614,7 @@ return !('enquete' in a)
 && a.enquete.opcoes is list && a.enquete.opcoes.size() >= 2 && a.enquete.opcoes.size() <= 4
 && a.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
 }
-function ak(g, F) { return exists(/databases/$(database)/documents/relacoes/$(g + '_' + F)); }
+function ak(g, F) { return exists(Dq('relacoes', g + '_' + F)); }
 function dY(f) {
 let y = f.get('quemComenta', 'todos');
 return f.autorId == request.auth.uid
@@ -2624,9 +2625,9 @@ return f.autorId == request.auth.uid
 function af(a) {
 return (!('respostaA' in a) && !('respostaAutorId' in a))
 || (a.respostaA is string
-&& exists(/databases/$(database)/documents/comentarios/$(a.respostaA))
-&& get(/databases/$(database)/documents/comentarios/$(a.respostaA)).data.postId == a.postId
-&& a.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(a.respostaA)).data.autorId);
+&& exists(Dq('comentarios', a.respostaA))
+&& get(Dq('comentarios', a.respostaA)).data.postId == a.postId
+&& a.respostaAutorId == get(Dq('comentarios', a.respostaA)).data.autorId);
 }
 allow create: if b()
 && p()
@@ -2636,15 +2637,15 @@ allow create: if b()
 && dW(request.resource.data) && dX(request.resource.data)
 && d(request.resource.data.get('nome', ''), 80)
 && Y(request.resource.data.get('foto', ''))
-&& exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
-&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
-&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
-&& dY(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
+&& exists(Dq('diario', request.resource.data.postId))
+&& get(Dq('diario', request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& get(Dq('diario', request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+&& dY(get(Dq('diario', request.resource.data.postId)).data)
 && af(request.resource.data)
 && !A(request.auth.uid, request.resource.data.postAutorId)
 && ax('com')
 && request.resource.data.criadoEm == request.time;
-function aJ(c) { return /databases/$(database)/documents/comentarios_ocultos/$(c); }
+function aJ(c) { return Dq('comentarios_ocultos', c); }
 function dZ() {
 return request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'respostaA', 'respostaAutorId', 'criadoEm', 'oculto'])
 && request.resource.data.oculto == true
@@ -2676,7 +2677,7 @@ allow delete: if b()
 allow delete: if l();
 }
 match /comentarios_ocultos/{c} {
-function ah() { return /databases/$(database)/documents/comentarios/$(c); }
+function ah() { return Dq('comentarios', c); }
 allow get, list: if b() && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid || l());
 allow create: if b() && p()
 && request.resource.data.keys().hasOnly(['dados', 'autorId', 'postAutorId', 'por', 'em'])
@@ -2703,9 +2704,9 @@ allow create: if b()
 && request.resource.data.uid == request.auth.uid
 && c == request.resource.data.comentarioId + '_' + request.auth.uid
 && request.resource.data.opcao is int && request.resource.data.opcao >= 0
-&& request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
-&& get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.get('oculto', false) == false
-&& !A(request.auth.uid, get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+&& request.resource.data.opcao < get(Dq('comentarios', request.resource.data.comentarioId)).data.enquete.opcoes.size()
+&& get(Dq('comentarios', request.resource.data.comentarioId)).data.get('oculto', false) == false
+&& !A(request.auth.uid, get(Dq('comentarios', request.resource.data.comentarioId)).data.autorId)
 && request.resource.data.criadoEm == request.time;
 allow delete: if l();
 }
@@ -2716,10 +2717,10 @@ allow create: if b()
 && p()
 && request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
 && (!('comentarioAutorId' in request.resource.data)
-|| request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+|| request.resource.data.comentarioAutorId == get(Dq('comentarios', request.resource.data.comentarioId)).data.autorId)
 && request.resource.data.uid == request.auth.uid
 && c == request.resource.data.comentarioId + '_' + request.auth.uid
-&& exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+&& exists(Dq('comentarios', request.resource.data.comentarioId))
 && cz(request.resource.data)
 && request.resource.data.criadoEm == request.time;
 allow update: if b()
@@ -2842,7 +2843,7 @@ allow create: if b() && i == request.auth.uid
 && request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
 && request.resource.data.criadoEm == request.time
 && (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
-allow read: if b() && get(/databases/$(database)/documents/diario/$(ap)).data.autorId == request.auth.uid;
+allow read: if b() && get(Dq('diario', ap)).data.autorId == request.auth.uid;
 allow update, delete: if false;
 }
 allow update: if l()
@@ -2857,10 +2858,10 @@ function d4() {
 return (request.time.hours() + 21) % 24;
 }
 function cF(aj, bC) {
-return /databases/$(database)/documents/neg_stats/$(aj + '_' + bC);
+return Dq('neg_stats', aj + '_' + bC);
 }
 function cG(aj, bC) {
-return /databases/$(database)/documents/neg_visitas/$(aj + '_' + request.auth.uid + '_' + bC);
+return Dq('neg_visitas', aj + '_' + request.auth.uid + '_' + bC);
 }
 match /neg_visitas/{c} {
 function d5() {
@@ -2873,7 +2874,7 @@ return a.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', '
 && c == a.negocioId + '_' + request.auth.uid + '_' + a.dia
 && a.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
 && a.acoes == [] && a.itens == []
-&& get(/databases/$(database)/documents/negocios/$(a.negocioId)).data.donoId != request.auth.uid
+&& get(Dq('negocios', a.negocioId)).data.donoId != request.auth.uid
 && getAfter(t).data.v == (exists(t) ? get(t).data.v : 0) + 1;
 }
 function cH(x, L) {
@@ -2907,7 +2908,7 @@ let K = cG(a.negocioId, a.dia);
 let aK = getAfter(K).data;
 return a.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
 && c == a.negocioId + '_' + a.dia
-&& a.donoId == get(/databases/$(database)/documents/negocios/$(a.negocioId)).data.donoId
+&& a.donoId == get(Dq('negocios', a.negocioId)).data.donoId
 && !exists(K) && aK.dia == a.dia
 && a.v == 1
 && a.o.keys().hasOnly([aK.origem]) && a.o[aK.origem] == 1
@@ -2940,7 +2941,7 @@ allow update: if b() && d9();
 allow delete: if false;
 }
 function bD(i) {
-let q = /databases/$(database)/documents/entregadores/$(i);
+let q = Dq('entregadores', i);
 return exists(q) && get(q).data.get('status', '') == 'ativo';
 }
 function bE(f) {
@@ -2965,16 +2966,16 @@ match /corridas/{c} {
 function n() { return resource.data; }
 function e() { return request.resource.data; }
 function O(x) { return n().get(x, '') == request.auth.uid; }
-function ea() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
+function ea() { return get(Dq('entregadores', request.auth.uid)).data; }
 function cJ() { return e().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(c)/privado/pin).data.pin; }
 function eb() {
-let f = get(/databases/$(database)/documents/presentes/$(e().presenteId)).data;
+let f = get(Dq('presentes', e().presenteId)).data;
 return f.para == request.auth.uid && f.status == 'aceito' && f.tipo == e().servico
 && e().pagadorId == f.de && e().valor <= f.valor && e().pagamento == 'presente'
-&& getAfter(/databases/$(database)/documents/presentes/$(e().presenteId)).data.status == 'usado';
+&& getAfter(Dq('presentes', e().presenteId)).data.status == 'usado';
 }
 function ec(aL) {
-return aL == '' || ed(/databases/$(database)/documents/conversas/$(H(request.auth.uid, aL)), aL);
+return aL == '' || ed(Dq('conversas', H(request.auth.uid, aL)), aL);
 }
 function ed(cK, aL) {
 return exists(cK) && ee(get(cK).data.get('pedido', null)) && !A(request.auth.uid, aL);
@@ -3079,7 +3080,7 @@ return O('clienteId') && t == 'concluida' && n().get('avaliacao', null) == null
 && e().avaliacao.get('elogios', []) is list && e().avaliacao.get('elogios', []).size() <= 5
 && d(e().avaliacao.get('texto', ''), 300)
 && e().avaliacao.em == request.time
-&& getAfter(/databases/$(database)/documents/entregadores_notas/$(n().entregadorId)).data.ultima == c;
+&& getAfter(Dq('entregadores_notas', n().entregadorId)).data.ultima == c;
 }
 function ei(t) {
 return O('entregadorId') && t == 'concluida' && n().get('avaliacaoEntregador', null) == null
@@ -3089,12 +3090,12 @@ return O('entregadorId') && t == 'concluida' && n().get('avaliacaoEntregador', n
 }
 allow delete: if false;
 match /privado/{N} {
-function P() { return get(/databases/$(database)/documents/corridas/$(c)).data; }
+function P() { return get(Dq('corridas', c)).data; }
 allow get: if b() && (P().clienteId == request.auth.uid || P().get('destinatarioId', '') == request.auth.uid || l()
 || (N == 'contato' && P().get('entregadorId', '') == request.auth.uid && P().status in ['aceita', 'chegou', 'em_rota'])
 || (N == 'rota' && (P().get('entregadorId', '') == request.auth.uid || P().get('pagadorId', '') == request.auth.uid)));
-allow create: if b() && !exists(/databases/$(database)/documents/corridas/$(c))
-&& getAfter(/databases/$(database)/documents/corridas/$(c)).data.clienteId == request.auth.uid
+allow create: if b() && !exists(Dq('corridas', c))
+&& getAfter(Dq('corridas', c)).data.clienteId == request.auth.uid
 && ((N == 'pin' && request.resource.data.keys().hasOnly(['pin'])
 && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$'))
 || (N == 'rota' && request.resource.data.keys().hasOnly(['origem', 'destino'])
@@ -3146,15 +3147,15 @@ allow create, update: if b() && request.auth.uid == i && bD(i)
 && math.abs(request.resource.data.lng * 1000 - math.round(request.resource.data.lng * 1000)) < 0.001
 && request.resource.data.geo4 is string && request.resource.data.geo4.matches('^[0-9a-z]{4}$')
 && request.resource.data.geo5 is string && request.resource.data.geo5.matches('^' + request.resource.data.geo4 + '[0-9a-z]$')
-&& request.resource.data.veiculo == get(/databases/$(database)/documents/entregadores/$(i)).data.veiculo
+&& request.resource.data.veiculo == get(Dq('entregadores', i)).data.veiculo
 && request.resource.data.servicos is list && request.resource.data.servicos.hasOnly(['entrega', 'corrida'])
 && request.resource.data.ocupado is bool
 && request.resource.data.em == request.time;
 allow delete: if b() && request.auth.uid == i;
 }
 match /entregadores_notas/{i} {
-function P() { return getAfter(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
-function B() { return get(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
+function P() { return getAfter(Dq('corridas', request.resource.data.ultima)).data; }
+function B() { return get(Dq('corridas', request.resource.data.ultima)).data; }
 function cM() {
 return request.resource.data.keys().hasOnly(['soma', 'n', 'ultima'])
 && request.resource.data.ultima is string && request.resource.data.ultima.matches('^[A-Za-z0-9]{10,40}$')
@@ -3168,15 +3169,15 @@ allow update: if b() && cM() && request.resource.data.n == resource.data.n + 1
 allow delete: if false;
 }
 function ep(cN, bF) {
-let f = /databases/$(database)/documents/pref_publicas/$(bF);
+let f = Dq('pref_publicas', bF);
 let y = exists(f) ? get(f).data.get('presentes', 'seguindo') : 'seguindo';
-let r = /databases/$(database)/documents/vinculos/$(H(cN, bF));
+let r = Dq('vinculos', H(cN, bF));
 return y == 'todos'
 || (y in ['seguindo', 'vinculos'] && exists(r) && get(r).data.status == 'aceito')
-|| (y == 'seguindo' && exists(/databases/$(database)/documents/relacoes/$(bF + '_' + cN)));
+|| (y == 'seguindo' && exists(Dq('relacoes', bF + '_' + cN)));
 }
 function eq(a) {
-let n = get(/databases/$(database)/documents/corridas/$(a.corridaId)).data;
+let n = get(Dq('corridas', a.corridaId)).data;
 return a.tipo == 'pix' && n.clienteId == request.auth.uid && n.entregadorId == a.para && n.status == 'concluida';
 }
 match /presentes/{c} {
@@ -3198,11 +3199,11 @@ allow create: if b() && p()
 : (a().itens is list && a().itens.size() >= 1 && a().itens.size() <= 10 && a().negocioId is string
 && er(a().itens)
 && d(a().get('negocioNome', ''), 80)
-&& a().donoId == get(/databases/$(database)/documents/negocios/$(a().negocioId)).data.donoId
-&& bd(get(/databases/$(database)/documents/negocios/$(a().negocioId)).data)))
+&& a().donoId == get(Dq('negocios', a().negocioId)).data.donoId
+&& bd(get(Dq('negocios', a().negocioId)).data)))
 && (a().tipo != 'vale' || (a().negocioId is string && d(a().get('negocioNome', ''), 80)
-&& a().donoId == get(/databases/$(database)/documents/negocios/$(a().negocioId)).data.donoId
-&& bd(get(/databases/$(database)/documents/negocios/$(a().negocioId)).data)))
+&& a().donoId == get(Dq('negocios', a().negocioId)).data.donoId
+&& bd(get(Dq('negocios', a().negocioId)).data)))
 && (('corridaId' in a()) ? eq(a()) : ep(request.auth.uid, a().para))
 && a().criadoEm == request.time && a().atualizadoEm == request.time;
 function V(s, S) {
@@ -3223,7 +3224,7 @@ return a().atualizadoEm == request.time && (
 || (request.auth.uid == k().de && t == 'pendente' && D == 'cancelado' && o.hasOnly(['status', 'atualizadoEm']))
 || (request.auth.uid == k().para && t == 'aceito' && D == 'usado' && k().tipo in ['corrida', 'entrega']
 && o.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && a().usadoEm == request.time
-&& getAfter(/databases/$(database)/documents/corridas/$(a().corridaId)).data.presenteId == c)
+&& getAfter(Dq('corridas', a().corridaId)).data.presenteId == c)
 || (request.auth.uid == k().para && t == 'aceito' && D == 'usado' && k().tipo in ['produto', 'vale']
 && o.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && a().usadoEm == request.time)
 || (request.auth.uid in [k().de, k().para] && t in ['aceito', 'usado'] && D == 'concluido'
@@ -3245,7 +3246,7 @@ allow create: if b() && p()
 && a().participantes is list && a().participantes.size() == 2 && request.auth.uid in a().participantes
 && a().participantes[0] < a().participantes[1]
 && a().conv == a().participantes[0] + '_' + a().participantes[1]
-&& exists(/databases/$(database)/documents/conversas/$(a().conv))
+&& exists(Dq('conversas', a().conv))
 && !A(a().participantes[0], a().participantes[1])
 && cO()
 && a().ate is timestamp && a().ate > request.time && a().ate <= request.time + duration.value(485, 'm')
@@ -3289,7 +3290,7 @@ return (M && t in ['aberto', 'atendido'] && o.hasOnly(['lat', 'lng', 'precisao',
 || (M && t in ['aberto', 'atendido'] && o.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!o.hasAny(['publico']) || a().publico == true)
 && (!o.hasAny(['escaladoEm']) || a().escaladoEm == request.time)
 && (!o.hasAny(['suporteId']) || (a().suporteId is string && a().suporteId.matches('^[A-Za-z0-9_-]{1,40}$')
-&& get(/databases/$(database)/documents/suporte/$(a().suporteId)).data.uid == request.auth.uid)))
+&& get(Dq('suporte', a().suporteId)).data.uid == request.auth.uid)))
 || ((M || cR) && t in ['aberto', 'atendido'] && D in ['resolvido', 'cancelado'] && (M || D == 'resolvido')
 && o.hasOnly(['status', 'fimEm', 'atualizadoEm']) && a().fimEm == request.time)
 || (!M && t == 'aberto' && D == 'atendido' && (k().publico == true || request.auth.uid in k().avisados)
@@ -3303,7 +3304,7 @@ return (M && t in ['aberto', 'atendido'] && o.hasOnly(['lat', 'lng', 'precisao',
 allow delete: if false;
 }
 function bH(eu) {
-let g = /databases/$(database)/documents/ocorrencias_autoria/$(eu);
+let g = Dq('ocorrencias_autoria', eu);
 return exists(g) && get(g).data.uid == request.auth.uid;
 }
 match /ocorrencias/{c} {
@@ -3315,7 +3316,7 @@ allow create: if b() && p()
 && a().anonimo is bool
 && (a().anonimo
 ? (a().autorId == '' && !('autorNome' in a())
-&& getAfter(/databases/$(database)/documents/ocorrencias_autoria/$(c)).data.uid == request.auth.uid)
+&& getAfter(Dq('ocorrencias_autoria', c)).data.uid == request.auth.uid)
 : (a().autorId == request.auth.uid && d(a().get('autorNome', ''), 80)))
 && a().tipo in ['roubo', 'furto', 'golpe', 'suspeita']
 && a().objeto in ['celular', 'bike', 'carro', 'moto', 'notebook', 'documento', 'pet', 'outro']
@@ -3331,15 +3332,15 @@ allow update: if b() && m().hasOnly(['status', 'atualizadoEm']) && a().atualizad
 || (l() && a().status in ['ativo', 'removido']));
 allow delete: if false;
 match /pistas/{f} {
-allow read: if b() && (get(/databases/$(database)/documents/ocorrencias/$(c)).data.autorId == request.auth.uid || bH(c) || l());
+allow read: if b() && (get(Dq('ocorrencias', c)).data.autorId == request.auth.uid || bH(c) || l());
 allow create: if b() && p()
-&& get(/databases/$(database)/documents/ocorrencias/$(c)).data.status == 'ativo'
+&& get(Dq('ocorrencias', c)).data.status == 'ativo'
 && request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'criadoEm'])
 && request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
 && request.resource.data.anonimo is bool
 && (request.resource.data.anonimo
 ? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
-&& getAfter(/databases/$(database)/documents/pistas_autoria/$(c + '_' + f)).data.uid == request.auth.uid)
+&& getAfter(Dq('pistas_autoria', c + '_' + f)).data.uid == request.auth.uid)
 : (request.resource.data.uid == request.auth.uid && d(request.resource.data.get('nome', ''), 80)))
 && request.resource.data.criadoEm == request.time;
 allow update, delete: if false;
@@ -3395,8 +3396,8 @@ match /ocorrencias_autoria/{c} {
 allow get: if b() && (resource.data.uid == request.auth.uid || l());
 allow list: if l();
 allow create: if b() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
-&& !exists(/databases/$(database)/documents/ocorrencias/$(c))
-&& getAfter(/databases/$(database)/documents/ocorrencias/$(c)).data.anonimo == true;
+&& !exists(Dq('ocorrencias', c))
+&& getAfter(Dq('ocorrencias', c)).data.anonimo == true;
 allow update, delete: if false;
 }
 match /pistas_autoria/{c} {
@@ -3430,16 +3431,16 @@ allow update: if l() && resource.data.status == 'analise' && a().status == 'ativ
 && m().hasOnly(['status', 'atualizadoEm', 'bo']) && !('bo' in a()) && a().atualizadoEm == request.time;
 allow delete: if false;
 match /pistas/{f} {
-allow read: if b() && (get(/databases/$(database)/documents/desaparecidos/$(c)).data.autorId == request.auth.uid || l());
+allow read: if b() && (get(Dq('desaparecidos', c)).data.autorId == request.auth.uid || l());
 allow create: if b() && p()
-&& get(/databases/$(database)/documents/desaparecidos/$(c)).data.status == 'ativo'
+&& get(Dq('desaparecidos', c)).data.status == 'ativo'
 && request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'lat', 'lng', 'criadoEm'])
 && request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
 && request.resource.data.get('lat', 0) is number && request.resource.data.get('lng', 0) is number
 && request.resource.data.anonimo is bool
 && (request.resource.data.anonimo
 ? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
-&& getAfter(/databases/$(database)/documents/pistas_desap_autoria/$(c + '_' + f)).data.uid == request.auth.uid)
+&& getAfter(Dq('pistas_desap_autoria', c + '_' + f)).data.uid == request.auth.uid)
 : (request.resource.data.uid == request.auth.uid && d(request.resource.data.get('nome', ''), 80)))
 && request.resource.data.criadoEm == request.time;
 allow update, delete: if false;
@@ -3492,9 +3493,6 @@ allow update: if b() && m().hasOnly(['status', 'atualizadoEm']) && request.resou
 && ((resource.data.autorId == request.auth.uid && request.resource.data.status in ['ativo', 'devolvido', 'removido'])
 || (l() && request.resource.data.status == 'removido'));
 allow delete: if false;
-}
-function zzProva(x) {
-return x != null && request.resource.data.get('campo0', '') is string && request.resource.data.get('campo1', '') is string && request.resource.data.get('campo2', '') is string && request.resource.data.get('campo3', '') is string && request.resource.data.get('campo4', '') is string && request.resource.data.get('campo5', '') is string && request.resource.data.get('campo6', '') is string && request.resource.data.get('campo7', '') is string && request.resource.data.get('campo8', '') is string && request.resource.data.get('campo9', '') is string && request.resource.data.get('campo10', '') is string && request.resource.data.get('campo11', '') is string && request.resource.data.get('campo12', '') is string && request.resource.data.get('campo13', '') is string && request.resource.data.get('campo14', '') is string && request.resource.data.get('campo15', '') is string && request.resource.data.get('campo16', '') is string && request.resource.data.get('campo17', '') is string && request.resource.data.get('campo18', '') is string && request.resource.data.get('campo19', '') is string && request.resource.data.get('campo20', '') is string && request.resource.data.get('campo21', '') is string && request.resource.data.get('campo22', '') is string && request.resource.data.get('campo23', '') is string && request.resource.data.get('campo24', '') is string;
 }
 }
 }
