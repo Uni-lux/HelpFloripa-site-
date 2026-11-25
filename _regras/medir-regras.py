@@ -29,6 +29,8 @@ for n, arq in enumerate(sorted(glob.glob(os.path.join(pasta, "*.rules")))):
     if st != 200:
         print(f"{nome:32} {len(texto.encode()):>8}  ERRO ao enviar: {str(rs)[:200]}"); continue
     rel = f"projects/{PROJ}/releases/hf-medida-{n}"
+    # Uma release de teste que sobrou de uma tentativa anterior (ex.: o Google deu 503 depois de criar) dava 409: apaga antes.
+    chamar("DELETE", BASE + rel)
     st2, r2 = chamar("POST", API + "/releases", {"name": rel, "rulesetName": rs["name"]})
     if st2 == 200:
         res = "CABE (menos de 256000)"

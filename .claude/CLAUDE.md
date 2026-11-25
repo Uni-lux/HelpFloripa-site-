@@ -3182,6 +3182,10 @@ chat da equipe).
   Privacidade e Presentes com as corridas de volta. Testes `t-corridas-servidor.mjs` (36), `t-entregas` (46), `t-presentes-vivo`,
   `t-em-breve` atualizados. Para publicar: deploy de `functions:corrida` + medir + regras (`_regras/LEIA-ME.md`). Próximo:
   roubos/veículos e desaparecidos pelo mesmo caminho.
+  **PUBLICADO por ele em 25/11/2026 ~13:38:** PR #263 mesclado, `functions:corrida` no ar (5 funções) e as regras (12 partes,
+  "Deploy complete!"; aviso "Unused function: ea" = `pontoAproxOk` encurtado, só das regras guardadas). O medidor deu 503 do
+  Google (instável) e depois 409 (a release de teste `hf-medida-0` tinha sido criada mesmo com o 503): `medir-regras.py` agora
+  apaga a release de teste antes de criar. Com 503 seguido, pode publicar direto: o deploy recusa se não couber.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
