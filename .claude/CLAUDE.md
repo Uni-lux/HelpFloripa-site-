@@ -3126,7 +3126,13 @@ chat da equipe).
   Conferido: só UM banco por projeto tem a cota grátis (o 2º paga desde a 1ª leitura; o Blaze já está ligado).
   Regras de um banco provavelmente não leem o outro (conferir no emulador): equipe, sanções, bloqueios, verificação,
   perfis_publicos, nicknames, pref_publicas e relacoes precisam de CÓPIA no banco da Ponte por Cloud Function.
-  Etapas propostas: 1) regras separadas + cópias por Cloud Function (nada muda para as pessoas); 2) site lendo/gravando
+  **Ajuste dele (25/11/2026): a PONTE fica no banco atual `(default)` (o que tem a cota grátis, porque gasta mais) e a
+  PLATAFORMA (Help) vai para o banco novo** (ex. `help`): negócios, anúncios, planos/pedidos/negociações (+ functions de
+  pagamento), conversas/mensagens/chamadas, suporte, painel/equipe, avaliações/reclamações/queixas, neg_stats/visitas,
+  presentes, sos/pets, locais_vivos, verificações, denúncias. Ficam no (default): contas (usuarios, perfis_publicos,
+  nicknames, pref_publicas, relacoes, bloqueios, admins, sancoes) e todo o social, inclusive Comunidade (está na barra da
+  rede); as contas/equipe/sanções/bloqueios são COPIADOS para o banco da Help por Cloud Function.
+  Etapas propostas (com os lados trocados): 1) regras separadas + cópias por Cloud Function (nada muda para as pessoas); 2) site lendo/gravando
   o social no banco novo (`getFirestore(app, "ponte")`) e Functions do social com `database: "ponte"`; 3) migração dos
   dados (botão no painel, como o migrarFotos) numa janela curta; 4) entrada/marca/app da Ponte; 5) corridas, roubos e
   desaparecidos voltam às regras da plataforma; 6) testes gerais. **Pendente dele:** onde fica a Ponte (pasta
