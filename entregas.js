@@ -9,7 +9,7 @@
 // =====================================================
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede, mandarMensagem } from "./rede.js?v=179";
 import { confirmarHF } from "./confirmar.js?v=6";
-import { ligar } from "./chamadas.js?v=10";
+import { ligar } from "./chamadas.js?v=11";
 import { criarMapa, buscarRota, buscarEndereco, enderecoDoPonto } from "./mapa-vivo.js?v=2";
 import {
   SERVICOS, VEICULOS, MODALIDADES, TAMANHOS, PAGAMENTOS, ATIVAS, NOMES_ETAPA, ELOGIOS, MOTIVOS_CANCELAR, RAIOS, VALOR_MIN, VALOR_MAX,

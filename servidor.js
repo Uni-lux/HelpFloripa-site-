@@ -5,7 +5,7 @@
 //    para de gravar o tempo pelo aparelho (perfis_publicos.atendimento.resposta, que dava para forjar).
 // O Diário (ranking do servidor) e a conferência dos pedidos ligam sozinhos quando os dados aparecem.
 // =====================================================
-export const FUNCOES_LIGADAS = false;
+export const FUNCOES_LIGADAS = true;
 
 // Tempo de resposta de um perfil público: o do servidor (se tem) ou, com as funções desligadas, o do aparelho.
 // Devolve { media (min), n, servidor: true|false } ou null (menos de 3 respostas).

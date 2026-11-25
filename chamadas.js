@@ -10,7 +10,7 @@
 // Cloudflare Realtime TURN, com credenciais de 4 h pedidas à Cloud Function credenciaisTurn (servidoresIce, Etapa C).
 // =====================================================
 import { collection, doc, setDoc, updateDoc, getDoc, onSnapshot, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=3";
+import { TURN_LIGADO, REGIAO_FUNCOES } from "./servidor.js?v=4";
 import { criarMini } from "./chamada-mini.js?v=3";
 
 // Servidores que ajudam os aparelhos a se acharem (grátis). O TURN vem do servidor (servidoresIce).

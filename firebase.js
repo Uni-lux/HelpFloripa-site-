@@ -129,7 +129,7 @@ onAuthStateChanged(auth, async (u) => {
   if (PAGINAS_LIVRES.includes(pagina)) return;
   avisosDaEquipe(u);
   // Ligações de voz e vídeo: a tela de chamada aparece em qualquer página quando alguém liga (chamadas.js).
-  import("./chamadas.js?v=10").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
+  import("./chamadas.js?v=11").then((m) => m.ouvirChamadas(u.uid)).catch((e) => console.warn("[Chamadas]", e?.message || e));
   // Presença ("online agora"): a cada 4 min com a página à vista (presenca.js; respeita quem escondeu).
   import("./presenca.js?v=1").then((m) => m.ligarPresenca(db, u.uid)).catch((e) => console.warn("[Presença]", e?.message || e));
   // Localização em tempo real do chat: continua enviando a posição em qualquer página aberta (local-vivo.js; só carrega
@@ -174,7 +174,7 @@ onAuthStateChanged(auth, async (u) => {
       await gu.devolverVencidos(fbx, u.uid).catch(() => {});
     }).catch(() => {});
     // Notificações com o app fechado (push.js): o endereço do aparelho pode mudar; renova 1×/dia se estiver ligado.
-    import("./push.js?v=2").then(async (m) => m.renovarPush({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid, d)).catch(() => {});
+    import("./push.js?v=3").then(async (m) => m.renovarPush({ ...(await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")), db }, u.uid, d)).catch(() => {});
     // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar.
     // Cidade no padrão novo (estado + cidade do IBGE): converte a antiga ou pede para completar (só com a conta inteira).
     if (!s.metadata.fromCache && d.uid) import("./local-conta.js?v=2").then((m) => m.conferirLocal(db, u, d)).catch((e) => console.warn("[Local]", e?.message || e));

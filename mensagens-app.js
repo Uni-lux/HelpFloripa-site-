@@ -5,7 +5,7 @@ import { resumoPresente, emojiPresente, STATUS_PRESENTE, TIPOS_PRESENTE, proximo
 import { textoStatus as statusEntrega, passo as passoEntrega, NOMES_ETAPA as ETAPAS_ENTREGA, expirada as entregaExpirada, reais as reaisEnt } from "./corridas-base.js?v=1";
 import "./sem-menu-imagem.js?v=6";
 import "./fotos-suaves.js?v=1";
-import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=3";
+import { FUNCOES_LIGADAS, respostaDoPerfil } from "./servidor.js?v=4";
 import { docRapido, docsRapido } from "./rapido.js?v=1";
 import { ligarDeslizarFlash, camadaAberta } from "./deslizar-flash.js?v=13";
 import { ligarPuxar } from "./puxar-atualizar.js?v=7";
@@ -16,7 +16,7 @@ ligarDeslizarFlash(); // deslizar para o lado na lista de conversas troca de aba
 import { conferirEmail, emailPendente, MSG_EMAIL, midiaSegura, mostrarAvisoEmail } from "./seguranca.js?v=1";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { relogioDe, ufDe } from "./fuso.js?v=1";
-import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=10";
+import { textoChamada, descreverChamada, duracaoTexto } from "./chamadas.js?v=11";
 import { avaliarNegocio, avaliarCliente, estrelas, whatsAvaliacao, TIPOS_NEGOCIO, lerResumos, media, notaTexto } from "./avaliacoes.js?v=20";
 import { buscarPessoas } from "./pessoas.js?v=6";
 import { docComValidade, docsComValidade, docsPorIds } from "./leituras.js?v=4";
@@ -3021,7 +3021,7 @@ const maiusc = (t) => String(t).charAt(0).toUpperCase() + String(t).slice(1);
 let vitrineMod = null;
 function carregarVitrine() {
   if (!document.querySelector("link[data-vitrine]")) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "vitrine.css?v=45"; l.dataset.vitrine = ""; document.head.appendChild(l); }
-  return (vitrineMod ||= import("./vitrine.js?v=102"));
+  return (vitrineMod ||= import("./vitrine.js?v=103"));
 }
 function usarCartaoNaConversa(uid, cartao) {
   document.querySelectorAll(".vt-modal").forEach((m) => m.remove());
@@ -4442,7 +4442,7 @@ async function fazerLigacao(modo) {
   if (!ativa?.outroId) return;
   if (bloqueios.meus.has(ativa.outroId) || bloqueios.deles?.has?.(ativa.outroId)) { toast("Não é possível ligar para esta pessoa."); return; }
   const conv = ativa.id;
-  const { ligar } = await import("./chamadas.js?v=10");
+  const { ligar } = await import("./chamadas.js?v=11");
   const r = await ligar({ para: ativa.outroId, nome: ativa.nome, foto: ativa.foto, conv, tipo: modo });
   if (r.status === "erro") { toast(r.erro); return; }
   try { await publicarMensagem(conv, { remetenteId: eu.uid, texto: "", criadoEm: fb.serverTimestamp(), tipoArquivo: "cartao", cartao: { tipo: "chamada", modo, resultado: r.status, duracao: r.duracaoSeg || 0 } }); }

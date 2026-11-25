@@ -7,7 +7,7 @@
 > mesmo com `--only`: quem ainda não tem o valor de verdade digita `pendente` e troca depois com `functions:secrets:set`.
 > Na pergunta "How many days ... container images" aperte Enter (1 dia).
 
-O código está pronto e **desligado**. Sem o Blaze o site funciona como hoje. Quando as funções forem publicadas:
+**Publicadas por ele em 25/11/2026** (montarRankingDiario, conferirMensagem, apagarConta) e `FUNCOES_LIGADAS = true`.
 
 | Função | O que faz | Liga como |
 |---|---|---|
