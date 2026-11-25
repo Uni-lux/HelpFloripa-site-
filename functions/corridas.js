@@ -9,7 +9,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { randomInt } from "node:crypto";
-import { MODALIDADES, geohash, valorSugerido, pinEm, VALOR_MIN, VALOR_MAX, RAIOS, ELOGIOS, MOTIVOS_CANCELAR } from "./corridas-base.js";
+import { MODALIDADES, geohash, valorSugerido, pinEm, VALOR_MIN, VALOR_MAX, RAIOS, ELOGIOS, MOTIVOS_CANCELAR, VEICULOS, placaOk, normalizarPlaca, cnhServe, fazCorrida } from "./corridas-base.js";
 
 export const ATIVAS = ["aceita", "chegou", "em_rota"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao"];
@@ -266,7 +266,51 @@ async function avaliarCliente(db, auth, d) {
   });
 }
 
-const ACOES = { criar, oferta, raio, cancelar, aceitar, desistir, etapa, avaliar, avaliarCliente };
+
+// ---------- cadastro de quem leva (25/11/2026: saiu das regras, que estouravam o limite de tamanho) ----------
+const CNHS = ["A", "B", "AB", "C", "D", "E", "AC", "AD", "AE"];
+export function montarCadastro(d, uid, perfil) {
+  const veiculo = d?.veiculo;
+  if (!VEICULOS[veiculo]) throw erro("invalid-argument", "Escolha o veículo.");
+  const bike = veiculo === "bike";
+  const servicos = [...new Set(Array.isArray(d.servicos) ? d.servicos : [])].filter((x) => x === "entrega" || (x === "corrida" && fazCorrida(veiculo)));
+  const modelo = txt(d.modelo, 40), cor = bike ? "" : txt(d.cor, 20);
+  const placa = bike ? "" : normalizarPlaca(d.placa), cnh = bike ? "" : String(d.cnh || "");
+  if (!bike && modelo.length < 2) throw erro("invalid-argument", "Diga o modelo do veículo.");
+  if (!bike && !placaOk(placa)) throw erro("invalid-argument", "Placa inválida. Use o formato ABC1D23 ou ABC1234.");
+  if (!bike && (!CNHS.includes(cnh) || !cnhServe(cnh, veiculo))) throw erro("invalid-argument", "A categoria da CNH não serve para esse veículo.");
+  const dc = d.declaracoes || {};
+  if (dc.maior !== true || dc.documentos !== true || dc.autonomo !== true) throw erro("invalid-argument", "Marque as três declarações para continuar.");
+  return { uid, nome: txt(perfil.nome, 80), servicos: servicos.length ? servicos : ["entrega"], veiculo, modelo, cor, placa, cnh,
+    cidade: txt(perfil.cidade, 60), uf: /^[A-Z]{2}$/.test(perfil.uf || "") ? perfil.uf : "", declaracoes: { maior: true, documentos: true, autonomo: true } };
+}
+async function cadastro(db, auth, d) {
+  await contaLiberada(db, auth);
+  const uid = auth.uid, u = (await db.doc(`usuarios/${uid}`).get()).data() || {};
+  if (u.verificado !== true) throw erro("permission-denied", "Para levar entregas e corridas, a conta precisa ser verificada (documento e selfie).");
+  const doc = montarCadastro(d, uid, u), ref = db.doc(`entregadores/${uid}`), agora = FieldValue.serverTimestamp();
+  await db.runTransaction(async (tx) => {
+    const s = await tx.get(ref);
+    if (s.exists && s.get("status") === "suspenso") throw erro("permission-denied", "Seu cadastro está suspenso pela equipe.");
+    if (s.exists) tx.update(ref, { ...doc, atualizadoEm: agora });
+    else tx.set(ref, { ...doc, status: "ativo", criadoEm: agora, atualizadoEm: agora });
+  });
+  return { ok: true };
+}
+async function situacao(db, auth, d) {
+  await contaLiberada(db, auth);
+  if (!["ativo", "pausado"].includes(d.status)) throw erro("invalid-argument", "Situação inválida.");
+  const ref = db.doc(`entregadores/${auth.uid}`);
+  await db.runTransaction(async (tx) => {
+    const s = await tx.get(ref);
+    if (!s.exists) throw erro("failed-precondition", "Faça o cadastro primeiro.");
+    if (s.get("status") === "suspenso") throw erro("permission-denied", "Seu cadastro está suspenso pela equipe.");
+    tx.update(ref, { status: d.status, atualizadoEm: FieldValue.serverTimestamp() });
+  });
+  return { ok: true };
+}
+
+const ACOES = { criar, oferta, raio, cancelar, aceitar, desistir, etapa, avaliar, avaliarCliente, cadastro, situacao };
 export async function acaoCorrida(db, auth, dados) {
   if (!auth) throw erro("unauthenticated", "Entre na sua conta.");
   const fn = ACOES[dados?.acao];

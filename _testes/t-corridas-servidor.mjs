@@ -29,6 +29,22 @@ for (const s of (await db.collection("corridas").where("clienteId", "==", U.ana)
 
 const P = (extra) => ({ modalidade: "entrega_moto", origem: { lat: -27.5954, lng: -48.5481, nome: "Rua A, 10", sub: "Centro · Florianópolis" }, destino: { lat: -27.6012, lng: -48.5203, nome: "Rua B, 20", sub: "Saco dos Limões" }, km: 4.2, min: 12, valor: 15, pagamento: "pix", pacote: { tamanho: "P", oque: "Documentos" }, contato: { nome: "Dest", telefone: "48999990000" }, ...extra });
 
+console.log("Cadastro de quem leva");
+const CAD = (extra) => ({ veiculo: "moto", servicos: ["entrega", "corrida"], modelo: "CG 160", cor: "Preta", placa: "abc-1d23", cnh: "A", declaracoes: { maior: true, documentos: true, autonomo: true }, ...extra });
+let c0 = await ana("cadastro", CAD());
+ok(!c0.ok && /verificada/.test(c0.msg), "conta sem verificação não se cadastra: " + c0.msg);
+c0 = await bruno("cadastro", CAD({ placa: "AB-1" })); ok(!c0.ok && /Placa/.test(c0.msg), "placa inválida é recusada");
+c0 = await bruno("cadastro", CAD({ cnh: "B" })); ok(!c0.ok && /CNH/.test(c0.msg), "CNH que não serve para moto é recusada");
+c0 = await bruno("cadastro", CAD({ declaracoes: { maior: true } })); ok(!c0.ok && /declarações/.test(c0.msg), "sem as três declarações é recusado");
+c0 = await bruno("cadastro", CAD({ veiculo: "bike", servicos: ["corrida", "entrega"], placa: "", cnh: "" }));
+const cb = (await db.doc(`entregadores/${U.bruno}`).get()).data();
+ok(c0.ok && cb.veiculo === "bike" && JSON.stringify(cb.servicos) === '["entrega"]' && cb.placa === "", "bike: só entregas e sem placa");
+c0 = await bruno("situacao", { status: "pausado" }); ok(c0.ok && (await db.doc(`entregadores/${U.bruno}`).get()).get("status") === "pausado", "pausar pelo servidor");
+await db.doc(`entregadores/${U.bruno}`).update({ status: "suspenso" });
+c0 = await bruno("situacao", { status: "ativo" }); ok(!c0.ok && /suspenso/.test(c0.msg), "suspenso não se reativa sozinho");
+c0 = await bruno("cadastro", CAD()); ok(!c0.ok, "suspenso não muda o cadastro");
+await db.doc(`entregadores/${U.bruno}`).set({ uid: U.bruno, nome: "Bruno", servicos: ["entrega", "corrida"], veiculo: "moto", modelo: "CG", cor: "Preta", placa: "ABC1D23", cnh: "A", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now() }); // volta ao cadastro de moto para o resto
+
 console.log("Criar");
 let r = await ana("criar", P({ valor: 1 }));
 ok(!r.ok && /Valor/.test(r.msg), "valor abaixo do mínimo é recusado: " + r.msg);

@@ -1,53 +1,11 @@
-match /pets/{c} {
-function a() { return Nq(); }
-function A188() {
-let rL = Rq();
-return b() && (rL.visivel == true || rL.donoId == Uq() || l());
-}
-allow get, list: if A188();
-function A189() {
-let uL = Uq();
-return b() && n() && a().donoId == uL
-&& (resource == null || Rq().donoId == uL)
-&& a().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
-&& a().nome is string && a().nome.size() >= 1 && a().nome.size() <= 40
-&& e(a().get('donoNome', ''), 80) && e(a().get('idade', ''), 20)
-&& e(a().get('cidade', ''), 60) && e(a().get('uf', ''), 2)
-&& cL(a())
-&& a().status in ['casa', 'perdido'] && a().visivel is bool
-&& a().get('geo4', '').matches('^([0-9a-z]{4})?$')
-&& a().atualizadoEm == Tq();
-}
-allow create, update: if A189();
+allow create: if A189();
 function A190() {
-return b() && Rq().donoId == Uq();
-}
-allow delete: if A190();
-}
-match /pets_achados/{c} {
-function a() { return Nq(); }
-allow get, list: if b();
-function A191() {
-let tL = Tq();
-return b() && n()
-&& a().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
-&& a().autorId == Uq() && e(a().get('autorNome', ''), 80)
-&& cL(a())
-&& a().local is map && a().local.keys().hasOnly(['lat', 'lng', 'nome'])
-&& a().local.lat is number && a().local.lat >= -34 && a().local.lat <= 6
-&& a().local.lng is number && a().local.lng >= -75 && a().local.lng <= -28 && e(a().local.get('nome', ''), 120)
-&& a().geo4 is string && a().geo4.matches('^[0-9a-z]{4}$')
-&& a().quando is timestamp && a().quando <= tL
-&& a().status == 'ativo' && a().criadoEm == tL && a().atualizadoEm == tL;
-}
-allow create: if A191();
-function A192() {
 let nL = Nq();
 return b() && k().hasOnly(['status', 'atualizadoEm']) && nL.atualizadoEm == Tq()
 && ((Rq().autorId == Uq() && nL.status in ['ativo', 'devolvido', 'removido'])
 || (l() && nL.status == 'removido'));
 }
-allow update: if A192();
+allow update: if A190();
 allow delete: if false;
 }
 }

@@ -149,26 +149,16 @@ async function gravarCadastro(f, botaoSalvar) {
   if (!bike && !placaOk(f.placa)) { toast("Placa inválida. Use o formato ABC1D23 ou ABC1234."); $("egPlaca")?.focus(); return; }
   if (!bike && !cnhServe(f.cnh, f.veiculo)) { toast(`A categoria da CNH não serve para ${VEICULOS[f.veiculo].nome.toLowerCase()}.`); return; }
   if (!f.declaracoes.maior || !f.declaracoes.documentos || !f.declaracoes.autonomo) { toast("Marque as três declarações para continuar."); return; }
-  const servicos = [...f.servicos].filter((s) => s === "entrega" || (s === "corrida" && fazCorrida(f.veiculo)));
-  const doc = {
-    uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), servicos: servicos.length ? servicos : ["entrega"],
-    veiculo: f.veiculo, modelo: f.modelo.trim().slice(0, 40), cor: bike ? "" : f.cor.trim().slice(0, 20),
-    placa: bike ? "" : normalizarPlaca(f.placa), cnh: bike ? "" : f.cnh,
-    cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
-    declaracoes: { maior: true, documentos: true, autonomo: true },
-    status: cad?.status === "pausado" ? "pausado" : "ativo",
-    criadoEm: cad?.criadoEm || fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
-  };
-  if (cad?.suspensoMotivo) doc.suspensoMotivo = cad.suspensoMotivo;
   botaoSalvar.disabled = true;
   try {
-    await fb.setDoc(fb.doc(fb.db, "entregadores", eu.uid), doc);
+    // O servidor confere tudo (conta verificada, placa, CNH, declarações) e grava o cadastro.
+    await acaoCorrida("cadastro", { veiculo: f.veiculo, servicos: [...f.servicos], modelo: f.modelo, cor: f.cor, placa: f.placa, cnh: f.cnh, declaracoes: f.declaracoes });
     await lerCadastro();
     toast(cad ? "Cadastro salvo" : "Pronto!");
     ouvirTrabalho(); ouvirDiretos(); telaPainel();
   } catch (e) {
     botaoSalvar.disabled = false;
-    toast(e?.code === "permission-denied" ? "Não foi possível ativar: confira se sua conta está verificada e o e-mail confirmado (e, se for a primeira vez, aguarde a liberação desta função)." : "Não foi possível salvar: " + erroAmigavel(e));
+    toast(e?.message || "Não foi possível salvar agora.");
   }
 }
 
@@ -223,7 +213,7 @@ async function pintarGanhos(alvo) {
 
 async function ficarOnline() {
   if (cad.status !== "ativo") {
-    try { await fb.updateDoc(fb.doc(fb.db, "entregadores", eu.uid), { status: "ativo", atualizadoEm: fb.serverTimestamp() }); cad.status = "ativo"; } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); return; }
+    try { await acaoCorrida("situacao", { status: "ativo" }); cad.status = "ativo"; } catch (e) { toast(e?.message || "Não foi possível agora."); return; }
   }
   const ok = await pedirGps();
   if (!ok) { toast("Para ficar online, permita a localização do aparelho."); return; }
