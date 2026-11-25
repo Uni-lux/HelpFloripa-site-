@@ -2,6 +2,7 @@
 // mais os atalhos de corridas/entregas no Automotivo e no Início.
 // Uso: node seed.mjs && node t-presentes-vivo.mjs   (precisa das regras do main)
 import { navegador, entrar, BASE, USUARIOS as U } from "./nav.mjs";
+import { EM_BREVE } from "../em-breve.js";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8085";
@@ -27,9 +28,9 @@ const B = await navegador({ mobile: true }); await simular(B.ctx);
 await B.ctx.grantPermissions(["geolocation"]); await B.ctx.setGeolocation({ latitude: -27.6, longitude: -48.55 });
 const pa = await entrar(A.ctx, "ana", "index.html");
 await pa.waitForSelector(".mob-faixa", { timeout: 15000 });
-ok(/Pedir corrida/.test(await pa.textContent(".mob-faixa")) && /Enviar presente/.test(await pa.textContent(".mob-faixa")), "Início: atalhos Pedir corrida, Enviar entrega e Enviar presente");
-await pa.goto(BASE + "automotivo.html"); await pa.waitForSelector(".mob", { timeout: 15000 });
-ok(await pa.locator(".mob-op").count() === 3, "Automotivo: bloco Corridas e entregas com 3 atalhos");
+ok(EM_BREVE.corridas ? /Enviar presente/.test(await pa.textContent(".mob-faixa")) && !/Pedir corrida/.test(await pa.textContent(".mob-faixa")) : /Pedir corrida/.test(await pa.textContent(".mob-faixa")) && /Enviar presente/.test(await pa.textContent(".mob-faixa")), "Início: atalhos (corrida e entrega só sem o Em breve) e Enviar presente");
+await pa.goto(BASE + "automotivo.html"); if (EM_BREVE.corridas) await pa.waitForTimeout(2500); else await pa.waitForSelector(".mob", { timeout: 15000 });
+ok(await pa.locator(".mob-op").count() === (EM_BREVE.corridas ? 0 : 3), "Automotivo: bloco Corridas e entregas (escondido enquanto está Em breve)");
 
 // ---------- mimo ----------
 await pa.goto(BASE + `presentes.html?para=${U.bruno}`);
@@ -88,7 +89,7 @@ ok(pedidoLoja?.cartao.presente?.deId === U.ana && /Rua das Flores/.test(pedidoLo
 const anaVe = (await db.doc(`presentes/${prod.id}`).get()).data();
 ok(!JSON.stringify(anaVe).includes("Rua das Flores"), "o endereço não fica no presente");
 
-// ---------- corrida de presente ----------
+if (!EM_BREVE.corridas) { // ---------- corrida de presente ----------
 await pa.goto(BASE + `presentes.html?para=${U.bruno}`);
 await pa.waitForSelector('[data-tipo="corrida"]', { timeout: 15000 });
 await pa.waitForFunction(() => /Bruno/.test(document.querySelector(".ent-folha")?.textContent || ""), null, { timeout: 8000 });
@@ -115,6 +116,7 @@ await pa.waitForSelector(".ent-busca, .ent-resumo", { timeout: 15000 });
 ok(/Presente \(paga quem deu\)/.test(await pa.textContent("#painel")), "Ana acompanha a corrida que deu");
 await pb.click("text=Cancelar pedido"); await pb.click(".ent-folha .ent-chip >> nth=2"); await pb.click(".ent-folha .ent-btn.perigo"); await pb.waitForTimeout(1000);
 
+}
 // ---------- quem pode mandar ----------
 await pb.goto(BASE + "presentes.html"); await pb.waitForFunction(() => document.querySelector("#prQuemTx")?.textContent !== "...", null, { timeout: 15000 });
 await pb.click("#prQuem"); await pb.click('[data-quem="ninguem"]'); await pb.waitForTimeout(1200);

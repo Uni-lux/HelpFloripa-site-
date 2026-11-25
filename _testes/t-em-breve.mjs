@@ -1,0 +1,31 @@
+// Funções guardadas para a próxima atualização (em-breve.js): corridas/entregas, roubos/veículos e desaparecidos
+// mostram "Em breve" ou somem, sem erro na tela. Uso: node seed.mjs && node t-em-breve.mjs
+import { navegador, entrar, BASE } from "./nav.mjs";
+let falhas = 0;
+const ok = (c, m) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", m); };
+const { browser: nav, ctx } = await navegador({ mobile: true });
+const p = await entrar(ctx, "ana", "index.html");
+const erros = []; p.on("pageerror", (e) => erros.push(e.message));
+await p.goto(BASE + "entregas.html", { waitUntil: "domcontentloaded" });
+await p.waitForSelector(".hf-em-breve", { timeout: 15000 }).catch(() => {});
+ok(await p.locator(".hf-em-breve").isVisible().catch(() => false), "Entregas e corridas: tela Em breve");
+await p.goto(BASE + "entregador.html", { waitUntil: "domcontentloaded" });
+await p.waitForSelector(".hf-em-breve", { timeout: 15000 }).catch(() => {});
+ok(await p.locator(".hf-em-breve").isVisible().catch(() => false), "Seja entregador: tela Em breve");
+await p.goto(BASE + "alertas.html?aba=roubos", { waitUntil: "domcontentloaded" });
+await p.waitForTimeout(4000);
+ok(await p.locator('[data-aba="roubos"]').count() === 0 && await p.locator('[data-aba="veiculos"]').count() === 0, "Help e alertas: sem as abas Roubos e Veículos");
+ok(await p.locator('[data-aba="sos"][aria-selected="true"]').count() === 1, "link antigo de Roubos abre no Help");
+await p.click('[data-aba="pets"]'); await p.waitForTimeout(1500);
+ok(await p.locator('[data-quem="pessoas"]').count() === 0, "Perdidos: sem Pessoas (desaparecidos)");
+ok(await p.getByText("Cadastrar meu pet").count() > 0, "Pets continua");
+await p.goto(BASE + "index.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(2500);
+ok(await p.locator(".mob-chip.corrida, .mob-chip.entrega").count() === 0 && await p.locator(".mob-chip.presente").count() === 1, "Início: sem corrida/entrega, com presente");
+await p.goto(BASE + "automotivo.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(2000);
+ok(await p.locator(".mob-op").count() === 0, "Automotivo: sem o bloco de corridas");
+await p.goto(BASE + "presentes.html?aba=enviar", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(3500);
+ok(!(await p.content()).includes(">Mobilidade<"), "Presentes: sem o grupo Mobilidade");
+ok(erros.length === 0, "sem erro de JavaScript" + (erros.length ? ": " + erros.join(" | ").slice(0, 300) : ""));
+await nav.close();
+console.log(falhas ? `\n${falhas} falha(s)` : "\nTudo certo");
+process.exit(falhas ? 1 : 0);

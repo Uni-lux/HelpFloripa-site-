@@ -21,6 +21,14 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   `node testes-regras.mjs saida/remontado-com-marcas.rules`. O `firestore.rules` com comentários continua sendo a fonte.
   Copiar também para `_regras/firestore-publicar.rules` (`compactar-regras.py ../firestore.rules ../_regras/firestore-publicar.rules`):
   é o que o `firebase.json` publica pelo Cloud Shell (`deploy --only firestore:rules`, que mostra o erro de verdade).
+  **Limite de 256.000 bytes COMPILADOS** (25/11/2026: 353.213; o console só diz "erro desconhecido"): agora a versão para
+  publicar sai de `_testes/preparar-publicacao.sh` (compactar → `minificar-regras.py` nomes curtos → `encurtar-regras.py`
+  atalhos N/R/U/T/D + let, protegendo stories e negocios do limite de 1.000 expressões → partes + `_regras/firestore-publicar.rules`).
+  Medir sem mexer no ar: `_regras/medir-regras.py` (Cloud Shell, arquivos em `_regras/medir/`); se o deploy der 409,
+  `_regras/ligar-regras.py`. Medido: nomes curtos ~1 byte compilado por letra, expressão ~2 por letra, chamada de função ~36.
+  **Corridas/entregas, roubos/veículos e desaparecidos guardados** em `_regras/proxima-atualizacao.rules` (25/11/2026,
+  decisão dele) com o site em "Em breve" (`em-breve.js` `EM_BREVE`); testes delas pulados quando as regras não as têm.
+  Para voltar: colar os blocos de volta, virar `EM_BREVE` false e medir (vai precisar enxugar outra coisa ou separar a rede social).
 - Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
   Tudo pronto em `_testes/` (leia `_testes/README.md`). `clearFirestore()` no demo-hf apaga os dados do navegador:
   os testes de regras usam o projeto `demo-regras`.
@@ -3114,7 +3122,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (16 partes COMPACTAS em `_regras/`, 191 KB, 1375 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (11 partes em `_regras/` pelo `preparar-publicacao.sh`, 1217 testes + 20 guardados; corridas, roubos/veículos e desaparecidos ficaram para a próxima atualização; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`

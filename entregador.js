@@ -16,6 +16,8 @@ import {
   normalizarPlaca, placaOk, formatarPlaca, cnhServe, fazCorrida, notaPedido
 } from "./corridas-base.js?v=1";
 import { h, ic, icExtra, veicIcone, botao, ms, hora, dataCurta, textoVeiculo, avatar, avisarSom, garantirConversa, irPara, abrirTela, lerEnderecos, comEnderecos } from "./entregas-comum.js?v=6";
+import { EM_BREVE, pararComEmBreve } from "./em-breve.js?v=1";
+if (EM_BREVE.corridas) await pararComEmBreve("Seja entregador", "Pedir corrida e enviar entregas pelo Help Floripa chega na próxima atualização.");
 
 const params = new URLSearchParams(location.search);
 let M = null, cad = null, online = false, pos = null, vigia = null, trava = null;
