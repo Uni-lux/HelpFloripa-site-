@@ -1,60 +1,30 @@
 allow get, list: if A170();
-allow update: if b() && k().hasOnly(['pos']) && aJ('entregadorId')
-&& m().status in ['aceita', 'chegou', 'em_rota'] && d4(Nq().pos);
+allow update: if b() && k().hasOnly(['pos']) && aI('entregadorId')
+&& m().status in ['aceita', 'chegou', 'em_rota'] && d2(Nq().pos);
 allow create, delete: if false;
 match /privado/{R} {
-function ay() { return get(Dq('corridas', c)).data; }
+function ax() { return get(Dq('corridas', c)).data; }
 function A171() {
 let uL = Uq();
 return b() && R in ['rota', 'contato', 'pin']
-&& (ay().clienteId == uL || ay().get('destinatarioId', '') == uL || l()
-|| (R == 'contato' && ay().get('entregadorId', '') == uL && ay().status in ['aceita', 'chegou', 'em_rota'])
-|| (R == 'rota' && (ay().get('entregadorId', '') == uL || ay().get('pagadorId', '') == uL)));
+&& (ax().clienteId == uL || ax().get('destinatarioId', '') == uL || l()
+|| (R == 'contato' && ax().get('entregadorId', '') == uL && ax().status in ['aceita', 'chegou', 'em_rota'])
+|| (R == 'rota' && (ax().get('entregadorId', '') == uL || ax().get('pagadorId', '') == uL)));
 }
 allow get: if A171();
 allow write: if false;
 }
 }
 match /entregadores/{g} {
-function a() { return Nq(); }
-function cF() {
-return a().keys().hasOnly(['uid', 'nome', 'servicos', 'veiculo', 'modelo', 'cor', 'placa', 'cnh', 'cidade', 'uf', 'declaracoes', 'status', 'suspensoMotivo', 'criadoEm', 'atualizadoEm'])
-&& a().uid == g
-&& e(a().get('nome', ''), 80)
-&& a().servicos is list && a().servicos.size() >= 1 && a().servicos.size() <= 2 && a().servicos.hasOnly(['entrega', 'corrida'])
-&& a().veiculo in ['bike', 'moto', 'carro', 'utilitario']
-&& (!('corrida' in a().servicos) || a().veiculo in ['moto', 'carro'])
-&& e(a().get('modelo', ''), 40) && e(a().get('cor', ''), 20)
-&& (a().veiculo == 'bike'
-? (a().get('placa', '') == '' && a().get('cnh', '') == '')
-: (a().get('placa', '').matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$') && a().get('cnh', '') in ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE']))
-&& e(a().get('cidade', ''), 60) && e(a().get('uf', ''), 2)
-&& a().declaracoes is map && a().declaracoes.get('maior', false) == true
-&& a().declaracoes.get('documentos', false) == true && a().declaracoes.get('autonomo', false) == true
-&& a().atualizadoEm == Tq();
-}
 allow get: if b();
 allow list: if l();
-function A172() {
-return b() && Uq() == g && n() && a_() && !an(g, 'entregas')
-&& cF() && a().status == 'ativo' && a().get('suspensoMotivo', null) == null && a().criadoEm == Tq();
-}
-allow create: if A172();
-function A173() {
-return b() && Uq() == g && n() && !an(g, 'entregas')
-&& Rq().status != 'suspenso' && cF()
-&& a().status in ['ativo', 'pausado'] && !k().hasAny(['suspensoMotivo', 'criadoEm']);
-}
-allow update: if A173();
-allow update: if l() && k().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
-&& a().status in ['ativo', 'pausado', 'suspenso'] && e(a().get('suspensoMotivo', ''), 200);
 allow delete: if b() && Uq() == g;
 }
 match /entregadores_online/{g} {
 allow read: if b();
-function A174() {
+function A172() {
 let nL = Nq();
-return b() && Uq() == g && cE(g)
+return b() && Uq() == g && cD(g)
 && nL.keys().hasOnly(['uid', 'lat', 'lng', 'geo4', 'geo5', 'veiculo', 'servicos', 'ocupado', 'em'])
 && nL.uid == g
 && nL.lat is number && nL.lat >= -34 && nL.lat <= 6
@@ -68,34 +38,34 @@ return b() && Uq() == g && cE(g)
 && nL.ocupado is bool
 && nL.em == Tq();
 }
-allow create, update: if A174();
+allow create, update: if A172();
 allow delete: if b() && Uq() == g;
 }
 match /entregadores_notas/{g} {
 allow read: if b();
 allow write: if false;
 }
-function d5(cG, bC) {
-let f = Dq('pref_publicas', bC);
-let x = exists(f) ? get(f).data.get('presentes', 'seguindo') : 'seguindo';
-let t = Dq('vinculos', F(cG, bC));
+function d3(cE, bB) {
+let e = Dq('pref_publicas', bB);
+let x = exists(e) ? get(e).data.get('presentes', 'seguindo') : 'seguindo';
+let u = Dq('vinculos', F(cE, bB));
 return x == 'todos'
-|| (x in ['seguindo', 'vinculos'] && exists(t) && get(t).data.status == 'aceito')
-|| (x == 'seguindo' && exists(Dq('relacoes', bC + '_' + cG)));
+|| (x in ['seguindo', 'vinculos'] && exists(u) && get(u).data.status == 'aceito')
+|| (x == 'seguindo' && exists(Dq('relacoes', bB + '_' + cE)));
 }
-function d6(a) {
+function d4(a) {
 let m = get(Dq('corridas', a.corridaId)).data;
 return a.tipo == 'pix' && m.clienteId == Uq() && m.entregadorId == a.para && m.status == 'concluida';
 }
 match /presentes/{c} {
 function a() { return Nq(); }
 function j() { return Rq(); }
-function A175() {
+function A173() {
 let uL = Uq();
 return b() && (j().de == uL || j().para == uL);
 }
-allow get, list: if A175();
-function A176() {
+allow get, list: if A173();
+function A174() {
 let uL = Uq();
 let tL = Tq();
 return b() && n()
@@ -104,36 +74,36 @@ return b() && n()
 && !z(uL, a().para)
 && a().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega', 'vale']
 && a().status == 'pendente'
-&& e(a().get('mensagem', ''), 300) && e(a().get('deNome', ''), 80) && e(a().get('paraNome', ''), 80)
+&& f(a().get('mensagem', ''), 300) && f(a().get('deNome', ''), 80) && f(a().get('paraNome', ''), 80)
 && (a().tipo != 'mimo' || a().get('mimo', '').matches('^[a-z]{2,20}$'))
 && (a().tipo == 'mimo' || (a().valor is number && a().valor >= 0 && a().valor <= 2000))
 && (a().tipo in ['mimo', 'produto'] || a().valor >= 1)
 && (a().tipo != 'produto'
 ? !('itens' in a())
 : (a().itens is list && a().itens.size() >= 1 && a().itens.size() <= 10 && a().negocioId is string
-&& d7(a().itens)
-&& e(a().get('negocioNome', ''), 80)
+&& d5(a().itens)
+&& f(a().get('negocioNome', ''), 80)
 && a().donoId == get(Dq('negocios', a().negocioId)).data.donoId
-&& bd(get(Dq('negocios', a().negocioId)).data)))
-&& (a().tipo != 'vale' || (a().negocioId is string && e(a().get('negocioNome', ''), 80)
+&& bc(get(Dq('negocios', a().negocioId)).data)))
+&& (a().tipo != 'vale' || (a().negocioId is string && f(a().get('negocioNome', ''), 80)
 && a().donoId == get(Dq('negocios', a().negocioId)).data.donoId
-&& bd(get(Dq('negocios', a().negocioId)).data)))
-&& (('corridaId' in a()) ? d6(a()) : d5(uL, a().para))
+&& bc(get(Dq('negocios', a().negocioId)).data)))
+&& (('corridaId' in a()) ? d4(a()) : d3(uL, a().para))
 && a().criadoEm == tL && a().atualizadoEm == tL;
 }
-allow create: if A176();
+allow create: if A174();
 function S(o, O) {
 return O >= o.size() || (o[O] is map && o[O].keys().hasOnly(['nome', 'preco', 'qtd'])
-&& e(o[O].get('nome', ''), 60)
+&& f(o[O].get('nome', ''), 60)
 && (o[O].preco is int || o[O].preco is float) && o[O].preco >= 0 && o[O].preco <= 100000
 && o[O].qtd is int && o[O].qtd >= 1 && o[O].qtd <= 99);
 }
-function d7(o) {
+function d5(o) {
 return S(o, 0) && S(o, 1) && S(o, 2) && S(o, 3) && S(o, 4)
 && S(o, 5) && S(o, 6) && S(o, 7) && S(o, 8) && S(o, 9);
 }
-allow update: if b() && d8(k(), j().status, Nq().get('status', ''));
-function d8(s, E, Z) {
+allow update: if b() && d6(k(), j().status, Nq().get('status', ''));
+function d6(s, E, Z) {
 let uL = Uq();
 let tL = Tq();
 return a().atualizadoEm == tL && (
@@ -149,18 +119,18 @@ allow delete: if false;
 }
 match /locais_vivos/{c} {
 function a() { return Nq(); }
-function cH() {
+function cF() {
 return a().lat is number && a().lat >= -90 && a().lat <= 90 && a().lng is number && a().lng >= -180 && a().lng <= 180
 && a().precisao is number && a().precisao >= 0 && a().rumo is number;
 }
-function A177() {
+function A175() {
 let rL = Rq();
 let uL = Uq();
 return b() && uL in rL.participantes
 && (rL.uid == uL || !z(rL.participantes[0], rL.participantes[1]));
 }
-allow get, list: if A177();
-function A178() {
+allow get, list: if A175();
+function A176() {
 let uL = Uq();
 let tL = Tq();
 return b() && n()
@@ -171,129 +141,169 @@ return b() && n()
 && a().conv == a().participantes[0] + '_' + a().participantes[1]
 && exists(Dq('conversas', a().conv))
 && !z(a().participantes[0], a().participantes[1])
-&& cH()
+&& cF()
 && a().ate is timestamp && a().ate > tL && a().ate <= tL + duration.value(485, 'm')
 && a().parado == false && a().criadoEm == tL && a().atualizadoEm == tL;
 }
-allow create: if A178();
-function A179() {
+allow create: if A176();
+function A177() {
 let rL = Rq();
 let tL = Tq();
 return b() && rL.uid == Uq()
 && k().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
-&& cH() && a().ate <= rL.ate && a().parado is bool
+&& cF() && a().ate <= rL.ate && a().parado is bool
 && (rL.ate > tL || a().parado == true)
 && (a().parado == true || !z(rL.participantes[0], rL.participantes[1]))
 && a().atualizadoEm == tL;
 }
-allow update: if A179();
-function A180() {
+allow update: if A177();
+function A178() {
 return b() && Rq().uid == Uq();
 }
-allow delete: if A180();
+allow delete: if A178();
 }
-function cI(t) { return math.abs(t * 1000 - math.round(t * 1000)) < 0.001; }
-function ec(a) { return bD(a) && cI(a.lat) && cI(a.lng); }
-function bD(a) {
+function cG(a) {
 return a.lat is number && a.lat >= -90 && a.lat <= 90 && a.lng is number && a.lng >= -180 && a.lng <= 180
 && a.geo4 is string && a.geo4.matches('^[0-9a-z]{4}$');
 }
 match /sos/{c} {
 function a() { return Nq(); }
 function j() { return Rq(); }
-function A181() {
+function A179() {
 let rL = Rq();
 let uL = Uq();
 return b() && ((rL.publico == true && rL.status in ['aberto', 'atendido']) || rL.uid == uL
 || rL.ajudanteId == uL || uL in rL.avisados || l());
 }
-allow get, list: if A181();
-function A182() {
+allow get, list: if A179();
+function A180() {
 let uL = Uq();
 let tL = Tq();
 return b() && n()
 && a().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
 && a().get('equipe', false) is bool && a().get('escalarMin', 0) is int && a().get('escalarMin', 0) >= 0 && a().get('escalarMin', 0) <= 15
-&& a().uid == uL && e(a().get('nome', ''), 80)
+&& a().uid == uL && f(a().get('nome', ''), 80)
 && a().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
-&& e(a().get('texto', ''), 300)
-&& bD(a()) && a().precisao is number
+&& f(a().get('texto', ''), 300)
+&& cG(a()) && a().precisao is number
 && a().publico is bool && a().avisados is list && a().avisados.size() <= 30
 && a().avisados.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,29})?$')
 && !(uL in a().avisados)
 && a().status == 'aberto' && a().ajudanteId == ''
 && a().criadoEm == tL && a().atualizadoEm == tL;
 }
-allow create: if A182();
-allow update: if b() && a().atualizadoEm == Tq() && d9(k(), j().status, a().get('status', ''));
-function d9(s, E, Z) {
+allow create: if A180();
+allow update: if b() && a().atualizadoEm == Tq() && d7(k(), j().status, a().get('status', ''));
+function d7(s, E, Z) {
 let uL = Uq();
 let tL = Tq();
 let L = j().uid == uL;
-let cJ = j().ajudanteId == uL;
-return (L && E in ['aberto', 'atendido'] && s.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && bD(a()))
+let cH = j().ajudanteId == uL;
+return (L && E in ['aberto', 'atendido'] && s.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && cG(a()))
 || (L && E in ['aberto', 'atendido'] && s.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!s.hasAny(['publico']) || a().publico == true)
 && (!s.hasAny(['escaladoEm']) || a().escaladoEm == tL)
 && (!s.hasAny(['suporteId']) || (a().suporteId is string && a().suporteId.matches('^[A-Za-z0-9_-]{1,40}$')
 && get(Dq('suporte', a().suporteId)).data.uid == uL)))
-|| ((L || cJ) && E in ['aberto', 'atendido'] && Z in ['resolvido', 'cancelado'] && (L || Z == 'resolvido')
+|| ((L || cH) && E in ['aberto', 'atendido'] && Z in ['resolvido', 'cancelado'] && (L || Z == 'resolvido')
 && s.hasOnly(['status', 'fimEm', 'atualizadoEm']) && a().fimEm == tL)
 || (!L && E == 'aberto' && Z == 'atendido' && (j().publico == true || uL in j().avisados)
 && !z(uL, j().uid)
 && s.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
-&& a().ajudanteId == uL && e(a().get('ajudanteNome', ''), 80) && a().aceitoEm == tL)
-|| (cJ && E == 'atendido' && Z == 'aberto'
+&& a().ajudanteId == uL && f(a().get('ajudanteNome', ''), 80) && a().aceitoEm == tL)
+|| (cH && E == 'atendido' && Z == 'aberto'
 && s.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && a().ajudanteId == ''
 && a().get('ajudanteNome', '') == '' && a().get('aceitoEm', null) == null);
 }
 allow delete: if false;
 }
-function cK(d_) {
-let d = Dq('ocorrencias_autoria', d_);
+function cI(d8) {
+let d = Dq('ocorrencias_autoria', d8);
 return exists(d) && get(d).data.uid == Uq();
 }
 match /ocorrencias/{c} {
-function A183() {
+function A181() {
 let rL = Rq();
-return b() && (rL.status == 'ativo' || rL.autorId == Uq() || l() || cK(c));
+return b() && (rL.status == 'ativo' || rL.autorId == Uq() || l() || cI(c));
 }
-allow get, list: if A183();
-match /pistas/{f} {
-allow read: if b() && (get(Dq('ocorrencias', c)).data.autorId == Uq() || cK(c) || l());
+allow get, list: if A181();
+match /pistas/{e} {
+allow read: if b() && (get(Dq('ocorrencias', c)).data.autorId == Uq() || cI(c) || l());
 }
 }
 match /ocorrencias_autoria/{c} {
-function A184() {
+function A182() {
 return b() && (Rq().uid == Uq() || l());
 }
-allow get: if A184();
+allow get: if A182();
 allow list: if l();
 }
 match /pistas_autoria/{c} { allow read: if l(); }
 match /veiculos/{c} {
-function A185() {
+function A183() {
 return b() && (Rq().donoId == Uq() || l());
 }
-allow get, list: if A185();
-function A186() {
+allow get, list: if A183();
+function A184() {
 return b() && Rq().donoId == Uq();
 }
-allow delete: if A186();
+allow delete: if A184();
 }
 match /veiculos_venda/{c} {
 allow get, list: if b();
-function A187() {
+function A185() {
 return b() && (Rq().donoId == Uq() || l());
 }
-allow delete: if A187();
+allow delete: if A185();
 }
-function cL(a) {
+function cJ(a) {
 return a.especie in ['cao', 'gato', 'ave', 'outro']
 && a.cores is list && a.cores.size() <= 4
 && a.cores.join(',').matches('^((preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)(,(preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)){0,3})?$')
 && a.get('porte', '') in ['', 'P', 'M', 'G'] && a.get('sexo', '') in ['', 'm', 'f', '?']
-&& e(a.get('raca', ''), 40) && e(a.get('sinais', ''), 300)
+&& f(a.get('raca', ''), 40) && f(a.get('sinais', ''), 300)
 && a.get('microchip', '') is string && a.get('microchip', '').matches('^[A-Z0-9]{0,20}$')
 && (!('foto' in a) || (af(a.foto) && a.foto.size() <= 300000));
+}
+match /pets/{c} {
+function a() { return Nq(); }
+function A186() {
+let rL = Rq();
+return b() && (rL.visivel == true || rL.donoId == Uq() || l());
+}
+allow get, list: if A186();
+function A187() {
+let uL = Uq();
+return b() && n() && a().donoId == uL
+&& (resource == null || Rq().donoId == uL)
+&& a().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
+&& a().nome is string && a().nome.size() >= 1 && a().nome.size() <= 40
+&& f(a().get('donoNome', ''), 80) && f(a().get('idade', ''), 20)
+&& f(a().get('cidade', ''), 60) && f(a().get('uf', ''), 2)
+&& cJ(a())
+&& a().status in ['casa', 'perdido'] && a().visivel is bool
+&& a().get('geo4', '').matches('^([0-9a-z]{4})?$')
+&& a().atualizadoEm == Tq();
+}
+allow create, update: if A187();
+function A188() {
+return b() && Rq().donoId == Uq();
+}
+allow delete: if A188();
+}
+match /pets_achados/{c} {
+function a() { return Nq(); }
+allow get, list: if b();
+function A189() {
+let tL = Tq();
+return b() && n()
+&& a().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
+&& a().autorId == Uq() && f(a().get('autorNome', ''), 80)
+&& cJ(a())
+&& a().local is map && a().local.keys().hasOnly(['lat', 'lng', 'nome'])
+&& a().local.lat is number && a().local.lat >= -34 && a().local.lat <= 6
+&& a().local.lng is number && a().local.lng >= -75 && a().local.lng <= -28 && f(a().local.get('nome', ''), 120)
+&& a().geo4 is string && a().geo4.matches('^[0-9a-z]{4}$')
+&& a().quando is timestamp && a().quando <= tL
+&& a().status == 'ativo' && a().criadoEm == tL && a().atualizadoEm == tL;
 }
 // ===== FIM DA PARTE 11 DE 12 =====

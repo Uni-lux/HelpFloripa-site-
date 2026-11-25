@@ -3199,7 +3199,11 @@ chat da equipe).
   admin-seguranca.js sem gravação direta (só apagar o próprio veículo/índice). Regras: só leitura (+ delete do dono em veiculos e
   veiculos_venda). `EM_BREVE.roubos = false`; textos de Ajuda, menu, Configurações, Privacidade e alertas.html voltaram.
   Limpeza de conta apaga `servidor_limites`. Testes `t-roubos-servidor.mjs` (34), `t-veiculos-presentes`, `t-sos-pets`, `t-em-breve`
-  (com `__hfFuncoesEmulador`). Para publicar: `functions:roubos` + regras (`_regras/LEIA-ME.md`). Próximo: desaparecidos (etapa 3).
+  (com `__hfFuncoesEmulador`). PR #265 mesclado; `functions:roubos` publicada por ele (25/11 ~14:28), mas as regras deram
+  257.025 compilados (limite 256.000). PR seguinte: cadastro de entregador pelo servidor (`corrida` ações `cadastro`/`situacao`,
+  `montarCadastro`; entregador.js sem gravação direta; regra de `entregadores` só get/list moderação/delete do dono) e
+  `tresCasas`/`pontoAproxOk` foram para `proxima-atualizacao.rules`; texto 137.232, 1305 testes; `t-corridas-servidor` 42.
+  Publicar: `functions:roubos,functions:corrida` + regras. Próximo: desaparecidos (etapa 3).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

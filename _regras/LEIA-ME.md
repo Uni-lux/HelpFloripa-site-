@@ -2,13 +2,15 @@
 
 > **Versão de 25/11/2026 (4) — roubos, furtos, golpes e veículos de volta, pelo servidor (12 partes).** Registrar
 > ocorrência, pistas, encerrar, cadastrar veículo e o índice dos carros/motos à venda agora passam pela Cloud Function
-> **`roubos`** (functions/roubos.js); as regras deles ficaram só de leitura. Texto: 139.059 (antes 138.151).
-> Desaparecidos continuam em `_regras/proxima-atualizacao.rules` ("Em breve"). 1312 testes passando.
+> **`roubos`** (functions/roubos.js); as regras deles ficaram só de leitura. A 1ª tentativa deu 257.025 compilados (limite
+> 256.000): o cadastro de entregador também passou para o servidor (`corrida`, ações cadastro e situacao) e saíram 2 funções
+> sem uso. Texto: 137.232 (a versão das corridas, que coube, tinha 138.151).
+> Desaparecidos continuam em `_regras/proxima-atualizacao.rules` ("Em breve"). 1305 testes passando.
 >
 > **Ordem para publicar (Cloud Shell, pasta `hf`), depois de mesclar o PR:**
 > 1. `cd ~/hf && git fetch origin && git reset --hard origin/main`
 > 2. `cd functions && npm ci && cd ..`
-> 3. `npx firebase-tools@latest deploy --only functions:roubos --project helpfloripa-61e0d` (✔ no fim)
+> 3. `npx firebase-tools@latest deploy --only functions:roubos,functions:corrida --project helpfloripa-61e0d` (✔ no fim)
 > 4. `python3 _regras/medir-regras.py` — tem que aparecer **CABE** na linha `final.rules` (com erro 503 do Google, pode ir
 >    direto ao passo 5: o deploy recusa se não couber).
 > 5. `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`

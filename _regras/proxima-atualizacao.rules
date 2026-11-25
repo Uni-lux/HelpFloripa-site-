@@ -7,6 +7,9 @@
 // (Roubos, furtos, golpes e veículos voltaram em 25/11/2026 pelo servidor: functions/roubos.js.)
 
 // ===== DESAPARECIDOS =====
+    // (tresCasas e pontoAproxOk saíram das regras do ar por não serem usadas; voltam junto com este bloco.)
+    function tresCasas(v) { return math.abs(v * 1000 - math.round(v * 1000)) < 0.001; }
+    function pontoAproxOk(d) { return pontoAlertaOk(d) && tresCasas(d.lat) && tresCasas(d.lng); }
     // DESAPARECIDOS (18/11/2026): aviso de pessoa desaparecida com o número do boletim de ocorrência. Nasce "analise" e só
     // a equipe publica ("ativo") depois de conferir — evita usar o site para achar quem fugiu de uma situação de violência.
     // Quem registrou e a moderação leem sempre; os outros só o publicado. Pistas como nas ocorrências (anônima = autoria

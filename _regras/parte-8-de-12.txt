@@ -33,21 +33,21 @@ allow create, update: if A114();
 allow delete: if false;
 }
 match /equipe_tarefas/{c} {
-function cl() {
+function ck() {
 let rL = Rq();
 let tL = Tq();
 let a = Nq();
 return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
 && a.titulo is string && a.titulo.size() >= 2 && a.titulo.size() <= 140
-&& e(a.get('descricao', null), 2000)
+&& f(a.get('descricao', null), 2000)
 && a.status in ['a_fazer', 'fazendo', 'feito']
 && a.prioridade in ['baixa', 'normal', 'alta', 'urgente']
 && (a.get('responsavel', null) == null || (a.responsavel is string && exists(Dq('admins', a.responsavel))))
-&& e(a.get('responsavelNome', null), 80)
+&& f(a.get('responsavelNome', null), 80)
 && (a.get('prazo', null) == null || a.prazo is timestamp)
-&& e(a.get('ligacao', null), 160)
-&& e(a.get('ligacaoNome', null), 120)
-&& e(a.get('criadoPorNome', null), 80)
+&& f(a.get('ligacao', null), 160)
+&& f(a.get('ligacaoNome', null), 120)
+&& f(a.get('criadoPorNome', null), 80)
 && (a.status != 'feito' ? a.get('concluidaEm', null) == null
 : (resource == null || rL.status != 'feito') ? a.get('concluidaEm', null) == tL
 : a.get('concluidaEm', null) == rL.get('concluidaEm', null))
@@ -56,7 +56,7 @@ return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'respons
 allow read: if i();
 function A115() {
 let nL = Nq();
-return i() && cl()
+return i() && ck()
 && nL.criadoPor == Uq()
 && nL.criadoEm == Tq();
 }
@@ -64,7 +64,7 @@ allow create: if A115();
 function A116() {
 let nL = Nq();
 let rL = Rq();
-return i() && cl()
+return i() && ck()
 && nL.criadoPor == rL.criadoPor
 && nL.criadoEm == rL.criadoEm;
 }
@@ -82,7 +82,7 @@ return i()
 && nL.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
 && nL.alvo is string && nL.alvo.size() <= 128
 && nL.autorId == Uq()
-&& e(nL.get('autorNome', null), 80)
+&& f(nL.get('autorNome', null), 80)
 && nL.texto is string && nL.texto.size() >= 1 && nL.texto.size() <= 2000
 && nL.em == Tq();
 }
@@ -99,12 +99,12 @@ function A120() {
 let nL = Nq();
 return i()
 && nL.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
-&& e(nL.get('alvo', ''), 300) && e(nL.get('ref', ''), 300)
-&& e(nL.get('porNome', ''), 80)
+&& f(nL.get('alvo', ''), 300) && f(nL.get('ref', ''), 300)
+&& f(nL.get('porNome', ''), 80)
 && nL.por == Uq()
 && nL.em == Tq()
 && nL.acao is string && nL.acao.size() <= 60
-&& e(nL.get('detalhe', ''), 1000);
+&& f(nL.get('detalhe', ''), 1000);
 }
 allow create: if A120();
 allow update, delete: if false;
@@ -118,18 +118,18 @@ allow read: if i();
 allow write: if false;
 }
 match /ritmo/{g} {
-function dJ(y) {
+function dH(y) {
 return y == 'msg' ? 500 : (y == 'pub' ? 20 : (y == 'parc' ? 3 : (y == 'flash' ? 50 : (y == 'sup' ? 5 : 200))));
 }
-function bu() {
+function bt() {
 return resource == null || Rq().inicio < Tq() - duration.value(1, 'd');
 }
-function ax(s, y) {
+function aw(s, y) {
 let rL = Rq();
-let t = Nq().get(s, 0);
-return t is int
-&& t == (s == y ? (bu() ? 1 : rL.get(s, 0) + 1)
-: (bu() ? 0 : rL.get(s, 0)));
+let u = Nq().get(s, 0);
+return u is int
+&& u == (s == y ? (bt() ? 1 : rL.get(s, 0) + 1)
+: (bt() ? 0 : rL.get(s, 0)));
 }
 allow get: if b() && Uq() == g;
 allow read: if i();
@@ -141,14 +141,14 @@ return b()
 && nL.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'sup', 'ultimaEm', 'ultimoTipo'])
 && nL.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash', 'sup']
 && nL.ultimaEm == tL
-&& nL.inicio == (bu() ? tL : Rq().inicio)
-&& ax('msg', nL.ultimoTipo)
-&& ax('pub', nL.ultimoTipo)
-&& ax('com', nL.ultimoTipo)
-&& ax('parc', nL.ultimoTipo)
-&& ax('flash', nL.ultimoTipo)
-&& ax('sup', nL.ultimoTipo)
-&& nL.get(nL.ultimoTipo, 0) <= dJ(nL.ultimoTipo);
+&& nL.inicio == (bt() ? tL : Rq().inicio)
+&& aw('msg', nL.ultimoTipo)
+&& aw('pub', nL.ultimoTipo)
+&& aw('com', nL.ultimoTipo)
+&& aw('parc', nL.ultimoTipo)
+&& aw('flash', nL.ultimoTipo)
+&& aw('sup', nL.ultimoTipo)
+&& nL.get(nL.ultimoTipo, 0) <= dH(nL.ultimoTipo);
 }
 allow create, update: if A121();
 allow delete: if false;
@@ -162,7 +162,7 @@ return b()
 && Uq() == g
 && nL.keys().hasOnly(['pedidaEm', 'motivo'])
 && nL.pedidaEm == Tq()
-&& e(nL.get('motivo', ''), 300);
+&& f(nL.get('motivo', ''), 300);
 }
 allow create: if A122();
 allow update: if false;
@@ -170,10 +170,10 @@ allow delete: if b() && Uq() == g;
 }
 match /curtidas/{c} {
 allow read: if b();
-function cm(a) {
+function cl(a) {
 return a.nota is int && a.nota >= 1 && a.nota <= 5;
 }
-function bv(al) {
+function bu(al) {
 let j = Dq('diario_notas', al);
 return existsAfter(j)
 && getAfter(j).data.get('soma', 0) != (exists(j) ? get(j).data.get('soma', 0) : 0);
@@ -189,10 +189,10 @@ return b()
 && c == nL.postId + '_' + uL
 && exists(Dq('diario', nL.postId))
 && get(Dq('diario', nL.postId)).data.autorId == nL.postAutorId
-&& cm(nL)
+&& cl(nL)
 && !z(uL, nL.postAutorId)
 && nL.criadoEm == Tq()
-&& bv(nL.postId);
+&& bu(nL.postId);
 }
 allow create: if A123();
 function A124() {
@@ -202,15 +202,15 @@ return b()
 && n()
 && rL.uid == Uq()
 && k().hasOnly(['nota', 'atualizadoEm'])
-&& cm(nL)
+&& cl(nL)
 && nL.atualizadoEm == Tq()
-&& bv(rL.postId);
+&& bu(rL.postId);
 }
 allow update: if A124();
 function A125() {
 let rL = Rq();
 return b() && rL.uid == Uq()
-&& (bv(rL.postId)
+&& (bu(rL.postId)
 || !exists(Dq('diario', rL.postId)));
 }
 allow delete: if A125();
@@ -262,12 +262,12 @@ return b() && (Rq().uid == Uq() || l());
 allow delete: if A130();
 allow update: if false;
 }
-match /contagem_lembretes/{dK} {
+match /contagem_lembretes/{dI} {
 function A131() {
 let nL = Nq();
 let uL = Uq();
 return b() && nL.uid == uL
-&& dK == nL.flashId + '_' + uL
+&& dI == nL.flashId + '_' + uL
 && nL.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
 && nL.criadoEm == Tq()
 && get(Dq('stories', nL.flashId)).data.autorId == nL.autorId
@@ -289,11 +289,11 @@ allow delete: if A133();
 allow update: if false;
 }
 match /stories/{c} {
-function cn() {
-let u = get(/databases/$(database)/documents/stories/$(c)).data;
-return u.autorId == request.auth.uid
-|| (u.criadoEm > request.time - duration.value(26, 'h') || u.get('destacado', false) == true)
-&& (u.get('publico', 'todos') == 'amigos' ? request.auth.uid in u.lista : !(request.auth.uid in u.get('ocultoPara', [])));
+function cm() {
+let t = get(/databases/$(database)/documents/stories/$(c)).data;
+return t.autorId == request.auth.uid
+|| (t.criadoEm > request.time - duration.value(26, 'h') || t.get('destacado', false) == true)
+&& (t.get('publico', 'todos') == 'amigos' ? request.auth.uid in t.lista : !(request.auth.uid in t.get('ocultoPara', [])));
 }
 allow get: if b() && (resource.data.autorId == request.auth.uid || l()
 || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
@@ -304,7 +304,7 @@ allow get: if b() && (resource.data.autorId == request.auth.uid || l()
 allow list: if b() && (resource.data.autorId == request.auth.uid || l()
 || (resource.data.criadoEm > request.time - duration.value(26, 'h')
 && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
-allow create: if b() && n() && cW(request.resource.data) && !ae(request.auth.uid) && au('flash');
+allow create: if b() && n() && cU(request.resource.data) && !ae(request.auth.uid) && at('flash');
 allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
 allow update: if b() && resource.data.autorId == request.auth.uid
 && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
@@ -317,7 +317,7 @@ match /vistos/{g} {
 allow create: if b() && g == request.auth.uid
 && request.resource.data.keys().hasOnly(['criadoEm'])
 && request.resource.data.criadoEm == request.time
-&& cn();
+&& cm();
 allow read: if b() && (g == request.auth.uid
 || get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
 allow update, delete: if false;
@@ -329,7 +329,7 @@ allow create, update: if b() && g == request.auth.uid
 && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
 && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
 && get(/databases/$(database)/documents/stories/$(c)).data.autorId != request.auth.uid
-&& cn();
+&& cm();
 allow read: if b() && (g == request.auth.uid
 || get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
 allow delete: if b() && g == request.auth.uid;
@@ -358,7 +358,7 @@ return b() && (Rq().autorId == Uq() || l());
 allow delete: if A135();
 }
 match /destaques/{c} {
-function co(a) {
+function cn(a) {
 return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
 && a.nome is string && a.nome.size() >= 1 && a.nome.size() <= 30
 && a.ids is list && a.ids.size() >= 1 && a.ids.size() <= 100
@@ -368,7 +368,7 @@ return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', '
 && (!('capa' in a) || (a.capa is string && a.capa.size() <= 64 && a.capa in a.ids))
 && (!('capaMini' in a) || (a.capaMini is string && a.capaMini.size() <= 30000 && a.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
 }
-function cp(a, B) {
+function co(a, B) {
 return !('capa' in a) || a.capa == B
 || get(Dq('stories', a.capa)).data.autorId == Uq();
 }
@@ -376,8 +376,8 @@ allow read: if b();
 function A136() {
 let nL = Nq();
 return b() && n() && nL.uid == Uq()
-&& nL.criadoEm == Tq() && co(nL)
-&& cp(nL, '');
+&& nL.criadoEm == Tq() && cn(nL)
+&& co(nL, '');
 }
 allow create: if A136();
 function A137() {
@@ -385,8 +385,8 @@ let nL = Nq();
 let rL = Rq();
 let uL = Uq();
 return b() && rL.uid == uL && nL.uid == uL
-&& nL.criadoEm == rL.criadoEm && co(nL)
-&& cp(nL, rL.get('capa', ''));
+&& nL.criadoEm == rL.criadoEm && cn(nL)
+&& co(nL, rL.get('capa', ''));
 }
 allow update: if A137();
 function A138() {
@@ -394,10 +394,10 @@ return b() && (Rq().uid == Uq() || l());
 }
 allow delete: if A138();
 }
-function cq(a) {
-let bw = Dq('enquete_contas', a.alvo + '_' + string(a.fatia));
+function cp(a) {
+let bv = Dq('enquete_contas', a.alvo + '_' + string(a.fatia));
 let s = 'n' + string(a.opcao);
 return a.fatia is int && a.fatia >= 0 && a.fatia < 10
-&& getAfter(bw).data.get(s, 0) == (exists(bw) ? get(bw).data.get(s, 0) : 0) + 1;
+&& getAfter(bv).data.get(s, 0) == (exists(bv) ? get(bv).data.get(s, 0) : 0) + 1;
 }
 // ===== FIM DA PARTE 8 DE 12 =====
