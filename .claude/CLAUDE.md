@@ -3113,6 +3113,46 @@ chat da equipe).
   19.071 × 22.987); média das duas +4% de correções (6.730; 23.922) mas estraga o dobro de palavras certas (15 × 6; 19 × 13).
   Não compensa o download nem o risco. Caminhos se ele quiser de novo: rede "por cima" do modelo atual (empilhada), muito mais
   texto, ou revisão por IA no servidor (Claude API numa Cloud Function, precisa do Blaze).
+- **REGRAS PUBLICADAS por ele em 25/11/2026 às 01:55** pelo Cloud Shell (`deploy --only firestore:rules`, "Deploy complete!"):
+  a versão de `_regras/firestore-publicar.rules` (11 partes, 133.633 de texto, "CABE" no medidor), com tudo desde 26/10 MENOS
+  corridas/entregas, roubos/veículos e desaparecidos (guardados em `_regras/proxima-atualizacao.rules`, site em "Em breve").
+  Aviso do deploy "Unused function: d3" = `pontoAproxOk`, que só as regras guardadas usavam (inofensivo; sai quando
+  elas voltarem ou na próxima limpeza). Faltava ele: "Recalcular estrelas" e "Guardar o que já está escondido" no painel.
+  Ele está pensando em SEPARAR a rede social (Ponte) da plataforma: opções explicadas (1 só o banco, 2 marca/entrada própria
+  com a mesma conta — recomendada, Mensagens fica na plataforma —, 3 tudo separado).
+- **DECIDIDO por ele (25/11/2026): OPÇÃO 2** — a Ponte vira marca/entrada própria, mesma conta, banco do Firestore
+  separado (banco nomeado, ex. `ponte`, com regras próprias); Mensagens, negócios, planos, Help e painel ficam na
+  plataforma; continuam ligados (perfil de negócio na Ponte, Flash leva ao negócio, respostas vão para o Mensagens).
+  Conferido: só UM banco por projeto tem a cota grátis (o 2º paga desde a 1ª leitura; o Blaze já está ligado).
+  Regras de um banco provavelmente não leem o outro (conferir no emulador): equipe, sanções, bloqueios, verificação,
+  perfis_publicos, nicknames, pref_publicas e relacoes precisam de CÓPIA no banco da Ponte por Cloud Function.
+  **Ajuste dele (25/11/2026): a PONTE fica no banco atual `(default)` (o que tem a cota grátis, porque gasta mais) e a
+  PLATAFORMA (Help) vai para o banco novo** (ex. `help`): negócios, anúncios, planos/pedidos/negociações (+ functions de
+  pagamento), conversas/mensagens/chamadas, suporte, painel/equipe, avaliações/reclamações/queixas, neg_stats/visitas,
+  presentes, sos/pets, locais_vivos, verificações, denúncias. Ficam no (default): contas (usuarios, perfis_publicos,
+  nicknames, pref_publicas, relacoes, bloqueios, admins, sancoes) e todo o social, inclusive Comunidade (está na barra da
+  rede); as contas/equipe/sanções/bloqueios são COPIADOS para o banco da Help por Cloud Function.
+  Etapas propostas (com os lados trocados): 1) regras separadas + cópias por Cloud Function (nada muda para as pessoas); 2) site lendo/gravando
+  o social no banco novo (`getFirestore(app, "ponte")`) e Functions do social com `database: "ponte"`; 3) migração dos
+  dados (botão no painel, como o migrarFotos) numa janela curta; 4) entrada/marca/app da Ponte; 5) corridas, roubos e
+  desaparecidos voltam às regras da plataforma; 6) testes gerais. **Pendente dele:** onde fica a Ponte (pasta
+  helpfloripa.com.br/ponte = mesma sessão; domínio próprio = outro site e login de novo, ou passagem automática por
+  Cloud Function), nome final/ícone e se quer app nas lojas.
+- **NOVA DECISÃO dele (25/11/2026, depois da opção 2): LANÇAR SÓ A PLATAFORMA HELP FLORIPA AGORA; a rede social (Ponte)
+  fica para concluir depois.** Proposta minha (ainda SEM resposta dele, não começar antes):
+  1) a Ponte fica guardada com "Em breve" (como as corridas: `em-breve.js`); 2) as regras sociais saem das regras publicadas
+  e ficam guardadas (como `_regras/proxima-atualizacao.rules`) → sobra espaço e **corridas, roubos e desaparecidos voltam
+  já**, SEM banco novo; 3) quando a Ponte for lançar, ela ganha um BANCO NOVO começando do zero (dados sociais de hoje são
+  quase todos de teste: nada para migrar) — isso inverte o "Ponte no (default)" combinado antes; a cota grátis vale no
+  máximo ~US$ 3/mês, não compensa mudar o banco da plataforma; 4) mesmo repositório (não precisa criar outro; só com
+  domínio próprio da Ponte: Cloudflare Pages publica os dois sites do mesmo repositório).
+  **Tabela que mandei para ele confirmar o que fica no ar:** FICA = Início, vitrines (Freelances, Delivery, Shopping,
+  Imóveis, Saúde, Automotivo), Meus negócios, planos, Mensagens e ligações, Suporte/Ajuda/painel, avaliações/reclamações,
+  Perfil simples (foto, nome, cidade, negócios; sem publicações/Flash/destaques), Help, pets, presentes. PONTE DEPOIS =
+  Diário, Flash, Explorar, Vídeos, Meu diário (Social/duo), enquetes, seguidores. **Perguntas abertas:** Comunidade (fica na
+  plataforma, sem o Mural?), seguidores/Social (o Help usa o Social para avisar; sem ele = contatos de fora, perto e equipe)
+  e se a barra de baixo da rede sai (Mensagens e Perfil pelo menu/topo). Com as respostas: UM PR = esconder a Ponte,
+  enxugar as regras e trazer corridas/roubos/desaparecidos de volta (medir com `_regras/medir-regras.py`).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
@@ -3135,6 +3175,11 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
    real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
    passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+4c. **Motoristas e entregadores da Freelances no lugar das corridas (ele adiou, 25/11/2026: "depois eu vejo"):** enquanto as
+   corridas estão em "Em breve", usar o grupo Transporte da Freelances (áreas transporte, mudancas, entregas em `GRUPOS_SERV`):
+   botão "Encontrar motoristas e entregadores" na tela Em breve e atalhos "Motoristas"/"Entregadores" no Início e Automotivo
+   levando à vitrine filtrada (precisa de `?area=` na vitrine, que hoje não existe). Sem regra nova. Não substitui o pedido
+   na hora (despacho, mapa do pedido, PIN, valor sugerido); parte jurídica de passageiro igual.
 4b. **Música no Flash (ele adiou, 11/11/2026: "deixa pra depois"):** sugerido biblioteca livre (Pixabay Music/YouTube Audio
    Library, 30–50 faixas por clima) com figurinha da música e trecho de 15 s (campo novo + Storage/Blaze); músicas famosas só
    com licenciamento (ECAD/gravadoras ou Epidemic Sound/Soundstripe) e advogado; áudio enviado pela pessoa não recomendado.
