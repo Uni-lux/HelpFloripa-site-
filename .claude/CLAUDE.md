@@ -26,9 +26,9 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   atalhos N/R/U/T/D + let, protegendo stories e negocios do limite de 1.000 expressões → partes + `_regras/firestore-publicar.rules`).
   Medir sem mexer no ar: `_regras/medir-regras.py` (Cloud Shell, arquivos em `_regras/medir/`); se o deploy der 409,
   `_regras/ligar-regras.py`. Medido: nomes curtos ~1 byte compilado por letra, expressão ~2 por letra, chamada de função ~36.
-  **Desaparecidos guardados** (corridas e roubos/veículos voltaram em 25/11 pelo servidor, funções `corrida` e `roubos`) em `_regras/proxima-atualizacao.rules` (25/11/2026,
-  decisão dele) com o site em "Em breve" (`em-breve.js` `EM_BREVE`); testes delas pulados quando as regras não as têm.
-  Para voltar: colar os blocos de volta, virar `EM_BREVE` false e medir (vai precisar enxugar outra coisa ou separar a rede social).
+  **Nada guardado desde 25/11/2026:** corridas/entregas, roubos/veículos e desaparecidos voltaram pelo servidor (funções
+  `corrida` e `roubos`, regras só de leitura); `_regras/proxima-atualizacao.rules` está vazio e `EM_BREVE` todo false.
+  Para caber no limite, função nova com validação grande vai para uma Cloud Function "por ação" (`funcoes.js` `chamarFuncao`).
 - Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
   Tudo pronto em `_testes/` (leia `_testes/README.md`). `clearFirestore()` no demo-hf apaga os dados do navegador:
   os testes de regras usam o projeto `demo-regras`.
@@ -3203,7 +3203,13 @@ chat da equipe).
   257.025 compilados (limite 256.000). PR seguinte: cadastro de entregador pelo servidor (`corrida` ações `cadastro`/`situacao`,
   `montarCadastro`; entregador.js sem gravação direta; regra de `entregadores` só get/list moderação/delete do dono) e
   `tresCasas`/`pontoAproxOk` foram para `proxima-atualizacao.rules`; texto 137.232, 1305 testes; `t-corridas-servidor` 42.
-  Publicar: `functions:roubos,functions:corrida` + regras. Próximo: desaparecidos (etapa 3).
+  Publicar: `functions:roubos,functions:corrida` + regras. **Publicado por ele em 25/11 ~14:49** (CABE, Deploy complete).
+- **Desaparecidos pelo servidor (25/11/2026, etapa 3, PR depois do #266, MUDA REGRAS — não publicadas; 12 partes, 1320 testes):**
+  função `roubos` ganhou `desaparecido` (valida, ponto aproximado, foto data:/Storage, 3 por dia, abre chamado urgente com
+  `desaparecidoId`), `statusDesap` (moderação publica de análise→ativo e TIRA o `bo`; autor encontrado/removido; moderação
+  removido/encontrado) e `pistaDesap` (só ativo, anônima com `pistas_desap_autoria`, ponto 3 casas). `contar` no dia novo grava
+  sem merge (sobrava contagem de outro tipo). Regras só de leitura; `EM_BREVE.desaparecidos = false`. Testes
+  `t-roubos-servidor` (+16), `t-perdidos`, `t-em-breve` (tudo visível). Publicar: `functions:roubos` + regras.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

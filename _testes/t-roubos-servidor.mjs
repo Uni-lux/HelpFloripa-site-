@@ -110,5 +110,33 @@ await db.doc(`servidor_limites/${U.ana}`).delete();
 let n = 0; for (let i = 0; i < 6; i++) { const x = await ana("ocorrencia", O({ identificador: "" })); if (x.ok) n++; else r = x; }
 ok(n === 5 && /5 ocorrências/.test(r.msg), "no máximo 5 ocorrências por dia: " + r.msg);
 
+console.log("Desaparecidos");
+await db.doc(`servidor_limites/${U.ana}`).delete(); await db.doc(`servidor_limites/${U.bruno}`).delete();
+for (const x of (await db.collection("desaparecidos").get()).docs) await x.ref.delete();
+const D = (extra) => ({ nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", bo: "2026/123456", declaro: true, quando: Date.now() - 3600e3, lat: -27.59412, lng: -48.54871, ...extra });
+r = await ana("desaparecido", D({ bo: "" })); ok(!r.ok && /boletim/.test(r.msg), "sem boletim é recusado");
+r = await ana("desaparecido", D({ declaro: false })); ok(!r.ok && /declaração/.test(r.msg), "sem a declaração é recusado");
+r = await ana("desaparecido", D({ condicao: "x" })); ok(!r.ok, "situação inventada é recusada");
+r = await ana("desaparecido", D({ foto: "javascript:alert(1)" })); ok(!r.ok && /foto/.test(r.msg), "foto que não é imagem é recusada");
+r = await ana("desaparecido", D());
+const ds1 = r.id, dsd = r.ok ? (await db.doc(`desaparecidos/${ds1}`).get()).data() : {};
+ok(r.ok && dsd.status === "analise" && dsd.autorId === U.ana && dsd.lat === -27.594 && dsd.geo4 && dsd.bo === "2026/123456", "registrado em análise, ponto aproximado e boletim guardado");
+const sup = (await db.collection("suporte").where("desaparecidoId", "==", ds1).get()).docs[0]?.data();
+ok(sup?.prioridade === "urgente" && sup?.categoria === "sos", "chamado urgente aberto para a equipe conferir");
+r = await bruno("pistaDesap", { id: ds1, texto: "Vi na praça" }); ok(!r.ok, "em análise não recebe pista");
+r = await ana("statusDesap", { id: ds1, status: "ativo" }); ok(!r.ok, "quem registrou não publica sozinho");
+r = await bruno("statusDesap", { id: ds1, status: "removido" }); ok(!r.ok, "outra pessoa não muda o aviso");
+r = await dani("statusDesap", { id: ds1, status: "ativo" });
+const pub = (await db.doc(`desaparecidos/${ds1}`).get()).data();
+ok(r.ok && pub.status === "ativo" && !("bo" in pub), "a moderação publica e o boletim sai do aviso");
+r = await bruno("pistaDesap", { id: ds1, texto: "Vi perto do terminal", anonimo: true, lat: -27.5912, lng: -48.5511 });
+const pd = r.ok ? (await db.doc(`desaparecidos/${ds1}/pistas/${r.id}`).get()).data() : {};
+ok(r.ok && pd.anonimo === true && !pd.uid && pd.lat === -27.591, "pista anônima com o ponto aproximado");
+ok((await db.doc(`pistas_desap_autoria/${ds1}_${r.id}`).get()).get("uid") === U.bruno, "autoria da pista só para a moderação");
+r = await ana("statusDesap", { id: ds1, status: "encontrado" }); ok(r.ok && (await db.doc(`desaparecidos/${ds1}`).get()).get("status") === "encontrado", "quem registrou marca encontrado");
+r = await bruno("pistaDesap", { id: ds1, texto: "Vi de novo" }); ok(!r.ok, "encerrado não recebe mais pista");
+let nd = 0; for (let i = 0; i < 3; i++) { const x = await bruno("desaparecido", D()); if (x.ok) nd++; else r = x; }
+ok(nd === 3, "3 avisos por dia passam"); r = await bruno("desaparecido", D()); ok(!r.ok && /3 avisos/.test(r.msg), "o 4º no mesmo dia é recusado");
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\ntudo certo");
 process.exit(falhas ? 1 : 0);

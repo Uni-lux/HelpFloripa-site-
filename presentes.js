@@ -12,7 +12,7 @@ import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PR
 import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=8";
 import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=4";
 import { cartaoOp, grupoOps, secaoOp } from "./cartoes-op.js?v=2";
-import { EM_BREVE } from "./em-breve.js?v=3";
+import { EM_BREVE } from "./em-breve.js?v=4";
 const OCASIOES = {
   aniversario: ["Aniversário", "Feliz aniversário! Que esse ano seja incrível.", "bolo", "Mais um ano de vida"],
   namoro: ["Nosso dia", "Mais um dia do nosso fio. Obrigado por estar comigo.", "coracao", "Para o seu duo"],

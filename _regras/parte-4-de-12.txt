@@ -3,7 +3,7 @@ function A44() {
 let nL = Nq();
 return bg()
 && Rq().status in ['chamando', 'aceita']
-&& k().hasOnly(['status', 'fimEm', 'encerradaPor'])
+&& l().hasOnly(['status', 'fimEm', 'encerradaPor'])
 && nL.status in ['recusada', 'cancelada', 'perdida', 'encerrada']
 && nL.encerradaPor == Uq()
 && nL.fimEm == Tq();
@@ -31,7 +31,7 @@ allow update, delete: if false;
 match /conversas/{H} {
 function P(w) {
 let nL = Nq();
-return !k().hasAny([w])
+return !l().hasAny([w])
 || (nL[w] is map
 && nL[w].diff(Rq().get(w, {})).affectedKeys().hasOnly([Uq()]));
 }
@@ -100,7 +100,7 @@ return b()
 && Uq() in Rq().participantes;
 }
 allow list: if A47();
-allow read: if l();
+allow read: if k();
 function A48() {
 let nL = Nq();
 return b()
@@ -127,15 +127,15 @@ return b()
 && uL in rL.participantes
 && nL.participantes == rL.participantes
 && !z(rL.participantes[0], rL.participantes[1])
-&& k().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido', 'entregueEm', 'ouvidos'])
-&& (!k().hasAny(['pedido']) || de())
-&& (!k().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+&& l().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido', 'entregueEm', 'ouvidos'])
+&& (!l().hasAny(['pedido']) || de())
+&& (!l().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
 || nL.get('ultimaMensagemRemetenteId', '') == uL)
 && P('lidoEm')
 && P('vistoEm')
 && P('entregueEm')
 && P('ouvidos')
-&& (!k().hasAny(['ouvidos']) || (nL.ouvidos[uL] is list
+&& (!l().hasAny(['ouvidos']) || (nL.ouvidos[uL] is list
 && nL.ouvidos[uL].size() <= 50))
 && P('digitando')
 && P('arquivadaPara')
@@ -143,9 +143,9 @@ return b()
 && P('fixadaPara')
 && P('silenciadaPara')
 && P('falaram')
-&& (!k().hasAny(['falaram']) || nL.falaram[uL] == true)
-&& (!k().hasAny(['contexto']) || b5())
-&& (!k().hasAny(['mensagemFixada'])
+&& (!l().hasAny(['falaram']) || nL.falaram[uL] == true)
+&& (!l().hasAny(['contexto']) || b5())
+&& (!l().hasAny(['mensagemFixada'])
 || nL.mensagemFixada == null
 || (nL.mensagemFixada is map
 && nL.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
@@ -155,7 +155,7 @@ return b()
 && v('ultimaMensagem', 200);
 }
 allow update: if A49();
-allow delete: if l();
+allow delete: if k();
 match /mensagens/{aj} {
 function bj() {
 return Uq() in
@@ -206,7 +206,7 @@ return u is map && u.keys().hasOnly(['texto', 'em'])
 && u.em == rL.get('editadaEm', rL.criadoEm);
 }
 allow read: if b() && bj();
-allow get: if l();
+allow get: if k();
 function A50() {
 let nL = Nq();
 return b()
@@ -231,7 +231,7 @@ return b()
 && bk()
 && !('apagada' in rL)
 && rL.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
-&& k().hasOnly(['texto', 'editadaEm', 'edicoes'])
+&& l().hasOnly(['texto', 'editadaEm', 'edicoes'])
 && nL.texto is string && nL.texto.size() <= 4000
 && (nL.texto.size() > 0 || 'arquivoUrl' in rL)
 && nL.editadaEm == Tq()
@@ -267,7 +267,7 @@ let uL = Uq();
 return b()
 && bj()
 && !('apagada' in rL)
-&& k().hasOnly(['reacoes'])
+&& l().hasOnly(['reacoes'])
 && nL.reacoes is map
 && nL.reacoes.diff(rL.get('reacoes', {})).affectedKeys().hasOnly([uL])
 && (!(uL in nL.reacoes)
@@ -291,7 +291,7 @@ return get(/databases/$(database)/documents/conversas/$(H)/mensagens/$(aj)).data
 }
 function bm() { return Tq() < Rq().apagadaEm + duration.value(24, 'h'); }
 allow get: if b() && bl() && bm();
-allow get: if l();
+allow get: if k();
 function A55() {
 let nL = Nq();
 let uL = Uq();
@@ -317,7 +317,7 @@ allow create: if A55();
 function A56() {
 return b() && bl() && bm()
 && Uq() != Rq().remetenteId
-&& k().hasOnly(['denunciada'])
+&& l().hasOnly(['denunciada'])
 && Nq().denunciada == true;
 }
 allow update: if A56();
@@ -327,7 +327,7 @@ let dl = e[0] == Rq().remetenteId ? e[1] : e[0];
 return exists(Dq('denuncias', 'mensagem_' + aj + '_' + dl));
 }
 allow delete: if b() && bl() && !bm() && Rq().get('denunciada', false) != true && !dk();
-allow delete: if l();
+allow delete: if k();
 }
 }
 match /pedidos/{c} {

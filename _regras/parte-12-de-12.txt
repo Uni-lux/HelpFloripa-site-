@@ -1,11 +1,27 @@
-allow create: if A189();
+match /pets_achados/{c} {
+function a() { return Nq(); }
+allow get, list: if b();
 function A190() {
-let nL = Nq();
-return b() && k().hasOnly(['status', 'atualizadoEm']) && nL.atualizadoEm == Tq()
-&& ((Rq().autorId == Uq() && nL.status in ['ativo', 'devolvido', 'removido'])
-|| (l() && nL.status == 'removido'));
+let tL = Tq();
+return b() && n()
+&& a().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
+&& a().autorId == Uq() && f(a().get('autorNome', ''), 80)
+&& cJ(a())
+&& a().local is map && a().local.keys().hasOnly(['lat', 'lng', 'nome'])
+&& a().local.lat is number && a().local.lat >= -34 && a().local.lat <= 6
+&& a().local.lng is number && a().local.lng >= -75 && a().local.lng <= -28 && f(a().local.get('nome', ''), 120)
+&& a().geo4 is string && a().geo4.matches('^[0-9a-z]{4}$')
+&& a().quando is timestamp && a().quando <= tL
+&& a().status == 'ativo' && a().criadoEm == tL && a().atualizadoEm == tL;
 }
-allow update: if A190();
+allow create: if A190();
+function A191() {
+let nL = Nq();
+return b() && l().hasOnly(['status', 'atualizadoEm']) && nL.atualizadoEm == Tq()
+&& ((Rq().autorId == Uq() && nL.status in ['ativo', 'devolvido', 'removido'])
+|| (k() && nL.status == 'removido'));
+}
+allow update: if A191();
 allow delete: if false;
 }
 }

@@ -20,7 +20,7 @@ function A158() {
 let rL = Rq();
 let uL = Uq();
 return b() && (
-l()
+k()
 || ((rL.postAutorId == uL || rL.autorId == uL)
 && (!existsAfter(ad()) || getAfter(ad()).data.get('oculto', false) == false)));
 }
@@ -43,7 +43,7 @@ return b()
 && nL.criadoEm == Tq();
 }
 allow create: if A159();
-allow delete: if l();
+allow delete: if k();
 }
 match /curtidas_comentarios/{c} {
 allow read: if b();
@@ -66,7 +66,7 @@ allow create: if A160();
 function A161() {
 return b()
 && Rq().uid == Uq()
-&& k().hasOnly(['reacao'])
+&& l().hasOnly(['reacao'])
 && cu(Nq());
 }
 allow update: if A161();
@@ -179,14 +179,14 @@ return b() && !aq()
 && (nL.get('estilo', '') != 'casada' || nL.texto.size() <= 500)
 && cy(nL) && cz(nL)
 && cw(nL) && cx(nL)
-&& (!k().hasAny(['agendadoPara']) || nL.agendadoPara == tL)
+&& (!l().hasAny(['agendadoPara']) || nL.agendadoPara == tL)
 && (!('quemComenta' in nL) || nL.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
 && (!('comentarioFixo' in nL) || nL.comentarioFixo == null
 || (nL.comentarioFixo is string && nL.comentarioFixo.size() <= 40))
 && aa('ocultoAte')
 && aQ()
-&& (!k().hasAny(['texto']) || nL.get('editadoEm', null) == tL)
-&& (!k().hasAny(['editadoEm']) || nL.editadoEm == tL)
+&& (!l().hasAny(['texto']) || nL.get('editadoEm', null) == tL)
+&& (!l().hasAny(['editadoEm']) || nL.editadoEm == tL)
 && (!('comentariosOcultos' in nL) || nL.comentariosOcultos is bool)
 && cv();
 }
@@ -209,9 +209,9 @@ allow create: if A166();
 allow read: if b() && get(Dq('diario', al)).data.autorId == Uq();
 allow update, delete: if false;
 }
-allow update: if l()
+allow update: if k()
 && aV();
-allow delete: if l();
+allow delete: if k();
 }
 function dV() {
 let y = Tq() - duration.value(3, 'h');
@@ -307,7 +307,7 @@ return (s.hasOnly(['v', 'o', 'h'])
 && a9(a, j, 'it', getAfter(J).data.itens[getAfter(J).data.itens.size() - 1]));
 }
 function A169() {
-return b() && (Rq().donoId == Uq() || l());
+return b() && (Rq().donoId == Uq() || k());
 }
 allow read: if A169();
 allow create: if b() && d0();
@@ -332,6 +332,6 @@ function A170() {
 let uL = Uq();
 return b() && (aI('clienteId') || aI('entregadorId') || aI('destinatarioId') || aI('pagadorId')
 || (m().status == 'procurando' && (m().paraId == '' ? cD(uL) : m().paraId == uL))
-|| l());
+|| k());
 }
 // ===== FIM DA PARTE 10 DE 12 =====

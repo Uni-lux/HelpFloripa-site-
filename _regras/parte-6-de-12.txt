@@ -12,7 +12,7 @@ function cd(a) {
 return a.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
 && a.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
 && a.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
-&& (!k().hasAny(['primeiraRespostaEm']) || a.primeiraRespostaEm == Tq());
+&& (!l().hasAny(['primeiraRespostaEm']) || a.primeiraRespostaEm == Tq());
 }
 function ce() {
 let d = getAfter(Dq('suporte_abertos', Uq())).data;
@@ -72,20 +72,20 @@ let nL = Nq();
 let rL = Rq();
 return b()
 && ((rL.uid == Uq()
-&& k().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
+&& l().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
 && nL.status in ['aberto', 'fechado']
 && nL.ultimaDe == 'usuario'
 && (rL.status != 'fechado' || nL.status == 'fechado'
 || rL.categoria == 'sos' || ce()))
 || (i()
-&& k().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
+&& l().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
 && nL.status in ['aberto', 'respondido', 'fechado']
 && aB() && cd(nL)))
 && nL.atualizadoEm == Tq();
 }
 allow update: if A81();
 allow update: if i()
-&& k().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
+&& l().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
 && aB() && cd(Nq());
 allow delete: if false;
 match /mensagens/{d9} {
@@ -164,7 +164,7 @@ return a.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'docu
 && a.status == 'pendente'
 && a.criadoEm == tL && a.atualizadoEm == tL;
 }
-allow read: if (b() && Uq() == g) || l();
+allow read: if (b() && Uq() == g) || k();
 function A85() {
 return b() && Uq() == g && au(Nq());
 }
@@ -183,7 +183,7 @@ let nL = Nq();
 return b() && Uq() == g
 && Rq().status in ['pendente', 'em_analise']
 && nL.status == 'cancelada'
-&& k().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
+&& l().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
 && !('documento' in nL) && !('selfie' in nL)
 && nL.atualizadoEm == Tq();
 }
@@ -192,9 +192,9 @@ function A88() {
 let nL = Nq();
 let uL = Uq();
 let tL = Tq();
-return l() && (g != uL || M() == 'dono')
+return k() && (g != uL || M() == 'dono')
 && Rq().status in ['pendente', 'em_analise']
-&& k().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
+&& l().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
 && nL.status in ['em_analise', 'aprovada', 'recusada']
 && nL.analisadaPor == uL
 && nL.analisadaEm == tL && nL.atualizadoEm == tL
@@ -202,7 +202,7 @@ return l() && (g != uL || M() == 'dono')
 && f(nL.get('motivoRecusa', ''), 500);
 }
 allow update: if A88();
-allow delete: if (b() && Uq() == g) || l();
+allow delete: if (b() && Uq() == g) || k();
 }
 match /reportes/{c} {
 function cf(m) { return get(Dq('suporte', m)).data; }
@@ -210,7 +210,7 @@ function A89() {
 return b() && Rq().autorId == Uq();
 }
 allow get: if A89();
-allow read: if l();
+allow read: if k();
 function A90() {
 let nL = Nq();
 let uL = Uq();
@@ -236,13 +236,13 @@ allow create: if A90();
 function A91() {
 let nL = Nq();
 let rL = Rq();
-return l()
-&& k().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+return k()
+&& l().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
 && nL.status in ['novo', 'em_analise', 'resolvido', 'descartado']
 && (nL.status == rL.status
 || (rL.status == 'novo' && nL.status != 'novo')
 || (rL.status == 'em_analise' && nL.status in ['resolvido', 'descartado']))
-&& (!k().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor'])
+&& (!l().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor'])
 || (nL.analisadaPor == Uq() && nL.analisadaEm == Tq()))
 && aB()
 && f(nL.get('nota', ''), 1000);
@@ -306,7 +306,7 @@ function A96() {
 let rL = Rq();
 return b() && rL.uid == Uq()
 && rL.status == 'pendente'
-&& k().hasOnly(['status'])
+&& l().hasOnly(['status'])
 && Nq().status == 'cancelado';
 }
 allow update: if A96();
@@ -314,7 +314,7 @@ function A97() {
 let nL = Nq();
 return T()
 && Rq().status == 'pendente'
-&& k().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
+&& l().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
 && nL.status in ['pago', 'recusado']
 && nL.decididoPor == Uq()
 && nL.decididoEm == Tq()

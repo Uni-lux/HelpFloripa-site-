@@ -201,7 +201,7 @@ let rL = Rq();
 return b()
 && n()
 && rL.uid == Uq()
-&& k().hasOnly(['nota', 'atualizadoEm'])
+&& l().hasOnly(['nota', 'atualizadoEm'])
 && cl(nL)
 && nL.atualizadoEm == Tq()
 && bu(rL.postId);
@@ -257,7 +257,7 @@ return b() && n()
 }
 allow create: if A129();
 function A130() {
-return b() && (Rq().uid == Uq() || l());
+return b() && (Rq().uid == Uq() || k());
 }
 allow delete: if A130();
 allow update: if false;
@@ -295,17 +295,17 @@ return t.autorId == request.auth.uid
 || (t.criadoEm > request.time - duration.value(26, 'h') || t.get('destacado', false) == true)
 && (t.get('publico', 'todos') == 'amigos' ? request.auth.uid in t.lista : !(request.auth.uid in t.get('ocultoPara', [])));
 }
-allow get: if b() && (resource.data.autorId == request.auth.uid || l()
+allow get: if b() && (resource.data.autorId == request.auth.uid || k()
 || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
 || resource.data.get('destacado', false) == true)
 && (resource.data.get('publico', 'todos') == 'amigos'
 ? request.auth.uid in resource.data.lista
 : !(request.auth.uid in resource.data.get('ocultoPara', [])))));
-allow list: if b() && (resource.data.autorId == request.auth.uid || l()
+allow list: if b() && (resource.data.autorId == request.auth.uid || k()
 || (resource.data.criadoEm > request.time - duration.value(26, 'h')
 && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
 allow create: if b() && n() && cU(request.resource.data) && !ae(request.auth.uid) && at('flash');
-allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
+allow delete: if b() && (resource.data.autorId == request.auth.uid || k());
 allow update: if b() && resource.data.autorId == request.auth.uid
 && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
 && request.resource.data.destacado is bool)
@@ -353,7 +353,7 @@ return b()
 allow create: if A134();
 allow update: if false;
 function A135() {
-return b() && (Rq().autorId == Uq() || l());
+return b() && (Rq().autorId == Uq() || k());
 }
 allow delete: if A135();
 }
@@ -390,7 +390,7 @@ return b() && rL.uid == uL && nL.uid == uL
 }
 allow update: if A137();
 function A138() {
-return b() && (Rq().uid == Uq() || l());
+return b() && (Rq().uid == Uq() || k());
 }
 allow delete: if A138();
 }

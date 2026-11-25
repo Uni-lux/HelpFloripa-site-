@@ -32,25 +32,25 @@ function A100() {
 let nL = Nq();
 return b() && g == Uq()
 && Rq().status in ['novo', 'em_conversa', 'aguardando_pagamento']
-&& k().hasOnly(['status', 'comprovante'])
+&& l().hasOnly(['status', 'comprovante'])
 && !('comprovante' in nL)
 && nL.status == 'cancelado';
 }
 allow update: if A100();
 allow update: if T()
-&& k().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+&& l().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
 && ch(Nq());
 function A101() {
 let nL = Nq();
 return T()
 && Rq().status in ['novo', 'em_conversa']
-&& k().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
+&& l().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
 && ch(nL)
 && (!('tipos' in nL) || (nL.tipos is list && nL.tipos.size() <= 6 && nL.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude|automotivo)(,(servicos|delivery|lojinha|imoveis|saude|automotivo)){0,5}$')))
 && nL.get('semSelo', false) is bool
 && (!('dias' in nL) || (nL.dias is int && nL.dias >= 1 && nL.dias <= 800))
 && nL.status in ['em_conversa', 'aprovado', 'aguardando_pagamento', 'recusado']
-&& (nL.status == 'em_conversa' ? !k().hasAny(['comprovante']) : !('comprovante' in nL))
+&& (nL.status == 'em_conversa' ? !l().hasAny(['comprovante']) : !('comprovante' in nL))
 && nL.decididoPor == Uq()
 && nL.decididoEm == Tq()
 && f(nL.get('resposta', ''), 600)
@@ -65,7 +65,7 @@ function A102() {
 let nL = Nq();
 return T()
 && Rq().status == 'aguardando_pagamento'
-&& k().hasOnly(['status', 'pedidoId', 'pagoEm', 'resposta', 'decididoPor', 'decididoEm'])
+&& l().hasOnly(['status', 'pedidoId', 'pagoEm', 'resposta', 'decididoPor', 'decididoEm'])
 && nL.status in ['aprovado', 'recusado']
 && (!('pedidoId' in nL) || nL.pedidoId is string)
 && nL.decididoPor == Uq()
@@ -99,9 +99,9 @@ allow read: if i();
 function A104() {
 let nL = Nq();
 return bD()
-&& k().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+&& l().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
 && nL.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
-&& (!k().hasAny(['responsavelNome', 'assumidoEm']) || aB())
+&& (!l().hasAny(['responsavelNome', 'assumidoEm']) || aB())
 && f(nL.get('notas', ''), 3000);
 }
 allow update: if A104();

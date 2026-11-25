@@ -12,6 +12,7 @@ const uid = (k) => USUARIOS[k]?.uid || USUARIOS[k];
 for (const c of ["desaparecidos", "pistas_desap_autoria"]) for (const d of (await db.collection(c).get()).docs) await db.recursiveDelete(d.ref);
 const erros = [];
 const A = await navegador({ mobile: true });
+await A.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // desaparecidos pela função "roubos"
 await A.ctx.grantPermissions(["geolocation"]); await A.ctx.setGeolocation({ latitude: -27.5954, longitude: -48.548 });
 const p = await entrar(A.ctx, "ana", "alertas.html?aba=pets");
 p.on("pageerror", (e) => erros.push(e.message));
@@ -47,6 +48,7 @@ const sup = (await db.collection("suporte").where("uid", "==", uid("ana")).get()
 ok(sup?.prioridade === "urgente" && sup.categoria === "sos", "chamado urgente para a equipe conferir");
 // Bruno não vê enquanto está em análise
 const B = await navegador({ mobile: true });
+await B.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // desaparecidos pela função "roubos"
 await B.ctx.grantPermissions(["geolocation"]); await B.ctx.setGeolocation({ latitude: -27.5954, longitude: -48.548 });
 const pb = await entrar(B.ctx, "bruno", "alertas.html?aba=pets&quem=pessoas");
 pb.on("pageerror", (e) => erros.push("bruno: " + e.message));
@@ -54,6 +56,7 @@ await pb.waitForSelector('[data-acao="desaparecido"]', { timeout: 25000 }); awai
 ok(await pb.locator(`[data-desaparecido="${des.id}"]`).count() === 0, "em análise: quem está perto ainda não vê");
 // Painel publica
 const C = await navegador({ mobile: false });
+await C.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // desaparecidos pela função "roubos"
 const pa = await entrar(C.ctx, "admin", "admin.html#seguranca");
 pa.on("pageerror", (e) => erros.push("painel: " + e.message));
 await pa.waitForSelector('.ad-chip[data-aba="desaparecidos"]', { timeout: 30000 });

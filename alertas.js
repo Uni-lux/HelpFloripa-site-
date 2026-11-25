@@ -21,7 +21,7 @@ import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
 import { abrirCadastroPet } from "./pet-cadastro.js?v=5";
 import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
-import { EM_BREVE } from "./em-breve.js?v=3";
+import { EM_BREVE } from "./em-breve.js?v=4";
 import { acaoRoubos } from "./funcoes.js?v=1";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
@@ -628,25 +628,17 @@ function registrarPessoa() {
     ok.disabled = true;
     const g = await lerGps(8000) || pos;
     if (!g) { ok.disabled = false; toast("Ative a localização para marcar a região."); return; }
-    const ref = fb.doc(fb.collection(fb.db, "desaparecidos"));
-    const doc = {
-      autorId: eu.uid, autorNome: String(dados.nome || "").slice(0, 80), nome: n.slice(0, 80), ...(ida !== null ? { idade: ida } : {}),
-      condicao: st.condicao, parentesco: st.parentesco, descricao: desc.value.trim().slice(0, 500), sinais: sin.value.trim().slice(0, 300),
-      visto: visto.value.trim().slice(0, 120), quando: fb.Timestamp.fromMillis(Math.min(Date.now() - 1000, new Date(`${dia.value}T${hora.value || "12:00"}`).getTime() || Date.now() - 1000)),
-      bo: nbo, lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3, geo4: geohash(g.lat, g.lng, 4),
-      cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
-      status: "analise", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ...(st.foto ? { foto: st.foto } : {})
-    };
     try {
-      await fb.setDoc(ref, doc);
-      // Chamado URGENTE na fila de Segurança para a equipe conferir o boletim e publicar.
-      const sref = fb.doc(fb.collection(fb.db, "suporte")); const lote = fb.writeBatch(fb.db);
-      lote.set(sref, { prioridade: "urgente", uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), email: String(eu.email || "").slice(0, 120), assunto: `Desaparecimento: ${n}`.slice(0, 120), categoria: "sos", status: "aberto", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp(), ultimaDe: "usuario" });
-      lote.set(fb.doc(fb.db, "suporte", sref.id, "mensagens", "inicio"), { autorId: eu.uid, equipe: false, texto: `DESAPARECIMENTO · conferir e publicar\nPessoa: ${n}${ida !== null ? ", " + ida + " anos" : ""} (${CONDICOES[st.condicao][0]})\nBoletim: ${nbo}\nQuem registrou: ${PARENTESCOS_DESAP[st.parentesco]}\nPainel › Segurança e alertas › Desaparecidos`.slice(0, 2000), em: fb.serverTimestamp() });
-      lote.commit().catch(() => {});
+      // O servidor confere tudo, grava o aviso "em análise" e abre o chamado urgente para a equipe conferir o boletim.
+      await acaoRoubos("desaparecido", {
+        nome: n, idade: ida, condicao: st.condicao, parentesco: st.parentesco, descricao: desc.value.trim().slice(0, 500),
+        sinais: sin.value.trim().slice(0, 300), visto: visto.value.trim().slice(0, 120), bo: nbo, declaro: true,
+        quando: Math.min(Date.now() - 1000, new Date(`${dia.value}T${hora.value || "12:00"}`).getTime() || Date.now() - 1000),
+        lat: g.lat, lng: g.lng, ...(st.foto ? { foto: st.foto } : {})
+      });
       fechar(); toast("Enviado. A equipe confere o boletim e publica o aviso.");
       if (aba === "pets") pintarAba();
-    } catch (e) { ok.disabled = false; toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); }
+    } catch (e) { ok.disabled = false; toast(e?.message || "Não foi possível agora."); }
   });
   ok.id = "alDesOk";
   c.appendChild(ok);
@@ -670,7 +662,7 @@ async function abrirPessoa(id) {
     if (meu) {
       if (d.status === "analise") c.appendChild(h("p", "ent-sub", "A equipe está conferindo o boletim. Assim que publicar, o aviso aparece para quem está perto."));
       if (["analise", "ativo"].includes(d.status)) c.appendChild(botao(`${d.nome.split(" ")[0]} foi encontrado(a)`, "ent-btn ok", async () => {
-        try { await fb.updateDoc(fb.doc(fb.db, "desaparecidos", id), { status: "encontrado", atualizadoEm: fb.serverTimestamp() }); toast("Que alívio! Aviso encerrado."); fechar(); pintarAba(); } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+        try { await acaoRoubos("statusDesap", { id, status: "encontrado" }); toast("Que alívio! Aviso encerrado."); fechar(); pintarAba(); } catch (e) { toast(e?.message || "Não foi possível agora."); }
       }));
       c.appendChild(h("h3", null, "Pistas recebidas"));
       const lp = h("div", "ent-lista"); c.appendChild(lp);
@@ -697,15 +689,10 @@ function pistaPessoa(d) {
     if (t.value.trim().length < 3) { toast("Escreva o que você viu."); return; }
     ok.disabled = true;
     const g = cg.checked ? await lerGps(8000) || pos : null;
-    const ref = fb.doc(fb.collection(fb.db, "desaparecidos", d.id, "pistas"));
-    const base = { texto: t.value.trim().slice(0, 400), criadoEm: fb.serverTimestamp(), ...(g ? { lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3 } : {}) };
     try {
-      const lote = fb.writeBatch(fb.db);
-      if (ca.checked) { lote.set(ref, { ...base, anonimo: true }); lote.set(fb.doc(fb.db, "pistas_desap_autoria", `${d.id}_${ref.id}`), { uid: eu.uid }); }
-      else lote.set(ref, { ...base, anonimo: false, uid: eu.uid, nome: String(dados.nome || "").slice(0, 80) });
-      await lote.commit();
+      await acaoRoubos("pistaDesap", { id: d.id, texto: t.value.trim().slice(0, 400), anonimo: ca.checked, ...(g ? { lat: g.lat, lng: g.lng } : {}) });
       toast("Pista enviada. Obrigado!"); fechar();
-    } catch (e) { ok.disabled = false; toast("Não foi possível: " + erroAmigavel(e)); }
+    } catch (e) { ok.disabled = false; toast(e?.message || "Não foi possível agora."); }
   });
   ok.id = "alDesPistaOk";
   c.appendChild(ok);

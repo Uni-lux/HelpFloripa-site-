@@ -144,9 +144,7 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-veiculos-presentes.mjs` | Marca "ponte", Presentes em cartões, ocorrência/consulta (IMEI, placa Mercosul), veículos (roubado → busca da mesma placa e parecidos), venda de carro/moto com placa obrigatória e bloqueio, "Combina com você" da Comunidade e o painel Segurança e alertas. |
 | `t-perdidos.mjs` | Help e alertas compacto, telefones `tel:`, formulário único do pet (Social) sem cores, Perdidos com Pets e Pessoas (desaparecido com boletim, conferido no painel, pistas anônimas) e Regras da Comunidade na própria página. |
 
-## Funções guardadas para a próxima atualização (25/11/2026)
-Corridas/entregas e roubos/veículos voltaram pelo servidor (funções `corrida` e `roubos`: `t-corridas-servidor.mjs` e
-`t-roubos-servidor.mjs`, com `FUNCOES=1 ./emulador.sh`; os testes de tela delas ligam `__hfFuncoesEmulador`).
-Desaparecidos continuam fora das regras (`_regras/proxima-atualizacao.rules`) com "Em breve" (`em-breve.js`): a parte de pessoas
-de `t-perdidos.mjs` vai falhar enquanto isso. `t-em-breve.mjs` confere o que aparece e o que continua guardado.
-`testes-regras.mjs` pula sozinho os testes das regras que não estão no arquivo.
+## Funções que voltaram pelo servidor (25/11/2026)
+Corridas/entregas, roubos/veículos e desaparecidos passam pelas funções `corrida` e `roubos` (`t-corridas-servidor.mjs` e
+`t-roubos-servidor.mjs`, com `FUNCOES=1 ./emulador.sh`; os testes de tela delas ligam `__hfFuncoesEmulador`). Nada fica em
+"Em breve"; `t-em-breve.mjs` confere que tudo aparece. `testes-regras.mjs` pula sozinho os testes das regras que não estão no arquivo.

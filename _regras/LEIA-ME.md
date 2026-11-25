@@ -1,6 +1,19 @@
 # Regras do Firestore — publicação
 
-> **Versão de 25/11/2026 (4) — roubos, furtos, golpes e veículos de volta, pelo servidor (12 partes).** Registrar
+> **Versão de 25/11/2026 (5) — desaparecidos de volta, pelo servidor (12 partes).** Registrar o aviso, publicar (só a
+> equipe, o boletim sai do aviso), marcar encontrado e mandar pistas passam pela função **`roubos`** (ações desaparecido,
+> statusDesap, pistaDesap); as regras ficaram só de leitura. Nada mais fica em "Em breve". Texto: 137.550 (a versão (4),
+> que coube, tinha 137.232). 1320 testes passando.
+>
+> **Ordem para publicar (Cloud Shell, pasta `hf`), depois de mesclar o PR:**
+> 1. `cd ~/hf && git fetch origin && git reset --hard origin/main`
+> 2. `cd functions && npm ci && cd ..`
+> 3. `npx firebase-tools@latest deploy --only functions:roubos --project helpfloripa-61e0d` (✔ no fim)
+> 4. `python3 _regras/medir-regras.py` — tem que aparecer **CABE** (com erro 503 do Google, pode ir direto ao passo 5).
+> 5. `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+>    (erro "409 ... already exists": `python3 _regras/ligar-regras.py`, deve dizer **PRONTO**).
+
+> **Versão de 25/11/2026 (4), publicada — roubos, furtos, golpes e veículos de volta, pelo servidor (12 partes).** Registrar
 > ocorrência, pistas, encerrar, cadastrar veículo e o índice dos carros/motos à venda agora passam pela Cloud Function
 > **`roubos`** (functions/roubos.js); as regras deles ficaram só de leitura. A 1ª tentativa deu 257.025 compilados (limite
 > 256.000): o cadastro de entregador também passou para o servidor (`corrida`, ações cadastro e situacao) e saíram 2 funções
