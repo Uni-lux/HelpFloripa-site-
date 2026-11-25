@@ -1,0 +1,3503 @@
+rules_version = '2';
+service cloud.firestore {
+match /databases/{database}/documents {
+function b() {
+return request.auth != null;
+}
+function p() {
+return request.auth.token.email_verified == true && !ai(request.auth.uid);
+}
+function a_() {
+return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('verificado', false) == true;
+}
+function j() {
+return request.auth != null
+&& exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+}
+function Q() {
+return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
+}
+function l() {
+return j() && Q() in ['dono', 'moderacao'];
+}
+function cT(i) {
+return request.resource.data.get('verificado', false) != true
+|| resource.data.get('verificado', false) == true
+|| Q() == 'dono'
+|| (exists(/databases/$(database)/documents/verificacoes/$(i))
+&& get(/databases/$(database)/documents/verificacoes/$(i)).data.status == 'aprovada');
+}
+function bI() {
+return j() && Q() in ['dono', 'comercial'];
+}
+function W() {
+return j() && Q() == 'dono';
+}
+function ai(i) {
+let v = /databases/$(database)/documents/sancoes/$(i);
+return exists(v)
+&& (get(v).data.tipo == 'banimento'
+|| (get(v).data.get('ate', null) is timestamp && get(v).data.ate > request.time));
+}
+function ad(i, ba) {
+let F = /databases/$(database)/documents/programa_banidos/$(i + '_' + ba);
+return exists(F) && (get(F).data.get('ate', null) == null || get(F).data.ate > request.time);
+}
+function bJ() {
+return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
+}
+function aM() {
+return !request.resource.data.keys().hasAny(bJ().concat(['plano', 'valorPlanoMensal']))
+&& request.resource.data.get('tipoUsuario', 'usuario') == 'usuario';
+}
+function aN() {
+return !request.resource.data.diff(resource.data).affectedKeys()
+.hasAny(bJ().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
+}
+function w(x, L) {
+return d(request.resource.data.get(x, null), L);
+}
+function d(r, L) {
+return r == null || (r is string && r.size() <= L);
+}
+function bK(q, bL, cU) {
+return q is map && q.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'k', 'fimEm', 'anonima', 'cor', 'certa'])
+&& q.get('anonima', false) is bool
+&& (!('certa' in q) || (q.certa is int && q.certa >= 0 && q.certa < q.opcoes.size()))
+&& (!('cor' in q) || bM(q.cor))
+&& (!('fimEm' in q) || (q.fimEm is timestamp && q.fimEm > bL && q.fimEm <= bL + duration.value(cU, 'm')))
+&& q.pergunta.size() >= 1 && q.pergunta.size() <= 120
+&& q.opcoes.size() <= 4 && q.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
+&& (string(q.get('x', 0)) + ' ' + string(q.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function bM(n) {
+return n is string && n.matches('^(escuro|azul|rosa|laranja|verde|roxo)$');
+}
+function bN(n) {
+return n is map && n.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'k', 'cor'])
+&& (!('cor' in n) || bM(n.cor))
+&& n.pergunta.size() >= 1 && n.pergunta.size() <= 120
+&& n.anonima is bool
+&& (string(n.get('x', 0)) + ' ' + string(n.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function cV(s) {
+return s is map && s.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y', 'k'])
+&& s.negocioId is string && s.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
+&& exists(/databases/$(database)/documents/negocios/$(s.negocioId))
+&& d(s.get('nome', ''), 80)
+&& s.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& (string(s.get('x', 0)) + ' ' + string(s.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function cW(k) {
+let ar = /databases/$(database)/documents/stories/$(k.storyId);
+return k is map && k.keys().hasOnly(['storyId', 'autorId', 'nome'])
+&& k.storyId is string && k.storyId.matches('^[A-Za-z0-9]{1,64}$')
+&& exists(ar)
+&& get(ar).data.autorId == k.autorId
+&& get(ar).data.get('mencoes', []).hasAny([request.auth.uid])
+&& d(k.get('nome', ''), 80);
+}
+function cX(a) {
+let e = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude|automotivo))';
+return (!('negocios' in a) || (a.negocios is list && a.negocios.size() >= 1 && a.negocios.size() <= 4
+&& a.negocios.join(' ').matches('^' + e + '( ' + e + '){0,3}$')))
+&& (!('perfil' in a) || (a.perfil is bool && (a.perfil || 'negocios' in a)));
+}
+function cY(k) {
+let ar = /databases/$(database)/documents/diario/$(k.postId);
+let bO = /databases/$(database)/documents/pref_publicas/$(k.autorId);
+return k is map && k.keys().hasOnly(['postId', 'autorId', 'nome'])
+&& k.postId is string && k.postId.matches('^[A-Za-z0-9]{1,64}$')
+&& k.autorId is string
+&& exists(ar) && get(ar).data.autorId == k.autorId
+&& (k.autorId == request.auth.uid || !exists(bO) || get(bO).data.get('permiteFlash', true) != false)
+&& d(k.get('nome', ''), 80);
+}
+function cZ(z) {
+let c0 = 'l[|][^|\n]{2,60}[|](-(3[0-3]|[12]?[0-9])|[0-5])([.][0-9]{1,6})?[|]-(7[0-4]|[3-6][0-9]|2[89])([.][0-9]{1,6})?';
+let aB = 'n[|][A-Za-z0-9]{1,64}_(servicos|delivery|lojinha|imoveis|saude|automotivo)[|][tlo][|][^|\n]{1,60}';
+let at = '(h[|][^|\n]{1,28}|m[|][A-Za-z0-9]{1,64}|' + c0 + '|' + aB + ')([|][01]([.][0-9]{1,3})?){4}';
+return z.join('\n').matches('^' + at + '(\n' + at + '){0,17}$');
+}
+function c1(a) {
+return cX(a) && c2(a)
+&& (!('toques' in a) || cZ(a.toques))
+&& (!('mencoesOcultas' in a) || aO(a.mencoesOcultas, 10))
+&& (!('caixa' in a) || bN(a.caixa))
+&& (!('link' in a) || cV(a.link))
+&& (!('repostDe' in a) || cW(a.repostDe))
+&& (!('postDe' in a) || cY(a.postDe));
+}
+function c3(a) {
+let o = a.keys();
+return o.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo', 'restrito'])
+&& (!o.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || c1(a))
+&& (!('enquete' in o) || bK(a.enquete, request.time, 1450))
+&& (!('mencoes' in o) || aO(a.mencoes, 10))
+&& a.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
+&& a.get('publico', 'todos') in ['todos', 'amigos']
+&& (!('lista' in o) || aO(a.lista, 150))
+&& (!('ocultoPara' in o) || aO(a.ocultoPara, 100))
+&& a.restrito == (a.get('publico', 'todos') == 'amigos' || a.get('ocultoPara', []).size() > 0)
+&& (a.get('publico', 'todos') == 'amigos' ? ('lista' in o && !('ocultoPara' in o)) : !('lista' in o))
+&& a.autorId == request.auth.uid
+&& a.criadoEm == request.time
+&& a.tipo in ['imagem', 'video']
+&& a.midia is string && a.midia.size() <= 950000
+&& a.midia.matches(a.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
+&& d(a.get('texto', ''), 150)
+&& d(a.get('nome', ''), 80)
+&& (!('duracao' in o) || (a.duracao is number && a.duracao <= 60));
+}
+function c2(a) {
+return (!('contagem' in a) || (a.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y', 'k'])
+&& a.contagem.titulo.size() >= 1 && a.contagem.titulo.size() <= 40
+&& a.contagem.fim > request.time + duration.value(4, 'm') && a.contagem.fim <= request.time + duration.value(366, 'd')))
+&& (!('alvo' in a) || a.alvo.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores']));
+}
+function aO(s, L) {
+return s is list && s.size() <= L
+&& (s.size() == 0 || s.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64})*$'));
+}
+function aP() {
+let a = request.resource.data;
+let au = a.get('uf', null);
+let bb = a.get('cidadeIbge', null);
+return (au == null || au == ''
+|| (au is string && au.matches('^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$')))
+&& (bb == null
+|| (bb is int && au is string
+&& (au + string(bb)).matches('^(RO11|AC12|AM13|RR14|PA15|AP16|TO17|MA21|PI22|CE23|RN24|PB25|PE26|AL27|SE28|BA29|MG31|ES32|RJ33|SP35|PR41|SC42|RS43|MS50|MT51|GO52|DF53)[0-9]{5}$')));
+}
+function bP() {
+let aQ = request.resource.data.get('cep', null);
+return (aQ == null || aQ == '' || (aQ is string && aQ.matches('^[0-9]{8}$')))
+&& w('bairro', 60)
+&& w('rua', 100)
+&& w('numero', 10)
+&& w('complemento', 60);
+}
+function R(x, L) {
+return c4(request.resource.data.get(x, null), L);
+}
+function c4(r, L) {
+return r == null || (r is list && r.size() <= L);
+}
+function bc(X) {
+return X == null
+|| (X is map && X.keys().hasOnly(['lat', 'lng'])
+&& X.lat is number && X.lat >= -34 && X.lat <= 6
+&& X.lng is number && X.lng >= -75 && X.lng <= -28);
+}
+function Y(r) {
+return r == null || r == ''
+|| (r is string && r.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+}
+function aR(x) {
+return !(x in request.resource.data) || Y(request.resource.data[x]);
+}
+function m() {
+return request.resource.data.diff(resource.data).affectedKeys();
+}
+function aS() {
+return !m().hasAny(['ocultoPelaEquipe'])
+&& !(resource.data.get('ocultoPelaEquipe', false) == true && m().hasAny(['ocultoAte']));
+}
+function bd(a) {
+return !(a.get('ocultoAte', null) is timestamp && a.ocultoAte > request.time)
+&& !(a.get('agendadoPara', null) is timestamp && a.agendadoPara > request.time);
+}
+function aT(be) {
+return resource == null || bd(resource.data)
+|| resource.data.get(be, '') == request.auth.uid || j();
+}
+function aU(Z, c) {
+return /databases/$(database)/documents/guardados/$(Z + '_' + c);
+}
+function av() {
+return resource.data.get('guardado', false) == true;
+}
+function aV(Z, c, x) {
+let e = request.resource.data;
+return e.get('guardado', false) == true
+&& !av()
+&& e.keys().hasOnly([x, 'tipo', 'ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+&& e[x] == resource.data[x]
+&& e.get('tipo', null) == resource.data.get('tipo', null)
+&& e.ocultoAte is timestamp && e.ocultoAte > request.time
+&& !exists(aU(Z, c))
+&& e.ocultoPelaEquipe == getAfter(aU(Z, c)).data.porEquipe;
+}
+function aW(Z, c) {
+return av()
+&& !existsAfter(aU(Z, c))
+&& request.resource.data == get(aU(Z, c)).data.dados;
+}
+function aX() {
+return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
+&& ae('ocultoAte')
+&& request.resource.data.get('ocultoPelaEquipe', false) is bool;
+}
+function aC() {
+let a = request.resource.data.diff(resource.data);
+return a.addedKeys().union(a.changedKeys());
+}
+function bf(g, F) {
+return exists(/databases/$(database)/documents/bloqueios/$(g + '_' + F));
+}
+function A(g, F) {
+return bf(g, F) || bf(F, g);
+}
+function H(g, F) {
+return g < F ? g + '_' + F : F + '_' + g;
+}
+function bQ(i) {
+let aw = /databases/$(database)/documents/usuarios/$(i);
+return exists(aw)
+&& get(aw).data.get('criadoEm', null) is timestamp
+&& get(aw).data.criadoEm < request.time - duration.value(3, 'd');
+}
+function aD(g, F, c5) {
+let n = /databases/$(database)/documents/conversas/$(H(g, F));
+return exists(n) && get(n).data.get('falaram', {}).get(c5, false) == true;
+}
+function c6(i) {
+let f = /databases/$(database)/documents/perfis_publicos/$(i);
+return exists(f)
+&& get(f).data.get('desativadaAte', null) is timestamp
+&& get(f).data.desativadaAte > request.time;
+}
+function ae(x) {
+return !(x in request.resource.data)
+|| request.resource.data[x] == null
+|| request.resource.data[x] is timestamp;
+}
+function aE() {
+let k = request.resource.data.get('responsavel', null);
+return (k == null || (k is string && exists(/databases/$(database)/documents/admins/$(k))))
+&& d(request.resource.data.get('responsavelNome', null), 80)
+&& (!m().hasAny(['responsavel']) || request.resource.data.get('assumidoEm', null) == request.time);
+}
+function ax(ba) {
+let k = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+return k.ultimaEm == request.time && k.ultimoTipo == ba;
+}
+function bg(aj) {
+return get(/databases/$(database)/documents/negocios/$(aj)).data.donoId;
+}
+match /usuarios/{I} {
+allow read: if b()
+&& request.auth.uid == I;
+allow read: if l();
+allow update: if l() && (I != request.auth.uid || Q() == 'dono')
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
+&& cT(I);
+allow create: if b()
+&& request.auth.uid == I
+&& request.resource.data.uid == I
+&& request.resource.data.aceiteTermos == true
+&& (!('criadoEm' in request.resource.data) || request.resource.data.criadoEm == request.time)
+&& bR()
+&& bS()
+&& aM();
+function bR() {
+return !('emailConfirmado' in request.resource.data)
+|| request.resource.data.emailConfirmado == (request.auth.token.email_verified == true);
+}
+function bS() {
+return !('email' in request.resource.data)
+|| request.resource.data.email == null || request.resource.data.email == ''
+|| request.resource.data.email.lower() == request.auth.token.email.lower();
+}
+allow update: if b()
+&& request.auth.uid == I
+&& request.resource.data.uid == resource.data.uid
+&& (!m().hasAny(['criadoEm'])
+|| (!('criadoEm' in resource.data) && request.resource.data.criadoEm == request.time))
+&& (!m().hasAny(['emailConfirmado']) || bR())
+&& (!m().hasAny(['email']) || bS())
+&& aN();
+allow delete: if b()
+&& request.auth.uid == I;
+}
+match /perfis_publicos/{I} {
+function bT() {
+let a = request.resource.data;
+return !('nickname' in a)
+|| a.nickname == null
+|| a.nickname == ''
+|| getAfter(/databases/$(database)/documents/nicknames/$(a.nickname)).data.uid == request.auth.uid;
+}
+function c7() {
+let aY = resource.data.get('nickname', '');
+return aY == null || aY == '' || aY == request.resource.data.get('nickname', '')
+|| !existsAfter(/databases/$(database)/documents/nicknames/$(aY));
+}
+function bU() {
+return w('nome', 80)
+&& w('bio', 400)
+&& w('cidade', 80)
+&& aP()
+&& R('busca', 12)
+&& ae('desativadaAte')
+&& (request.resource.data.get('ultimoAcesso', null) == null
+|| request.resource.data.ultimoAcesso == request.time
+|| (resource != null && request.resource.data.ultimoAcesso == resource.data.get('ultimoAcesso', null)));
+}
+function bV() {
+return ['uid', 'nome', 'nickname', 'cidade', 'uf', 'cidadeIbge', 'bio', 'fotoPerfil', 'fotoCapa',
+'socialVisibilidade', 'duoCapa', 'ultimoAcesso', 'criadoEm', 'atualizadoEm',
+'busca',
+'desativadaAte',
+'atendimento'];
+}
+function bW() {
+let a = request.resource.data;
+return (!('socialVisibilidade' in a) || a.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
+&& (!('duoCapa' in a) || a.duoCapa in ['gaveta', 'gaveta-fixa', 'clicavel', 'foto', 'rosa', 'ocultar'])
+&& (!('nickname' in a) || d(a.nickname, 20))
+&& c8();
+}
+function c9(r) {
+return r is string && r.matches('^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$');
+}
+function c_(v) {
+return v == null
+|| (v is list && v.size() == 7
+&& v.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$'));
+}
+function c8() {
+let g = request.resource.data.get('atendimento', null);
+return g == null
+|| (g is map
+&& g.keys().hasOnly(['horario', 'semana', 'almoco', 'ausente', 'mensagem', 'volta', 'resposta'])
+&& (!('semana' in g) || c_(g.semana))
+&& (!('almoco' in g) || g.almoco == null || c9(g.almoco))
+&& (!('volta' in g) || g.volta == null || g.volta is timestamp)
+&& (!('ausente' in g) || g.ausente is bool)
+&& (!('mensagem' in g) || (g.mensagem is string && g.mensagem.size() <= 200))
+&& (!('horario' in g) || g.horario == null
+|| (g.horario is map && g.horario.keys().hasOnly(['dias', 'inicio', 'fim'])
+&& g.horario.dias is list && g.horario.dias.size() <= 7
+&& g.horario.inicio is string && g.horario.inicio.size() == 5
+&& g.horario.fim is string && g.horario.fim.size() == 5))
+&& (!('resposta' in g)
+|| (g.resposta is map && g.resposta.keys().hasOnly(['media', 'n'])
+&& g.resposta.media is number && g.resposta.media >= 0 && g.resposta.media <= 1440
+&& g.resposta.n is int && g.resposta.n >= 0 && g.resposta.n <= 1000)));
+}
+function bX() {
+return ((resource != null && !m().hasAny(['fotoPerfil'])) || aR('fotoPerfil'))
+&& ((resource != null && !m().hasAny(['fotoCapa'])) || aR('fotoCapa'));
+}
+allow get: if b()
+&& (request.auth.uid == I || !bf(I, request.auth.uid) || j());
+allow list: if b();
+allow update: if l()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificado', 'desativadaAte'])
+&& ae('desativadaAte')
+&& (request.resource.data.get('verificado', false) != true
+|| get(/databases/$(database)/documents/usuarios/$(I)).data.get('verificado', false) == true);
+allow create: if b()
+&& request.auth.uid == I
+&& request.resource.data.uid == I
+&& aM()
+&& request.resource.data.keys().hasOnly(bV())
+&& bT()
+&& bU()
+&& bW()
+&& bX();
+allow update: if b()
+&& request.auth.uid == I
+&& request.resource.data.uid == resource.data.uid
+&& aN()
+&& (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['nickname'])
+|| (bT() && c7()))
+&& aC().hasOnly(bV())
+&& (!m().hasAny(['desativadaAte']) || !ai(request.auth.uid))
+&& bU()
+&& bW()
+&& bX();
+allow delete: if b()
+&& request.auth.uid == I
+&& (resource.data.get('nickname', '') == ''
+|| !existsAfter(/databases/$(database)/documents/nicknames/$(resource.data.nickname)));
+}
+match /nicknames/{bY} {
+allow get: if true;
+allow list: if b();
+allow create: if b()
+&& request.auth.uid == request.resource.data.uid
+&& bY.matches('^[a-z0-9._]{3,20}$')
+&& getAfter(/databases/$(database)/documents/perfis_publicos/$(request.auth.uid)).data.get('nickname', '') == bY;
+allow update: if false;
+allow delete: if b()
+&& request.auth.uid == resource.data.uid;
+}
+match /relacoes/{c} {
+allow read: if b();
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['tipo', 'seguidorId', 'alvoId', 'criadoEm'])
+&& request.resource.data.tipo == 'seguir'
+&& request.resource.data.seguidorId == request.auth.uid
+&& request.resource.data.alvoId is string
+&& request.resource.data.alvoId != request.auth.uid
+&& c == request.auth.uid + '_' + request.resource.data.alvoId
+&& request.resource.data.criadoEm == request.time
+&& !A(request.auth.uid, request.resource.data.alvoId);
+allow update: if false;
+allow delete: if b()
+&& (resource.data.seguidorId == request.auth.uid
+|| resource.data.alvoId == request.auth.uid);
+}
+match /bloqueios/{c} {
+allow get: if b()
+&& (c.split('_')[0] == request.auth.uid
+|| c.split('_')[1] == request.auth.uid);
+allow read: if j();
+allow list: if b()
+&& (resource.data.bloqueadorId == request.auth.uid
+|| resource.data.bloqueadoId == request.auth.uid);
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['bloqueadorId', 'bloqueadoId', 'criadoEm'])
+&& request.resource.data.bloqueadorId == request.auth.uid
+&& request.resource.data.bloqueadoId is string
+&& request.resource.data.bloqueadoId != request.auth.uid
+&& c == request.auth.uid + '_' + request.resource.data.bloqueadoId;
+allow update: if false;
+allow delete: if b()
+&& resource.data.bloqueadorId == request.auth.uid;
+}
+match /vinculos/{c} {
+function bZ() {
+return {
+'duo': 'duo', 'namoro': 'namoro', 'casamento': 'casamento',
+'melhor_amigo': 'melhor_amigo', 'amigo': 'amigo', 'irmao': 'irmao',
+'pai_mae': 'filho', 'filho': 'pai_mae', 'primo': 'primo',
+'tio': 'sobrinho', 'sobrinho': 'tio', 'avo': 'neto', 'neto': 'avo',
+'parceiro': 'parceiro'
+};
+}
+allow read: if b()
+&& (resource.data.status == 'aceito'
+|| request.auth.uid in resource.data.participantes);
+allow read: if j();
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['participantes', 'de', 'para', 'tipoDe', 'tipoPara', 'status', 'criadoEm'])
+&& request.resource.data.de == request.auth.uid
+&& request.resource.data.para is string
+&& request.resource.data.para != request.auth.uid
+&& request.resource.data.participantes is list
+&& request.resource.data.participantes.size() == 2
+&& request.auth.uid in request.resource.data.participantes
+&& request.resource.data.para in request.resource.data.participantes
+&& request.resource.data.participantes[0] < request.resource.data.participantes[1]
+&& c == request.resource.data.participantes[0] + '_' + request.resource.data.participantes[1]
+&& request.resource.data.status == 'pendente'
+&& request.resource.data.tipoDe in bZ()
+&& request.resource.data.tipoPara == bZ()[request.resource.data.tipoDe]
+&& !A(request.auth.uid, request.resource.data.para);
+allow update: if b()
+&& resource.data.status == 'pendente'
+&& request.auth.uid == resource.data.para
+&& request.resource.data.status == 'aceito'
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'aceitoEm']);
+allow update: if b()
+&& resource.data.status == 'aceito'
+&& request.auth.uid in resource.data.participantes
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['conheceram', 'frase', 'retrato', 'memoriaEm', 'memoriaPor'])
+&& request.resource.data.get('conheceram', '') is string
+&& request.resource.data.get('conheceram', '').matches('^((19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))?$')
+&& d(request.resource.data.get('frase', ''), 90)
+&& request.resource.data.get('retrato', false) is bool
+&& request.resource.data.memoriaEm == request.time
+&& request.resource.data.memoriaPor == request.auth.uid;
+allow delete: if b()
+&& request.auth.uid in resource.data.participantes;
+}
+match /momentos/{c} {
+function ak(g, F) { return exists(/databases/$(database)/documents/relacoes/$(g + '_' + F)); }
+function da(a) {
+return a.uid == request.auth.uid || l()
+|| (!A(request.auth.uid, a.uid)
+&& (a.ver == 'todos'
+|| (a.ver == 'seguidores' && ak(request.auth.uid, a.uid))
+|| (a.ver == 'amigos' && ak(request.auth.uid, a.uid) && ak(a.uid, request.auth.uid))));
+}
+function b0(a) {
+return a.keys().hasOnly(['uid', 'tipo', 'titulo', 'texto', 'data', 'local', 'categoria', 'foto', 'fixado', 'ver', 'com', 'criadoEm', 'atualizadoEm'])
+&& a.uid == request.auth.uid
+&& a.tipo in ['foto', 'lembranca']
+&& a.ver in ['todos', 'seguidores', 'amigos', 'eu']
+&& a.categoria.matches('^(conquista|viagem|familia|amor|amizade|trabalho|estudo|pet|festa|fe|esporte|outro)$')
+&& a.titulo is string && a.titulo.size() <= 60 && d(a.get('texto', ''), 400) && d(a.get('local', ''), 60)
+&& a.get('data', '').matches('^((19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))?$')
+&& a.get('fixado', false) is bool
+&& a.get('com', []) is list && a.get('com', []).size() <= 10
+&& a.get('foto', '') is string && a.get('foto', '').size() <= 240000
+&& (a.get('foto', '') == '' || a.get('foto', '').matches('^(data:image/jpeg;base64,|https://firebasestorage[.]googleapis[.]com/).*'))
+&& (a.tipo == 'lembranca' || a.get('foto', '') != '')
+&& (a.tipo == 'foto' || a.titulo.size() >= 1)
+&& a.atualizadoEm == request.time;
+}
+allow get, list: if b() && da(resource.data);
+allow create: if b() && p() && b0(request.resource.data) && request.resource.data.criadoEm == request.time;
+allow update: if b() && resource.data.uid == request.auth.uid && b0(request.resource.data)
+&& request.resource.data.criadoEm == resource.data.criadoEm;
+allow delete: if b() && (resource.data.uid == request.auth.uid || l());
+}
+match /vinculos_retrato/{c} {
+function al() { return get(/databases/$(database)/documents/vinculos/$(c)).data; }
+function b1() { return exists(/databases/$(database)/documents/vinculos/$(c)); }
+allow get: if b() && b1() && (al().status == 'aceito' || request.auth.uid in al().participantes);
+allow list: if false;
+allow create, update: if b() && p() && b1()
+&& al().status == 'aceito' && request.auth.uid in al().participantes
+&& request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
+&& request.resource.data.foto is string && request.resource.data.foto.size() <= 240000
+&& request.resource.data.foto.matches('^(data:image/jpeg;base64,|https://firebasestorage[.]googleapis[.]com/).*')
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time;
+allow delete: if b() && (request.auth.uid in c.split('_') || l());
+}
+match /negocios/{c} {
+function b2() {
+return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'uf', 'cidadeIbge', 'bairro', 'rua', 'numero', 'complemento', 'cep',
+'whatsapp', 'foto', 'fotos', 'itens',
+'categoria', 'categorias', 'categoriaPersonalizada', 'criadoEm', 'atualizadoEm',
+'precoDesde', 'horario', 'atendimento', 'dias', 'regiao', 'experiencia', 'diferenciais', 'pagamentos', 'cnh', 'veiculo',
+'horaAbre', 'horaFecha', 'tempoMin', 'tempoMax', 'taxaEntrega', 'pedidoMinimo', 'opcoesEntrega',
+'entrega', 'tipoAnunciante', 'creci',
+'instagram', 'site', 'capa', 'cnpj', 'promocao', 'semana', 'geo',
+'saude',
+'busca',
+'principal',
+'ocultoAte'];
+}
+function db(v) {
+return v.keys().hasOnly(['profissao', 'profissaoOutra', 'especialidades', 'registro', 'registroUf', 'rqe', 'modalidades',
+'convenios', 'particular', 'valorConsulta', 'duracao', 'publico', 'idiomas', 'acessivel', 'formacao'])
+&& [v.profissao, v.profissaoOutra, v.registro, v.registroUf, v.rqe, v.formacao, v.modalidades.join(','), v.publico.join(','),
+string(v.particular), string(v.acessivel), string(v.valorConsulta), string(v.duracao)].join('\n')
+.matches('^(medico|enfermeiro|tecEnfermagem|psicologo|veterinario|dentista|fisioterapeuta|nutricionista|fonoaudiologo|terapeutaOcupacional|farmaceutico|educadorFisico|cuidador|outros)\n[^\n]{0,40}\n[0-9A-Za-z./ -]{0,20}\n([A-Z]{2})?\n[0-9A-Za-z./-]{0,12}\n[^\n]{0,200}\n((consultorio|online|domicilio)(,(consultorio|online|domicilio)){0,2})?\n([a-z]{3,14}(,[a-z]{3,14}){0,5})?\n(true|false)\n(true|false)\n(null|[0-9]{1,5}([.][0-9]{1,2})?)\n(null|[1-9][0-9]{0,2})$')
+&& [v.especialidades.join('\n'), v.convenios.join('\n'), v.idiomas.join('\n')].join('\n').matches('^[^\n]{0,40}(\n[^\n]{0,40}){0,29}$');
+}
+function dc(f) {
+return f is map
+&& f.keys().hasOnly(['titulo', 'texto', 'codigo', 'ate'])
+&& f.titulo is string && f.titulo.size() >= 3 && f.titulo.size() <= 60
+&& d(f.get('texto', ''), 200)
+&& (f.get('codigo', '') == '' || (f.codigo is string && f.codigo.matches('^[A-Z0-9]{3,20}$')))
+&& f.ate is timestamp && f.ate > request.time && f.ate < request.time + duration.value(62, 'd');
+}
+function dd() {
+let a = request.resource.data;
+let aa = resource == null ? a.keys().toSet() : m();
+return (!aa.hasAny(['instagram', 'site', 'cnpj'])
+|| [a.get('instagram', ''), a.get('site', ''), a.get('cnpj', '')].join('\n')
+.matches('^[A-Za-z0-9._]{0,30}\n(https?://[^ \n]{3,112})?\n([0-9]{14})?$'))
+&& (!aa.hasAny(['capa']) || Y(a.get('capa', null)))
+&& (!aa.hasAny(['semana']) || a.get('semana', null) == null
+|| (a.semana is list && a.semana.size() == 7
+&& a.semana.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$')))
+&& (!aa.hasAny(['promocao']) || a.get('promocao', null) == null || dc(a.promocao))
+&& (!aa.hasAny(['geo']) || bc(a.get('geo', null)))
+&& (!aa.hasAny(['saude']) || db(a.get('saude', null)))
+&& (!aa.hasAny(['principal']) || a.get('principal', null) == null
+|| a.principal in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']);
+}
+function b3() {
+return w('nome', 80)
+&& w('descricao', 600)
+&& w('cidade', 60)
+&& aP()
+&& bP()
+&& w('whatsapp', 20)
+&& w('regiao', 100)
+&& w('horario', 60)
+&& w('categoriaPersonalizada', 30)
+&& R('itens', 12)
+&& R('fotos', 5)
+&& R('busca', 100)
+&& ae('ocultoAte')
+&& ((resource != null && !m().hasAny(['foto'])) || aR('foto'))
+&& dd();
+}
+allow get: if b() && aT('donoId');
+allow list: if b();
+allow create: if b()
+&& p()
+&& request.resource.data.donoId == request.auth.uid
+&& request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& c == request.auth.uid + '_' + request.resource.data.tipo
+&& request.resource.data.keys().hasOnly(b2())
+&& aM()
+&& !ad(request.auth.uid, request.resource.data.tipo)
+&& a_()
+&& (request.resource.data.tipo != 'saude' || request.resource.data.get('saude', null) is map)
+&& b3();
+allow update: if b() && !av()
+&& p()
+&& resource.data.donoId == request.auth.uid
+&& request.resource.data.donoId == resource.data.donoId
+&& request.resource.data.tipo == resource.data.tipo
+&& aC().hasOnly(b2())
+&& aN()
+&& aS()
+&& b3();
+allow update: if b() && (aV('negocios', c, 'donoId') || aW('negocios', c));
+allow delete: if b()
+&& resource.data.donoId == request.auth.uid;
+allow update: if l()
+&& aX();
+}
+match /anuncios/{c} {
+function b4() {
+return ['donoId', 'tipo', 'ativo', 'titulo', 'finalidade', 'categoria', 'preco', 'condominio', 'iptu',
+'quartos', 'suites', 'banheiros', 'vagas', 'area', 'andar', 'bairro', 'cidade', 'mobiliado',
+'uf', 'cidadeIbge', 'rua', 'numero', 'complemento', 'cep',
+'disponivel', 'hospedes', 'caracteristicas', 'condicoes', 'descricao', 'fotos', 'criadoEm', 'atualizadoEm',
+'categoriaPersonalizada',
+'geo',
+'busca',
+'ocultoAte'];
+}
+function b5() {
+return w('titulo', 100)
+&& w('descricao', 1000)
+&& w('cidade', 60)
+&& aP()
+&& bP()
+&& w('andar', 12)
+&& w('disponivel', 20)
+&& w('categoriaPersonalizada', 30)
+&& bc(request.resource.data.get('geo', null))
+&& R('fotos', 5)
+&& R('busca', 100)
+&& R('caracteristicas', 20)
+&& R('condicoes', 12)
+&& ae('ocultoAte')
+&& de(request.resource.data);
+}
+function ab(r, L) { return r == null || ((r is int || r is float) && r >= 0 && r <= L); }
+function de(a) {
+return ab(a.get('preco', null), 1000000000)
+&& ab(a.get('condominio', null), 10000000) && ab(a.get('iptu', null), 10000000)
+&& ab(a.get('quartos', null), 100) && ab(a.get('suites', null), 100)
+&& ab(a.get('banheiros', null), 100) && ab(a.get('vagas', null), 100)
+&& ab(a.get('area', null), 10000000) && ab(a.get('hospedes', null), 999)
+&& a.get('ativo', true) is bool && a.get('mobiliado', false) is bool
+&& a.get('finalidade', 'aluguel') in ['aluguel', 'venda', 'temporada']
+&& a.get('categoria', 'outros') in ['apartamento', 'casa', 'kitnet', 'terreno', 'comercial', 'outros'];
+}
+allow get: if b() && aT('donoId');
+allow list: if b();
+allow create: if b()
+&& p()
+&& request.resource.data.donoId == request.auth.uid
+&& request.resource.data.tipo in ['imovel']
+&& !ad(request.auth.uid, 'imoveis')
+&& request.resource.data.keys().hasOnly(b4())
+&& aM()
+&& a_()
+&& b5();
+allow update: if b() && !av()
+&& p()
+&& resource.data.donoId == request.auth.uid
+&& request.resource.data.donoId == resource.data.donoId
+&& request.resource.data.tipo == resource.data.tipo
+&& aC().hasOnly(b4())
+&& aN()
+&& aS()
+&& b5();
+allow update: if b() && (aV('anuncios', c, 'donoId') || aW('anuncios', c));
+allow delete: if b()
+&& resource.data.donoId == request.auth.uid;
+allow update: if l()
+&& aX();
+}
+match /comunidade/{c} {
+function b6() {
+return ['donoId', 'categoria', 'tipoItem', 'titulo', 'descricao', 'fotos', 'estado', 'entrega', 'status',
+'bairro', 'cidade', 'uf', 'cidadeIbge', 'geo', 'quarto', 'achado', 'aceiteRegras', 'busca',
+'criadoEm', 'atualizadoEm', 'ocultoAte', 'ocultoPelaEquipe'];
+}
+function df(y) {
+return y is map
+&& y.keys().hasOnly(['vaga', 'rateio', 'contasInclusas', 'mobiliado', 'vagas', 'para', 'disponivelEm', 'regras'])
+&& y.get('vaga', 'quarto').matches('^(individual|compartilhado|republica)$')
+&& (y.get('rateio', null) == null || (y.rateio is number && y.rateio >= 0 && y.rateio <= 5000))
+&& y.get('contasInclusas', false) is bool && y.get('mobiliado', false) is bool
+&& (y.get('vagas', null) == null || (y.vagas is int && y.vagas >= 1 && y.vagas <= 10))
+&& [y.get('para', 'todos'), y.get('disponivelEm', ''), y.get('regras', '')].join('\n')
+.matches('^(todos|mulheres|homens|lgbt)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,300}$');
+}
+function dg(g) {
+return g is map && g.keys().hasOnly(['tipo', 'data', 'local'])
+&& [g.get('tipo', ''), g.get('data', ''), g.get('local', '')].join('\n')
+.matches('^(perdido|encontrado)\n([0-9]{4}-[0-9]{2}-[0-9]{2})?\n[^\n]{0,80}$');
+}
+function b7() {
+let a = request.resource.data;
+let b8 = a.get('titulo', '') + ' ' + a.get('descricao', '') + ' ' + a.get('tipoItem', '')
++ ' ' + a.get('quarto', {}).get('regras', '') + ' ' + a.get('achado', {}).get('local', '');
+return a.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
+&& a.titulo is string && a.titulo.size() >= 3 && a.titulo.size() <= 80
+&& w('descricao', 1000)
+&& w('tipoItem', 20)
+&& w('cidade', 60)
+&& aP()
+&& w('bairro', 60)
+&& bc(a.get('geo', null))
+&& R('fotos', 4)
+&& R('busca', 100)
+&& a.get('estado', 'usado') in ['novo', 'seminovo', 'usado', 'reparo']
+&& a.get('entrega', 'combinar') in ['combinar', 'retirar', 'entrego']
+&& a.status in ['disponivel', 'reservado', 'concluido']
+&& a.aceiteRegras == true
+&& (a.categoria == 'quarto' ? df(a.get('quarto', null)) : !('quarto' in a))
+&& (a.categoria == 'achados' ? dg(a.get('achado', null)) : !('achado' in a))
+&& !b8.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas|vendido|vendida|neg[oó]cio por|aceito proposta)\\b.*')
+&& (a.categoria == 'quarto' || !b8.matches('(?i)(?s).*([Rr] *[$]|\\b[0-9]+ ?(reais|real|conto|contos|pila|pilas)\\b).*'))
+&& ae('ocultoAte');
+}
+allow get: if b() && aT('donoId');
+allow list: if b();
+allow create: if b() && p()
+&& request.resource.data.donoId == request.auth.uid
+&& request.resource.data.keys().hasOnly(b6())
+&& !('ocultoPelaEquipe' in request.resource.data)
+&& !ad(request.auth.uid, 'comunidade')
+&& !ai(request.auth.uid)
+&& request.resource.data.criadoEm == request.time
+&& b7();
+allow update: if b() && !av() && p()
+&& resource.data.donoId == request.auth.uid
+&& request.resource.data.donoId == resource.data.donoId
+&& request.resource.data.criadoEm == resource.data.criadoEm
+&& aC().hasOnly(b6())
+&& aS()
+&& !ad(request.auth.uid, 'comunidade')
+&& b7();
+allow update: if b() && (aV('comunidade', c, 'donoId') || aW('comunidade', c));
+allow delete: if b() && (resource.data.donoId == request.auth.uid || l());
+allow update: if l() && aX();
+}
+match /guardados/{dh} {
+function aZ(a) {
+return /databases/$(database)/documents/$(a.colecao)/$(a.docId);
+}
+function be(Z) {
+return Z == 'diario' ? 'autorId' : 'donoId';
+}
+function di(a) {
+let B = get(aZ(a)).data;
+return B.get('guardado', false) != true
+&& a.dono == B.get(be(a.colecao), '')
+&& a.dados is map
+&& !a.dados.keys().hasAny(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+&& a.dados.diff(B).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+&& getAfter(aZ(a)).data.get('guardado', false) == true;
+}
+function dj(a) {
+return (a.motivo == 'conta' && a.porEquipe == false && (a.dono == request.auth.uid || l()))
+|| (a.motivo in ['sancao', 'moderacao', 'sem_verif'] && a.porEquipe == true && l());
+}
+allow get, list: if b() && (resource.data.dono == request.auth.uid || j());
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['colecao', 'docId', 'dono', 'dados', 'motivo', 'porEquipe', 'ate', 'por', 'em'])
+&& request.resource.data.colecao in ['negocios', 'anuncios', 'diario', 'comunidade']
+&& request.resource.data.docId is string
+&& dh == request.resource.data.colecao + '_' + request.resource.data.docId
+&& (request.resource.data.ate == null || request.resource.data.ate is timestamp)
+&& request.resource.data.por is string && request.resource.data.em == request.time
+&& dj(request.resource.data)
+&& di(request.resource.data);
+allow update: if b()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['motivo', 'porEquipe', 'ate', 'por', 'em'])
+&& (request.resource.data.ate == null || request.resource.data.ate is timestamp)
+&& request.resource.data.em == request.time
+&& ((l() && request.resource.data.porEquipe == (request.resource.data.motivo != 'conta')
+&& request.resource.data.motivo in ['conta', 'sancao', 'moderacao', 'sem_verif'])
+|| (resource.data.dono == request.auth.uid && resource.data.motivo == 'conta'
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ate', 'em'])));
+allow delete: if b()
+&& ((!existsAfter(aZ(resource.data)) && (resource.data.dono == request.auth.uid || j()))
+|| (getAfter(aZ(resource.data)).data == resource.data.dados
+&& (l()
+|| (resource.data.dono == request.auth.uid
+&& (resource.data.motivo == 'conta'
+|| (resource.data.motivo == 'sancao' && resource.data.ate != null && resource.data.ate < request.time))))));
+}
+match /agendadas/{c} {
+allow get, list: if b() && resource.data.autorId == request.auth.uid;
+allow create, update: if b() && p()
+&& request.resource.data.autorId == request.auth.uid
+&& (resource == null || resource.data.autorId == request.auth.uid)
+&& request.resource.data.keys().hasOnly(['autorId', 'quando', 'dados', 'criadoEm', 'atualizadoEm'])
+&& request.resource.data.quando is timestamp
+&& request.resource.data.quando > request.time
+&& request.resource.data.quando < request.time + duration.value(60, 'd')
+&& request.resource.data.dados is map
+&& request.resource.data.dados.get('autorId', '') == request.auth.uid
+&& (resource == null
+? request.resource.data.get('criadoEm', request.time) == request.time && !('atualizadoEm' in request.resource.data)
+: request.resource.data.get('criadoEm', null) == resource.data.get('criadoEm', null)
+&& request.resource.data.get('atualizadoEm', null) == request.time);
+allow delete: if b() && resource.data.autorId == request.auth.uid;
+}
+match /programa_banidos/{c} {
+allow get: if b() && (c.split('_')[0] == request.auth.uid || j());
+allow list: if j();
+allow create, update: if l()
+&& request.resource.data.keys().hasOnly(['uid', 'tipo', 'motivo', 'ate', 'por', 'em'])
+&& request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade', 'entregas']
+&& c == request.resource.data.uid + '_' + request.resource.data.tipo
+&& request.resource.data.motivo is string && request.resource.data.motivo.size() >= 3 && request.resource.data.motivo.size() <= 300
+&& (request.resource.data.get('ate', null) == null || request.resource.data.ate is timestamp)
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time;
+allow delete: if l();
+}
+match /notas_clientes/{c} {
+allow get: if b() && c.split('_')[0] == request.auth.uid;
+allow list: if b() && resource.data.donoId == request.auth.uid;
+allow create, update: if b()
+&& request.resource.data.keys().hasOnly(['donoId', 'clienteId', 'etiquetas', 'nota', 'atualizadoEm'])
+&& request.resource.data.donoId == request.auth.uid
+&& request.resource.data.clienteId is string
+&& c == request.auth.uid + '_' + request.resource.data.clienteId
+&& request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+&& request.resource.data.etiquetas.join('\n').matches('^([^\n]{1,24}(\n[^\n]{1,24}){0,7})?$')
+&& d(request.resource.data.get('nota', ''), 1000)
+&& request.resource.data.atualizadoEm == request.time;
+allow delete: if b() && resource.data.donoId == request.auth.uid;
+}
+match /chamadas/{c} {
+function bh() { return b() && (request.auth.uid == resource.data.de || request.auth.uid == resource.data.para); }
+function b9(u) { return u is map && u.keys().hasOnly(['type', 'sdp']) && u.type is string && u.sdp is string && u.sdp.size() <= 30000; }
+allow get, list: if bh();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['de', 'para', 'conv', 'tipo', 'status', 'oferta', 'criadoEm'])
+&& request.resource.data.de == request.auth.uid
+&& request.resource.data.para is string && request.resource.data.para != request.auth.uid
+&& request.resource.data.conv == (request.auth.uid < request.resource.data.para
+? request.auth.uid + '_' + request.resource.data.para : request.resource.data.para + '_' + request.auth.uid)
+&& (exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+|| exists(/databases/$(database)/documents/equipe_dm/$(request.resource.data.conv)))
+&& !A(request.auth.uid, request.resource.data.para)
+&& (!exists(/databases/$(database)/documents/conversas/$(request.resource.data.conv))
+|| get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.get('pedido', null) == null
+|| get(/databases/$(database)/documents/conversas/$(request.resource.data.conv)).data.pedido.status == 'aceito')
+&& request.resource.data.tipo in ['audio', 'video']
+&& request.resource.data.status == 'chamando'
+&& b9(request.resource.data.oferta)
+&& request.resource.data.criadoEm == request.time;
+allow update: if bh() && request.auth.uid == resource.data.para
+&& resource.data.status == 'chamando'
+&& m().hasOnly(['status', 'resposta', 'aceitaEm'])
+&& request.resource.data.status == 'aceita'
+&& b9(request.resource.data.resposta)
+&& request.resource.data.aceitaEm == request.time;
+allow update: if bh()
+&& resource.data.status in ['chamando', 'aceita']
+&& m().hasOnly(['status', 'fimEm', 'encerradaPor'])
+&& request.resource.data.status in ['recusada', 'cancelada', 'perdida', 'encerrada']
+&& request.resource.data.encerradaPor == request.auth.uid
+&& request.resource.data.fimEm == request.time;
+allow delete: if false;
+match /candidatos/{n} {
+function aF() { return get(/databases/$(database)/documents/chamadas/$(c)).data; }
+allow read: if b() && request.auth.uid in [aF().de, aF().para];
+allow create: if b() && request.auth.uid in [aF().de, aF().para]
+&& aF().status in ['chamando', 'aceita']
+&& request.resource.data.keys().hasOnly(['de', 'c', 'em'])
+&& request.resource.data.de == request.auth.uid
+&& request.resource.data.c is map && request.resource.data.c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex'])
+&& request.resource.data.c.candidate is string && request.resource.data.c.candidate.size() <= 1000
+&& request.resource.data.em == request.time;
+allow update, delete: if false;
+}
+}
+match /conversas/{J} {
+function T(x) {
+return !m().hasAny([x])
+|| (request.resource.data[x] is map
+&& request.resource.data[x].diff(resource.data.get(x, {})).affectedKeys().hasOnly([request.auth.uid]));
+}
+function b_() {
+let n = request.resource.data.get('contexto', null);
+return n == null
+|| (n is map && n.keys().hasOnly(['tipo', 'titulo'])
+&& n.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
+&& d(n.get('titulo', ''), 120));
+}
+function dk(G, f) {
+return G is map && G.keys().hasOnly(['tipo', 'id']) && G.id is string && G.id.size() <= 64
+&& (G.tipo == 'corrida'
+? [get(/databases/$(database)/documents/corridas/$(G.id)).data.clienteId,
+get(/databases/$(database)/documents/corridas/$(G.id)).data.get('entregadorId', ''),
+get(/databases/$(database)/documents/corridas/$(G.id)).data.get('destinatarioId', ''),
+get(/databases/$(database)/documents/corridas/$(G.id)).data.get('pagadorId', '')].hasAll(f)
+: G.tipo == 'sos'
+? get(/databases/$(database)/documents/sos/$(G.id)).data.uid in f
+&& get(/databases/$(database)/documents/sos/$(G.id)).data.status in ['aberto', 'atendido']
+: G.tipo == 'pet'
+? get(/databases/$(database)/documents/pets/$(G.id)).data.donoId in f
+&& get(/databases/$(database)/documents/pets/$(G.id)).data.status == 'perdido'
+: G.tipo == 'achado'
+&& get(/databases/$(database)/documents/pets_achados/$(G.id)).data.autorId in f
+&& get(/databases/$(database)/documents/pets_achados/$(G.id)).data.status == 'ativo');
+}
+function dl() {
+let a = request.resource.data;
+let bi = a.participantes[0] == request.auth.uid ? a.participantes[1] : a.participantes[0];
+let ca = /databases/$(database)/documents/pref_publicas/$(bi);
+let bj = a.get('contexto', null);
+let aB = bj != null && bj.tipo != 'comunidade' && exists(/databases/$(database)/documents/negocios/$(bi + '_' + bj.tipo));
+let cb = exists(ca) ? get(ca).data.get(aB ? 'msgNegocios' : 'msgPessoal', aB ? 'todos' : 'seguindo') : (aB ? 'todos' : 'seguindo');
+let al = /databases/$(database)/documents/vinculos/$(J);
+let f = a.get('pedido', null);
+return ('servico' in a)
+? (f == null && dk(a.servico, a.participantes))
+: f == null
+? (cb == 'todos'
+|| exists(/databases/$(database)/documents/relacoes/$(bi + '_' + request.auth.uid))
+|| (exists(al) && get(al).data.status == 'aceito'))
+: (cb != 'fechado' && f is map && f.keys().hasOnly(['de', 'status', 'em'])
+&& f.de == request.auth.uid && f.status == 'pendente' && f.em == request.time);
+}
+function dm() {
+let g = resource.data.get('pedido', null);
+let e = request.resource.data.get('pedido', null);
+return g != null && e is map && request.auth.uid != g.de
+&& e.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
+&& e.de == g.de && e.em == g.em
+&& g.get('status', 'pendente') == 'pendente'
+&& e.status in ['aceito', 'recusado']
+&& e.get('decididoEm', null) == request.time;
+}
+allow get: if b()
+&& ((resource == null && request.auth.uid in J.split('_'))
+|| (resource != null && request.auth.uid in resource.data.participantes));
+allow list: if b()
+&& request.auth.uid in resource.data.participantes;
+allow read: if l();
+allow create: if b()
+&& request.resource.data.participantes is list
+&& request.resource.data.participantes.size() == 2
+&& request.auth.uid in request.resource.data.participantes
+&& request.resource.data.participantes[0] < request.resource.data.participantes[1]
+&& J == request.resource.data.participantes[0]
++ '_' + request.resource.data.participantes[1]
+&& !A(request.resource.data.participantes[0],
+request.resource.data.participantes[1])
+&& p()
+&& request.resource.data.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm', 'pedido', 'servico'])
+&& b_()
+&& dl()
+&& w('ultimaMensagem', 200);
+allow update: if b()
+&& request.auth.uid in resource.data.participantes
+&& request.resource.data.participantes == resource.data.participantes
+&& !A(resource.data.participantes[0], resource.data.participantes[1])
+&& m().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido', 'entregueEm', 'ouvidos'])
+&& (!m().hasAny(['pedido']) || dm())
+&& (!m().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+|| request.resource.data.get('ultimaMensagemRemetenteId', '') == request.auth.uid)
+&& T('lidoEm')
+&& T('vistoEm')
+&& T('entregueEm')
+&& T('ouvidos')
+&& (!m().hasAny(['ouvidos']) || (request.resource.data.ouvidos[request.auth.uid] is list
+&& request.resource.data.ouvidos[request.auth.uid].size() <= 50))
+&& T('digitando')
+&& T('arquivadaPara')
+&& T('ocultaPara')
+&& T('fixadaPara')
+&& T('silenciadaPara')
+&& T('falaram')
+&& (!m().hasAny(['falaram']) || request.resource.data.falaram[request.auth.uid] == true)
+&& (!m().hasAny(['contexto']) || b_())
+&& (!m().hasAny(['mensagemFixada'])
+|| request.resource.data.mensagemFixada == null
+|| (request.resource.data.mensagemFixada is map
+&& request.resource.data.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
+&& request.resource.data.mensagemFixada.id is string
+&& request.resource.data.mensagemFixada.por == request.auth.uid
+&& d(request.resource.data.mensagemFixada.get('texto', ''), 200)))
+&& w('ultimaMensagem', 200);
+allow delete: if l();
+match /mensagens/{am} {
+function bk() {
+return request.auth.uid in
+get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+}
+function dn() {
+let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+return !A(f[0], f[1]);
+}
+function dp() {
+let an = get(/databases/$(database)/documents/conversas/$(J)).data.get('pedido', null);
+return an == null || an.status == 'aceito' || (an.status == 'pendente' && an.de == request.auth.uid);
+}
+function dq() {
+let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+return !c6(f[0] == request.auth.uid ? f[1] : f[0]);
+}
+function af(k) {
+let cc = /databases/$(database)/documents/conversas/$(J)/mensagens/$(k.id);
+return k is map
+&& k.keys().hasOnly(['id', 'texto', 'remetenteId'])
+&& k.id is string
+&& d(k.get('texto', ''), 200)
+&& exists(cc)
+&& get(cc).data.remetenteId == k.remetenteId;
+}
+function dr() {
+let a = request.resource.data;
+return a.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
+&& (!('tipoArquivo' in a) || a.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
+&& (!('avaliacao' in a)
+|| (a.avaliacao is map && a.get('tipoArquivo', '') == 'avaliacao'
+&& a.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
+&& get(/databases/$(database)/documents/pedidos/$(a.avaliacao.pedidoId)).data.vendedorId == request.auth.uid
+&& d(a.avaliacao.get('titulo', ''), 120)
+&& d(a.avaliacao.get('negocioNome', ''), 80)))
+&& (!('arquivoUrl' in a)
+|| (a.arquivoUrl is string
+&& a.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
+&& (!('nomeArquivo' in a) || d(a.nomeArquivo, 120))
+&& (!('cartao' in a) || (a.cartao is map && a.get('tipoArquivo', '') == 'cartao'))
+&& (!('resposta' in a) || af(a.resposta));
+}
+function ds(r) {
+return r is map && r.keys().hasOnly(['texto', 'em'])
+&& r.texto == resource.data.get('texto', '')
+&& r.em == resource.data.get('editadaEm', resource.data.criadoEm);
+}
+allow read: if b() && bk();
+allow get: if l();
+allow create: if b()
+&& p()
+&& bk()
+&& dn()
+&& dp()
+&& dq()
+&& ax('msg')
+&& request.resource.data.remetenteId == request.auth.uid
+&& request.resource.data.criadoEm == request.time
+&& w('texto', 4000)
+&& dr();
+function bl() { return request.time < resource.data.criadoEm + duration.value(10, 'm'); }
+allow update: if b()
+&& request.auth.uid == resource.data.remetenteId
+&& bl()
+&& !('apagada' in resource.data)
+&& resource.data.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+&& m().hasOnly(['texto', 'editadaEm', 'edicoes'])
+&& request.resource.data.texto is string && request.resource.data.texto.size() <= 4000
+&& (request.resource.data.texto.size() > 0 || 'arquivoUrl' in resource.data)
+&& request.resource.data.editadaEm == request.time
+&& request.resource.data.edicoes is list
+&& request.resource.data.edicoes.size() == resource.data.get('edicoes', []).size() + 1
+&& request.resource.data.edicoes.size() <= 20
+&& request.resource.data.edicoes == resource.data.get('edicoes', []).concat([request.resource.data.edicoes[resource.data.get('edicoes', []).size()]])
+&& ds(request.resource.data.edicoes[resource.data.get('edicoes', []).size()]);
+allow update: if b()
+&& request.auth.uid == resource.data.remetenteId
+&& bl()
+&& !('apagada' in resource.data)
+&& request.resource.data.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+&& request.resource.data.remetenteId == resource.data.remetenteId
+&& request.resource.data.criadoEm == resource.data.criadoEm
+&& request.resource.data.apagada is map
+&& request.resource.data.apagada.keys().hasOnly(['por', 'em'])
+&& request.resource.data.apagada.por == request.auth.uid
+&& request.resource.data.apagada.em == request.time
+&& existsAfter(/databases/$(database)/documents/conversas/$(J)/apagadas/$(am));
+allow update: if b()
+&& bk()
+&& !('apagada' in resource.data)
+&& m().hasOnly(['reacoes'])
+&& request.resource.data.reacoes is map
+&& request.resource.data.reacoes.diff(resource.data.get('reacoes', {})).affectedKeys().hasOnly([request.auth.uid])
+&& (!(request.auth.uid in request.resource.data.reacoes)
+|| request.resource.data.reacoes[request.auth.uid] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
+allow delete: if b()
+&& request.auth.uid == resource.data.remetenteId
+&& bl()
+&& existsAfter(/databases/$(database)/documents/conversas/$(J)/apagadas/$(am));
+}
+match /apagadas/{am} {
+function bm() {
+return request.auth.uid in get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+}
+function ac() {
+return get(/databases/$(database)/documents/conversas/$(J)/mensagens/$(am)).data;
+}
+function bn() { return request.time < resource.data.apagadaEm + duration.value(24, 'h'); }
+allow get: if b() && bm() && bn();
+allow get: if l();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+&& request.resource.data.remetenteId == request.auth.uid
+&& ac().remetenteId == request.auth.uid
+&& (!existsAfter(/databases/$(database)/documents/conversas/$(J)/mensagens/$(am))
+|| getAfter(/databases/$(database)/documents/conversas/$(J)/mensagens/$(am)).data.apagada.por == request.auth.uid)
+&& request.resource.data.apagadaEm == request.time
+&& request.resource.data.conteudo is map
+&& request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+&& request.resource.data.conteudo.get('texto', '') == ac().get('texto', '')
+&& request.resource.data.conteudo.get('tipoArquivo', '') == ac().get('tipoArquivo', '')
+&& request.resource.data.conteudo.get('arquivoUrl', '') == ac().get('arquivoUrl', '')
+&& request.resource.data.conteudo.get('nomeArquivo', null) == ac().get('nomeArquivo', null)
+&& request.resource.data.conteudo.get('cartao', null) == ac().get('cartao', null)
+&& request.resource.data.conteudo.get('avaliacao', null) == ac().get('avaliacao', null)
+&& request.resource.data.conteudo.get('resposta', null) == ac().get('resposta', null)
+&& request.resource.data.conteudo.get('edicoes', null) == ac().get('edicoes', null);
+allow update: if b() && bm() && bn()
+&& request.auth.uid != resource.data.remetenteId
+&& m().hasOnly(['denunciada'])
+&& request.resource.data.denunciada == true;
+function dt() {
+let f = get(/databases/$(database)/documents/conversas/$(J)).data.participantes;
+let du = f[0] == resource.data.remetenteId ? f[1] : f[0];
+return exists(/databases/$(database)/documents/denuncias/$('mensagem_' + am + '_' + du));
+}
+allow delete: if b() && bm() && !bn() && resource.data.get('denunciada', false) != true && !dt();
+allow delete: if l();
+}
+}
+match /pedidos/{c} {
+allow read: if b()
+&& (resource.data.vendedorId == request.auth.uid
+|| resource.data.clienteId == request.auth.uid);
+allow read: if j();
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+&& request.resource.data.vendedorId == request.auth.uid
+&& request.resource.data.clienteId is string
+&& request.resource.data.clienteId != request.auth.uid
+&& request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& request.resource.data.negocioId == request.auth.uid + '_' + request.resource.data.tipo
+&& exists(/databases/$(database)/documents/negocios/$(request.resource.data.negocioId))
+&& request.auth.uid in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+&& request.resource.data.clienteId in get(/databases/$(database)/documents/conversas/$(request.resource.data.conversaId)).data.participantes
+&& d(request.resource.data.get('titulo', ''), 120)
+&& request.resource.data.criadoEm == request.time
+&& !A(request.auth.uid, request.resource.data.clienteId);
+allow update, delete: if false;
+}
+match /avaliacoes/{c} {
+function dv() {
+let a = request.resource.data;
+return a.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+&& a.autorId == request.auth.uid
+&& a.nota is int && a.nota >= 1 && a.nota <= 5
+&& d(a.get('comentario', ''), 500)
+&& d(a.get('autorNome', ''), 80)
+&& Y(a.get('autorFoto', ''))
+&& dw(a, /databases/$(database)/documents/perfis_publicos/$(request.auth.uid))
+&& a.criadoEm == request.time;
+}
+function dw(a, bp) {
+return (a.get('autorNome', '') == '' && a.get('autorFoto', '') == '')
+|| (exists(bp) && a.get('autorNome', '') in ['', get(bp).data.get('nome', '')]
+&& a.get('autorFoto', '') in ['', get(bp).data.get('fotoPerfil', '')]);
+}
+function a0(a1) {
+return getAfter(/databases/$(database)/documents/notas/$(a1)).data.ultima == c;
+}
+function ay(a, dx, aj) {
+return !('pedidoId' in a)
+|| (get(/databases/$(database)/documents/pedidos/$(a.pedidoId)).data.clienteId == dx
+&& get(/databases/$(database)/documents/pedidos/$(a.pedidoId)).data.negocioId == aj);
+}
+function dy() {
+let a = request.resource.data;
+let M = bg(a.negocioId);
+let E = request.auth.uid;
+return c == 'n_' + a.negocioId + '_' + E
+&& a.alvoId == M
+&& M != E
+&& a.chaves == ['neg_' + a.negocioId]
+&& bQ(E)
+&& aD(E, M, E)
+&& aD(E, M, M)
+&& !A(E, M)
+&& ay(a, E, a.negocioId)
+&& a0('neg_' + a.negocioId);
+}
+function dz() {
+let a = request.resource.data;
+let E = request.auth.uid;
+return c == 'c_' + a.negocioId + '_' + a.alvoId
+&& bg(a.negocioId) == E
+&& a.alvoId != E
+&& a.chaves == ['cli_' + a.alvoId]
+&& aD(E, a.alvoId, E)
+&& aD(E, a.alvoId, a.alvoId)
+&& !A(E, a.alvoId)
+&& ay(a, a.alvoId, a.negocioId)
+&& a0('cli_' + a.alvoId);
+}
+function dA() {
+let a = request.resource.data;
+let a2 = get(/databases/$(database)/documents/diario/$(a.postId)).data;
+return c == 'd_' + a.postId + '_' + request.auth.uid
+&& a2.autorId != request.auth.uid
+&& a.alvoId == a2.autorId
+&& a.chaves == ['post_' + a.postId, 'pub_' + a2.autorId]
+&& a0('post_' + a.postId)
+&& a0('pub_' + a2.autorId);
+}
+allow read: if b();
+allow create: if b()
+&& p()
+&& dv()
+&& ((request.resource.data.tipo == 'negocio' && dy())
+|| (request.resource.data.tipo == 'cliente' && dz())
+|| (request.resource.data.tipo == 'publicacao' && dA()));
+allow update: if b()
+&& p()
+&& resource.data.autorId == request.auth.uid
+&& (c.matches('^n_.*') || c.matches('^c_.*'))
+&& m().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
+&& request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+&& d(request.resource.data.get('comentario', ''), 500)
+&& request.resource.data.atualizadoEm == request.time
+&& (!m().hasAny(['pedidoId'])
+|| (!('pedidoId' in resource.data)
+&& ay(request.resource.data, c.matches('^n_.*') ? request.auth.uid : resource.data.alvoId, resource.data.negocioId)))
+&& !A(request.auth.uid, resource.data.alvoId)
+&& (request.resource.data.nota == resource.data.nota
+|| (getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.ultima == c
+&& getAfter(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
+== get(/databases/$(database)/documents/notas/$(resource.data.chaves[0])).data.soma
+- resource.data.nota + request.resource.data.nota));
+allow delete: if false;
+}
+match /notas/{a1} {
+function U() {
+return /databases/$(database)/documents/avaliacoes/$(request.resource.data.ultima);
+}
+function cd() {
+return request.resource.data.ultima is string
+&& !exists(U())
+&& existsAfter(U())
+&& getAfter(U()).data.autorId == request.auth.uid
+&& a1 in getAfter(U()).data.chaves;
+}
+function a3() {
+return 'n' + string(getAfter(U()).data.nota);
+}
+allow read: if b();
+allow create: if b()
+&& cd()
+&& request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima', 'atualizadoEm'])
+&& request.resource.data.keys().hasAll(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5', 'ultima'])
+&& request.resource.data.total == 1
+&& request.resource.data.soma == getAfter(U()).data.nota
+&& request.resource.data[a3()] == 1
+&& request.resource.data.n1 + request.resource.data.n2 + request.resource.data.n3
++ request.resource.data.n4 + request.resource.data.n5 == 1;
+allow update: if b()
+&& cd()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['total', 'soma', 'ultima', 'atualizadoEm', a3()])
+&& request.resource.data.total == resource.data.total + 1
+&& request.resource.data.soma == resource.data.soma + getAfter(U()).data.nota
+&& request.resource.data[a3()] == resource.data.get(a3(), 0) + 1;
+function dB() {
+let B = get(U()).data;
+let ao = getAfter(U()).data;
+return request.resource.data.ultima is string
+&& exists(U())
+&& ao.autorId == request.auth.uid
+&& a1 in ao.chaves
+&& B.nota != ao.nota
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['soma', 'ultima', 'atualizadoEm', 'n' + string(B.nota), 'n' + string(ao.nota)])
+&& request.resource.data.total == resource.data.total
+&& request.resource.data.soma == resource.data.soma - B.nota + ao.nota
+&& resource.data.get('n' + string(B.nota), 0) >= 1
+&& request.resource.data['n' + string(B.nota)] == resource.data.get('n' + string(B.nota), 0) - 1
+&& request.resource.data['n' + string(ao.nota)] == resource.data.get('n' + string(ao.nota), 0) + 1;
+}
+allow update: if b() && dB();
+allow delete: if false;
+}
+match /reclamacoes/{ce} {
+allow read: if b();
+function a4() {
+return get(/databases/$(database)/documents/avaliacoes/$(ce)).data;
+}
+function af(a) {
+return a.texto is string && a.texto.size() >= 2 && a.texto.size() <= 1000;
+}
+allow create: if b()
+&& p()
+&& exists(/databases/$(database)/documents/avaliacoes/$(ce))
+&& a4().tipo == 'negocio'
+&& a4().nota <= 2
+&& a4().alvoId == request.auth.uid
+&& request.resource.data.keys().hasOnly(['texto', 'autorId', 'criadoEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& af(request.resource.data)
+&& request.resource.data.criadoEm == request.time;
+allow update: if b()
+&& p()
+&& request.resource.data.autorId == resource.data.autorId
+&& (
+(resource.data.autorId == request.auth.uid
+&& m().hasOnly(['texto', 'editadoEm'])
+&& af(request.resource.data)
+&& request.resource.data.editadoEm == request.time)
+||
+(a4().autorId == request.auth.uid
+&& m().hasOnly(['resolvido', 'resolvidoEm'])
+&& request.resource.data.resolvido is bool
+&& request.resource.data.resolvidoEm == request.time)
+);
+allow delete: if false;
+}
+match /queixas/{c} {
+function dC(aa) {
+return aa in ['atraso', 'qualidade', 'cobranca', 'ausencia', 'atendimento', 'golpe', 'outro'];
+}
+function cf(a) {
+return dC(a.motivo)
+&& a.texto is string && a.texto.size() >= 20 && a.texto.size() <= 1000
+&& Y(a.get('foto', ''));
+}
+function cg() {
+return getAfter(/databases/$(database)/documents/cotas/$(request.auth.uid)).data.ultimaEm == request.time;
+}
+allow read: if b();
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['negocioId', 'alvoId', 'autorId', 'autorNome', 'negocioNome', 'tipo', 'motivo', 'texto', 'foto',
+'status', 'abertaEm', 'criadoEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& c == request.resource.data.negocioId + '_' + request.auth.uid
+&& request.resource.data.alvoId == bg(request.resource.data.negocioId)
+&& request.resource.data.alvoId != request.auth.uid
+&& request.resource.data.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& cf(request.resource.data)
+&& d(request.resource.data.get('autorNome', ''), 80)
+&& d(request.resource.data.get('negocioNome', ''), 80)
+&& request.resource.data.status == 'aberta'
+&& request.resource.data.aberturas == 1
+&& request.resource.data.get('resposta', null) == null
+&& request.resource.data.get('respondidaEm', null) == null
+&& request.resource.data.get('resolvidaEm', null) == null
+&& request.resource.data.criadoEm == request.time
+&& request.resource.data.abertaEm == request.time
+&& bQ(request.auth.uid)
+&& aD(request.auth.uid, request.resource.data.alvoId, request.auth.uid)
+&& cg();
+allow update: if b()
+&& p()
+&& request.resource.data.autorId == resource.data.autorId
+&& request.resource.data.alvoId == resource.data.alvoId
+&& request.resource.data.negocioId == resource.data.negocioId
+&& (
+(resource.data.alvoId == request.auth.uid
+&& resource.data.status == 'aberta'
+&& m().hasOnly(['resposta', 'respondidaEm'])
+&& request.resource.data.resposta is string
+&& request.resource.data.resposta.size() >= 2 && request.resource.data.resposta.size() <= 1000
+&& request.resource.data.respondidaEm == request.time)
+||
+(resource.data.autorId == request.auth.uid
+&& resource.data.status == 'aberta'
+&& m().hasOnly(['status', 'resolvidaEm'])
+&& request.resource.data.status == 'resolvida'
+&& request.resource.data.resolvidaEm == request.time)
+||
+(resource.data.autorId == request.auth.uid
+&& resource.data.status == 'resolvida'
+&& m().hasOnly(['motivo', 'texto', 'foto', 'status', 'abertaEm', 'aberturas', 'resposta', 'respondidaEm', 'resolvidaEm'])
+&& cf(request.resource.data)
+&& request.resource.data.status == 'aberta'
+&& request.resource.data.abertaEm == request.time
+&& request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
+&& request.resource.data.get('resposta', null) == null
+&& request.resource.data.get('respondidaEm', null) == null
+&& request.resource.data.get('resolvidaEm', null) == null
+&& cg())
+);
+allow delete: if false;
+}
+match /cotas/{i} {
+allow read: if b() && request.auth.uid == i;
+allow read: if j();
+allow create: if b()
+&& request.auth.uid == i
+&& request.resource.data.keys().hasOnly(['inicio', 'n', 'ultimaEm'])
+&& request.resource.data.inicio == request.time
+&& request.resource.data.n == 1
+&& request.resource.data.ultimaEm == request.time;
+allow update: if b()
+&& request.auth.uid == i
+&& request.resource.data.keys().hasOnly(['inicio', 'n', 'ultimaEm'])
+&& request.resource.data.ultimaEm == request.time
+&& ((resource.data.inicio < request.time - duration.value(30, 'd')
+&& request.resource.data.inicio == request.time
+&& request.resource.data.n == 1)
+||
+(resource.data.inicio >= request.time - duration.value(30, 'd')
+&& request.resource.data.inicio == resource.data.inicio
+&& request.resource.data.n == resource.data.n + 1
+&& request.resource.data.n <= 3));
+allow delete: if false;
+}
+match /denuncias/{c} {
+function dD(a) {
+return (a.tipo == 'perfil' && a.itemId == a.alvoId)
+|| (a.tipo == 'publicacao' && get(/databases/$(database)/documents/diario/$(a.itemId)).data.autorId == a.alvoId)
+|| (a.tipo == 'comentario' && get(/databases/$(database)/documents/comentarios/$(a.itemId)).data.autorId == a.alvoId)
+|| (a.tipo == 'negocio' && get(/databases/$(database)/documents/negocios/$(a.itemId)).data.donoId == a.alvoId)
+|| (a.tipo == 'comunidade' && get(/databases/$(database)/documents/comunidade/$(a.itemId)).data.donoId == a.alvoId)
+|| (a.tipo == 'mensagem'
+&& a.conversaId is string
+&& request.auth.uid in get(/databases/$(database)/documents/conversas/$(a.conversaId)).data.participantes
+&& get(/databases/$(database)/documents/conversas/$(a.conversaId)/mensagens/$(a.itemId)).data.remetenteId == a.alvoId);
+}
+allow get: if b() && resource.data.autorId == request.auth.uid;
+allow read: if j();
+allow update: if l()
+&& m().hasOnly(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+&& request.resource.data.status in ['nova', 'em_analise', 'resolvida', 'descartada']
+&& (!m().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+&& aE()
+&& d(request.resource.data.get('nota', ''), 1000);
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['tipo', 'alvoId', 'itemId', 'conversaId', 'autorId', 'motivo', 'detalhe', 'trecho', 'contexto', 'status', 'criadoEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.alvoId is string
+&& request.resource.data.alvoId != request.auth.uid
+&& request.resource.data.itemId is string
+&& request.resource.data.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio', 'comunidade']
+&& c == request.resource.data.tipo + '_' + request.resource.data.itemId + '_' + request.auth.uid
+&& request.resource.data.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'venda', 'outro']
+&& d(request.resource.data.get('detalhe', ''), 500)
+&& d(request.resource.data.get('trecho', ''), 300)
+&& (!('contexto' in request.resource.data)
+|| (request.resource.data.tipo == 'mensagem'
+&& request.resource.data.contexto is list
+&& request.resource.data.contexto.size() <= 12
+&& request.resource.data.contexto.join('\n').matches('^([A-Za-z0-9]{1,40}(\n[A-Za-z0-9]{1,40}){0,11})?$')))
+&& request.resource.data.status == 'nova'
+&& request.resource.data.criadoEm == request.time
+&& dD(request.resource.data);
+allow delete: if false;
+}
+match /admins/{i} {
+allow get: if b() && (request.auth.uid == i || j());
+allow list: if j();
+allow write: if false;
+}
+match /sancoes/{i} {
+function dE() {
+let g = resource == null ? [] : resource.data.get('historico', []);
+let e = request.resource.data.get('historico', []);
+return g.size() == 0 ? e.size() <= 1
+: (e.size() == g.size() + 1 && e[0:g.size()] == g)
+|| (g.size() == 50 && e.size() == 50 && e[0:49] == g[1:50]);
+}
+allow get: if b() && request.auth.uid == i;
+allow read: if j();
+allow create, update: if l() && (Q() == 'dono' || !exists(/databases/$(database)/documents/admins/$(i)))
+&& request.resource.data.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
+&& request.resource.data.tipo in ['suspensao', 'banimento']
+&& d(request.resource.data.get('motivo', ''), 500)
+&& (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time
+&& R('historico', 50)
+&& dE();
+allow delete: if l() && Q() == 'dono';
+}
+match /avisos/{c} {
+allow read: if b() && resource.data.uid == request.auth.uid;
+allow read: if j();
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
+&& request.resource.data.uid is string
+&& d(request.resource.data.get('titulo', ''), 120)
+&& request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+&& request.resource.data.tipo in ['info', 'alerta', 'grave']
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time
+&& request.resource.data.lidoEm == null;
+allow update: if b()
+&& resource.data.uid == request.auth.uid
+&& m().hasOnly(['lidoEm'])
+&& request.resource.data.lidoEm == request.time;
+allow delete: if false;
+}
+match /comunicados/{c} {
+allow read: if b();
+allow create, update: if l()
+&& request.resource.data.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
+&& d(request.resource.data.get('titulo', ''), 120)
+&& d(request.resource.data.get('texto', ''), 600)
+&& request.resource.data.tipo in ['info', 'novidade', 'alerta']
+&& request.resource.data.ativo is bool
+&& request.resource.data.por == request.auth.uid
+&& (!('link' in request.resource.data) || (request.resource.data.link is string
+&& request.resource.data.link.matches('^[A-Za-z0-9_./?=&#-]{1,200}$') && !request.resource.data.link.matches('^//.*')))
+&& request.resource.data.get('em', request.time) == request.time
+&& ae('ate');
+allow delete: if l();
+}
+match /suporte_abertos/{i} {
+function C() { return request.resource.data; }
+function B() { return resource == null ? [] : resource.data.ids; }
+function aG() { return /databases/$(database)/documents/suporte/$(C().ultimo); }
+allow read: if b() && (i == request.auth.uid || j());
+allow create, update: if b() && i == request.auth.uid
+&& C().keys().hasOnly(['ids', 'ultimo', 'acao', 'atualizadoEm'])
+&& C().ids is list && C().ids.size() <= 20
+&& C().ultimo is string && C().ultimo.size() >= 1 && C().ultimo.size() <= 40
+&& C().atualizadoEm == request.time
+&& ((C().acao == 'entrou'
+&& C().ids.size() == B().size() + 1 && C().ids.hasAll(B())
+&& C().ultimo in C().ids && !(C().ultimo in B())
+&& existsAfter(aG()) && getAfter(aG()).data.uid == request.auth.uid && getAfter(aG()).data.status != 'fechado')
+|| (C().acao == 'saiu'
+&& C().ids.size() == B().size() - 1 && B().hasAll(C().ids)
+&& C().ultimo in B() && !(C().ultimo in C().ids)
+&& (!existsAfter(aG()) || getAfter(aG()).data.status == 'fechado')));
+allow write: if j();
+}
+match /suporte/{c} {
+function ch() {
+return ['uid', 'nome', 'email', 'assunto', 'categoria', 'status', 'criadoEm', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm',
+'prioridade', 'escalonadoPara', 'primeiraRespostaEm'];
+}
+function dF(a) {
+let f = a.get('prioridade', 'normal');
+return a.categoria in ['golpe', 'sos'] ? f == 'urgente'
+: f == 'normal'
+|| (f == 'alta' && (a.categoria in ['pagamento', 'contestacao']
+|| (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
+&& get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
+&& get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.ate > request.time)));
+}
+function ci(a) {
+return a.get('prioridade', 'normal') in ['urgente', 'alta', 'normal']
+&& a.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
+&& a.get('escalonadoPara', '') in ['', 'moderacao', 'donos']
+&& (!m().hasAny(['primeiraRespostaEm']) || a.primeiraRespostaEm == request.time);
+}
+function cj() {
+let g = getAfter(/databases/$(database)/documents/suporte_abertos/$(request.auth.uid)).data;
+return g.acao == 'entrou' && g.ultimo == c && g.ids.size() <= 3;
+}
+allow read: if b() && resource.data.uid == request.auth.uid;
+allow read: if j();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(ch())
+&& request.resource.data.uid == request.auth.uid
+&& request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+&& request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
+&& d(request.resource.data.get('nome', ''), 80)
+&& d(request.resource.data.get('email', ''), 120)
+&& (request.resource.data.get('email', '') == '' || request.resource.data.email.lower() == request.auth.token.email.lower())
+&& (request.resource.data.categoria == 'sos' || (ax('sup') && cj()))
+&& request.resource.data.status == 'aberto'
+&& request.resource.data.criadoEm == request.time
+&& request.resource.data.atualizadoEm == request.time
+&& request.resource.data.ultimaDe == 'usuario'
+&& dF(request.resource.data)
+&& !request.resource.data.keys().hasAny(['atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'escalonadoPara', 'primeiraRespostaEm']);
+allow create: if j()
+&& request.resource.data.keys().hasOnly(ch().concat(['abertoPor']))
+&& request.resource.data.uid is string
+&& exists(/databases/$(database)/documents/usuarios/$(request.resource.data.uid))
+&& request.resource.data.abertoPor == request.auth.uid
+&& request.resource.data.assunto is string && request.resource.data.assunto.size() >= 3 && request.resource.data.assunto.size() <= 120
+&& request.resource.data.categoria in ['conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro', 'sos']
+&& d(request.resource.data.get('nome', ''), 80)
+&& d(request.resource.data.get('email', ''), 120)
+&& request.resource.data.status == 'respondido'
+&& request.resource.data.criadoEm == request.time
+&& request.resource.data.atualizadoEm == request.time
+&& request.resource.data.ultimaDe == 'equipe'
+&& (!('responsavel' in request.resource.data)
+|| (request.resource.data.responsavel == request.auth.uid
+&& request.resource.data.get('assumidoEm', null) == request.time
+&& d(request.resource.data.get('responsavelNome', ''), 80)))
+&& existsAfter(/databases/$(database)/documents/suporte/$(c)/mensagens/inicio);
+allow update: if b()
+&& ((resource.data.uid == request.auth.uid
+&& m().hasOnly(['status', 'atualizadoEm', 'ultimaDe'])
+&& request.resource.data.status in ['aberto', 'fechado']
+&& request.resource.data.ultimaDe == 'usuario'
+&& (resource.data.status != 'fechado' || request.resource.data.status == 'fechado'
+|| resource.data.categoria == 'sos' || cj()))
+|| (j()
+&& m().hasOnly(['status', 'atualizadoEm', 'ultimaDe', 'atendidoPor', 'responsavel', 'responsavelNome', 'assumidoEm', 'primeiraRespostaEm'])
+&& request.resource.data.status in ['aberto', 'respondido', 'fechado']
+&& aE() && ci(request.resource.data)))
+&& request.resource.data.atualizadoEm == request.time;
+allow update: if j()
+&& m().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm', 'prioridade', 'categoria', 'escalonadoPara'])
+&& aE() && ci(request.resource.data);
+allow delete: if false;
+match /mensagens/{ex} {
+function dG() { return get(/databases/$(database)/documents/suporte/$(c)).data; }
+function dH() { return getAfter(/databases/$(database)/documents/suporte/$(c)).data; }
+function dI(u) {
+return u is map
+&& u.keys().hasOnly(['tipo', 'url', 'nome'])
+&& u.tipo in ['imagem', 'video', 'arquivo']
+&& d(u.get('nome', ''), 120)
+&& u.url is string && u.url.size() <= 750000
+&& u.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/suporte%2F(' + request.auth.uid + '|equipe_[A-Za-z0-9]+)%2F).*');
+}
+allow read: if b() && (dG().uid == request.auth.uid || j());
+allow create: if b()
+&& (dH().uid == request.auth.uid || j())
+&& request.resource.data.keys().hasOnly(['autorId', 'equipe', 'texto', 'em', 'anexo'])
+&& request.resource.data.autorId == request.auth.uid
+&& (request.resource.data.equipe == false || (request.resource.data.equipe == true && j()))
+&& request.resource.data.texto is string && request.resource.data.texto.size() <= 2000
+&& (request.resource.data.texto.size() >= 1 || 'anexo' in request.resource.data)
+&& (!('anexo' in request.resource.data) || dI(request.resource.data.anexo))
+&& request.resource.data.em == request.time;
+allow update, delete: if false;
+}
+match /notas/{ey} {
+allow read: if j();
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['autorId', 'nome', 'texto', 'em'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 1000
+&& d(request.resource.data.get('nome', ''), 80)
+&& request.resource.data.em == request.time;
+allow update, delete: if false;
+}
+}
+match /suporte_respostas/{c} {
+allow read: if j();
+allow create, update: if j()
+&& request.resource.data.keys().hasOnly(['titulo', 'texto', 'categoria', 'autorId', 'autorNome', 'em'])
+&& request.resource.data.titulo is string && request.resource.data.titulo.size() >= 2 && request.resource.data.titulo.size() <= 60
+&& request.resource.data.texto is string && request.resource.data.texto.size() >= 2 && request.resource.data.texto.size() <= 2000
+&& request.resource.data.get('categoria', '') in ['', 'conta', 'pagamento', 'golpe', 'denuncia', 'contestacao', 'negocio', 'sugestao', 'outro']
+&& request.resource.data.autorId == request.auth.uid
+&& d(request.resource.data.get('autorNome', ''), 80)
+&& request.resource.data.em == request.time;
+allow delete: if j();
+}
+match /verificacoes/{i} {
+function ay(a) {
+return a.keys().hasOnly(['uid', 'categoria', 'nomeLegal', 'conhecidoComo', 'documentoTipo', 'documento', 'selfie', 'links', 'motivo', 'status', 'criadoEm', 'atualizadoEm'])
+&& a.uid == i
+&& a.categoria is string && a.categoria.matches('^(pessoa|profissional|negocio|publica|organizacao)$')
+&& a.nomeLegal is string && a.nomeLegal.size() >= 5 && a.nomeLegal.size() <= 120
+&& d(a.get('conhecidoComo', ''), 80)
+&& a.documentoTipo is string && a.documentoTipo.matches('^(rg|cnh|passaporte|rne|cnpj)$')
+&& a.documento is string && a.documento.size() <= 700000 && a.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+&& a.selfie is string && a.selfie.size() <= 450000 && a.selfie.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+&& (!('links' in a) || (a.links is list && a.links.size() <= 3
+&& a.links.join('\n').matches('^(https?://[^\\s]{3,192}(\nhttps?://[^\\s]{3,192}){0,2})?$')))
+&& d(a.get('motivo', ''), 500)
+&& a.status == 'pendente'
+&& a.criadoEm == request.time && a.atualizadoEm == request.time;
+}
+allow read: if (b() && request.auth.uid == i) || l();
+allow create: if b() && request.auth.uid == i && ay(request.resource.data);
+allow update: if b() && request.auth.uid == i
+&& resource.data.status in ['recusada', 'cancelada']
+&& (resource.data.status == 'cancelada'
+|| request.time > resource.data.get('analisadaEm', resource.data.atualizadoEm) + duration.value(30, 'd'))
+&& ay(request.resource.data);
+allow update: if b() && request.auth.uid == i
+&& resource.data.status in ['pendente', 'em_analise']
+&& request.resource.data.status == 'cancelada'
+&& m().hasOnly(['status', 'atualizadoEm', 'documento', 'selfie'])
+&& !('documento' in request.resource.data) && !('selfie' in request.resource.data)
+&& request.resource.data.atualizadoEm == request.time;
+allow update: if l() && (i != request.auth.uid || Q() == 'dono')
+&& resource.data.status in ['pendente', 'em_analise']
+&& m().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
+&& request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
+&& request.resource.data.analisadaPor == request.auth.uid
+&& request.resource.data.analisadaEm == request.time && request.resource.data.atualizadoEm == request.time
+&& (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
+&& d(request.resource.data.get('motivoRecusa', ''), 500);
+allow delete: if (b() && request.auth.uid == i) || l();
+}
+match /reportes/{c} {
+function ck(n) { return get(/databases/$(database)/documents/suporte/$(n)).data; }
+allow get: if b() && resource.data.autorId == request.auth.uid;
+allow read: if l();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['tipo', 'chamadoId', 'assunto', 'autorId', 'alvoId', 'alvoNome', 'motivo', 'detalhe', 'status', 'criadoEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.chamadoId is string
+&& c == request.resource.data.tipo + '_' + request.resource.data.chamadoId + '_' + request.auth.uid
+&& request.resource.data.motivo.matches('^(demora|grosseria|nao_resolveu|errado|dados|ofensa|ameaca|golpe|spam|outro)$')
+&& d(request.resource.data.get('detalhe', ''), 1000)
+&& d(request.resource.data.get('assunto', ''), 120)
+&& d(request.resource.data.get('alvoNome', ''), 80)
+&& request.resource.data.status == 'novo'
+&& request.resource.data.criadoEm == request.time
+&& ((request.resource.data.tipo == 'atendimento'
+&& ck(request.resource.data.chamadoId).uid == request.auth.uid
+&& (!('alvoId' in request.resource.data) || request.resource.data.alvoId is string))
+|| (request.resource.data.tipo == 'usuario'
+&& j()
+&& request.resource.data.alvoId == ck(request.resource.data.chamadoId).uid));
+allow update: if l()
+&& m().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
+&& request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
+&& (request.resource.data.status == resource.data.status
+|| (resource.data.status == 'novo' && request.resource.data.status != 'novo')
+|| (resource.data.status == 'em_analise' && request.resource.data.status in ['resolvido', 'descartado']))
+&& (!m().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor'])
+|| (request.resource.data.analisadaPor == request.auth.uid && request.resource.data.analisadaEm == request.time))
+&& aE()
+&& d(request.resource.data.get('nota', ''), 1000);
+allow delete: if false;
+}
+match /suporte_notas/{cl} {
+allow read: if j() || (b() && resource.data.uid == request.auth.uid);
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['uid', 'nota', 'comentario', 'atendidoPor', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& get(/databases/$(database)/documents/suporte/$(cl)).data.uid == request.auth.uid
+&& request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
+&& d(request.resource.data.get('comentario', ''), 500)
+&& (!('atendidoPor' in request.resource.data)
+|| request.resource.data.atendidoPor == get(/databases/$(database)/documents/suporte/$(cl)).data.get('atendidoPor', ''))
+&& request.resource.data.criadoEm == request.time;
+allow update, delete: if false;
+}
+match /planos_pedidos/{c} {
+allow read: if (b() && resource.data.uid == request.auth.uid) || W();
+function dJ(a) {
+let e = get(/databases/$(database)/documents/planos_negociacoes/$(request.auth.uid)).data;
+return a.negociacaoId == request.auth.uid
+&& e.status == 'aguardando_pagamento'
+&& a.plano == e.planoConcedido
+&& a.meses == e.meses
+&& a.valor == e.valorAcordado;
+}
+allow create: if b() && p()
+&& request.resource.data.keys().hasOnly(['uid', 'nome', 'email', 'plano', 'meses', 'valor', 'txid', 'status', 'criadoEm', 'negociacaoId'])
+&& request.resource.data.uid == request.auth.uid
+&& request.resource.data.plano in ['plus', 'pro', 'premium']
+&& request.resource.data.valor is number && request.resource.data.valor > 0
+&& ('negociacaoId' in request.resource.data
+? dJ(request.resource.data)
+: (request.resource.data.meses in [1, 3, 6, 12] && request.resource.data.valor <= 1000))
+&& request.resource.data.txid is string && request.resource.data.txid.matches('^[A-Z0-9]{4,25}$')
+&& d(request.resource.data.get('nome', ''), 80)
+&& d(request.resource.data.get('email', ''), 120)
+&& request.resource.data.status == 'pendente'
+&& request.resource.data.criadoEm == request.time;
+allow update: if b() && resource.data.uid == request.auth.uid
+&& resource.data.status == 'pendente'
+&& m().hasOnly(['status'])
+&& request.resource.data.status == 'cancelado';
+allow update: if W()
+&& resource.data.status == 'pendente'
+&& m().hasOnly(['status', 'decididoPor', 'decididoEm', 'motivo'])
+&& request.resource.data.status in ['pago', 'recusado']
+&& request.resource.data.decididoPor == request.auth.uid
+&& request.resource.data.decididoEm == request.time
+&& d(request.resource.data.get('motivo', ''), 300);
+allow delete: if false;
+}
+match /planos/{i} {
+function dK(s) {
+return s is list && s.size() >= 1 && s.size() <= 6
+&& s.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude|automotivo)(,(servicos|delivery|lojinha|imoveis|saude|automotivo)){0,5}$');
+}
+allow read: if b();
+allow create, update: if W()
+&& request.resource.data.keys().hasOnly(['plano', 'ate', 'ativadoEm', 'ativadoPor', 'pedidoId', 'negociacaoId', 'meses', 'teste', 'dias', 'tipos', 'semSelo'])
+&& request.resource.data.plano in ['plus', 'pro', 'premium', 'gratis']
+&& (!('tipos' in request.resource.data) || dK(request.resource.data.tipos))
+&& request.resource.data.get('semSelo', false) is bool
+&& (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
+&& request.resource.data.ate is timestamp
+&& request.resource.data.ativadoPor == request.auth.uid
+&& request.resource.data.ativadoEm == request.time;
+allow delete: if W();
+}
+match /planos_negociacoes/{i} {
+function dL(u) {
+return u is map
+&& u.keys().hasOnly(['tipo', 'url', 'nome'])
+&& u.tipo in ['imagem', 'arquivo']
+&& d(u.get('nome', ''), 120)
+&& u.url is string && u.url.size() <= 750000
+&& u.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+}
+function cm(a) {
+return (a.get('responsavel', null) == null || a.responsavel is string)
+&& d(a.get('responsavelNome', ''), 80)
+&& (!('assumidoEm' in a) || a.assumidoEm == request.time || a.assumidoEm == resource.data.get('assumidoEm', null));
+}
+function cn() {
+let a = request.resource.data;
+return a.keys().hasOnly(['uid', 'nome', 'email', 'tipo', 'plano', 'valorProposto', 'contato', 'mensagem', 'status', 'criadoEm', 'comprovanteTipo', 'comprovante', 'declaracao', 'perfisPedidos', 'mesesPedidos'])
+&& (!('perfisPedidos' in a) || (a.perfisPedidos is int && a.perfisPedidos >= 1 && a.perfisPedidos <= 5))
+&& (!('mesesPedidos' in a) || (a.mesesPedidos is int && a.mesesPedidos >= 1 && a.mesesPedidos <= 12))
+&& (a.tipo != 'apoio' || (a.get('declaracao', false) == true
+&& a.get('comprovanteTipo', '') is string
+&& a.get('comprovanteTipo', '').matches('^(cadunico|bolsa|bpc|cnis|renda|desemprego|tarifa|mei|isento)$')
+&& 'comprovante' in a))
+&& (!('comprovante' in a) || (a.tipo == 'apoio' && dL(a.comprovante)))
+&& a.uid == request.auth.uid && i == request.auth.uid
+&& a.tipo in ['apoio', 'parceria']
+&& a.plano in ['plus', 'pro', 'premium']
+&& a.valorProposto is number && a.valorProposto >= 0 && a.valorProposto <= 1000
+&& a.mensagem is string && a.mensagem.size() >= 20 && a.mensagem.size() <= 1500
+&& d(a.get('contato', ''), 40)
+&& d(a.get('nome', ''), 80)
+&& d(a.get('email', ''), 120)
+&& a.status == 'novo'
+&& a.criadoEm == request.time;
+}
+allow read: if (b() && i == request.auth.uid) || W();
+allow create: if b() && p() && cn();
+allow update: if b() && p() && i == request.auth.uid
+&& resource.data.status in ['aprovado', 'recusado', 'cancelado']
+&& cn();
+allow update: if b() && i == request.auth.uid
+&& resource.data.status in ['novo', 'em_conversa', 'aguardando_pagamento']
+&& m().hasOnly(['status', 'comprovante'])
+&& !('comprovante' in request.resource.data)
+&& request.resource.data.status == 'cancelado';
+allow update: if W()
+&& m().hasOnly(['responsavel', 'responsavelNome', 'assumidoEm'])
+&& cm(request.resource.data);
+allow update: if W()
+&& resource.data.status in ['novo', 'em_conversa']
+&& m().hasOnly(['status', 'resposta', 'decididoPor', 'decididoEm', 'planoConcedido', 'meses', 'valorAcordado', 'comprovante', 'dias', 'tipos', 'semSelo', 'responsavel', 'responsavelNome'])
+&& cm(request.resource.data)
+&& (!('tipos' in request.resource.data) || (request.resource.data.tipos is list && request.resource.data.tipos.size() <= 6 && request.resource.data.tipos.join(',').matches('^(servicos|delivery|lojinha|imoveis|saude|automotivo)(,(servicos|delivery|lojinha|imoveis|saude|automotivo)){0,5}$')))
+&& request.resource.data.get('semSelo', false) is bool
+&& (!('dias' in request.resource.data) || (request.resource.data.dias is int && request.resource.data.dias >= 1 && request.resource.data.dias <= 800))
+&& request.resource.data.status in ['em_conversa', 'aprovado', 'aguardando_pagamento', 'recusado']
+&& (request.resource.data.status == 'em_conversa' ? !m().hasAny(['comprovante']) : !('comprovante' in request.resource.data))
+&& request.resource.data.decididoPor == request.auth.uid
+&& request.resource.data.decididoEm == request.time
+&& d(request.resource.data.get('resposta', ''), 600)
+&& (!(request.resource.data.status in ['aprovado', 'aguardando_pagamento'])
+|| (request.resource.data.planoConcedido in ['plus', 'pro', 'premium']
+&& request.resource.data.meses is int && request.resource.data.meses >= 1 && request.resource.data.meses <= 24
+&& request.resource.data.valorAcordado is number && request.resource.data.valorAcordado >= 0 && request.resource.data.valorAcordado <= 5000
+&& (request.resource.data.status == 'aprovado' || request.resource.data.valorAcordado > 0)));
+allow update: if W()
+&& resource.data.status == 'aguardando_pagamento'
+&& m().hasOnly(['status', 'pedidoId', 'pagoEm', 'resposta', 'decididoPor', 'decididoEm'])
+&& request.resource.data.status in ['aprovado', 'recusado']
+&& (!('pedidoId' in request.resource.data) || request.resource.data.pedidoId is string)
+&& request.resource.data.decididoPor == request.auth.uid
+&& request.resource.data.decididoEm == request.time
+&& d(request.resource.data.get('resposta', ''), 600);
+allow delete: if false;
+}
+match /parcerias/{c} {
+allow create: if b()
+&& p()
+&& request.resource.data.uid == request.auth.uid
+&& ax('parc')
+&& request.resource.data.keys().hasOnly(['nome', 'empresa', 'email', 'telefone', 'tipo', 'mensagem', 'site', 'cidade', 'uid', 'status', 'criadoEm'])
+&& request.resource.data.nome is string && request.resource.data.nome.size() >= 2 && request.resource.data.nome.size() <= 80
+&& request.resource.data.email is string && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$') && request.resource.data.email.size() <= 120
+&& d(request.resource.data.get('empresa', ''), 100)
+&& d(request.resource.data.get('telefone', ''), 30)
+&& d(request.resource.data.get('site', ''), 200)
+&& d(request.resource.data.get('cidade', ''), 80)
+&& request.resource.data.tipo in ['socio', 'investidor', 'parceiro', 'anunciante', 'imprensa', 'outro']
+&& request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 10 && request.resource.data.mensagem.size() <= 2000
+&& request.resource.data.status == 'novo'
+&& request.resource.data.criadoEm == request.time;
+allow read: if j();
+allow update: if bI()
+&& m().hasOnly(['status', 'notas', 'atualizadoEm', 'responsavel', 'responsavelNome', 'assumidoEm'])
+&& request.resource.data.status in ['novo', 'em_conversa', 'proposta', 'fechado', 'recusado']
+&& (!m().hasAny(['responsavelNome', 'assumidoEm']) || aE())
+&& d(request.resource.data.get('notas', ''), 3000);
+allow delete: if bI();
+}
+match /equipe_presenca/{i} {
+allow read: if j();
+allow create, update: if j()
+&& request.auth.uid == i
+&& request.resource.data.keys().hasOnly(['nome', 'em', 'secao', 'item', 'itemNome', 'status'])
+&& request.resource.data.get('status', 'disponivel') in ['disponivel', 'pausa', 'fora']
+&& d(request.resource.data.get('nome', ''), 80)
+&& d(request.resource.data.get('secao', ''), 40)
+&& d(request.resource.data.get('item', null), 160)
+&& d(request.resource.data.get('itemNome', null), 120)
+&& request.resource.data.em == request.time;
+allow delete: if j() && request.auth.uid == i;
+}
+function bq(dM) {
+let a = request.resource.data;
+return a.keys().hasOnly(['autorId', 'nome', 'texto', 'em', 'mencoes', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'reacoes'])
+&& a.autorId == request.auth.uid
+&& d(a.get('nome', ''), 80)
+&& a.texto is string && a.texto.size() <= 2000
+&& (a.texto.size() >= 1 || 'anexo' in a)
+&& a.em == request.time
+&& (!('mencoes' in a) || (a.mencoes is list && a.mencoes.size() <= 10
+&& a.mencoes.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,9})?$')))
+&& (!('resposta' in a)
+|| (a.resposta is map
+&& a.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
+&& a.resposta.get('id', '') is string
+&& a.resposta.get('autorId', '') is string
+&& d(a.resposta.get('nome', ''), 80)
+&& a.resposta.get('texto', '') is string && a.resposta.get('texto', '').size() <= 200))
+&& (!('reacoes' in a) || (a.reacoes is map && a.reacoes.size() == 0))
+&& (!('anexo' in a)
+|| (a.anexo is string
+&& a.tipoArquivo in ['imagem', 'audio', 'arquivo']
+&& getAfter(/databases/$(database)/documents/equipe_anexos/$(a.anexo)).data.autorId == request.auth.uid
+&& getAfter(/databases/$(database)/documents/equipe_anexos/$(a.anexo)).data.conversa == dM))
+&& (!('tipoArquivo' in a) || 'anexo' in a)
+&& d(a.get('nomeArquivo', ''), 120)
+&& (!('tamanho' in a) || (a.tamanho is int && a.tamanho >= 0))
+&& (!('duracao' in a) || (a.duracao is int && a.duracao >= 0 && a.duracao <= 600))
+&& (!('miniatura' in a) || (a.miniatura is string && a.miniatura.size() <= 30000 && a.miniatura.matches('^data:image/jpeg;base64,.*')));
+}
+function br() {
+let a = request.resource.data;
+let g = resource.data;
+let E = request.auth.uid;
+return a.diff(g).affectedKeys().hasOnly(['reacoes'])
+&& a.get('reacoes', {}) is map
+&& a.get('reacoes', {}).diff(g.get('reacoes', {})).affectedKeys().hasOnly([E])
+&& (!(E in a.get('reacoes', {})) || a.reacoes[E] in ['👍', '❤️', '😂', '😮', '😢', '🙏']);
+}
+function bs() {
+let a = request.resource.data;
+let g = resource.data;
+return g.autorId == request.auth.uid
+&& request.time < g.em + duration.value(10, 'm')
+&& !('apagada' in g)
+&& a.diff(g).affectedKeys().hasOnly(['texto', 'editadaEm', 'edicoes'])
+&& a.texto is string && a.texto.size() <= 2000
+&& (a.texto.size() > 0 || 'anexo' in g)
+&& a.editadaEm == request.time
+&& a.edicoes is list
+&& a.edicoes.size() == g.get('edicoes', []).size() + 1
+&& a.edicoes.size() <= 20
+&& a.edicoes == g.get('edicoes', []).concat([a.edicoes[g.get('edicoes', []).size()]])
+&& a.edicoes[g.get('edicoes', []).size()] is map
+&& a.edicoes[g.get('edicoes', []).size()].keys().hasOnly(['texto', 'em'])
+&& a.edicoes[g.get('edicoes', []).size()].texto == g.get('texto', '')
+&& a.edicoes[g.get('edicoes', []).size()].em == g.get('editadaEm', g.em);
+}
+function bt(c) {
+let a = request.resource.data;
+let g = resource.data;
+return g.autorId == request.auth.uid
+&& request.time < g.em + duration.value(10, 'm')
+&& !('apagada' in g)
+&& a.keys().hasOnly(['autorId', 'nome', 'em', 'apagada'])
+&& a.autorId == g.autorId && a.em == g.em && a.get('nome', '') == g.get('nome', '')
+&& a.apagada is map && a.apagada.keys().hasOnly(['por', 'em'])
+&& a.apagada.por == request.auth.uid && a.apagada.em == request.time
+&& existsAfter(/databases/$(database)/documents/equipe_apagadas/$(c));
+}
+match /equipe_chat/{c} {
+allow read: if j();
+allow create: if j() && bq('equipe');
+allow update: if j() && br();
+allow update: if j() && (bs() || bt(c));
+allow delete: if false;
+}
+function co(az) {
+return az.matches('^(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
+&& (az != 'avisos' || Q() == 'dono');
+}
+match /equipe_canais/{az} {
+allow read: if j();
+allow create, update: if j() && co(az)
+&& request.resource.data.keys().hasOnly(['ultimaEm', 'ultimaTexto', 'ultimoAutor', 'ultimoNome', 'mencoes'])
+&& request.resource.data.ultimoAutor == request.auth.uid
+&& request.resource.data.ultimaEm == request.time
+&& d(request.resource.data.get('ultimaTexto', ''), 140)
+&& d(request.resource.data.get('ultimoNome', ''), 80)
+&& (!('mencoes' in request.resource.data) || (request.resource.data.mencoes is list && request.resource.data.mencoes.size() <= 10));
+allow delete: if false;
+match /mensagens/{c} {
+allow read: if j();
+allow create: if j() && co(az) && bq('canal-' + az);
+allow update: if j() && br();
+allow update: if j() && (bs() || bt(c));
+allow delete: if false;
+}
+}
+match /equipe_dm/{H} {
+function dN() {
+return j() && H.split('_').size() == 2 && request.auth.uid in H.split('_')
+&& exists(/databases/$(database)/documents/admins/$(H.split('_')[0]))
+&& exists(/databases/$(database)/documents/admins/$(H.split('_')[1]));
+}
+allow read: if j() && request.auth.uid in resource.data.participantes;
+allow create, update: if dN()
+&& request.resource.data.keys().hasOnly(['participantes', 'ultimaEm', 'ultimaTexto', 'ultimoAutor', 'lidoEm'])
+&& request.resource.data.participantes == H.split('_')
+&& d(request.resource.data.get('ultimaTexto', ''), 140)
+&& (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in H.split('_'))
+&& request.resource.data.get('lidoEm', {}) is map
+&& request.resource.data.get('lidoEm', {}).diff(resource == null ? {} : resource.data.get('lidoEm', {})).affectedKeys().hasOnly([request.auth.uid])
+&& (!request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['ultimaEm', 'ultimaTexto', 'ultimoAutor'])
+|| (request.resource.data.get('ultimoAutor', null) == request.auth.uid && request.resource.data.get('ultimaEm', null) == request.time));
+allow delete: if false;
+match /mensagens/{c} {
+allow read: if j() && request.auth.uid in H.split('_');
+allow create: if j() && H.split('_').size() == 2 && request.auth.uid in H.split('_') && bq(H);
+allow update: if j() && request.auth.uid in H.split('_') && br();
+allow update: if j() && request.auth.uid in H.split('_') && (bs() || bt(c));
+allow delete: if false;
+}
+}
+match /equipe_apagadas/{c} {
+function dO(n, ag) {
+return n.get('tipoArquivo', null) == ag.get('tipoArquivo', null) && n.get('nomeArquivo', null) == ag.get('nomeArquivo', null)
+&& n.get('tamanho', null) == ag.get('tamanho', null) && n.get('miniatura', null) == ag.get('miniatura', null)
+&& n.get('duracao', null) == ag.get('duracao', null) && n.get('resposta', null) == ag.get('resposta', null)
+&& n.get('mencoes', null) == ag.get('mencoes', null) && n.get('edicoes', null) == ag.get('edicoes', null);
+}
+function bu(n) { return n == 'equipe' || n.matches('^canal-[a-z]+$') || request.auth.uid in n.split('_'); }
+function aH(n) {
+return n == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(c)
+: n.matches('^canal-[a-z]+$') ? /databases/$(database)/documents/equipe_canais/$(n.split('-')[1])/mensagens/$(c)
+: /databases/$(database)/documents/equipe_dm/$(n)/mensagens/$(c);
+}
+allow get: if j() && bu(resource.data.conversa) && request.time < resource.data.apagadaEm + duration.value(24, 'h');
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['autorId', 'conversa', 'conteudo', 'apagadaEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.conversa is string
+&& bu(request.resource.data.conversa)
+&& get(aH(request.resource.data.conversa)).data.autorId == request.auth.uid
+&& getAfter(aH(request.resource.data.conversa)).data.apagada.por == request.auth.uid
+&& request.resource.data.apagadaEm == request.time
+&& request.resource.data.conteudo is map
+&& request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
+&& request.resource.data.conteudo.get('texto', '') == get(aH(request.resource.data.conversa)).data.get('texto', '')
+&& request.resource.data.conteudo.get('anexo', '') == get(aH(request.resource.data.conversa)).data.get('anexo', '')
+&& dO(request.resource.data.conteudo, get(aH(request.resource.data.conversa)).data);
+allow update: if false;
+allow delete: if j() && bu(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
+}
+match /equipe_anexos/{c} {
+allow read: if j()
+&& (resource.data.conversa == 'equipe' || resource.data.conversa.matches('^canal-[a-z]+$')
+|| request.auth.uid in resource.data.conversa.split('_'));
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.em == request.time
+&& request.resource.data.conversa is string
+&& (request.resource.data.conversa == 'equipe'
+|| request.resource.data.conversa.matches('^canal-(avisos|seguranca|moderacao|pagamentos|negocios|conta|comercial)$')
+|| (request.resource.data.conversa.split('_').size() == 2 && request.auth.uid in request.resource.data.conversa.split('_')))
+&& request.resource.data.dados is string
+&& request.resource.data.dados.size() <= 950000
+&& request.resource.data.dados.matches('^data:[a-z]+/[-+.a-z0-9]{1,80}(;[^,]{0,80})?,.*');
+allow update, delete: if false;
+}
+match /equipe_info/{c} {
+allow read: if j();
+allow create, update: if j()
+&& c == 'grupo'
+&& request.resource.data.keys().hasOnly(['foto', 'por', 'em'])
+&& (request.resource.data.foto == null
+|| (request.resource.data.foto is string && request.resource.data.foto.size() <= 250000 && Y(request.resource.data.foto)))
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time;
+allow delete: if false;
+}
+match /equipe_tarefas/{c} {
+function cp() {
+let a = request.resource.data;
+return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
+&& a.titulo is string && a.titulo.size() >= 2 && a.titulo.size() <= 140
+&& d(a.get('descricao', null), 2000)
+&& a.status in ['a_fazer', 'fazendo', 'feito']
+&& a.prioridade in ['baixa', 'normal', 'alta', 'urgente']
+&& (a.get('responsavel', null) == null || (a.responsavel is string && exists(/databases/$(database)/documents/admins/$(a.responsavel))))
+&& d(a.get('responsavelNome', null), 80)
+&& (a.get('prazo', null) == null || a.prazo is timestamp)
+&& d(a.get('ligacao', null), 160)
+&& d(a.get('ligacaoNome', null), 120)
+&& d(a.get('criadoPorNome', null), 80)
+&& (a.status != 'feito' ? a.get('concluidaEm', null) == null
+: (resource == null || resource.data.status != 'feito') ? a.get('concluidaEm', null) == request.time
+: a.get('concluidaEm', null) == resource.data.get('concluidaEm', null))
+&& a.atualizadoEm == request.time;
+}
+allow read: if j();
+allow create: if j() && cp()
+&& request.resource.data.criadoPor == request.auth.uid
+&& request.resource.data.criadoEm == request.time;
+allow update: if j() && cp()
+&& request.resource.data.criadoPor == resource.data.criadoPor
+&& request.resource.data.criadoEm == resource.data.criadoEm;
+allow delete: if j() && (resource.data.criadoPor == request.auth.uid || Q() == 'dono');
+}
+match /notas_internas/{c} {
+allow read: if j();
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
+&& request.resource.data.alvo is string && request.resource.data.alvo.size() <= 128
+&& request.resource.data.autorId == request.auth.uid
+&& d(request.resource.data.get('autorNome', null), 80)
+&& request.resource.data.texto is string && request.resource.data.texto.size() >= 1 && request.resource.data.texto.size() <= 2000
+&& request.resource.data.em == request.time;
+allow update: if false;
+allow delete: if j() && (resource.data.autorId == request.auth.uid || Q() == 'dono');
+}
+match /admin_log/{c} {
+allow read: if W() || (j() && resource.data.acao == 'cobrar_reclamacao');
+allow create: if j()
+&& request.resource.data.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
+&& d(request.resource.data.get('alvo', ''), 300) && d(request.resource.data.get('ref', ''), 300)
+&& d(request.resource.data.get('porNome', ''), 80)
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time
+&& request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+&& d(request.resource.data.get('detalhe', ''), 1000);
+allow update, delete: if false;
+}
+match /estatisticas/{c} {
+allow read: if j();
+allow write: if false;
+}
+match /relatorios/{c} {
+allow read: if j();
+allow write: if false;
+}
+match /ritmo/{i} {
+function dP(z) {
+return z == 'msg' ? 500 : (z == 'pub' ? 20 : (z == 'parc' ? 3 : (z == 'flash' ? 50 : (z == 'sup' ? 5 : 200))));
+}
+function bv() {
+return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+}
+function aA(o, z) {
+let r = request.resource.data.get(o, 0);
+return r is int
+&& r == (o == z ? (bv() ? 1 : resource.data.get(o, 0) + 1)
+: (bv() ? 0 : resource.data.get(o, 0)));
+}
+allow get: if b() && request.auth.uid == i;
+allow read: if j();
+allow create, update: if b()
+&& request.auth.uid == i
+&& request.resource.data.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'sup', 'ultimaEm', 'ultimoTipo'])
+&& request.resource.data.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash', 'sup']
+&& request.resource.data.ultimaEm == request.time
+&& request.resource.data.inicio == (bv() ? request.time : resource.data.inicio)
+&& aA('msg', request.resource.data.ultimoTipo)
+&& aA('pub', request.resource.data.ultimoTipo)
+&& aA('com', request.resource.data.ultimoTipo)
+&& aA('parc', request.resource.data.ultimoTipo)
+&& aA('flash', request.resource.data.ultimoTipo)
+&& aA('sup', request.resource.data.ultimoTipo)
+&& request.resource.data.get(request.resource.data.ultimoTipo, 0) <= dP(request.resource.data.ultimoTipo);
+allow delete: if false;
+}
+match /exclusoes/{i} {
+allow get: if b() && request.auth.uid == i;
+allow read: if j();
+allow create: if b()
+&& request.auth.uid == i
+&& request.resource.data.keys().hasOnly(['pedidaEm', 'motivo'])
+&& request.resource.data.pedidaEm == request.time
+&& d(request.resource.data.get('motivo', ''), 300);
+allow update: if false;
+allow delete: if b() && request.auth.uid == i;
+}
+match /curtidas/{c} {
+allow read: if b();
+function cq(a) {
+return a.nota is int && a.nota >= 1 && a.nota <= 5;
+}
+function bw(ap) {
+let k = /databases/$(database)/documents/diario_notas/$(ap);
+return existsAfter(k)
+&& getAfter(k).data.get('soma', 0) != (exists(k) ? get(k).data.get('soma', 0) : 0);
+}
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
+&& (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
+&& request.resource.data.uid == request.auth.uid
+&& c == request.resource.data.postId + '_' + request.auth.uid
+&& exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& cq(request.resource.data)
+&& !A(request.auth.uid, request.resource.data.postAutorId)
+&& request.resource.data.criadoEm == request.time
+&& bw(request.resource.data.postId);
+allow update: if b()
+&& p()
+&& resource.data.uid == request.auth.uid
+&& m().hasOnly(['nota', 'atualizadoEm'])
+&& cq(request.resource.data)
+&& request.resource.data.atualizadoEm == request.time
+&& bw(resource.data.postId);
+allow delete: if b() && resource.data.uid == request.auth.uid
+&& (bw(resource.data.postId)
+|| !exists(/databases/$(database)/documents/diario/$(resource.data.postId)));
+}
+match /salvamentos/{c} {
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& c == request.resource.data.postId + '_' + request.auth.uid
+&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& request.resource.data.criadoEm == request.time;
+allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+allow delete: if b() && resource.data.uid == request.auth.uid;
+allow update: if false;
+}
+match /republicacoes/{c} {
+allow read: if b();
+allow create: if b() && p()
+&& request.resource.data.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& request.resource.data.postId is string && request.resource.data.postId.size() <= 64
+&& c == request.resource.data.postId + '_' + request.auth.uid
+&& request.resource.data.postAutorId != request.auth.uid
+&& (!('nome' in request.resource.data) || (request.resource.data.nome is string && request.resource.data.nome.size() <= 80))
+&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& !A(request.auth.uid, request.resource.data.postAutorId)
+&& request.resource.data.criadoEm == request.time;
+allow delete: if b() && (resource.data.uid == request.auth.uid || l());
+allow update: if false;
+}
+match /contagem_lembretes/{dQ} {
+allow create: if b() && request.resource.data.uid == request.auth.uid
+&& dQ == request.resource.data.flashId + '_' + request.auth.uid
+&& request.resource.data.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
+&& request.resource.data.criadoEm == request.time
+&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.autorId == request.resource.data.autorId
+&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.fim == request.resource.data.fim
+&& get(/databases/$(database)/documents/stories/$(request.resource.data.flashId)).data.contagem.titulo == request.resource.data.titulo
+&& request.resource.data.autorId != request.auth.uid;
+allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid);
+allow delete: if b() && resource.data.uid == request.auth.uid;
+allow update: if false;
+}
+match /stories/{c} {
+function cr() {
+let v = get(/databases/$(database)/documents/stories/$(c)).data;
+return v.autorId == request.auth.uid
+|| (v.criadoEm > request.time - duration.value(26, 'h') || v.get('destacado', false) == true)
+&& (v.get('publico', 'todos') == 'amigos' ? request.auth.uid in v.lista : !(request.auth.uid in v.get('ocultoPara', [])));
+}
+allow get: if b() && (resource.data.autorId == request.auth.uid || l()
+|| ((resource.data.criadoEm > request.time - duration.value(26, 'h')
+|| resource.data.get('destacado', false) == true)
+&& (resource.data.get('publico', 'todos') == 'amigos'
+? request.auth.uid in resource.data.lista
+: !(request.auth.uid in resource.data.get('ocultoPara', [])))));
+allow list: if b() && (resource.data.autorId == request.auth.uid || l()
+|| (resource.data.criadoEm > request.time - duration.value(26, 'h')
+&& (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
+allow create: if b() && p() && c3(request.resource.data) && !ai(request.auth.uid) && ax('flash');
+allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
+allow update: if b() && resource.data.autorId == request.auth.uid
+&& ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
+&& request.resource.data.destacado is bool)
+|| (!('restrito' in resource.data)
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
+&& request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
+|| resource.data.get('ocultoPara', []).size() > 0)));
+match /vistos/{i} {
+allow create: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['criadoEm'])
+&& request.resource.data.criadoEm == request.time
+&& cr();
+allow read: if b() && (i == request.auth.uid
+|| get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
+allow update, delete: if false;
+}
+match /reacoes/{i} {
+allow create, update: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['curtiu', 'emoji', 'em'])
+&& request.resource.data.em == request.time
+&& (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
+&& (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
+&& get(/databases/$(database)/documents/stories/$(c)).data.autorId != request.auth.uid
+&& cr();
+allow read: if b() && (i == request.auth.uid
+|| get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
+allow delete: if b() && i == request.auth.uid;
+}
+}
+match /stories_restritos/{c} {
+allow read: if b();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(c)).data.criadoEm
+&& getAfter(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid
+&& getAfter(/databases/$(database)/documents/stories/$(c)).data.restrito == true
+&& getAfter(/databases/$(database)/documents/stories/$(c)).data.get('publico', 'todos') != 'amigos'
+&& request.resource.data.get('negocios', []) == getAfter(/databases/$(database)/documents/stories/$(c)).data.get('negocios', [])
+&& request.resource.data.get('perfil', true) == getAfter(/databases/$(database)/documents/stories/$(c)).data.get('perfil', true);
+allow update: if false;
+allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
+}
+match /destaques/{c} {
+function cs(a) {
+return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+&& a.nome is string && a.nome.size() >= 1 && a.nome.size() <= 30
+&& a.ids is list && a.ids.size() >= 1 && a.ids.size() <= 100
+&& a.ids.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,99}$')
+&& a.ids.toSet().size() == a.ids.size()
+&& a.atualizadoEm == request.time
+&& (!('capa' in a) || (a.capa is string && a.capa.size() <= 64 && a.capa in a.ids))
+&& (!('capaMini' in a) || (a.capaMini is string && a.capaMini.size() <= 30000 && a.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+}
+function ct(a, B) {
+return !('capa' in a) || a.capa == B
+|| get(/databases/$(database)/documents/stories/$(a.capa)).data.autorId == request.auth.uid;
+}
+allow read: if b();
+allow create: if b() && p() && request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == request.time && cs(request.resource.data)
+&& ct(request.resource.data, '');
+allow update: if b() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == resource.data.criadoEm && cs(request.resource.data)
+&& ct(request.resource.data, resource.data.get('capa', ''));
+allow delete: if b() && (resource.data.uid == request.auth.uid || l());
+}
+function cu(a) {
+let bx = /databases/$(database)/documents/enquete_contas/$(a.alvo + '_' + string(a.fatia));
+let o = 'n' + string(a.opcao);
+return a.fatia is int && a.fatia >= 0 && a.fatia < 10
+&& getAfter(bx).data.get(o, 0) == (exists(bx) ? get(bx).data.get(o, 0) : 0) + 1;
+}
+match /enquete_votos/{c} {
+allow read: if b() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid || l());
+function dR() {
+let a = request.resource.data;
+let N = a.tipo == 'd'
+? /databases/$(database)/documents/diario/$(a.itemId)
+: /databases/$(database)/documents/stories/$(a.itemId);
+let q = get(N).data.enquete;
+return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm', 'autorId'])
+&& a.uid == request.auth.uid
+&& a.get('autorId', get(N).data.autorId) == get(N).data.autorId
+&& a.tipo in ['d', 'f']
+&& a.itemId is string && a.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& a.alvo == a.tipo + '_' + a.itemId
+&& c == a.alvo + '_' + request.auth.uid
+&& a.opcao is int && a.opcao >= 0
+&& exists(N) && a.opcao < q.opcoes.size()
+&& q.get('anonima', false) == false
+&& (!('fimEm' in q) || request.time < q.fimEm)
+&& (!('fimEm' in a) || ('fimEm' in q && a.fimEm == q.fimEm))
+&& cu(a);
+}
+allow create: if b() && dR() && request.resource.data.criadoEm == request.time && !ai(request.auth.uid);
+allow update, delete: if false;
+}
+match /enquete_anon/{c} {
+function dS() {
+let a = request.resource.data;
+let N = a.tipo == 'd'
+? /databases/$(database)/documents/diario/$(a.itemId)
+: /databases/$(database)/documents/stories/$(a.itemId);
+let q = get(N).data.enquete;
+return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+&& a.uid == request.auth.uid && a.criadoEm == request.time
+&& a.tipo in ['d', 'f']
+&& a.itemId is string && a.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& a.alvo == a.tipo + '_' + a.itemId
+&& c == a.alvo + '_' + request.auth.uid
+&& a.opcao is int && a.opcao >= 0 && a.opcao < q.opcoes.size()
+&& q.get('anonima', false) == true
+&& (!('fimEm' in q) || request.time < q.fimEm)
+&& (!('fimEm' in a) || ('fimEm' in q && a.fimEm == q.fimEm))
+&& cu(a);
+}
+allow get: if b() && c.matches('.*_' + request.auth.uid);
+allow list: if b() && resource.data.uid == request.auth.uid;
+allow create: if b() && !ai(request.auth.uid) && dS();
+allow update, delete: if false;
+}
+match /enquete_contas/{cv} {
+allow read: if b();
+function by() { return cv.split('_'); }
+function a5(dT) { return /databases/$(database)/documents/$(dT)/$(by()[0] + '_' + by()[1] + '_' + request.auth.uid); }
+function a6() {
+return !exists(a5('enquete_anon')) && existsAfter(a5('enquete_anon')) ? a5('enquete_anon') : a5('enquete_votos');
+}
+function aI() { return 'n' + string(getAfter(a6()).data.opcao); }
+function cw() {
+return cv.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
+&& !exists(a6()) && existsAfter(a6())
+&& string(getAfter(a6()).data.fatia) == by()[2];
+}
+allow create: if b() && cw()
+&& request.resource.data.keys().hasOnly([aI()])
+&& request.resource.data[aI()] == 1;
+allow update: if b() && cw()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly([aI()])
+&& request.resource.data[aI()] == resource.data.get(aI(), 0) + 1;
+allow delete: if false;
+}
+match /caixa_respostas/{c} {
+function dU(a) {
+return get(a.tipo == 'd'
+? /databases/$(database)/documents/diario/$(a.itemId)
+: /databases/$(database)/documents/stories/$(a.itemId)).data;
+}
+function af() {
+let a = request.resource.data;
+let at = dU(a);
+let cx = /databases/$(database)/documents/caixa_autoria/$(c);
+return a.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
+&& a.tipo in ['d', 'f']
+&& a.itemId is string && a.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& a.alvo == a.tipo + '_' + a.itemId
+&& a.texto is string && a.texto.size() >= 1 && a.texto.size() <= 300
+&& a.criadoEm == request.time
+&& 'caixa' in at && a.autorId == at.autorId
+&& a.anonima == at.caixa.anonima
+&& (a.anonima
+? (!a.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(cx) && getAfter(cx).data.uid == request.auth.uid)
+: (a.uid == request.auth.uid && w('nome', 80) && w('foto', 2000)));
+}
+allow create: if b() && p() && !ai(request.auth.uid) && af();
+allow read, delete: if b() && (resource.data.autorId == request.auth.uid
+|| resource.data.get('uid', '') == request.auth.uid
+|| l());
+allow update: if false;
+}
+match /caixa_autoria/{c} {
+allow read, delete: if l();
+allow create: if b()
+&& request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == request.time
+&& existsAfter(/databases/$(database)/documents/caixa_respostas/$(c));
+allow update: if false;
+}
+match /pref_publicas/{i} {
+allow read: if b();
+allow create, update: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao', 'redes', 'salaoModelo'])
+&& request.resource.data.get('salaoModelo', 'mosaico') in ['mosaico', 'grade', 'revista', 'polaroid', 'filme']
+&& (!('redes' in request.resource.data) || (request.resource.data.redes is list && request.resource.data.redes.size() <= 10
+&& request.resource.data.redes.join(',').matches('^((instagram|whatsapp|email|telegram|tiktok|kwai|x|youtube|facebook|linkedin)(,|$))*$')))
+&& request.resource.data.get('pronomes', '') is string && request.resource.data.get('pronomes', '').size() <= 24
+&& request.resource.data.get('profissao', '') is string && request.resource.data.get('profissao', '').size() <= 40
+&& request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
+&& request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
+&& request.resource.data.get('negociosNoPerfil', true) is bool
+&& (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
+&& request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
+&& request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
+&& request.resource.data.perfil.get('destaques', true) is bool))
+&& (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
+&& (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
+&& (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
+allow delete: if b() && i == request.auth.uid;
+}
+match /contatos_perfil/{c} {
+allow get: if b() && resource != null
+&& (resource.data.uid == request.auth.uid || j()
+|| (!A(request.auth.uid, resource.data.uid)
+&& (resource.data.ver == 'todos'
+|| (resource.data.ver in ['seguidores', 'amigos']
+&& exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))
+&& (resource.data.ver == 'seguidores'
+|| exists(/databases/$(database)/documents/relacoes/$(resource.data.uid + '_' + request.auth.uid)))))));
+allow list: if false;
+allow create, update: if b()
+&& request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
+&& request.resource.data.uid == request.auth.uid
+&& c == request.auth.uid + '_' + request.resource.data.tipo
+&& request.resource.data.ver in ['todos', 'seguidores', 'amigos']
+&& request.resource.data.tipo is string && request.resource.data.valor is string && request.resource.data.valor.size() <= 120
+&& (request.resource.data.tipo + ' ' + request.resource.data.valor).matches('^(instagram [A-Za-z0-9._]{1,30}|whatsapp [0-9]{10,13}|email [a-z0-9._%+-]{1,64}@[a-z0-9-]+([.][a-z0-9-]+)*[.][a-z]{2,24}|telegram [A-Za-z0-9_]{5,32}|tiktok [A-Za-z0-9._]{2,24}|kwai [A-Za-z0-9._]{2,30}|x [A-Za-z0-9_]{1,15}|youtube [A-Za-z0-9._-]{3,30}|facebook [A-Za-z0-9.]{5,50}|linkedin [A-Za-z0-9%_-]{3,100})$')
+&& request.resource.data.em == request.time;
+allow delete: if b() && (resource.data.uid == request.auth.uid || j());
+}
+match /notas/{i}/itens/{c} {
+allow read, delete: if b() && i == request.auth.uid;
+allow create, update: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
+&& request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
+&& request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
+&& request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
+&& request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
+&& request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
+&& request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
+&& request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number
+&& (resource == null || !('criadoEm' in resource.data)
+|| request.resource.data.get('criadoEm', null) == resource.data.criadoEm);
+}
+match /rascunhos/{i}/itens/{c} {
+allow read, delete: if b() && i == request.auth.uid;
+allow create, update: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
+&& d(request.resource.data.get('texto', ''), 1000)
+&& (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
+}
+match /ranking_diario/{c} {
+allow read: if b();
+allow write: if false;
+}
+match /diario_notas/{ap} {
+allow read: if b();
+function a7() { return /databases/$(database)/documents/curtidas/$(ap + '_' + request.auth.uid); }
+function dV() {
+let g = exists(a7()) ? get(a7()).data.nota : 0;
+let a = existsAfter(a7()) ? getAfter(a7()).data.nota : 0;
+let k = resource == null ? {} : resource.data;
+let e = request.resource.data;
+return g != a
+&& e.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+&& e.get('total', 0) == k.get('total', 0) + (a > 0 ? 1 : 0) - (g > 0 ? 1 : 0)
+&& e.get('soma', 0) == k.get('soma', 0) + a - g
+&& e.get('n1', 0) == k.get('n1', 0) + (a == 1 ? 1 : 0) - (g == 1 ? 1 : 0)
+&& e.get('n2', 0) == k.get('n2', 0) + (a == 2 ? 1 : 0) - (g == 2 ? 1 : 0)
+&& e.get('n3', 0) == k.get('n3', 0) + (a == 3 ? 1 : 0) - (g == 3 ? 1 : 0)
+&& e.get('n4', 0) == k.get('n4', 0) + (a == 4 ? 1 : 0) - (g == 4 ? 1 : 0)
+&& e.get('n5', 0) == k.get('n5', 0) + (a == 5 ? 1 : 0) - (g == 5 ? 1 : 0);
+}
+allow create, update: if b() && dV();
+allow create, update: if l()
+&& request.resource.data.keys().hasOnly(['total', 'soma', 'n1', 'n2', 'n3', 'n4', 'n5'])
+&& request.resource.data.total is int && request.resource.data.soma is int
+&& request.resource.data.n1 is int && request.resource.data.n2 is int && request.resource.data.n3 is int
+&& request.resource.data.n4 is int && request.resource.data.n5 is int;
+allow delete: if l();
+}
+match /comentarios/{c} {
+allow read: if b();
+function cy(a) {
+return a.texto is string && a.texto.size() <= 500 && (a.texto.size() >= 1 || 'midia' in a || 'enquete' in a);
+}
+function dW(a) {
+return !('midia' in a)
+|| (a.midia is map && a.midia.keys().hasOnly(['tipo', 'url', 'dur'])
+&& a.midia.tipo in ['imagem', 'audio', 'figurinha']
+&& a.midia.url is string && a.midia.url.size() <= 700000
+&& a.midia.url.matches(a.midia.tipo == 'audio'
+? '^(data:audio/[a-z0-9.+-]{1,20}(;codecs=[a-z0-9.]{1,12})?;base64,|https://firebasestorage[.]googleapis[.]com/).*'
+: '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')
+&& (!('dur' in a.midia) || (a.midia.dur is number && a.midia.dur > 0 && a.midia.dur <= 61)));
+}
+function dX(a) {
+return !('enquete' in a)
+|| (a.postAutorId == request.auth.uid
+&& a.enquete is map && a.enquete.keys().hasOnly(['pergunta', 'opcoes'])
+&& a.enquete.pergunta is string && a.enquete.pergunta.size() >= 1 && a.enquete.pergunta.size() <= 120
+&& a.enquete.opcoes is list && a.enquete.opcoes.size() >= 2 && a.enquete.opcoes.size() <= 4
+&& a.enquete.opcoes.join('\n').matches('^[^\n]{1,60}(\n[^\n]{1,60}){1,3}$'));
+}
+function ak(g, F) { return exists(/databases/$(database)/documents/relacoes/$(g + '_' + F)); }
+function dY(f) {
+let y = f.get('quemComenta', 'todos');
+return f.autorId == request.auth.uid
+|| y == 'todos'
+|| (y == 'seguidores' && ak(request.auth.uid, f.autorId))
+|| (y == 'mutuos' && ak(request.auth.uid, f.autorId) && ak(f.autorId, request.auth.uid));
+}
+function af(a) {
+return (!('respostaA' in a) && !('respostaAutorId' in a))
+|| (a.respostaA is string
+&& exists(/databases/$(database)/documents/comentarios/$(a.respostaA))
+&& get(/databases/$(database)/documents/comentarios/$(a.respostaA)).data.postId == a.postId
+&& a.respostaAutorId == get(/databases/$(database)/documents/comentarios/$(a.respostaA)).data.autorId);
+}
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'nome', 'foto', 'texto', 'respostaA', 'respostaAutorId', 'midia', 'enquete', 'criadoEm'])
+&& request.resource.data.autorId == request.auth.uid
+&& cy(request.resource.data)
+&& dW(request.resource.data) && dX(request.resource.data)
+&& d(request.resource.data.get('nome', ''), 80)
+&& Y(request.resource.data.get('foto', ''))
+&& exists(/databases/$(database)/documents/diario/$(request.resource.data.postId))
+&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.autorId == request.resource.data.postAutorId
+&& get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data.get('comentariosOcultos', false) != true
+&& dY(get(/databases/$(database)/documents/diario/$(request.resource.data.postId)).data)
+&& af(request.resource.data)
+&& !A(request.auth.uid, request.resource.data.postAutorId)
+&& ax('com')
+&& request.resource.data.criadoEm == request.time;
+function aJ(c) { return /databases/$(database)/documents/comentarios_ocultos/$(c); }
+function dZ() {
+return request.resource.data.keys().hasOnly(['postId', 'postAutorId', 'autorId', 'respostaA', 'respostaAutorId', 'criadoEm', 'oculto'])
+&& request.resource.data.oculto == true
+&& request.resource.data.diff(resource.data).changedKeys().hasOnly(['oculto'])
+&& request.resource.data.diff(resource.data).addedKeys().hasOnly(['oculto'])
+&& !exists(aJ(c))
+&& getAfter(aJ(c)).data.dados == resource.data;
+}
+function d0() {
+return exists(aJ(c)) && !existsAfter(aJ(c))
+&& request.resource.data.get('oculto', false) == false
+&& request.resource.data.diff(get(aJ(c)).data.dados).affectedKeys().hasOnly(['oculto']);
+}
+allow update: if b()
+&& p()
+&& (
+(resource.data.autorId == request.auth.uid
+&& resource.data.get('oculto', false) != true
+&& m().hasOnly(['texto', 'editadoEm'])
+&& cy(request.resource.data)
+&& request.resource.data.editadoEm == request.time)
+||
+(resource.data.postAutorId == request.auth.uid
+&& (dZ() || d0()
+|| (m().hasOnly(['oculto']) && request.resource.data.oculto == false)))
+);
+allow delete: if b()
+&& (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid);
+allow delete: if l();
+}
+match /comentarios_ocultos/{c} {
+function ah() { return /databases/$(database)/documents/comentarios/$(c); }
+allow get, list: if b() && (resource.data.autorId == request.auth.uid || resource.data.postAutorId == request.auth.uid || l());
+allow create: if b() && p()
+&& request.resource.data.keys().hasOnly(['dados', 'autorId', 'postAutorId', 'por', 'em'])
+&& exists(ah())
+&& request.resource.data.dados == get(ah()).data
+&& request.resource.data.autorId == get(ah()).data.autorId
+&& request.resource.data.postAutorId == get(ah()).data.postAutorId
+&& request.resource.data.postAutorId == request.auth.uid
+&& request.resource.data.por == request.auth.uid
+&& request.resource.data.em == request.time
+&& getAfter(ah()).data.get('oculto', false) == true
+&& !('texto' in getAfter(ah()).data);
+allow update: if false;
+allow delete: if b() && (
+l()
+|| ((resource.data.postAutorId == request.auth.uid || resource.data.autorId == request.auth.uid)
+&& (!existsAfter(ah()) || getAfter(ah()).data.get('oculto', false) == false)));
+}
+match /comentario_votos/{c} {
+allow read: if b();
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& c == request.resource.data.comentarioId + '_' + request.auth.uid
+&& request.resource.data.opcao is int && request.resource.data.opcao >= 0
+&& request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
+&& get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.get('oculto', false) == false
+&& !A(request.auth.uid, get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+&& request.resource.data.criadoEm == request.time;
+allow delete: if l();
+}
+match /curtidas_comentarios/{c} {
+allow read: if b();
+function cz(a) { return !('reacao' in a) || a.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
+allow create: if b()
+&& p()
+&& request.resource.data.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+&& (!('comentarioAutorId' in request.resource.data)
+|| request.resource.data.comentarioAutorId == get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
+&& request.resource.data.uid == request.auth.uid
+&& c == request.resource.data.comentarioId + '_' + request.auth.uid
+&& exists(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId))
+&& cz(request.resource.data)
+&& request.resource.data.criadoEm == request.time;
+allow update: if b()
+&& resource.data.uid == request.auth.uid
+&& m().hasOnly(['reacao'])
+&& cz(request.resource.data);
+allow delete: if b() && resource.data.uid == request.auth.uid;
+}
+match /diario/{ap} {
+allow get: if b() && aT('autorId');
+allow list: if b();
+function cA() {
+let a = request.resource.data;
+return w('texto', 1000)
+&& (!('titulo' in a) || (a.titulo is string && a.titulo.size() >= 1 && a.titulo.size() <= 90))
+&& (!('layout' in a) || (a.layout is string && a.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
+&& w('nome', 80)
+&& aR('fotoPerfil')
+&& (!('mediaTipo' in a) || a.mediaTipo in ['', 'image', 'video'])
+&& (!('mediaUrl' in a) || a.mediaUrl == ''
+|| (a.mediaUrl is string
+&& d1(a.mediaUrl, a.autorId)))
+&& (!('midias' in a)
+|| (a.midias is list && a.midias.size() >= 2 && a.midias.size() <= 4
+&& a.get('mediaTipo', '') == 'image' && a.midias[0] == a.get('mediaUrl', '')
+&& a.midias.join(' ').matches('^(' + bz(a.autorId) + ')( (' + bz(a.autorId) + ')){1,3}$')));
+}
+function cB(a) {
+return !('tags' in a) || (a.tags is list && a.tags.size() <= 10
+&& (a.tags.size() == 0 || a.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+}
+function cC(a) {
+return !('marcados' in a) || (a.marcados is list && a.marcados.size() <= 10
+&& (a.marcados.size() == 0 || a.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+}
+function cD(a) {
+return !('local' in a) || a.local == null
+|| (a.local is map && a.local.keys().hasOnly(['nome', 'lat', 'lng'])
+&& a.local.nome is string && a.local.nome.size() >= 2 && a.local.nome.size() <= 80
+&& a.local.lat is number && a.local.lat >= -34 && a.local.lat <= 6
+&& a.local.lng is number && a.local.lng >= -75 && a.local.lng <= -28);
+}
+function cE(a) {
+let f = a.get('publico', null);
+return f == null
+|| (f is map && f.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
+&& f.get('idadeMin', 16) is int && f.get('idadeMax', 100) is int
+&& 16 <= f.get('idadeMin', 16) && f.get('idadeMin', 16) <= f.get('idadeMax', 100) && f.get('idadeMax', 100) <= 100
+&& (!('genero' in f) || f.genero in ['f', 'm'])
+&& (!('local' in f) || f.local in ['brasil', 'estados', 'cidades', 'perto'])
+&& (!('ufs' in f) || (f.ufs is list && f.ufs.size() >= 1 && f.ufs.size() <= 27 && f.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
+&& (!('cidades' in f) || (f.cidades is list && f.cidades.size() >= 1 && f.cidades.size() <= 10 && f.cidades.join(' ').matches('^[0-9]{7}( [0-9]{7}){0,9}$')))
+&& (!('perto' in f) || (f.perto is map && f.perto.keys().hasOnly(['lat', 'lng', 'km', 'nome'])
+&& f.perto.lat is number && f.perto.lat >= -34 && f.perto.lat <= 6
+&& f.perto.lng is number && f.perto.lng >= -75 && f.perto.lng <= -28
+&& f.perto.km is int && f.perto.km >= 5 && f.perto.km <= 300
+&& (!('nome' in f.perto) || (f.perto.nome is string && f.perto.nome.size() <= 60))))
+&& (!('seguidores' in f) || f.seguidores in ['todos', 'seguidores', 'novos']));
+}
+function bz(i) {
+return '(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/diario%2F' + i + '%2F)[^ ]*';
+}
+function d1(aw, i) {
+return aw is string && aw.matches('^' + bz(i) + '$');
+}
+function d2(a) {
+let z = a.get('tipo', '');
+let bA = a.get('mediaUrl', '') != '';
+let a8 = a.get('mediaTipo', '') == 'video';
+let bB = ('enquete' in a) || ('caixa' in a);
+return (z == '' && !('estilo' in a))
+|| (z == 'texto' && a.get('texto', '').size() >= 1 && !bB && !a8 && !('midias' in a)
+&& (bA ? (a.get('estilo', '') == 'casada' && a.texto.size() <= 500) : !('estilo' in a)))
+|| (z == 'foto' && bA && !a8 && !bB && !('estilo' in a))
+|| (z == 'video' && bA && a8 && !bB && !('midias' in a) && !('estilo' in a))
+|| (z in ['enquete', 'caixa'] && (z == 'enquete') == ('enquete' in a) && (z == 'caixa') == ('caixa' in a)
+&& !a8 && !('midias' in a) && !('estilo' in a));
+}
+allow create: if b()
+&& p()
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
+'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
+&& d2(request.resource.data)
+&& (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+&& (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+&& (!('autorUf' in request.resource.data) || (request.resource.data.autorUf is string && request.resource.data.autorUf.matches('^[A-Z]{2}$')))
+&& (!('autorIbge' in request.resource.data) || (request.resource.data.autorIbge is int && request.resource.data.autorIbge > 1000000 && request.resource.data.autorIbge < 6000000))
+&& cD(request.resource.data) && cE(request.resource.data)
+&& (!('caixa' in request.resource.data) || bN(request.resource.data.caixa))
+&& (!('enquete' in request.resource.data) || bK(request.resource.data.enquete, request.time, 10090))
+&& ax('pub')
+&& cA()
+&& cB(request.resource.data) && cC(request.resource.data)
+&& !('agendadoPara' in request.resource.data);
+allow update: if b() && !av()
+&& p()
+&& resource.data.autorId == request.auth.uid
+&& request.resource.data.autorId == resource.data.autorId
+&& aC().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
+&& (!('ocultarNotas' in request.resource.data) || request.resource.data.ocultarNotas is bool)
+&& (request.resource.data.get('estilo', '') != 'casada' || request.resource.data.texto.size() <= 500)
+&& cD(request.resource.data) && cE(request.resource.data)
+&& cB(request.resource.data) && cC(request.resource.data)
+&& (!m().hasAny(['agendadoPara']) || request.resource.data.agendadoPara == request.time)
+&& (!('quemComenta' in request.resource.data) || request.resource.data.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+&& (!('comentarioFixo' in request.resource.data) || request.resource.data.comentarioFixo == null
+|| (request.resource.data.comentarioFixo is string && request.resource.data.comentarioFixo.size() <= 40))
+&& ae('ocultoAte')
+&& aS()
+&& (!m().hasAny(['texto']) || request.resource.data.get('editadoEm', null) == request.time)
+&& (!m().hasAny(['editadoEm']) || request.resource.data.editadoEm == request.time)
+&& (!('comentariosOcultos' in request.resource.data) || request.resource.data.comentariosOcultos is bool)
+&& cA();
+allow update: if b() && (aV('diario', ap, 'autorId') || aW('diario', ap));
+allow delete: if b()
+&& resource.data.autorId == request.auth.uid;
+match /vistas/{i} {
+allow create: if b() && i == request.auth.uid
+&& request.resource.data.keys().hasOnly(['criadoEm', 'origem'])
+&& request.resource.data.criadoEm == request.time
+&& (!('origem' in request.resource.data) || request.resource.data.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+allow read: if b() && get(/databases/$(database)/documents/diario/$(ap)).data.autorId == request.auth.uid;
+allow update, delete: if false;
+}
+allow update: if l()
+&& aX();
+allow delete: if l();
+}
+function d3() {
+let z = request.time - duration.value(3, 'h');
+return string(z.year()) + (z.month() < 10 ? '0' : '') + string(z.month()) + (z.day() < 10 ? '0' : '') + string(z.day());
+}
+function d4() {
+return (request.time.hours() + 21) % 24;
+}
+function cF(aj, bC) {
+return /databases/$(database)/documents/neg_stats/$(aj + '_' + bC);
+}
+function cG(aj, bC) {
+return /databases/$(database)/documents/neg_visitas/$(aj + '_' + request.auth.uid + '_' + bC);
+}
+match /neg_visitas/{c} {
+function d5() {
+let a = request.resource.data;
+let t = cF(a.negocioId, a.dia);
+return a.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
+&& a.uid == request.auth.uid
+&& a.negocioId is string && a.negocioId.size() <= 60
+&& a.dia == d3() && a.hora == d4()
+&& c == a.negocioId + '_' + request.auth.uid + '_' + a.dia
+&& a.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
+&& a.acoes == [] && a.itens == []
+&& get(/databases/$(database)/documents/negocios/$(a.negocioId)).data.donoId != request.auth.uid
+&& getAfter(t).data.v == (exists(t) ? get(t).data.v : 0) + 1;
+}
+function cH(x, L) {
+let a = request.resource.data;
+let u = a[x][a[x].size() - 1];
+let t = cF(resource.data.negocioId, resource.data.dia);
+let aq = x == 'acoes' ? 'a' : 'it';
+return a.diff(resource.data).affectedKeys().hasOnly([x])
+&& a[x].size() <= L
+&& a[x] == resource.data[x].concat([u])
+&& !(u in resource.data[x])
+&& (x == 'acoes' ? d6(u) : d7(u))
+&& getAfter(t).data[aq].get(u, 0) == get(t).data[aq].get(u, 0) + 1;
+}
+function d6(u) {
+return u in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
+}
+function d7(u) {
+return u is string && u.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
+}
+allow read: if b() && (resource == null || resource.data.uid == request.auth.uid);
+allow create: if b() && d5();
+allow update: if b() && resource.data.uid == request.auth.uid
+&& (cH('acoes', 12) || cH('itens', 40));
+allow delete: if false;
+}
+match /neg_stats/{c} {
+function d8() {
+let a = request.resource.data;
+let K = cG(a.negocioId, a.dia);
+let aK = getAfter(K).data;
+return a.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
+&& c == a.negocioId + '_' + a.dia
+&& a.donoId == get(/databases/$(database)/documents/negocios/$(a.negocioId)).data.donoId
+&& !exists(K) && aK.dia == a.dia
+&& a.v == 1
+&& a.o.keys().hasOnly([aK.origem]) && a.o[aK.origem] == 1
+&& a.h.keys().hasOnly([string(aK.hora)]) && a.h[string(aK.hora)] == 1
+&& a.a == {} && a.it == {};
+}
+function a9(a, k, aq, u) {
+return a[aq].diff(k[aq]).affectedKeys().hasOnly([u]) && a[aq][u] == k[aq].get(u, 0) + 1;
+}
+function d9() {
+let a = request.resource.data;
+let k = resource.data;
+let o = a.diff(k).affectedKeys();
+let K = cG(k.negocioId, k.dia);
+return (o.hasOnly(['v', 'o', 'h'])
+&& !exists(K) && getAfter(K).data.dia == k.dia
+&& a.v == k.v + 1
+&& a9(a, k, 'o', getAfter(K).data.origem)
+&& a9(a, k, 'h', string(getAfter(K).data.hora)))
+|| (o.hasOnly(['a'])
+&& getAfter(K).data.acoes.size() == get(K).data.acoes.size() + 1
+&& a9(a, k, 'a', getAfter(K).data.acoes[getAfter(K).data.acoes.size() - 1]))
+|| (o.hasOnly(['it'])
+&& getAfter(K).data.itens.size() == get(K).data.itens.size() + 1
+&& a9(a, k, 'it', getAfter(K).data.itens[getAfter(K).data.itens.size() - 1]));
+}
+allow read: if b() && (resource.data.donoId == request.auth.uid || l());
+allow create: if b() && d8();
+allow update: if b() && d9();
+allow delete: if false;
+}
+function bD(i) {
+let q = /databases/$(database)/documents/entregadores/$(i);
+return exists(q) && get(q).data.get('status', '') == 'ativo';
+}
+function bE(f) {
+return f is map && f.keys().hasOnly(['lat', 'lng', 'nome', 'sub'])
+&& f.lat is number && f.lat >= -34 && f.lat <= 6
+&& f.lng is number && f.lng >= -75 && f.lng <= -28
+&& d(f.get('nome', ''), 120) && d(f.get('sub', ''), 160);
+}
+function cI(f) {
+return bE(f)
+&& math.abs(f.lat * 100 - math.round(f.lat * 100)) < 0.001
+&& math.abs(f.lng * 100 - math.round(f.lng * 100)) < 0.001;
+}
+function d_(f) {
+return f is map && f.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
+&& f.lat is number && f.lat >= -34 && f.lat <= 6
+&& f.lng is number && f.lng >= -75 && f.lng <= -28
+&& f.get('rumo', 0) is number && f.get('vel', 0) is number
+&& f.em == request.time;
+}
+match /corridas/{c} {
+function n() { return resource.data; }
+function e() { return request.resource.data; }
+function O(x) { return n().get(x, '') == request.auth.uid; }
+function ea() { return get(/databases/$(database)/documents/entregadores/$(request.auth.uid)).data; }
+function cJ() { return e().get('pinInformado', '') == get(/databases/$(database)/documents/corridas/$(c)/privado/pin).data.pin; }
+function eb() {
+let f = get(/databases/$(database)/documents/presentes/$(e().presenteId)).data;
+return f.para == request.auth.uid && f.status == 'aceito' && f.tipo == e().servico
+&& e().pagadorId == f.de && e().valor <= f.valor && e().pagamento == 'presente'
+&& getAfter(/databases/$(database)/documents/presentes/$(e().presenteId)).data.status == 'usado';
+}
+function ec(aL) {
+return aL == '' || ed(/databases/$(database)/documents/conversas/$(H(request.auth.uid, aL)), aL);
+}
+function ed(cK, aL) {
+return exists(cK) && ee(get(cK).data.get('pedido', null)) && !A(request.auth.uid, aL);
+}
+function ee(an) { return an == null || an.status == 'aceito'; }
+allow get, list: if b() && (O('clienteId') || O('entregadorId') || O('destinatarioId') || O('pagadorId')
+|| (n().status == 'procurando' && (n().paraId == '' ? bD(request.auth.uid) : n().paraId == request.auth.uid))
+|| l());
+allow create: if b() && p() && !ad(request.auth.uid, 'entregas')
+&& e().keys().hasOnly(['servico', 'modalidade', 'veiculo', 'clienteId', 'clienteNome', 'origem', 'destino', 'km', 'min', 'valor', 'valorSugerido', 'pagamento', 'pacote', 'status', 'paraId', 'destinatarioId', 'geo4', 'geo5', 'raioKm', 'pinEm', 'presenteId', 'pagadorId', 'criadoEm', 'atualizadoEm'])
+&& e().clienteId == request.auth.uid
+&& (('presenteId' in e()) ? eb() : (!('pagadorId' in e()) && e().pagamento != 'presente'))
+&& e().status == 'procurando'
+&& e().modalidade in ['entrega_bike', 'entrega_moto', 'entrega_carro', 'entrega_frete', 'corrida_moto', 'corrida_carro']
+&& e().servico == e().modalidade.split('_')[0]
+&& e().veiculo == {'entrega_bike': 'bike', 'entrega_moto': 'moto', 'entrega_carro': 'carro', 'entrega_frete': 'utilitario', 'corrida_moto': 'moto', 'corrida_carro': 'carro'}[e().modalidade]
+&& cI(e().origem) && cI(e().destino)
+&& existsAfter(/databases/$(database)/documents/corridas/$(c)/privado/rota)
+&& e().km is number && e().km >= 0 && e().km <= 400
+&& e().min is number && e().min >= 0 && e().min <= 900
+&& e().valor is number && e().valor >= 3 && e().valor <= 3000
+&& e().valorSugerido is number && e().valorSugerido >= 0 && e().valorSugerido <= 5000
+&& e().pagamento in ['pix', 'dinheiro', 'cartao', 'presente']
+&& (e().servico == 'corrida'
+? e().get('pacote', null) == null
+: (e().pacote is map && e().pacote.keys().hasOnly(['tamanho', 'oque']) && e().pacote.tamanho in ['P', 'M', 'G', 'GG']
+&& e().pacote.oque is string && e().pacote.oque.size() >= 2 && e().pacote.oque.size() <= 80))
+&& e().paraId is string && (e().paraId == '' || (e().paraId != request.auth.uid && bD(e().paraId)))
+&& e().destinatarioId is string && e().destinatarioId != request.auth.uid && e().destinatarioId.size() <= 128 && ec(e().destinatarioId)
+&& e().geo4 is string && e().geo4.matches('^[0-9a-z]{4}$') && e().geo5 is string && e().geo5.matches('^' + e().geo4 + '[0-9a-z]$')
+&& e().raioKm in [5, 10, 20, 40]
+&& e().pinEm == (e().servico == 'corrida' ? 'embarque' : 'entrega')
+&& d(e().get('clienteNome', ''), 80)
+&& e().criadoEm == request.time && e().atualizadoEm == request.time
+&& existsAfter(/databases/$(database)/documents/corridas/$(c)/privado/pin);
+allow update: if b() && ef(m(), resource.data.status, request.resource.data.get('status', ''));
+function ef(o, t, D) {
+return o.hasOnly(['pos']) ? eg(t)
+: o.hasOnly(['avaliacao']) ? eh(t)
+: o.hasOnly(['avaliacaoEntregador']) ? ei(t)
+: D == 'cancelada' ? ej(o, t)
+: (t == 'procurando' && D == 'procurando') ? ek(o)
+: (t == 'procurando' && D == 'aceita') ? el(o)
+: D == 'procurando' ? en(o, t)
+: eo(o, t, D);
+}
+function eg(t) {
+return O('entregadorId') && t in ['aceita', 'chegou', 'em_rota'] && d_(e().pos);
+}
+function ek(o) {
+return O('clienteId') && o.hasOnly(['valor', 'raioKm', 'atualizadoEm'])
+&& e().valor is number && e().valor >= n().valor && e().valor <= 3000
+&& e().raioKm in [5, 10, 20, 40] && e().raioKm >= n().raioKm
+&& e().atualizadoEm == request.time;
+}
+function ej(o, t) {
+return o.hasOnly(['status', 'canceladaEm', 'canceladaPor', 'motivo', 'atualizadoEm'])
+&& e().motivo is string && e().motivo.size() <= 120
+&& e().canceladaEm == request.time && e().atualizadoEm == request.time
+&& ((O('clienteId') && t in ['procurando', 'aceita', 'chegou'] && e().canceladaPor == 'cliente')
+|| (O('entregadorId') && t == 'chegou' && n().chegouEm < request.time - duration.value(5, 'm')
+&& e().canceladaPor == 'entregador'));
+}
+function el(o) {
+let q = ea();
+return (n().paraId == '' || n().paraId == request.auth.uid)
+&& n().clienteId != request.auth.uid
+&& q.get('status', '') == 'ativo'
+&& !ad(request.auth.uid, 'entregas')
+&& q.veiculo == n().veiculo && n().servico in q.servicos
+&& !A(request.auth.uid, n().clienteId)
+&& o.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'atualizadoEm'])
+&& e().entregadorId == request.auth.uid
+&& e().entregador is map && e().entregador.keys().hasOnly(['nome', 'veiculo', 'modelo', 'cor', 'placa'])
+&& e().entregador.veiculo == q.veiculo && e().entregador.get('placa', '') == q.get('placa', '')
+&& e().entregador.get('modelo', '') == q.get('modelo', '') && e().entregador.get('cor', '') == q.get('cor', '')
+&& d(e().entregador.get('nome', ''), 80)
+&& e().aceitaEm == request.time && e().atualizadoEm == request.time;
+}
+function en(o, t) {
+return O('entregadorId') && t in ['aceita', 'chegou']
+&& o.hasOnly(['status', 'entregadorId', 'entregador', 'aceitaEm', 'chegouEm', 'pos', 'desistencias', 'atualizadoEm'])
+&& e().entregadorId == '' && e().get('entregador', null) == null
+&& e().get('chegouEm', null) == null && e().get('pos', null) == null && e().get('aceitaEm', null) == null
+&& e().desistencias == n().get('desistencias', 0) + 1
+&& e().atualizadoEm == request.time;
+}
+function eo(o, t, D) {
+return O('entregadorId')
+&& o.hasOnly(['status', 'chegouEm', 'coletadoEm', 'concluidaEm', 'pinInformado', 'atualizadoEm', 'pos'])
+&& e().atualizadoEm == request.time
+&& ((t == 'aceita' && D == 'chegou' && e().chegouEm == request.time)
+|| (t == 'chegou' && D == 'em_rota' && e().coletadoEm == request.time
+&& (n().pinEm != 'embarque' || cJ()))
+|| (t == 'em_rota' && D == 'concluida' && e().concluidaEm == request.time
+&& (n().pinEm != 'entrega' || cJ())));
+}
+function eh(t) {
+return O('clienteId') && t == 'concluida' && n().get('avaliacao', null) == null
+&& e().avaliacao.keys().hasOnly(['nota', 'elogios', 'texto', 'em'])
+&& e().avaliacao.nota in [1, 2, 3, 4, 5]
+&& e().avaliacao.get('elogios', []) is list && e().avaliacao.get('elogios', []).size() <= 5
+&& d(e().avaliacao.get('texto', ''), 300)
+&& e().avaliacao.em == request.time
+&& getAfter(/databases/$(database)/documents/entregadores_notas/$(n().entregadorId)).data.ultima == c;
+}
+function ei(t) {
+return O('entregadorId') && t == 'concluida' && n().get('avaliacaoEntregador', null) == null
+&& e().avaliacaoEntregador.keys().hasOnly(['nota', 'em'])
+&& e().avaliacaoEntregador.nota in [1, 2, 3, 4, 5]
+&& e().avaliacaoEntregador.em == request.time;
+}
+allow delete: if false;
+match /privado/{N} {
+function P() { return get(/databases/$(database)/documents/corridas/$(c)).data; }
+allow get: if b() && (P().clienteId == request.auth.uid || P().get('destinatarioId', '') == request.auth.uid || l()
+|| (N == 'contato' && P().get('entregadorId', '') == request.auth.uid && P().status in ['aceita', 'chegou', 'em_rota'])
+|| (N == 'rota' && (P().get('entregadorId', '') == request.auth.uid || P().get('pagadorId', '') == request.auth.uid)));
+allow create: if b() && !exists(/databases/$(database)/documents/corridas/$(c))
+&& getAfter(/databases/$(database)/documents/corridas/$(c)).data.clienteId == request.auth.uid
+&& ((N == 'pin' && request.resource.data.keys().hasOnly(['pin'])
+&& request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$'))
+|| (N == 'rota' && request.resource.data.keys().hasOnly(['origem', 'destino'])
+&& bE(request.resource.data.origem) && bE(request.resource.data.destino))
+|| (N == 'contato' && request.resource.data.keys().hasOnly(['nome', 'telefone', 'obs'])
+&& d(request.resource.data.get('nome', ''), 80)
+&& d(request.resource.data.get('telefone', ''), 20)
+&& d(request.resource.data.get('obs', ''), 300)));
+allow update, delete: if false;
+}
+}
+match /entregadores/{i} {
+function a() { return request.resource.data; }
+function cL() {
+return a().keys().hasOnly(['uid', 'nome', 'servicos', 'veiculo', 'modelo', 'cor', 'placa', 'cnh', 'cidade', 'uf', 'declaracoes', 'status', 'suspensoMotivo', 'criadoEm', 'atualizadoEm'])
+&& a().uid == i
+&& d(a().get('nome', ''), 80)
+&& a().servicos is list && a().servicos.size() >= 1 && a().servicos.size() <= 2 && a().servicos.hasOnly(['entrega', 'corrida'])
+&& a().veiculo in ['bike', 'moto', 'carro', 'utilitario']
+&& (!('corrida' in a().servicos) || a().veiculo in ['moto', 'carro'])
+&& d(a().get('modelo', ''), 40) && d(a().get('cor', ''), 20)
+&& (a().veiculo == 'bike'
+? (a().get('placa', '') == '' && a().get('cnh', '') == '')
+: (a().get('placa', '').matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$') && a().get('cnh', '') in ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE']))
+&& d(a().get('cidade', ''), 60) && d(a().get('uf', ''), 2)
+&& a().declaracoes is map && a().declaracoes.get('maior', false) == true
+&& a().declaracoes.get('documentos', false) == true && a().declaracoes.get('autonomo', false) == true
+&& a().atualizadoEm == request.time;
+}
+allow get: if b();
+allow list: if l();
+allow create: if b() && request.auth.uid == i && p() && a_() && !ad(i, 'entregas')
+&& cL() && a().status == 'ativo' && a().get('suspensoMotivo', null) == null && a().criadoEm == request.time;
+allow update: if b() && request.auth.uid == i && p() && !ad(i, 'entregas')
+&& resource.data.status != 'suspenso' && cL()
+&& a().status in ['ativo', 'pausado'] && !m().hasAny(['suspensoMotivo', 'criadoEm']);
+allow update: if l() && m().hasOnly(['status', 'suspensoMotivo', 'atualizadoEm'])
+&& a().status in ['ativo', 'pausado', 'suspenso'] && d(a().get('suspensoMotivo', ''), 200);
+allow delete: if b() && request.auth.uid == i;
+}
+match /entregadores_online/{i} {
+allow read: if b();
+allow create, update: if b() && request.auth.uid == i && bD(i)
+&& request.resource.data.keys().hasOnly(['uid', 'lat', 'lng', 'geo4', 'geo5', 'veiculo', 'servicos', 'ocupado', 'em'])
+&& request.resource.data.uid == i
+&& request.resource.data.lat is number && request.resource.data.lat >= -34 && request.resource.data.lat <= 6
+&& request.resource.data.lng is number && request.resource.data.lng >= -75 && request.resource.data.lng <= -28
+&& math.abs(request.resource.data.lat * 1000 - math.round(request.resource.data.lat * 1000)) < 0.001
+&& math.abs(request.resource.data.lng * 1000 - math.round(request.resource.data.lng * 1000)) < 0.001
+&& request.resource.data.geo4 is string && request.resource.data.geo4.matches('^[0-9a-z]{4}$')
+&& request.resource.data.geo5 is string && request.resource.data.geo5.matches('^' + request.resource.data.geo4 + '[0-9a-z]$')
+&& request.resource.data.veiculo == get(/databases/$(database)/documents/entregadores/$(i)).data.veiculo
+&& request.resource.data.servicos is list && request.resource.data.servicos.hasOnly(['entrega', 'corrida'])
+&& request.resource.data.ocupado is bool
+&& request.resource.data.em == request.time;
+allow delete: if b() && request.auth.uid == i;
+}
+match /entregadores_notas/{i} {
+function P() { return getAfter(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
+function B() { return get(/databases/$(database)/documents/corridas/$(request.resource.data.ultima)).data; }
+function cM() {
+return request.resource.data.keys().hasOnly(['soma', 'n', 'ultima'])
+&& request.resource.data.ultima is string && request.resource.data.ultima.matches('^[A-Za-z0-9]{10,40}$')
+&& B().get('avaliacao', null) == null
+&& P().entregadorId == i && P().clienteId == request.auth.uid && P().status == 'concluida';
+}
+allow read: if b();
+allow create: if b() && cM() && request.resource.data.n == 1 && request.resource.data.soma == P().avaliacao.nota;
+allow update: if b() && cM() && request.resource.data.n == resource.data.n + 1
+&& request.resource.data.soma == resource.data.soma + P().avaliacao.nota;
+allow delete: if false;
+}
+function ep(cN, bF) {
+let f = /databases/$(database)/documents/pref_publicas/$(bF);
+let y = exists(f) ? get(f).data.get('presentes', 'seguindo') : 'seguindo';
+let r = /databases/$(database)/documents/vinculos/$(H(cN, bF));
+return y == 'todos'
+|| (y in ['seguindo', 'vinculos'] && exists(r) && get(r).data.status == 'aceito')
+|| (y == 'seguindo' && exists(/databases/$(database)/documents/relacoes/$(bF + '_' + cN)));
+}
+function eq(a) {
+let n = get(/databases/$(database)/documents/corridas/$(a.corridaId)).data;
+return a.tipo == 'pix' && n.clienteId == request.auth.uid && n.entregadorId == a.para && n.status == 'concluida';
+}
+match /presentes/{c} {
+function a() { return request.resource.data; }
+function k() { return resource.data; }
+allow get, list: if b() && (k().de == request.auth.uid || k().para == request.auth.uid);
+allow create: if b() && p()
+&& a().keys().hasOnly(['de', 'deNome', 'para', 'paraNome', 'tipo', 'mimo', 'mensagem', 'valor', 'itens', 'negocioId', 'negocioNome', 'donoId', 'corridaId', 'status', 'criadoEm', 'atualizadoEm'])
+&& a().de == request.auth.uid && a().para is string && a().para != request.auth.uid
+&& !A(request.auth.uid, a().para)
+&& a().tipo in ['mimo', 'pix', 'produto', 'corrida', 'entrega', 'vale']
+&& a().status == 'pendente'
+&& d(a().get('mensagem', ''), 300) && d(a().get('deNome', ''), 80) && d(a().get('paraNome', ''), 80)
+&& (a().tipo != 'mimo' || a().get('mimo', '').matches('^[a-z]{2,20}$'))
+&& (a().tipo == 'mimo' || (a().valor is number && a().valor >= 0 && a().valor <= 2000))
+&& (a().tipo in ['mimo', 'produto'] || a().valor >= 1)
+&& (a().tipo != 'produto'
+? !('itens' in a())
+: (a().itens is list && a().itens.size() >= 1 && a().itens.size() <= 10 && a().negocioId is string
+&& er(a().itens)
+&& d(a().get('negocioNome', ''), 80)
+&& a().donoId == get(/databases/$(database)/documents/negocios/$(a().negocioId)).data.donoId
+&& bd(get(/databases/$(database)/documents/negocios/$(a().negocioId)).data)))
+&& (a().tipo != 'vale' || (a().negocioId is string && d(a().get('negocioNome', ''), 80)
+&& a().donoId == get(/databases/$(database)/documents/negocios/$(a().negocioId)).data.donoId
+&& bd(get(/databases/$(database)/documents/negocios/$(a().negocioId)).data)))
+&& (('corridaId' in a()) ? eq(a()) : ep(request.auth.uid, a().para))
+&& a().criadoEm == request.time && a().atualizadoEm == request.time;
+function V(s, S) {
+return S >= s.size() || (s[S] is map && s[S].keys().hasOnly(['nome', 'preco', 'qtd'])
+&& d(s[S].get('nome', ''), 60)
+&& (s[S].preco is int || s[S].preco is float) && s[S].preco >= 0 && s[S].preco <= 100000
+&& s[S].qtd is int && s[S].qtd >= 1 && s[S].qtd <= 99);
+}
+function er(s) {
+return V(s, 0) && V(s, 1) && V(s, 2) && V(s, 3) && V(s, 4)
+&& V(s, 5) && V(s, 6) && V(s, 7) && V(s, 8) && V(s, 9);
+}
+allow update: if b() && es(m(), k().status, request.resource.data.get('status', ''));
+function es(o, t, D) {
+return a().atualizadoEm == request.time && (
+(request.auth.uid == k().para && t == 'pendente' && D in ['aceito', 'recusado']
+&& o.hasOnly(['status', 'respondidoEm', 'atualizadoEm']) && a().respondidoEm == request.time)
+|| (request.auth.uid == k().de && t == 'pendente' && D == 'cancelado' && o.hasOnly(['status', 'atualizadoEm']))
+|| (request.auth.uid == k().para && t == 'aceito' && D == 'usado' && k().tipo in ['corrida', 'entrega']
+&& o.hasOnly(['status', 'corridaId', 'usadoEm', 'atualizadoEm']) && a().usadoEm == request.time
+&& getAfter(/databases/$(database)/documents/corridas/$(a().corridaId)).data.presenteId == c)
+|| (request.auth.uid == k().para && t == 'aceito' && D == 'usado' && k().tipo in ['produto', 'vale']
+&& o.hasOnly(['status', 'usadoEm', 'atualizadoEm']) && a().usadoEm == request.time)
+|| (request.auth.uid in [k().de, k().para] && t in ['aceito', 'usado'] && D == 'concluido'
+&& o.hasOnly(['status', 'concluidoEm', 'atualizadoEm']) && a().concluidoEm == request.time));
+}
+allow delete: if false;
+}
+match /locais_vivos/{c} {
+function a() { return request.resource.data; }
+function cO() {
+return a().lat is number && a().lat >= -90 && a().lat <= 90 && a().lng is number && a().lng >= -180 && a().lng <= 180
+&& a().precisao is number && a().precisao >= 0 && a().rumo is number;
+}
+allow get, list: if b() && request.auth.uid in resource.data.participantes
+&& (resource.data.uid == request.auth.uid || !A(resource.data.participantes[0], resource.data.participantes[1]));
+allow create: if b() && p()
+&& a().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
+&& a().uid == request.auth.uid
+&& a().participantes is list && a().participantes.size() == 2 && request.auth.uid in a().participantes
+&& a().participantes[0] < a().participantes[1]
+&& a().conv == a().participantes[0] + '_' + a().participantes[1]
+&& exists(/databases/$(database)/documents/conversas/$(a().conv))
+&& !A(a().participantes[0], a().participantes[1])
+&& cO()
+&& a().ate is timestamp && a().ate > request.time && a().ate <= request.time + duration.value(485, 'm')
+&& a().parado == false && a().criadoEm == request.time && a().atualizadoEm == request.time;
+allow update: if b() && resource.data.uid == request.auth.uid
+&& m().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
+&& cO() && a().ate <= resource.data.ate && a().parado is bool
+&& (resource.data.ate > request.time || a().parado == true)
+&& (a().parado == true || !A(resource.data.participantes[0], resource.data.participantes[1]))
+&& a().atualizadoEm == request.time;
+allow delete: if b() && resource.data.uid == request.auth.uid;
+}
+function cP(r) { return math.abs(r * 1000 - math.round(r * 1000)) < 0.001; }
+function cQ(a) { return bG(a) && cP(a.lat) && cP(a.lng); }
+function bG(a) {
+return a.lat is number && a.lat >= -90 && a.lat <= 90 && a.lng is number && a.lng >= -180 && a.lng <= 180
+&& a.geo4 is string && a.geo4.matches('^[0-9a-z]{4}$');
+}
+match /sos/{c} {
+function a() { return request.resource.data; }
+function k() { return resource.data; }
+allow get, list: if b() && ((resource.data.publico == true && resource.data.status in ['aberto', 'atendido']) || resource.data.uid == request.auth.uid
+|| resource.data.ajudanteId == request.auth.uid || request.auth.uid in resource.data.avisados || l());
+allow create: if b() && p()
+&& a().keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'lat', 'lng', 'precisao', 'geo4', 'publico', 'avisados', 'status', 'ajudanteId', 'criadoEm', 'atualizadoEm', 'equipe', 'escalarMin'])
+&& a().get('equipe', false) is bool && a().get('escalarMin', 0) is int && a().get('escalarMin', 0) >= 0 && a().get('escalarMin', 0) <= 15
+&& a().uid == request.auth.uid && d(a().get('nome', ''), 80)
+&& a().tipo in ['saude', 'acidente', 'seguranca', 'violencia', 'perdido', 'carro', 'outro']
+&& d(a().get('texto', ''), 300)
+&& bG(a()) && a().precisao is number
+&& a().publico is bool && a().avisados is list && a().avisados.size() <= 30
+&& a().avisados.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,29})?$')
+&& !(request.auth.uid in a().avisados)
+&& a().status == 'aberto' && a().ajudanteId == ''
+&& a().criadoEm == request.time && a().atualizadoEm == request.time;
+allow update: if b() && a().atualizadoEm == request.time && et(m(), k().status, a().get('status', ''));
+function et(o, t, D) {
+let M = k().uid == request.auth.uid;
+let cR = k().ajudanteId == request.auth.uid;
+return (M && t in ['aberto', 'atendido'] && o.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && bG(a()))
+|| (M && t in ['aberto', 'atendido'] && o.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!o.hasAny(['publico']) || a().publico == true)
+&& (!o.hasAny(['escaladoEm']) || a().escaladoEm == request.time)
+&& (!o.hasAny(['suporteId']) || (a().suporteId is string && a().suporteId.matches('^[A-Za-z0-9_-]{1,40}$')
+&& get(/databases/$(database)/documents/suporte/$(a().suporteId)).data.uid == request.auth.uid)))
+|| ((M || cR) && t in ['aberto', 'atendido'] && D in ['resolvido', 'cancelado'] && (M || D == 'resolvido')
+&& o.hasOnly(['status', 'fimEm', 'atualizadoEm']) && a().fimEm == request.time)
+|| (!M && t == 'aberto' && D == 'atendido' && (k().publico == true || request.auth.uid in k().avisados)
+&& !A(request.auth.uid, k().uid)
+&& o.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
+&& a().ajudanteId == request.auth.uid && d(a().get('ajudanteNome', ''), 80) && a().aceitoEm == request.time)
+|| (cR && t == 'atendido' && D == 'aberto'
+&& o.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && a().ajudanteId == ''
+&& a().get('ajudanteNome', '') == '' && a().get('aceitoEm', null) == null);
+}
+allow delete: if false;
+}
+function bH(eu) {
+let g = /databases/$(database)/documents/ocorrencias_autoria/$(eu);
+return exists(g) && get(g).data.uid == request.auth.uid;
+}
+match /ocorrencias/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || l() || bH(c));
+allow create: if b() && p()
+&& a().keys().hasOnly(['autorId', 'autorNome', 'anonimo', 'tipo', 'objeto', 'identificador', 'descricao', 'foto', 'quando', 'lat', 'lng', 'geo4', 'bairro', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm', 'veiculo'])
+&& (!('veiculo' in a()) || ev(a().veiculo))
+&& a().anonimo is bool
+&& (a().anonimo
+? (a().autorId == '' && !('autorNome' in a())
+&& getAfter(/databases/$(database)/documents/ocorrencias_autoria/$(c)).data.uid == request.auth.uid)
+: (a().autorId == request.auth.uid && d(a().get('autorNome', ''), 80)))
+&& a().tipo in ['roubo', 'furto', 'golpe', 'suspeita']
+&& a().objeto in ['celular', 'bike', 'carro', 'moto', 'notebook', 'documento', 'pet', 'outro']
+&& a().identificador is string && a().identificador.matches('^[A-Z0-9]{0,40}$')
+&& a().descricao is string && a().descricao.size() >= 10 && a().descricao.size() <= 500
+&& (!('foto' in a()) || (Y(a().foto) && a().foto.size() <= 300000))
+&& a().quando is timestamp && a().quando <= request.time
+&& cQ(a())
+&& d(a().get('bairro', ''), 60) && d(a().get('cidade', ''), 60) && d(a().get('uf', ''), 2)
+&& a().status == 'ativo' && a().criadoEm == request.time && a().atualizadoEm == request.time;
+allow update: if b() && m().hasOnly(['status', 'atualizadoEm']) && a().atualizadoEm == request.time
+&& ((a().status in ['recuperado', 'removido'] && (resource.data.autorId == request.auth.uid || bH(c)))
+|| (l() && a().status in ['ativo', 'removido']));
+allow delete: if false;
+match /pistas/{f} {
+allow read: if b() && (get(/databases/$(database)/documents/ocorrencias/$(c)).data.autorId == request.auth.uid || bH(c) || l());
+allow create: if b() && p()
+&& get(/databases/$(database)/documents/ocorrencias/$(c)).data.status == 'ativo'
+&& request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'criadoEm'])
+&& request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
+&& request.resource.data.anonimo is bool
+&& (request.resource.data.anonimo
+? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
+&& getAfter(/databases/$(database)/documents/pistas_autoria/$(c + '_' + f)).data.uid == request.auth.uid)
+: (request.resource.data.uid == request.auth.uid && d(request.resource.data.get('nome', ''), 80)))
+&& request.resource.data.criadoEm == request.time;
+allow update, delete: if false;
+}
+}
+function ev(r) {
+return r is map && r.keys().hasOnly(['marca', 'modelo', 'ano', 'cor'])
+&& d(r.get('marca', ''), 30) && d(r.get('modelo', ''), 40) && d(r.get('cor', ''), 20)
+&& r.get('ano', '') is string && r.get('ano', '').matches('^([0-9]{4})?$');
+}
+function ew(f) {
+let y = f[4:5].matches('[0-9]') ? f[0:4] + 'ABCDEFGHIJ'[int(f[4:5]):int(f[4:5]) + 1] + f[5:7] : f;
+return hashing.sha256('hf-veiculo:' + y).toHexString().lower();
+}
+match /veiculos/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b() && (resource.data.donoId == request.auth.uid || l());
+allow create, update: if b() && p() && a().donoId == request.auth.uid
+&& (resource == null || resource.data.donoId == request.auth.uid)
+&& a().keys().hasOnly(['donoId', 'tipo', 'placa', 'placaHash', 'marca', 'modelo', 'ano', 'cor', 'apelido', 'chassiFim', 'status', 'ocorrenciaId', 'roubadoEm', 'criadoEm', 'atualizadoEm'])
+&& a().tipo in ['carro', 'moto']
+&& a().placa is string && a().placa.matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$')
+&& a().placaHash is string && a().placaHash.matches('^[a-f0-9]{64}$')
+&& a().placaHash == ew(a().placa)
+&& d(a().get('marca', ''), 30) && d(a().get('modelo', ''), 40) && d(a().get('cor', ''), 20)
+&& d(a().get('apelido', ''), 30)
+&& a().get('ano', '') is string && a().get('ano', '').matches('^([0-9]{4})?$')
+&& a().get('chassiFim', '') is string && a().get('chassiFim', '').matches('^[A-Z0-9]{0,6}$')
+&& a().status in ['ok', 'roubado', 'recuperado']
+&& d(a().get('ocorrenciaId', ''), 40)
+&& a().atualizadoEm == request.time
+&& (resource == null ? a().criadoEm == request.time : a().criadoEm == resource.data.criadoEm);
+allow delete: if b() && resource.data.donoId == request.auth.uid;
+}
+match /veiculos_venda/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b();
+allow create, update: if b() && p() && a().donoId == request.auth.uid
+&& (resource == null || resource.data.donoId == request.auth.uid)
+&& a().negocioId is string && a().negocioId.matches('^' + request.auth.uid + '_(lojinha|automotivo)$')
+&& c == a().negocioId + '_' + a().placaHash[0:16]
+&& a().keys().hasOnly(['negocioId', 'donoId', 'tipoNegocio', 'item', 'tipo', 'placaHash', 'marca', 'modelo', 'ano', 'cor', 'cidade', 'uf', 'criadoEm', 'atualizadoEm'])
+&& a().tipoNegocio in ['lojinha', 'automotivo'] && a().tipo in ['carro', 'moto']
+&& a().placaHash is string && a().placaHash.matches('^[a-f0-9]{64}$')
+&& d(a().get('item', ''), 60) && d(a().get('marca', ''), 30) && d(a().get('modelo', ''), 40)
+&& d(a().get('cor', ''), 20) && d(a().get('cidade', ''), 60) && d(a().get('uf', ''), 2)
+&& a().get('ano', '') is string && a().get('ano', '').matches('^([0-9]{4})?$')
+&& a().atualizadoEm == request.time
+&& (resource == null ? a().criadoEm == request.time : a().criadoEm == resource.data.criadoEm);
+allow delete: if b() && (resource.data.donoId == request.auth.uid || l());
+}
+match /ocorrencias_autoria/{c} {
+allow get: if b() && (resource.data.uid == request.auth.uid || l());
+allow list: if l();
+allow create: if b() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+&& !exists(/databases/$(database)/documents/ocorrencias/$(c))
+&& getAfter(/databases/$(database)/documents/ocorrencias/$(c)).data.anonimo == true;
+allow update, delete: if false;
+}
+match /pistas_autoria/{c} {
+allow read: if l();
+allow create: if b() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+&& c.split('_').size() == 2
+&& !exists(/databases/$(database)/documents/ocorrencias/$(c.split('_')[0])/pistas/$(c.split('_')[1]))
+&& getAfter(/databases/$(database)/documents/ocorrencias/$(c.split('_')[0])/pistas/$(c.split('_')[1])).data.anonimo == true;
+allow update, delete: if false;
+}
+match /desaparecidos/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || l());
+allow create: if b() && p() && a().autorId == request.auth.uid
+&& a().keys().hasOnly(['autorId', 'autorNome', 'nome', 'idade', 'condicao', 'parentesco', 'descricao', 'sinais', 'visto', 'quando', 'bo', 'foto', 'lat', 'lng', 'geo4', 'cidade', 'uf', 'status', 'criadoEm', 'atualizadoEm'])
+&& a().nome is string && a().nome.size() >= 3 && a().nome.size() <= 80 && d(a().get('autorNome', ''), 80)
+&& (!('idade' in a()) || (a().idade is int && a().idade >= 0 && a().idade <= 120))
+&& a().condicao in ['crianca', 'idoso', 'demencia', 'deficiencia', 'adulto', 'outro']
+&& a().parentesco in ['pais', 'filho', 'conjuge', 'irmao', 'parente', 'responsavel', 'amigo']
+&& a().descricao is string && a().descricao.size() >= 10 && a().descricao.size() <= 500
+&& d(a().get('sinais', ''), 300) && d(a().get('visto', ''), 120)
+&& a().quando is timestamp && a().quando <= request.time
+&& a().bo is string && a().bo.matches('^[A-Za-z0-9./-]{4,40}$')
+&& (!('foto' in a()) || (Y(a().foto) && a().foto.size() <= 300000))
+&& cQ(a()) && d(a().get('cidade', ''), 60) && d(a().get('uf', ''), 2)
+&& a().status == 'analise' && a().criadoEm == request.time && a().atualizadoEm == request.time;
+allow update: if b() && m().hasOnly(['status', 'atualizadoEm']) && a().atualizadoEm == request.time
+&& ((resource.data.autorId == request.auth.uid && a().status in ['encontrado', 'removido'])
+|| (l() && a().status in ['removido', 'encontrado']));
+allow update: if l() && resource.data.status == 'analise' && a().status == 'ativo'
+&& m().hasOnly(['status', 'atualizadoEm', 'bo']) && !('bo' in a()) && a().atualizadoEm == request.time;
+allow delete: if false;
+match /pistas/{f} {
+allow read: if b() && (get(/databases/$(database)/documents/desaparecidos/$(c)).data.autorId == request.auth.uid || l());
+allow create: if b() && p()
+&& get(/databases/$(database)/documents/desaparecidos/$(c)).data.status == 'ativo'
+&& request.resource.data.keys().hasOnly(['texto', 'anonimo', 'uid', 'nome', 'lat', 'lng', 'criadoEm'])
+&& request.resource.data.texto is string && request.resource.data.texto.size() >= 3 && request.resource.data.texto.size() <= 400
+&& request.resource.data.get('lat', 0) is number && request.resource.data.get('lng', 0) is number
+&& request.resource.data.anonimo is bool
+&& (request.resource.data.anonimo
+? (!('uid' in request.resource.data) && !('nome' in request.resource.data)
+&& getAfter(/databases/$(database)/documents/pistas_desap_autoria/$(c + '_' + f)).data.uid == request.auth.uid)
+: (request.resource.data.uid == request.auth.uid && d(request.resource.data.get('nome', ''), 80)))
+&& request.resource.data.criadoEm == request.time;
+allow update, delete: if false;
+}
+}
+match /pistas_desap_autoria/{c} {
+allow read: if l();
+allow create: if b() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+&& getAfter(/databases/$(database)/documents/desaparecidos/$(c.split('_')[0])/pistas/$(c.split('_')[1])).data.anonimo == true;
+allow update, delete: if false;
+}
+function cS(a) {
+return a.especie in ['cao', 'gato', 'ave', 'outro']
+&& a.cores is list && a.cores.size() <= 4
+&& a.cores.join(',').matches('^((preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)(,(preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)){0,3})?$')
+&& a.get('porte', '') in ['', 'P', 'M', 'G'] && a.get('sexo', '') in ['', 'm', 'f', '?']
+&& d(a.get('raca', ''), 40) && d(a.get('sinais', ''), 300)
+&& a.get('microchip', '') is string && a.get('microchip', '').matches('^[A-Z0-9]{0,20}$')
+&& (!('foto' in a) || (Y(a.foto) && a.foto.size() <= 300000));
+}
+match /pets/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b() && (resource.data.visivel == true || resource.data.donoId == request.auth.uid || l());
+allow create, update: if b() && p() && a().donoId == request.auth.uid
+&& (resource == null || resource.data.donoId == request.auth.uid)
+&& a().keys().hasOnly(['donoId', 'donoNome', 'nome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'idade', 'sinais', 'microchip', 'foto', 'cidade', 'uf', 'geo', 'geo4', 'status', 'perdidoEm', 'perdidoLocal', 'visivel', 'criadoEm', 'atualizadoEm'])
+&& a().nome is string && a().nome.size() >= 1 && a().nome.size() <= 40
+&& d(a().get('donoNome', ''), 80) && d(a().get('idade', ''), 20)
+&& d(a().get('cidade', ''), 60) && d(a().get('uf', ''), 2)
+&& cS(a())
+&& a().status in ['casa', 'perdido'] && a().visivel is bool
+&& a().get('geo4', '').matches('^([0-9a-z]{4})?$')
+&& a().atualizadoEm == request.time;
+allow delete: if b() && resource.data.donoId == request.auth.uid;
+}
+match /pets_achados/{c} {
+function a() { return request.resource.data; }
+allow get, list: if b();
+allow create: if b() && p()
+&& a().keys().hasOnly(['autorId', 'autorNome', 'especie', 'raca', 'cores', 'porte', 'sexo', 'sinais', 'microchip', 'foto', 'local', 'geo4', 'quando', 'status', 'criadoEm', 'atualizadoEm'])
+&& a().autorId == request.auth.uid && d(a().get('autorNome', ''), 80)
+&& cS(a())
+&& a().local is map && a().local.keys().hasOnly(['lat', 'lng', 'nome'])
+&& a().local.lat is number && a().local.lat >= -34 && a().local.lat <= 6
+&& a().local.lng is number && a().local.lng >= -75 && a().local.lng <= -28 && d(a().local.get('nome', ''), 120)
+&& a().geo4 is string && a().geo4.matches('^[0-9a-z]{4}$')
+&& a().quando is timestamp && a().quando <= request.time
+&& a().status == 'ativo' && a().criadoEm == request.time && a().atualizadoEm == request.time;
+allow update: if b() && m().hasOnly(['status', 'atualizadoEm']) && request.resource.data.atualizadoEm == request.time
+&& ((resource.data.autorId == request.auth.uid && request.resource.data.status in ['ativo', 'devolvido', 'removido'])
+|| (l() && request.resource.data.status == 'removido'));
+allow delete: if false;
+}
+function zzProva(x) {
+return x != null && request.resource.data.get('campo0', '') is string && request.resource.data.get('campo1', '') is string && request.resource.data.get('campo2', '') is string && request.resource.data.get('campo3', '') is string && request.resource.data.get('campo4', '') is string && request.resource.data.get('campo5', '') is string && request.resource.data.get('campo6', '') is string && request.resource.data.get('campo7', '') is string && request.resource.data.get('campo8', '') is string && request.resource.data.get('campo9', '') is string && request.resource.data.get('campo10', '') is string && request.resource.data.get('campo11', '') is string && request.resource.data.get('campo12', '') is string && request.resource.data.get('campo13', '') is string && request.resource.data.get('campo14', '') is string && request.resource.data.get('campo15', '') is string && request.resource.data.get('campo16', '') is string && request.resource.data.get('campo17', '') is string && request.resource.data.get('campo18', '') is string && request.resource.data.get('campo19', '') is string && request.resource.data.get('campo20', '') is string && request.resource.data.get('campo21', '') is string && request.resource.data.get('campo22', '') is string && request.resource.data.get('campo23', '') is string && request.resource.data.get('campo24', '') is string;
+}
+match /hfprova/{x} {
+allow write: if zzProva(x);
+}
+}
+}
