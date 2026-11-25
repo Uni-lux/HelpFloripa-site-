@@ -8,7 +8,7 @@
 // =====================================================
 
 import { confirmarHF } from "./confirmar.js?v=6";
-import { respostaDoPerfil } from "./servidor.js?v=3";
+import { respostaDoPerfil } from "./servidor.js?v=4";
 import { relogioDe } from "./fuso.js?v=1";
 import { garantirConversa } from "./conversa-acesso.js?v=1";
 import { buscarNoServidor } from "./busca.js?v=1";

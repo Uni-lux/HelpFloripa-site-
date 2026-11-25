@@ -8,7 +8,7 @@
 // =====================================================
 import { $, toast, erroAmigavel, fb, eu, dados, iniciarRede } from "./rede.js?v=179";
 import { confirmarHF } from "./confirmar.js?v=6";
-import { ligar } from "./chamadas.js?v=10";
+import { ligar } from "./chamadas.js?v=11";
 import { criarMapa, buscarRota, linkNavegar } from "./mapa-vivo.js?v=2";
 import {
   SERVICOS, VEICULOS, MODALIDADES, TAMANHOS, ATIVAS, NOMES_ETAPA, CNH,

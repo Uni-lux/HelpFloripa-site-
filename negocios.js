@@ -22,7 +22,7 @@ import { termosBusca } from "./busca.js?v=1";
 import { MARCAS, CORES_VEICULO, placaOk, placaMercosul, formasPlaca, formatarPlaca, hashPlaca, idVenda, pareceVeiculo } from "./veiculos-base.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
 import { completarGuardados, motivoTexto } from "./guardar.js?v=1";
-import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, CATEGORIAS_AUTO, PALAVRAS_AUTO, MODOS_AUTO, DIFERENCIAIS_AUTO, prazoPromo } from "./vitrine.js?v=102";
+import { buscarAnuncios, PAGAMENTOS, UNIDADES_SERV, DIFERENCIAIS_SERV, CONDICAO, SECOES_CARDAPIO, CARACT_IMOVEL, CONDICOES_IMOVEL, PAGINA_TIPO, CATEGORIAS, GRUPOS_SERV, PALAVRAS_SERV, CATEGORIAS_AUTO, PALAVRAS_AUTO, MODOS_AUTO, DIFERENCIAIS_AUTO, prazoPromo } from "./vitrine.js?v=103";
 
 // Cada tipo com a cor da sua classe na página inicial (inicio.css: --c-servicos etc.) e uma chamada própria.
 const NEGOCIOS = {

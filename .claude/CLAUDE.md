@@ -3160,6 +3160,14 @@ chat da equipe).
   trocar o `CNAME` (aponta para helpfloripa.com.br). Isso muda o item 4 da proposta acima ("mesmo repositório"): perguntar a
   ele se a Ponte passa a ser desenvolvida no Ponte- (e o que sai de cada lado). A proposta "lançar só a Help agora" continua
   sem resposta dele.
+- **Funções da Etapa A publicadas (25/11/2026, por ele, Cloud Shell):** `montarRankingDiario`, `conferirMensagem` e
+  `apagarConta` no ar (junto com a `migrarFotos`; 4 funções). Na 1ª vez o Eventarc deu "Permission denied" na
+  `conferirMensagem` (normal): esperar uns minutos e rodar o deploy de novo. A pasta `~/hf` do Cloud Shell divergiu do GitHub
+  (o `git pull` falhou): usar `git fetch origin && git reset --hard origin/main` (é só pasta de deploy). PR seguinte ao #261:
+  `FUNCOES_LIGADAS = true` (o "Responde rápido" só com `perfis_publicos.respostaServ`; some para todos até o servidor contar 3
+  respostas de cada negócio). `t-perfil-negocio` grava `respostaServ`. Próximo combinado: corridas/entregas, roubos/veículos e
+  desaparecidos pelo servidor (Cloud Functions) para caberem nas regras sem separar a Ponte (ele ainda não confirmou se isso
+  substitui o "lançar só a Help agora").
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

@@ -8,7 +8,8 @@ import { navegador, entrar, USUARIOS as U, BASE } from "./nav.mjs";
 const ok = (c, t) => { console.log(c ? "  ✔" : "  ✘", t); if (!c) process.exitCode = 1; };
 initializeApp({ projectId: "demo-hf" }); const db = getFirestore();
 const NEG = `${U.bruno}_servicos`, conv = [U.ana, U.bruno].sort().join("_");
-await db.doc(`perfis_publicos/${U.bruno}`).set({ atendimento: { resposta: { media: 25, n: 5 }, ausente: false } }, { merge: true });
+// Com as funções ligadas (servidor.js FUNCOES_LIGADAS) o selo usa só o tempo calculado no servidor (respostaServ).
+await db.doc(`perfis_publicos/${U.bruno}`).set({ atendimento: { resposta: { media: 25, n: 5 }, ausente: false }, respostaServ: { media: 25, n: 5, em: Date.now() } }, { merge: true });
 
 const A = await navegador({ mobile: true });
 // ---------- 1) link curto ----------
@@ -30,6 +31,13 @@ ok((await a.textContent("h1")).includes("Perfil não encontrado"), "@ que não e
 await a.goto(BASE + "servicos.html"); await a.waitForSelector("#vtGrade .vt-conta", { timeout: 20000 }); await a.waitForTimeout(2000);
 ok(await a.locator("#vtGrade .vt-rapido").count() >= 1, "cartão da vitrine com o selo Responde rápido");
 await a.locator("#vtGrade .vt-rapido").first().scrollIntoViewIfNeeded(); await a.screenshot({ path: "saida/pn-cartao.png" });
+// o tempo gravado pelo aparelho (dava para forjar) não vale mais sozinho
+const { FieldValue } = await import("firebase-admin/firestore");
+await db.doc(`perfis_publicos/${U.bruno}`).update({ respostaServ: FieldValue.delete() });
+const C = await navegador({ mobile: true }); // novo: sem a cópia do perfil guardada no aparelho
+const c = await entrar(C.ctx, "ana", `servicos.html?negocio=${NEG}`); await c.waitForSelector(".vd-cab h3", { timeout: 20000 }); await c.waitForTimeout(1500);
+ok(await c.locator(".vd-selo-resp.rapido").count() === 0, "só com o tempo do aparelho: sem o selo Responde rápido");
+await C.browser.close();
 
 // ---------- 3) orçamento concluído → avaliação pedida ----------
 await db.doc(`conversas/${conv}`).set({ contexto: { tipo: "servicos", titulo: "Conserto de chuveiro" }, atualizadoEm: Timestamp.now() }, { merge: true });
