@@ -75,8 +75,11 @@ service cloud.firestore {
       return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
     }
 
+    // No cadastro: nada de selo/avaliações, nem plano/valor (o plano de verdade fica em planos/{uid}) e tipoUsuario só
+    // "usuario" (nenhuma regra dá poder por esses campos, mas assim não ficam números falsos na conta).
     function naoTocaCamposProtegidosNoCreate() {
-      return !request.resource.data.keys().hasAny(camposProtegidos());
+      return !request.resource.data.keys().hasAny(camposProtegidos().concat(['plano', 'valorPlanoMensal']))
+          && request.resource.data.get('tipoUsuario', 'usuario') == 'usuario';
     }
 
     // No update também ficam travados plano/valorPlanoMensal/tipoUsuario:
@@ -843,7 +846,7 @@ service cloud.firestore {
             && p.titulo is string && p.titulo.size() >= 3 && p.titulo.size() <= 60
             && valorTextoAte(p.get('texto', ''), 200)
             && (p.get('codigo', '') == '' || (p.codigo is string && p.codigo.matches('^[A-Z0-9]{3,20}$')))
-            && p.ate is timestamp && p.ate < request.time + duration.value(62, 'd');
+            && p.ate is timestamp && p.ate > request.time && p.ate < request.time + duration.value(62, 'd');
       }
 
       // Instagram (só o @, sem link), site (http/https, até 120) e CNPJ (14 números) num regex só;
@@ -952,7 +955,20 @@ service cloud.firestore {
             && listaAte('busca', 100)
             && listaAte('caracteristicas', 20)
             && listaAte('condicoes', 12)
-            && dataOuNulo('ocultoAte');
+            && dataOuNulo('ocultoAte')
+            && numerosImovelOk(request.resource.data);
+      }
+      // Números do imóvel: número (ou vazio), nunca negativo e dentro do possível; escolhas só das listas do site.
+      function numAte(v, max) { return v == null || ((v is int || v is float) && v >= 0 && v <= max); }
+      function numerosImovelOk(d) {
+        return numAte(d.get('preco', null), 1000000000)
+            && numAte(d.get('condominio', null), 10000000) && numAte(d.get('iptu', null), 10000000)
+            && numAte(d.get('quartos', null), 100) && numAte(d.get('suites', null), 100)
+            && numAte(d.get('banheiros', null), 100) && numAte(d.get('vagas', null), 100)
+            && numAte(d.get('area', null), 10000000) && numAte(d.get('hospedes', null), 999)
+            && d.get('ativo', true) is bool && d.get('mobiliado', false) is bool
+            && d.get('finalidade', 'aluguel') in ['aluguel', 'venda', 'temporada']
+            && d.get('categoria', 'outros') in ['apartamento', 'casa', 'kitnet', 'terreno', 'comercial', 'outros'];
       }
 
       allow get: if logado() && podeAbrir('donoId');
@@ -1021,7 +1037,9 @@ service cloud.firestore {
       }
       function comunidadeOk() {
         let d = request.resource.data;
-        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '');
+        // Todo texto que a pessoa escreve entra na conferência de venda (antes só título e descrição).
+        let texto = d.get('titulo', '') + ' ' + d.get('descricao', '') + ' ' + d.get('tipoItem', '')
+                    + ' ' + d.get('quarto', {}).get('regras', '') + ' ' + d.get('achado', {}).get('local', '');
         return d.categoria in ['doacao', 'troca', 'pedido', 'quarto', 'achados']
             && d.titulo is string && d.titulo.size() >= 3 && d.titulo.size() <= 80
             && textoAte('descricao', 1000)
@@ -1039,8 +1057,9 @@ service cloud.firestore {
             && (d.categoria == 'quarto' ? quartoOk(d.get('quarto', null)) : !('quarto' in d))
             && (d.categoria == 'achados' ? achadoOk(d.get('achado', null)) : !('achado' in d))
             // Sem venda: nada de "vendo/venda/vende..." e, fora do quarto, nada de "R$".
-            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas)\\b.*')
-            && (d.categoria == 'quarto' || !texto.matches('(?s).*[Rr][$].*'))
+            && !texto.matches('(?i)(?s).*\\b(vendo|venda|vende|vender|vendem|vendas|vendido|vendida|neg[oó]cio por|aceito proposta)\\b.*')
+            // Fora do quarto: nem "R$", nem valor com número ("50 reais", "50 conto", "20 pila").
+            && (d.categoria == 'quarto' || !texto.matches('(?i)(?s).*([Rr] *[$]|\\b[0-9]+ ?(reais|real|conto|contos|pila|pilas)\\b).*'))
             && dataOuNulo('ocultoAte');
       }
       allow get: if logado() && podeAbrir('donoId');
@@ -1141,7 +1160,12 @@ service cloud.firestore {
                     && request.resource.data.quando > request.time
                     && request.resource.data.quando < request.time + duration.value(60, 'd')
                     && request.resource.data.dados is map
-                    && request.resource.data.dados.get('autorId', '') == request.auth.uid;
+                    && request.resource.data.dados.get('autorId', '') == request.auth.uid
+                    // datas do servidor: criadoEm na criação (e não muda), atualizadoEm quando muda algo
+                    && (resource == null
+                        ? request.resource.data.get('criadoEm', request.time) == request.time && !('atualizadoEm' in request.resource.data)
+                        : request.resource.data.get('criadoEm', null) == resource.data.get('criadoEm', null)
+                          && request.resource.data.get('atualizadoEm', null) == request.time);
       allow delete: if logado() && resource.data.autorId == request.auth.uid;
     }
 
@@ -1178,6 +1202,7 @@ service cloud.firestore {
                     && request.resource.data.clienteId is string
                     && id == request.auth.uid + '_' + request.resource.data.clienteId
                     && request.resource.data.etiquetas is list && request.resource.data.etiquetas.size() <= 8
+                    && request.resource.data.etiquetas.join('\n').matches('^([^\n]{1,24}(\n[^\n]{1,24}){0,7})?$')
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000)
                     && request.resource.data.atualizadoEm == request.time;
       allow delete: if logado() && resource.data.donoId == request.auth.uid;
@@ -1302,7 +1327,9 @@ service cloud.firestore {
         return a != null && n is map && request.auth.uid != a.de
             && n.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
             && n.de == a.de && n.em == a.em
-            && n.status in ['aceito', 'recusado'];
+            && a.get('status', 'pendente') == 'pendente'
+            && n.status in ['aceito', 'recusado']
+            && n.get('decididoEm', null) == request.time;
       }
 
       // Conversa ainda não criada: só quem faz parte dela (o id tem os dois uids) pode consultar.
@@ -1540,7 +1567,12 @@ service cloud.firestore {
                       // o conteúdo guardado é o da mensagem de verdade (não dá para inventar outro)
                       && request.resource.data.conteudo.get('texto', '') == original().get('texto', '')
                       && request.resource.data.conteudo.get('tipoArquivo', '') == original().get('tipoArquivo', '')
-                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '');
+                      && request.resource.data.conteudo.get('arquivoUrl', '') == original().get('arquivoUrl', '')
+                      && request.resource.data.conteudo.get('nomeArquivo', null) == original().get('nomeArquivo', null)
+                      && request.resource.data.conteudo.get('cartao', null) == original().get('cartao', null)
+                      && request.resource.data.conteudo.get('avaliacao', null) == original().get('avaliacao', null)
+                      && request.resource.data.conteudo.get('resposta', null) == original().get('resposta', null)
+                      && request.resource.data.conteudo.get('edicoes', null) == original().get('edicoes', null);
         // Quem recebeu e denunciou (dentro das 24 horas) marca "denunciada": aí só a moderação apaga.
         allow update: if logado() && daConversa() && noPrazo()
                       && request.auth.uid != resource.data.remetenteId
@@ -1866,6 +1898,8 @@ service cloud.firestore {
                     && request.resource.data.status == 'aberta'
                     && request.resource.data.aberturas == 1
                     && request.resource.data.get('resposta', null) == null
+                    && request.resource.data.get('respondidaEm', null) == null
+                    && request.resource.data.get('resolvidaEm', null) == null
                     && request.resource.data.criadoEm == request.time
                     && request.resource.data.abertaEm == request.time
                     && contaAntiga(request.auth.uid)
@@ -1902,6 +1936,8 @@ service cloud.firestore {
                         && request.resource.data.abertaEm == request.time
                         && request.resource.data.aberturas == resource.data.get('aberturas', 1) + 1
                         && request.resource.data.get('resposta', null) == null
+                        && request.resource.data.get('respondidaEm', null) == null
+                        && request.resource.data.get('resolvidaEm', null) == null
                         && contou())
                     );
 
@@ -1985,7 +2021,8 @@ service cloud.firestore {
                     && (!('contexto' in request.resource.data)
                         || (request.resource.data.tipo == 'mensagem'
                             && request.resource.data.contexto is list
-                            && request.resource.data.contexto.size() <= 12))
+                            && request.resource.data.contexto.size() <= 12
+                            && request.resource.data.contexto.join('\n').matches('^([A-Za-z0-9]{1,40}(\n[A-Za-z0-9]{1,40}){0,11})?$')))
                     && request.resource.data.status == 'nova'
                     && request.resource.data.criadoEm == request.time
                     && itemDoAlvo(request.resource.data);
@@ -2012,6 +2049,14 @@ service cloud.firestore {
     }
 
     match /sancoes/{uid} {
+      // O histórico só ganha uma entrada no fim (com 50, a mais antiga sai): ninguém reescreve o que já aconteceu.
+      function historicoSoCresce() {
+        let a = resource == null ? [] : resource.data.get('historico', []);
+        let n = request.resource.data.get('historico', []);
+        return a.size() == 0 ? n.size() <= 1
+             : (n.size() == a.size() + 1 && n[0:a.size()] == a)
+               || (a.size() == 50 && n.size() == 50 && n[0:49] == a[1:50]);
+      }
       allow get: if logado() && request.auth.uid == uid;
       allow read: if admin();
       // Quem é da equipe só recebe (ou perde) sanção pelas mãos de um dono: um moderador não suspende o dono nem
@@ -2023,8 +2068,10 @@ service cloud.firestore {
                     && (request.resource.data.tipo == 'banimento' || request.resource.data.ate is timestamp)
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
-                    && listaAte('historico', 50);
-      allow delete: if podeModerar() && (papel() == 'dono' || !exists(/databases/$(database)/documents/admins/$(uid)));
+                    && listaAte('historico', 50)
+                    && historicoSoCresce();
+      // Apagar a sanção (e o histórico junto): só os donos. O painel tira a sanção gravando "removida" no histórico.
+      allow delete: if podeModerar() && papel() == 'dono';
     }
 
     match /avisos/{id} {
@@ -2055,7 +2102,12 @@ service cloud.firestore {
                     && valorTextoAte(request.resource.data.get('texto', ''), 600)
                     && request.resource.data.tipo in ['info', 'novidade', 'alerta']
                     && request.resource.data.ativo is bool
-                    && request.resource.data.por == request.auth.uid;
+                    && request.resource.data.por == request.auth.uid
+                    // link só para uma página do site (o comunicados.js também só abre esse tipo)
+                    && (!('link' in request.resource.data) || (request.resource.data.link is string
+                        && request.resource.data.link.matches('^[A-Za-z0-9_./?=&#-]{1,200}$') && !request.resource.data.link.matches('^//.*')))
+                    && request.resource.data.get('em', request.time) == request.time
+                    && dataOuNulo('ate');
       allow delete: if podeModerar();
     }
 
@@ -2091,8 +2143,9 @@ service cloud.firestore {
       // Quem abre não escolhe ser urgente: a prioridade tem que bater com o assunto (ou com o plano da conta).
       function prioridadeOk(d) {
         let p = d.get('prioridade', 'normal');
-        return p == 'normal'
-            || (p == 'urgente' && d.categoria in ['golpe', 'sos'])
+        // golpe e Help (sos) entram SEMPRE como urgentes (o site grava assim; ninguém joga um golpe para a fila normal)
+        return d.categoria in ['golpe', 'sos'] ? p == 'urgente'
+            : p == 'normal'
             || (p == 'alta' && (d.categoria in ['pagamento', 'contestacao']
                 || (exists(/databases/$(database)/documents/planos/$(request.auth.uid))
                     && get(/databases/$(database)/documents/planos/$(request.auth.uid)).data.plano in ['pro', 'premium']
@@ -2182,7 +2235,8 @@ service cloud.firestore {
               && x.tipo in ['imagem', 'video', 'arquivo']
               && valorTextoAte(x.get('nome', ''), 120)
               && x.url is string && x.url.size() <= 750000
-              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+              // arquivo no Storage: só da pasta suporte/ (a sua ou a da equipe), nunca um link qualquer
+              && x.url.matches('^(data:(image/jpeg|application/pdf);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/suporte%2F(' + request.auth.uid + '|equipe_[A-Za-z0-9]+)%2F).*');
         }
         allow read: if logado() && (chamado().uid == request.auth.uid || admin());
         allow create: if logado()
@@ -2236,7 +2290,8 @@ service cloud.firestore {
             && d.documento is string && d.documento.size() <= 700000 && d.documento.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
             // Selfie segurando o documento: prova que quem pede é a pessoa do documento.
             && d.selfie is string && d.selfie.size() <= 450000 && d.selfie.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
-            && (!('links' in d) || (d.links is list && d.links.size() <= 3))
+            && (!('links' in d) || (d.links is list && d.links.size() <= 3
+                && d.links.join('\n').matches('^(https?://[^\\s]{3,192}(\nhttps?://[^\\s]{3,192}){0,2})?$')))
             && valorTextoAte(d.get('motivo', ''), 500)
             && d.status == 'pendente'
             && d.criadoEm == request.time && d.atualizadoEm == request.time;
@@ -2264,6 +2319,7 @@ service cloud.firestore {
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
                     && request.resource.data.analisadaPor == request.auth.uid
+                    && request.resource.data.analisadaEm == request.time && request.resource.data.atualizadoEm == request.time
                     && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
                     && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
       allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
@@ -2296,7 +2352,12 @@ service cloud.firestore {
       allow update: if podeModerar()
                     && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
                     && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
-                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    // novo → em análise → resolvido/descartado (o que foi decidido não volta)
+                    && (request.resource.data.status == resource.data.status
+                        || (resource.data.status == 'novo' && request.resource.data.status != 'novo')
+                        || (resource.data.status == 'em_analise' && request.resource.data.status in ['resolvido', 'descartado']))
+                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor'])
+                        || (request.resource.data.analisadaPor == request.auth.uid && request.resource.data.analisadaEm == request.time))
                     && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
       allow delete: if false;
@@ -2311,7 +2372,8 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
                     && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
                     && valorTextoAte(request.resource.data.get('comentario', ''), 500)
-                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
+                    && (!('atendidoPor' in request.resource.data)
+                        || request.resource.data.atendidoPor == get(/databases/$(database)/documents/suporte/$(chamadoId)).data.get('atendidoPor', ''))
                     && request.resource.data.criadoEm == request.time;
       allow update, delete: if false;
     }
@@ -2515,7 +2577,8 @@ service cloud.firestore {
           && d.texto is string && d.texto.size() <= 2000
           && (d.texto.size() >= 1 || 'anexo' in d)
           && d.em == request.time
-          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
+          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10
+              && d.mencoes.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,9})?$')))
           && (!('resposta' in d)
               || (d.resposta is map
                   && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
@@ -2626,7 +2689,11 @@ service cloud.firestore {
                     && request.resource.data.participantes == par.split('_')
                     && valorTextoAte(request.resource.data.get('ultimaTexto', ''), 140)
                     && (!('ultimoAutor' in request.resource.data) || request.resource.data.ultimoAutor in par.split('_'))
-                    && request.resource.data.get('lidoEm', {}) is map;
+                    && request.resource.data.get('lidoEm', {}) is map
+                    // cada um marca só a própria leitura, e "última mensagem" só de quem está gravando
+                    && request.resource.data.get('lidoEm', {}).diff(resource == null ? {} : resource.data.get('lidoEm', {})).affectedKeys().hasOnly([request.auth.uid])
+                    && (!request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasAny(['ultimaEm', 'ultimaTexto', 'ultimoAutor'])
+                        || (request.resource.data.get('ultimoAutor', null) == request.auth.uid && request.resource.data.get('ultimaEm', null) == request.time));
       allow delete: if false;
       match /mensagens/{id} {
         allow read: if admin() && request.auth.uid in par.split('_');
@@ -2639,6 +2706,12 @@ service cloud.firestore {
     // Conteúdo de mensagem do chat da equipe apagada para todos (abre por 24 horas, só quem participa;
     // depois disso qualquer um da conversa apaga de vez).
     match /equipe_apagadas/{id} {
+      function equipeCopiaIgual(c, o) {
+        return c.get('tipoArquivo', null) == o.get('tipoArquivo', null) && c.get('nomeArquivo', null) == o.get('nomeArquivo', null)
+            && c.get('tamanho', null) == o.get('tamanho', null) && c.get('miniatura', null) == o.get('miniatura', null)
+            && c.get('duracao', null) == o.get('duracao', null) && c.get('resposta', null) == o.get('resposta', null)
+            && c.get('mencoes', null) == o.get('mencoes', null) && c.get('edicoes', null) == o.get('edicoes', null);
+      }
       function daConversaEq(c) { return c == 'equipe' || c.matches('^canal-[a-z]+$') || request.auth.uid in c.split('_'); }
       function msgEq(c) {
         return c == 'equipe' ? /databases/$(database)/documents/equipe_chat/$(id)
@@ -2657,7 +2730,8 @@ service cloud.firestore {
                     && request.resource.data.conteudo is map
                     && request.resource.data.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'anexo', 'nomeArquivo', 'tamanho', 'miniatura', 'duracao', 'resposta', 'mencoes', 'edicoes'])
                     && request.resource.data.conteudo.get('texto', '') == get(msgEq(request.resource.data.conversa)).data.get('texto', '')
-                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '');
+                    && request.resource.data.conteudo.get('anexo', '') == get(msgEq(request.resource.data.conversa)).data.get('anexo', '')
+                    && equipeCopiaIgual(request.resource.data.conteudo, get(msgEq(request.resource.data.conversa)).data);
       allow update: if false;
       allow delete: if admin() && daConversaEq(resource.data.conversa) && request.time >= resource.data.apagadaEm + duration.value(24, 'h');
     }
@@ -2710,6 +2784,10 @@ service cloud.firestore {
             && valorTextoAte(d.get('ligacao', null), 160)
             && valorTextoAte(d.get('ligacaoNome', null), 120)
             && valorTextoAte(d.get('criadoPorNome', null), 80)
+            // concluída: a data é a do servidor quando vira "feito", fica a mesma enquanto continua feita e some ao reabrir
+            && (d.status != 'feito' ? d.get('concluidaEm', null) == null
+                : (resource == null || resource.data.status != 'feito') ? d.get('concluidaEm', null) == request.time
+                : d.get('concluidaEm', null) == resource.data.get('concluidaEm', null))
             && d.atualizadoEm == request.time;
       }
       allow read: if admin();
@@ -2740,6 +2818,9 @@ service cloud.firestore {
       // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
       allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
       allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
+                    && valorTextoAte(request.resource.data.get('alvo', ''), 300) && valorTextoAte(request.resource.data.get('ref', ''), 300)
+                    && valorTextoAte(request.resource.data.get('porNome', ''), 80)
                     && request.resource.data.por == request.auth.uid
                     && request.resource.data.em == request.time
                     && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
@@ -2916,6 +2997,13 @@ service cloud.firestore {
       allow update: if false;
     }
     match /stories/{id} {
+      // A mesma conta do "abrir" (get): no ar (26 h) ou destacado, e a pessoa pode ver (lista / não ocultada).
+      function podeVerFlash() {
+        let s = get(/databases/$(database)/documents/stories/$(id)).data;
+        return s.autorId == request.auth.uid
+            || (s.criadoEm > request.time - duration.value(26, 'h') || s.get('destacado', false) == true)
+            && (s.get('publico', 'todos') == 'amigos' ? request.auth.uid in s.lista : !(request.auth.uid in s.get('ocultoPara', [])));
+      }
       // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
       // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
       // Quem pode ver (13/11/2026; antes qualquer pessoa logada lia, e só o app escondia): para todos (restrito false);
@@ -2947,7 +3035,8 @@ service cloud.firestore {
       match /vistos/{uid} {
         allow create: if logado() && uid == request.auth.uid
                       && request.resource.data.keys().hasOnly(['criadoEm'])
-                      && request.resource.data.criadoEm == request.time;
+                      && request.resource.data.criadoEm == request.time
+                      && podeVerFlash();
         allow read: if logado() && (uid == request.auth.uid
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow update, delete: if false;
@@ -2960,7 +3049,8 @@ service cloud.firestore {
                       && request.resource.data.em == request.time
                       && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
                       && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
-                      && get(/databases/$(database)/documents/stories/$(id)).data.autorId != request.auth.uid;
+                      && get(/databases/$(database)/documents/stories/$(id)).data.autorId != request.auth.uid
+                      && podeVerFlash();
         allow read: if logado() && (uid == request.auth.uid
                       || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
         allow delete: if logado() && uid == request.auth.uid;
@@ -2993,15 +3083,25 @@ service cloud.firestore {
         return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
           && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
           && d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+          // ids de flash (só letras e números) e sem repetir
+          && d.ids.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,99}$')
+          && d.ids.toSet().size() == d.ids.size()
           && d.atualizadoEm == request.time
           && (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
           && (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
       }
+      // A capa, quando muda, tem que ser um flash da própria pessoa.
+      function capaMinha(d, antes) {
+        return !('capa' in d) || d.capa == antes
+            || get(/databases/$(database)/documents/stories/$(d.capa)).data.autorId == request.auth.uid;
+      }
       allow read: if logado();
       allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, '');
       allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data);
+                    && request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data)
+                    && capaMinha(request.resource.data, resource.data.get('capa', ''));
       allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
     }
 
@@ -3218,7 +3318,10 @@ service cloud.firestore {
                     && request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
                     && request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
                     && request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
-                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number;
+                    && request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number
+                    // a data de criação não muda depois de gravada
+                    && (resource == null || !('criadoEm' in resource.data)
+                        || request.resource.data.get('criadoEm', null) == resource.data.criadoEm);
     }
 
     match /rascunhos/{uid}/itens/{id} {
@@ -3425,6 +3528,9 @@ service cloud.firestore {
                     && id == request.resource.data.comentarioId + '_' + request.auth.uid
                     && request.resource.data.opcao is int && request.resource.data.opcao >= 0
                     && request.resource.data.opcao < get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.enquete.opcoes.size()
+                    // comentário escondido não recebe voto; bloqueado com o autor não vota (suspenso já cai no emailOk)
+                    && get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.get('oculto', false) == false
+                    && !bloqueioEntre(request.auth.uid, get(/databases/$(database)/documents/comentarios/$(request.resource.data.comentarioId)).data.autorId)
                     && request.resource.data.criadoEm == request.time;
       allow delete: if podeModerar();
     }
@@ -3479,14 +3585,12 @@ service cloud.firestore {
             && (!('mediaTipo' in d) || d.mediaTipo in ['', 'image', 'video'])
             && (!('mediaUrl' in d) || d.mediaUrl == ''
                 || (d.mediaUrl is string
-                    && d.mediaUrl.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*')))
+                    && fotoPubOk(d.mediaUrl, d.autorId)))
             // Várias fotos (2 a 4): a primeira é a mesma de mediaUrl; cada uma do próprio site.
             && (!('midias' in d)
                 || (d.midias is list && d.midias.size() >= 2 && d.midias.size() <= 4
                     && d.get('mediaTipo', '') == 'image' && d.midias[0] == d.get('mediaUrl', '')
-                    && fotoPubOk(d.midias[1])
-                    && (d.midias.size() < 3 || fotoPubOk(d.midias[2]))
-                    && (d.midias.size() < 4 || fotoPubOk(d.midias[3]))));
+                    && d.midias.join(' ').matches('^(' + FOTO_PUB(d.autorId) + ')( (' + FOTO_PUB(d.autorId) + ')){1,3}$')));
       }
       // Hashtags (até 10, minúsculas, sem #) e pessoas marcadas (até 10 uids): uma expressão cada (join).
       function tagsOk(d) {
@@ -3510,8 +3614,9 @@ service cloud.firestore {
         let p = d.get('publico', null);
         return p == null
             || (p is map && p.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
-                && (!('idadeMin' in p) || (p.idadeMin is int && p.idadeMin >= 16 && p.idadeMin <= 100))
-                && (!('idadeMax' in p) || (p.idadeMax is int && p.idadeMax >= 16 && p.idadeMax <= 100))
+                // idade de 16 a 100 e a mínima não passa da máxima
+                && p.get('idadeMin', 16) is int && p.get('idadeMax', 100) is int
+                && 16 <= p.get('idadeMin', 16) && p.get('idadeMin', 16) <= p.get('idadeMax', 100) && p.get('idadeMax', 100) <= 100
                 && (!('genero' in p) || p.genero in ['f', 'm'])
                 && (!('local' in p) || p.local in ['brasil', 'estados', 'cidades', 'perto'])
                 && (!('ufs' in p) || (p.ufs is list && p.ufs.size() >= 1 && p.ufs.size() <= 27 && p.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
@@ -3523,8 +3628,12 @@ service cloud.firestore {
                     && (!('nome' in p.perto) || (p.perto.nome is string && p.perto.nome.size() <= 60))))
                 && (!('seguidores' in p) || p.seguidores in ['todos', 'seguidores', 'novos']));
       }
-      function fotoPubOk(u) {
-        return u is string && u.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*');
+      // Foto/vídeo do Storage só da pasta diario/<autor>/ (não dá para usar arquivo de outra pessoa ou de outra pasta).
+      function FOTO_PUB(uid) {
+        return '(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/diario%2F' + uid + '%2F)[^ ]*';
+      }
+      function fotoPubOk(u, uid) {
+        return u is string && u.matches('^' + FOTO_PUB(uid) + '$');
       }
       // Tipo da publicação e o que cada um aceita (sem 'tipo' = publicação antiga, vale como antes):
       //   texto: texto obrigatório; pode ter UMA imagem "casada" (estilo 'casada', texto até 500); sem enquete/caixa/vídeo
@@ -4015,13 +4124,27 @@ service cloud.firestore {
                     && (d().tipo != 'produto'
                         ? !('itens' in d())
                         : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
+                           && itensPresenteOk(d().itens)
                            && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     // Vale-presente (12/11/2026): um valor para usar num negócio do Help Floripa (qualquer tipo).
                     && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      // Cada item do presente: {nome ≤60, preco 0–100 mil, qtd 1–99} (o que o site grava).
+      function itemPresenteOk(l, i) {
+        return i >= l.size() || (l[i] is map && l[i].keys().hasOnly(['nome', 'preco', 'qtd'])
+            && valorTextoAte(l[i].get('nome', ''), 60)
+            && (l[i].preco is int || l[i].preco is float) && l[i].preco >= 0 && l[i].preco <= 100000
+            && l[i].qtd is int && l[i].qtd >= 1 && l[i].qtd <= 99);
+      }
+      function itensPresenteOk(l) {
+        return itemPresenteOk(l, 0) && itemPresenteOk(l, 1) && itemPresenteOk(l, 2) && itemPresenteOk(l, 3) && itemPresenteOk(l, 4)
+            && itemPresenteOk(l, 5) && itemPresenteOk(l, 6) && itemPresenteOk(l, 7) && itemPresenteOk(l, 8) && itemPresenteOk(l, 9);
+      }
       allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
       function presenteMuda(k, st, ns) {
         return d().atualizadoEm == request.time && (
@@ -4051,7 +4174,9 @@ service cloud.firestore {
         return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
             && d().precisao is number && d().precisao >= 0 && d().rumo is number;
       }
-      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
+      // Bloqueou depois de começar: a outra pessoa deixa de ver na hora (quem compartilha continua vendo o próprio).
+      allow get, list: if logado() && request.auth.uid in resource.data.participantes
+                    && (resource.data.uid == request.auth.uid || !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1]));
       allow create: if logado() && emailOk()
                     && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
                     && d().uid == request.auth.uid
@@ -4067,6 +4192,8 @@ service cloud.firestore {
                     && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
                     && coordOk() && d().ate <= resource.data.ate && d().parado is bool
                     && (resource.data.ate > request.time || d().parado == true)
+                    // com bloqueio entre os dois só dá para PARAR (posição nova não é mais aceita)
+                    && (d().parado == true || !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1]))
                     && d().atualizadoEm == request.time;
       allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
@@ -4076,6 +4203,9 @@ service cloud.firestore {
     // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
     // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
     // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
+    // Ocorrência e desaparecido mostram só a região: lat/lng com até 3 casas (~100 m), como o site grava.
+    function tresCasas(v) { return math.abs(v * 1000 - math.round(v * 1000)) < 0.001; }
+    function pontoAproxOk(d) { return pontoAlertaOk(d) && tresCasas(d.lat) && tresCasas(d.lng); }
     function pontoAlertaOk(d) {
       return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
           && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
@@ -4094,6 +4224,8 @@ service cloud.firestore {
                     && valorTextoAte(d().get('texto', ''), 300)
                     && pontoAlertaOk(d()) && d().precisao is number
                     && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
+                    && d().avisados.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,29})?$')
+                    && !(request.auth.uid in d().avisados)
                     && d().status == 'aberto' && d().ajudanteId == ''
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
@@ -4103,7 +4235,9 @@ service cloud.firestore {
         return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
             // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
             || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
-                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
+                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time)
+                && (!k.hasAny(['suporteId']) || (d().suporteId is string && d().suporteId.matches('^[A-Za-z0-9_-]{1,40}$')
+                    && get(/databases/$(database)/documents/suporte/$(d().suporteId)).data.uid == request.auth.uid)))
             || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
                 && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
             || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
@@ -4111,7 +4245,8 @@ service cloud.firestore {
                 && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
                 && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
             || (ajudante && st == 'atendido' && ns == 'aberto'
-                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == ''
+                && d().get('ajudanteNome', '') == '' && d().get('aceitoEm', null) == null);
       }
       allow delete: if false;
     }
@@ -4139,7 +4274,7 @@ service cloud.firestore {
                     && d().descricao is string && d().descricao.size() >= 10 && d().descricao.size() <= 500
                     && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
                     && d().quando is timestamp && d().quando <= request.time
-                    && pontoAlertaOk(d())
+                    && pontoAproxOk(d())
                     && valorTextoAte(d().get('bairro', ''), 60) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
                     && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
@@ -4172,6 +4307,11 @@ service cloud.firestore {
     }
 
     // VEÍCULOS (18/11/2026): o carro/moto da pessoa, com a placa. Só o dono e a moderação leem.
+    // SHA-256 de "hf-veiculo:" + placa no padrão Mercosul (a antiga ABC1234 vira ABC1C34), igual ao veiculos-base.js.
+    function hashDaPlaca(p) {
+      let q = p[4:5].matches('[0-9]') ? p[0:4] + 'ABCDEFGHIJ'[int(p[4:5]):int(p[4:5]) + 1] + p[5:7] : p;
+      return hashing.sha256('hf-veiculo:' + q).toHexString().lower();
+    }
     match /veiculos/{id} {
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
@@ -4181,6 +4321,7 @@ service cloud.firestore {
                     && d().tipo in ['carro', 'moto']
                     && d().placa is string && d().placa.matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$')
                     && d().placaHash is string && d().placaHash.matches('^[a-f0-9]{64}$')
+                    && d().placaHash == hashDaPlaca(d().placa)
                     && valorTextoAte(d().get('marca', ''), 30) && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
                     && valorTextoAte(d().get('apelido', ''), 30)
                     && d().get('ano', '') is string && d().get('ano', '').matches('^([0-9]{4})?$')
@@ -4222,6 +4363,8 @@ service cloud.firestore {
     match /pistas_autoria/{id} {
       allow read: if podeModerar();
       allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+                    && id.split('_').size() == 2
+                    && !exists(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1]))
                     && getAfter(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
       allow update, delete: if false;
     }
@@ -4244,11 +4387,14 @@ service cloud.firestore {
                     && d().quando is timestamp && d().quando <= request.time
                     && d().bo is string && d().bo.matches('^[A-Za-z0-9./-]{4,40}$')
                     && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
-                    && pontoAlertaOk(d()) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+                    && pontoAproxOk(d()) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
                     && d().status == 'analise' && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
                     && ((resource.data.autorId == request.auth.uid && d().status in ['encontrado', 'removido'])
-                        || (podeModerar() && d().status in ['ativo', 'removido', 'encontrado']));
+                        || (podeModerar() && d().status in ['removido', 'encontrado']));
+      // Publicar (moderação): o número do boletim sai do aviso público (fica no registro de ações da equipe).
+      allow update: if podeModerar() && resource.data.status == 'analise' && d().status == 'ativo'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'bo']) && !('bo' in d()) && d().atualizadoEm == request.time;
       allow delete: if false;
       match /pistas/{p} {
         allow read: if logado() && (get(/databases/$(database)/documents/desaparecidos/$(id)).data.autorId == request.auth.uid || podeModerar());
@@ -4277,6 +4423,7 @@ service cloud.firestore {
     function petOk(d) {
       return d.especie in ['cao', 'gato', 'ave', 'outro']
           && d.cores is list && d.cores.size() <= 4
+          && d.cores.join(',').matches('^((preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)(,(preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)){0,3})?$')
           && d.get('porte', '') in ['', 'P', 'M', 'G'] && d.get('sexo', '') in ['', 'm', 'f', '?']
           && valorTextoAte(d.get('raca', ''), 40) && valorTextoAte(d.get('sinais', ''), 300)
           && d.get('microchip', '') is string && d.get('microchip', '').matches('^[A-Z0-9]{0,20}$')

@@ -21,6 +21,7 @@
                     && mudou().hasOnly(['status', 'motivoRecusa', 'analisadaPor', 'analisadaEm', 'documento', 'selfie', 'atualizadoEm'])
                     && request.resource.data.status in ['em_analise', 'aprovada', 'recusada']
                     && request.resource.data.analisadaPor == request.auth.uid
+                    && request.resource.data.analisadaEm == request.time && request.resource.data.atualizadoEm == request.time
                     && (request.resource.data.status == 'em_analise' || (!('documento' in request.resource.data) && !('selfie' in request.resource.data)))
                     && valorTextoAte(request.resource.data.get('motivoRecusa', ''), 500);
       allow delete: if (logado() && request.auth.uid == uid) || podeModerar();
@@ -53,7 +54,12 @@
       allow update: if podeModerar()
                     && mudou().hasOnly(['status', 'nota', 'analisadaEm', 'analisadaPor', 'responsavel', 'responsavelNome', 'assumidoEm'])
                     && request.resource.data.status in ['novo', 'em_analise', 'resolvido', 'descartado']
-                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor']) || request.resource.data.analisadaPor == request.auth.uid)
+                    // novo → em análise → resolvido/descartado (o que foi decidido não volta)
+                    && (request.resource.data.status == resource.data.status
+                        || (resource.data.status == 'novo' && request.resource.data.status != 'novo')
+                        || (resource.data.status == 'em_analise' && request.resource.data.status in ['resolvido', 'descartado']))
+                    && (!mudou().hasAny(['status', 'nota', 'analisadaEm', 'analisadaPor'])
+                        || (request.resource.data.analisadaPor == request.auth.uid && request.resource.data.analisadaEm == request.time))
                     && responsavelOk()
                     && valorTextoAte(request.resource.data.get('nota', ''), 1000);
       allow delete: if false;
@@ -68,7 +74,8 @@
                     && get(/databases/$(database)/documents/suporte/$(chamadoId)).data.uid == request.auth.uid
                     && request.resource.data.nota is int && request.resource.data.nota >= 1 && request.resource.data.nota <= 5
                     && valorTextoAte(request.resource.data.get('comentario', ''), 500)
-                    && (!('atendidoPor' in request.resource.data) || request.resource.data.atendidoPor is string)
+                    && (!('atendidoPor' in request.resource.data)
+                        || request.resource.data.atendidoPor == get(/databases/$(database)/documents/suporte/$(chamadoId)).data.get('atendidoPor', ''))
                     && request.resource.data.criadoEm == request.time;
       allow update, delete: if false;
     }
@@ -153,4 +160,4 @@
             && valorTextoAte(d.get('responsavelNome', ''), 80)
             && (!('assumidoEm' in d) || d.assumidoEm == request.time || d.assumidoEm == resource.data.get('assumidoEm', null));
       }
-// ===== FIM DA PARTE 12 DE 24 =====
+// ===== FIM DA PARTE 13 DE 25 =====

@@ -200,6 +200,7 @@ function limparLixeira() {
   notas = notas.filter((n) => !velhas.includes(n)); apagadas.push(...velhas.map((n) => n.id)); gravarLocal();
 }
 function salvar(n, { silencioso = false } = {}) {
+  if (!n.criadoEm) n.criadoEm = n.em || agora(); // a data de criação não muda depois (regra)
   n.em = agora();
   const i = notas.findIndex((x) => x.id === n.id);
   if (i < 0) notas.unshift(n); else notas[i] = n;

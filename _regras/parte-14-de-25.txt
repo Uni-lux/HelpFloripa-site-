@@ -117,7 +117,8 @@
           && d.texto is string && d.texto.size() <= 2000
           && (d.texto.size() >= 1 || 'anexo' in d)
           && d.em == request.time
-          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10))
+          && (!('mencoes' in d) || (d.mencoes is list && d.mencoes.size() <= 10
+              && d.mencoes.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,9})?$')))
           && (!('resposta' in d)
               || (d.resposta is map
                   && d.resposta.keys().hasOnly(['id', 'autorId', 'nome', 'texto'])
@@ -168,4 +169,4 @@
           && d.edicoes[a.get('edicoes', []).size()].texto == a.get('texto', '')
           && d.edicoes[a.get('edicoes', []).size()].em == a.get('editadaEm', a.em);
     }
-// ===== FIM DA PARTE 13 DE 24 =====
+// ===== FIM DA PARTE 14 DE 25 =====

@@ -206,15 +206,48 @@
 > moderação; `pets_achados.local` dentro do Brasil; comentário oculto vira esqueleto e o conteúdo vai para
 > `comentarios_ocultos/{id}` (só quem escreveu, o dono da publicação e a moderação leem). Agora são **24 partes**, 1302 testes.
 
+> **4ª auditoria, partes 1 a 5 (24/11/2026):** cadastro não aceita `plano`/`valorPlanoMensal` e `tipoUsuario` só "usuario";
+> anúncio de imóvel com números de verdade (preço, condomínio, IPTU, quartos, área... nunca negativos nem absurdos),
+> finalidade e tipo só das listas do site; promoção não pode já ter acabado; Comunidade confere venda também no tipo do item,
+> nas regras do quarto e no local do achado, e recusa "R $", "50 reais", "30 conto", "aceito proposta". Agora são
+> **25 partes**, 1321 testes.
+
+> **4ª auditoria, partes 6 a 10 (24/11/2026):** cópia da mensagem apagada igual à original em TODOS os campos (cartão,
+> avaliação, resposta, nome do arquivo, histórico de edição); solicitação de mensagem só é decidida uma vez, quando está
+> pendente, com a hora do servidor; agendadas com criadoEm/atualizadoEm do servidor; etiquetas das notas de clientes são
+> textos de até 24 letras; comunicado só com link para página do site e datas certas; reclamação nasce e reabre sem datas
+> de resposta/resolução; contexto da denúncia só com ids de mensagem; histórico de sanção só cresce (e só os donos apagam
+> uma sanção). Continuam **25 partes**, 1336 testes.
+
+> **4ª auditoria, partes 11 a 15 (24/11/2026):** chamado de golpe e de Help sempre urgente; anexo do suporte só da pasta
+> `suporte/` do Storage (a sua ou a da equipe); pedido de verificação só com links http(s) e decisão com a hora do servidor;
+> reportes só andam para a frente (novo → em análise → resolvido/descartado); nota do atendimento com o atendente do
+> chamado; menções do chat da equipe só com ids; conversa individual da equipe: cada um marca só a própria leitura e o
+> resumo só de quem grava; cópia da mensagem apagada da equipe igual em tudo; tarefa concluída com a hora do servidor;
+> registro de ações só com os campos dele; visto e reação do Flash só de quem pode ver o flash. Continuam **25 partes**,
+> 1352 testes.
+
+> **4ª auditoria, partes 21 a 24 (25/11/2026):** presente de produto com itens no formato do site ({nome, preco, qtd}) e
+> presente/vale só para negócio no ar; localização ao vivo: com bloqueio a outra pessoa deixa de ver e a posição para de
+> mudar; Help: lista de avisados só com contas (sem a própria pessoa), número do chamado tem que ser da própria pessoa e quem
+> desiste de ajudar limpa nome e hora; autoria de pista anônima só para pista nova; ocorrência e desaparecido só com a
+> região (até 3 casas, ~100 m); ao publicar um desaparecido o boletim sai do aviso (fica no registro de ações); cores do pet
+> só da lista; código da placa do veículo conferido na regra (SHA-256 da placa). Continuam **25 partes**, 1366 testes.
+
+> **4ª auditoria, partes 16 a 20 (25/11/2026):** destaque do Flash sem flash repetido, ids só de flash e capa (quando
+> muda) tem que ser um flash da própria pessoa; nota pessoal não muda a data de criação; voto na enquete de um comentário
+> recusado se o comentário está escondido ou há bloqueio com quem fez; público da publicação com idade mínima ≤ máxima;
+> foto/vídeo do Storage numa publicação só da pasta `diario/<autor>/`. Continuam **25 partes**, 1375 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **24 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **25 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (284.929 bytes. 4.320 linhas. sha256 começa com `fcf2fa89a4a72f26`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 24 =====`. É um comentário: **pode colar junto**,
+- Arquivo de origem: `firestore.rules` (298.320 bytes. 4.467 linhas. sha256 começa com `bc4c611a43dcafba`).
+- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 25 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
-- Conferido: as 24 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1302 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
+- Testes de regras no arquivo remontado: **1375 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

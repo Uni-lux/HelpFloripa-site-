@@ -183,12 +183,13 @@ export function seguranca(el) {
     c.appendChild(top);
     if (/^(data:image|https:\/\/firebasestorage)/.test(String(x.foto || ""))) { const im = document.createElement("img"); im.src = x.foto; im.alt = "Foto"; im.className = "ad-pub-img"; im.style.maxWidth = "160px"; c.appendChild(im); }
     c.append(h("div", "meta", `${COND[x.condicao] || ""}${Number.isInteger(x.idade) ? " · " + x.idade + " anos" : ""} · visto ${dataHora(x.quando)}${x.visto ? " em " + x.visto : ""} · ${[x.cidade, x.uf].filter(Boolean).join("/")}`),
-      h("div", "meta", `Boletim: ${x.bo} · registrado por ${x.autorNome || "?"} (${PAR[x.parentesco] || "?"})`), h("div", "trecho", x.descricao || ""));
+      h("div", "meta", `Boletim: ${x.bo || "no registro de ações (sai do aviso ao publicar)"} · registrado por ${x.autorNome || "?"} (${PAR[x.parentesco] || "?"})`), h("div", "trecho", x.descricao || ""));
     const ac = h("div", "ad-acoes");
     ac.appendChild(btn("Ficha de quem registrou", "mini", () => abrirFicha(x.autorId)));
     if (pode("moderar")) {
       if (x.status === "analise") ac.appendChild(btn("Boletim conferido: publicar", "mini", async () => {
-        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "ativo", atualizadoEm: C.fb.serverTimestamp() });
+        // O boletim sai do aviso público (as regras exigem); ele fica no registro de ações logo abaixo.
+        await C.fb.updateDoc(C.fb.doc(C.fb.db, "desaparecidos", x.id), { status: "ativo", bo: C.fb.deleteField(), atualizadoEm: C.fb.serverTimestamp() });
         await enviarAviso(x.autorId, { titulo: "Aviso de desaparecimento publicado", texto: `O aviso de ${x.nome} foi publicado para quem está perto. Pistas chegam em Help e alertas › Perdidos › Pessoas.`, tipo: "info" }).catch(() => {});
         await registrar("publicar_desaparecido", x.autorId, `${x.nome} · BO ${x.bo}`, `desaparecidos:${x.id}`);
         x.status = "ativo"; cache = null; toast("Aviso publicado"); pintar();

@@ -1,3 +1,40 @@
+    match /admin_log/{id} {
+      // Só os donos do site leem o registro; o resto da equipe só vê as cobranças das reclamações.
+      allow read: if donoDoSite() || (admin() && resource.data.acao == 'cobrar_reclamacao');
+      allow create: if admin()
+                    && request.resource.data.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
+                    && valorTextoAte(request.resource.data.get('alvo', ''), 300) && valorTextoAte(request.resource.data.get('ref', ''), 300)
+                    && valorTextoAte(request.resource.data.get('porNome', ''), 80)
+                    && request.resource.data.por == request.auth.uid
+                    && request.resource.data.em == request.time
+                    && request.resource.data.acao is string && request.resource.data.acao.size() <= 60
+                    && valorTextoAte(request.resource.data.get('detalhe', ''), 1000);
+      allow update, delete: if false;
+    }
+
+    match /estatisticas/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+    match /relatorios/{id} {
+      allow read: if admin();
+      allow write: if false;
+    }
+
+
+    // =====================================================
+    // LIMITE DIÁRIO (anti-spam): ritmo/{uid}
+    // Janela de 24 h a partir da primeira ação. Por janela: até 500 mensagens,
+    // 20 publicações, 200 comentários, 3 propostas e 50 flashes. Cada ação soma exatamente 1 no seu tipo.
+    // =====================================================
+    match /ritmo/{uid} {
+      function limite(t) {
+        return t == 'msg' ? 500 : (t == 'pub' ? 20 : (t == 'parc' ? 3 : (t == 'flash' ? 50 : (t == 'sup' ? 5 : 200))));
+      }
+      function janelaNova() {
+        return resource == null || resource.data.inicio < request.time - duration.value(1, 'd');
+      }
       function contaOk(k, t) {
         let v = request.resource.data.get(k, 0);
         return v is int
@@ -144,40 +181,11 @@
       allow update: if false;
     }
     match /stories/{id} {
-      // Depois das 24 h o flash fica no ARQUIVO do autor (só ele vê, como no Instagram). Os outros leem o que está no ar
-      // (26 h, com folga para relógio atrasado) e o que o autor pôs num destaque (destacado: true).
-      // Quem pode ver (13/11/2026; antes qualquer pessoa logada lia, e só o app escondia): para todos (restrito false);
-      // Amigos próximos só quem está na lista; com gente ocultada, todos menos ela (esses a fileira acha pelo
-      // stories_restritos e abre um por um). Flash antigo, sem o campo, vale pelo publico/ocultoPara dele.
-      // ATENÇÃO: numa consulta (list) o campo que ela não filtra vale o padrão do .get(campo, padrão) — por isso a consulta
-      // só passa com "restrito == false" ou "lista array-contains eu"; a conferência de "ocultoPara" é só ao abrir (get).
-      allow get: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
-                    || ((resource.data.criadoEm > request.time - duration.value(26, 'h')
-                         || resource.data.get('destacado', false) == true)
-                        && (resource.data.get('publico', 'todos') == 'amigos'
-                            ? request.auth.uid in resource.data.lista
-                            : !(request.auth.uid in resource.data.get('ocultoPara', [])))));
-      allow list: if logado() && (resource.data.autorId == request.auth.uid || podeModerar()
-                    || (resource.data.criadoEm > request.time - duration.value(26, 'h')
-                        && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
-      // Anti-spam: até 50 flashes por dia (ritmo/{uid}, gravado junto na mesma operação).
-      allow create: if logado() && emailOk() && flashNovoOk(request.resource.data) && !sancionado(request.auth.uid) && ritmoOk('flash');
-      allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
-      // O autor só marca/desmarca "destacado" (o flash está num destaque do perfil); o resto não muda depois de publicado.
-      allow update: if logado() && resource.data.autorId == request.auth.uid
-                    && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
-                         && request.resource.data.destacado is bool)
-                        // Flash de antes do campo "restrito": o autor completa (só com o valor certo) e ele volta à fileira.
-                        || (!('restrito' in resource.data)
-                            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
-                            && request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
-                                                                  || resource.data.get('ocultoPara', []).size() > 0)));
-      match /vistos/{uid} {
-        allow create: if logado() && uid == request.auth.uid
-                      && request.resource.data.keys().hasOnly(['criadoEm'])
-                      && request.resource.data.criadoEm == request.time;
-        allow read: if logado() && (uid == request.auth.uid
-                      || get(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid);
-        allow update, delete: if false;
+      // A mesma conta do "abrir" (get): no ar (26 h) ou destacado, e a pessoa pode ver (lista / não ocultada).
+      function podeVerFlash() {
+        let s = get(/databases/$(database)/documents/stories/$(id)).data;
+        return s.autorId == request.auth.uid
+            || (s.criadoEm > request.time - duration.value(26, 'h') || s.get('destacado', false) == true)
+            && (s.get('publico', 'todos') == 'amigos' ? request.auth.uid in s.lista : !(request.auth.uid in s.get('ocultoPara', [])));
       }
-// ===== FIM DA PARTE 15 DE 24 =====
+// ===== FIM DA PARTE 16 DE 25 =====
