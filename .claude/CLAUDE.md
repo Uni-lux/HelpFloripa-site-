@@ -3119,7 +3119,19 @@ chat da equipe).
   Aviso do deploy "Unused function: d3" = `pontoAproxOk`, que só as regras guardadas usavam (inofensivo; sai quando
   elas voltarem ou na próxima limpeza). Faltava ele: "Recalcular estrelas" e "Guardar o que já está escondido" no painel.
   Ele está pensando em SEPARAR a rede social (Ponte) da plataforma: opções explicadas (1 só o banco, 2 marca/entrada própria
-  com a mesma conta — recomendada, Mensagens fica na plataforma —, 3 tudo separado); esperando a escolha dele.
+  com a mesma conta — recomendada, Mensagens fica na plataforma —, 3 tudo separado).
+- **DECIDIDO por ele (25/11/2026): OPÇÃO 2** — a Ponte vira marca/entrada própria, mesma conta, banco do Firestore
+  separado (banco nomeado, ex. `ponte`, com regras próprias); Mensagens, negócios, planos, Help e painel ficam na
+  plataforma; continuam ligados (perfil de negócio na Ponte, Flash leva ao negócio, respostas vão para o Mensagens).
+  Conferido: só UM banco por projeto tem a cota grátis (o 2º paga desde a 1ª leitura; o Blaze já está ligado).
+  Regras de um banco provavelmente não leem o outro (conferir no emulador): equipe, sanções, bloqueios, verificação,
+  perfis_publicos, nicknames, pref_publicas e relacoes precisam de CÓPIA no banco da Ponte por Cloud Function.
+  Etapas propostas: 1) regras separadas + cópias por Cloud Function (nada muda para as pessoas); 2) site lendo/gravando
+  o social no banco novo (`getFirestore(app, "ponte")`) e Functions do social com `database: "ponte"`; 3) migração dos
+  dados (botão no painel, como o migrarFotos) numa janela curta; 4) entrada/marca/app da Ponte; 5) corridas, roubos e
+  desaparecidos voltam às regras da plataforma; 6) testes gerais. **Pendente dele:** onde fica a Ponte (pasta
+  helpfloripa.com.br/ponte = mesma sessão; domínio próprio = outro site e login de novo, ou passagem automática por
+  Cloud Function), nome final/ícone e se quer app nas lojas.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
