@@ -21,6 +21,7 @@ import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
 import { abrirCadastroPet } from "./pet-cadastro.js?v=5";
 import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=1";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).
@@ -28,6 +29,9 @@ const ESCALAR_MIN = 3;
 
 const params = new URLSearchParams(location.search);
 let aba = ["sos", "pets", "roubos", "veiculos"].includes(params.get("aba")) ? params.get("aba") : "sos";
+// Roubos e Veículos guardados para a próxima atualização (em-breve.js): as abas somem e o link antigo cai no Help.
+if (EM_BREVE.roubos && (aba === "roubos" || aba === "veiculos")) aba = "sos";
+if (EM_BREVE.roubos) document.querySelectorAll('[data-aba="roubos"], [data-aba="veiculos"]').forEach((b) => b.remove());
 let pos = null, cfg = { raio: 10, sosArea: true, petsArea: true, roubosArea: true };
 const paradas = [];
 const corpo = () => $("alCorpo");
@@ -61,9 +65,9 @@ document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click
   if (sos === "novo") pedirSos(); else if (sos === "rapido") helpRapido(); else if (sos === "rede") abrirRede(); else if (sos) abrirSos(sos);
   if (params.get("pet")) abrirRg(params.get("pet"));
   if (params.get("achado")) abrirAchado(params.get("achado"));
-  if (params.get("desaparecido")) abrirPessoa(params.get("desaparecido"));
-  if (params.get("ocorrencia")) abrirOcorrencia(params.get("ocorrencia"));
-  if (params.get("consultar")) consultar(params.get("consultar"));
+  if (params.get("desaparecido") && !EM_BREVE.desaparecidos) abrirPessoa(params.get("desaparecido"));
+  if (params.get("ocorrencia") && !EM_BREVE.roubos) abrirOcorrencia(params.get("ocorrencia"));
+  if (params.get("consultar") && !EM_BREVE.roubos) consultar(params.get("consultar"));
 })();
 
 function pintarEmergencias(alvo) {
@@ -454,15 +458,15 @@ async function conversar(uid, servico = null) {
 // de aparecer (evita alguém usar o site para achar quem fugiu de uma situação de violência), pistas "Vi esta pessoa"
 // (anônimas se quiser) e o que fazer quando encontra alguém perdido.
 // =====================================================
-let quem = params.get("quem") === "pessoas" ? "pessoas" : "pets";
+let quem = params.get("quem") === "pessoas" && !EM_BREVE.desaparecidos ? "pessoas" : "pets";
 function abaPets() {
   const seg = h("div", "al-seg"); seg.setAttribute("role", "tablist");
-  [["pets", "Pets"], ["pessoas", "Pessoas"]].forEach(([k, n]) => {
+  if (!EM_BREVE.desaparecidos) [["pets", "Pets"], ["pessoas", "Pessoas"]].forEach(([k, n]) => {
     const b = h("button", null, n); b.type = "button"; b.dataset.quem = k; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(quem === k));
     b.addEventListener("click", () => { quem = k; history.replaceState(history.state, "", `alertas.html?aba=pets${k === "pessoas" ? "&quem=pessoas" : ""}`); pintarAba(); });
     seg.appendChild(b);
   });
-  corpo().appendChild(seg);
+  if (seg.childElementCount) corpo().appendChild(seg);
   if (quem === "pessoas") return abaPessoas();
   corpo().appendChild(grupoOps([
     cartaoOp({ nome: "Cadastrar meu pet", desc: "RG com foto e características", icone: "pata", dados: { acao: "pet" }, aoTocar: () => editarPet(null) }),
@@ -1405,7 +1409,7 @@ function abrirConfig() {
   const chave = (k, texto) => { const l = h("label", "ent-check"); const i = h("input"); i.type = "checkbox"; i.checked = cfg[k] !== false; i.dataset.cfg = k; i.addEventListener("change", () => (cfg[k] = i.checked)); l.append(i, h("span", null, texto)); c.appendChild(l); };
   chave("sosArea", "Pedidos de Help de quem está perto");
   chave("petsArea", "Pets perdidos e encontrados");
-  chave("roubosArea", "Alertas de roubo, furto e golpe");
+  if (!EM_BREVE.roubos) chave("roubosArea", "Alertas de roubo, furto e golpe");
   c.appendChild(h("p", "ent-sub", "Pedidos de Help do seu Social chegam sempre (no Mensagens). Quando as notificações no celular estiverem ligadas, chegam também com o app fechado."));
   c.appendChild(botao("Salvar", "ent-btn", async () => {
     try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { alertas: { ...cfg } }, { merge: true }); dados.alertas = { ...cfg }; toast("Salvo"); fechar(); pintarAba(); }

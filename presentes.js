@@ -12,6 +12,7 @@ import { TIPOS_PRESENTE, MIMOS, QUEM_PODE, STATUS_PRESENTE, reaisP, VALOR_MAX_PR
 import { h, ic, botao, ms, dataCurta, avatar, garantirConversa, irPara, abrirTela } from "./entregas-comum.js?v=6";
 import { iconeEl, iconePresente, iconeMimo, ICONE_MIMO } from "./icones-hf.js?v=4";
 import { cartaoOp, grupoOps, secaoOp } from "./cartoes-op.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=1";
 const OCASIOES = {
   aniversario: ["Aniversário", "Feliz aniversário! Que esse ano seja incrível.", "bolo", "Mais um ano de vida"],
   namoro: ["Nosso dia", "Mais um dia do nosso fio. Obrigado por estar comigo.", "coracao", "Para o seu duo"],
@@ -23,7 +24,8 @@ const OCASIOES = {
 };
 // Tipos de presente em grupos (18/11/2026, pedido dele: "organize melhor"): o que é na hora, o que vem de um negócio e
 // o que é mobilidade. Cada um no cartão do padrão do site (ícone, nome e explicação).
-const GRUPOS_PRESENTE = [["Na hora", ["mimo", "pix"]], ["De um negócio", ["produto", "vale"]], ["Mobilidade", ["corrida", "entrega"]]];
+const GRUPOS_PRESENTE = [["Na hora", ["mimo", "pix"]], ["De um negócio", ["produto", "vale"]], ["Mobilidade", ["corrida", "entrega"]]]
+  .filter(([n]) => !(EM_BREVE.corridas && n === "Mobilidade"));
 const NOMES_TIPO_NEG = { servicos: "Freelances", delivery: "Delivery", lojinha: "Shopping", imoveis: "Imóveis", saude: "Saúde", automotivo: "Automotivo" };
 
 const params = new URLSearchParams(location.search);
@@ -421,6 +423,7 @@ async function abrirEnviar({ para = "", negocio = "", tipo = "", corridaId = "",
   if (para && para !== eu.uid) { const p = await perfil(para); if (p) await escolherPara(p); }
 }
 async function abrirGorjeta(corridaId) {
+  if (EM_BREVE.corridas) { toast("Corridas e entregas chegam na próxima atualização."); return; }
   try {
     const c = await fb.getDoc(fb.doc(fb.db, "corridas", corridaId));
     if (!c.exists() || c.data().clienteId !== eu.uid || c.data().status !== "concluida") { toast("Gorjeta só depois de uma entrega ou corrida concluída."); return; }

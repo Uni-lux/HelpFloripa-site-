@@ -1,9 +1,29 @@
 # Regras do Firestore — publicação
 
-> **Versão de 25/11/2026 — agora são 16 partes (eram 25), sem os comentários.** O console do Firebase recusa regras com mais
-> de 256 KB e mostra só "Erro ao salvar regras - Ocorreu um erro desconhecido". O arquivo com os comentários tinha 298 KB;
-> estas partes têm as MESMAS regras sem comentários, linhas vazias e recuo (191 KB). Apague tudo no editor e cole as partes
-> 1 a 16 em ordem. As regras ficam todas encostadas à esquerda: é assim mesmo. 1375 testes passando no arquivo remontado.
+> **Versão de 25/11/2026 (2) — 11 partes, cabe no limite do Firebase.** O Firebase recusa regras com mais de **256.000 bytes
+> compilados** (as de antes davam 353.213). Agora:
+> 1. **Corridas/entregas, roubos/veículos e pessoas desaparecidas ficaram para a próxima atualização** (decidido em 25/11/2026):
+>    as regras delas estão guardadas em `_regras/proxima-atualizacao.rules` e o site mostra "Em breve" (`em-breve.js`).
+> 2. As regras passam por `_testes/preparar-publicacao.sh`: sem comentários, nomes curtos e atalhos para o que se repete
+>    (mesmas regras; Flash e negócios ficam sem atalho porque estão perto do limite de 1.000 conferências por gravação).
+> Testes: 1217 passando no arquivo remontado (e 20 guardados junto com as funções que saíram).
+>
+> **Jeito recomendado de publicar — Cloud Shell, na pasta `hf`:**
+> 1. Antes: os 3 donos com `papel: "dono"` em `admins/{uid}` (Firestore › Dados).
+> 2. `git pull`
+> 3. `python3 _regras/medir-regras.py` — tem que aparecer **CABE** na linha `final.rules`.
+> 4. `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+> 5. Se o deploy der o erro "409 ... already exists": `python3 _regras/ligar-regras.py` (deve dizer **PRONTO**).
+> 6. No painel: Publicações › "Recalcular estrelas" e "Guardar o que já está escondido".
+> Pelo console também dá: as 11 partes abaixo, coladas em ordem.
+
+> **Se o console continuar com "Ocorreu um erro desconhecido" — publicar pelo Cloud Shell (mostra o erro de verdade):**
+> 1. Abra o Cloud Shell (ícone `>_` no topo do console do Google Cloud, projeto helpfloripa-61e0d).
+> 2. Cole, uma linha por vez:
+>    `rm -rf hf && git clone https://github.com/Uni-lux/HelpFloripa-site- hf && cd hf`
+>    `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+> 3. Se publicar, aparece "Deploy complete!". Se não, copie a mensagem de erro (ou mande print) para o Claude.
+> O `firebase.json` publica o `_regras/firestore-publicar.rules` (as mesmas regras das 16 partes, sem comentários).
 
 > **Versão de 03/11/2026 (2) — e-mail da conta:** o e-mail gravado na conta (`usuarios.email`) tem que ser o do login (antes a
 > pessoa podia gravar o e-mail de outra e o painel mostrava e buscava por ele).
@@ -245,11 +265,11 @@
 > foto/vídeo do Storage numa publicação só da pasta `diario/<autor>/`. Continuam **25 partes**, 1375 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **16 partes** (versão compacta, sem comentários) (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **11 partes** (versão para publicar, gerada pelo `_testes/preparar-publicacao.sh`) (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 - Arquivo de origem: `firestore.rules` (298.320 bytes, com comentários) → versão compacta de 191.423 bytes (limite do console: 256 KB).
 - Arquivo de origem: `firestore.rules` (298.320 bytes. 4.467 linhas. sha256 começa com `bc4c611a43dcafba`).
-- Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `_testes/saida/firestore-compacto.rules` (o `firestore.rules` sem comentários, gerado pelo `_testes/compactar-regras.py`), byte a byte.
+- Conferido: as 11 partes juntas, sem as linhas de fim, são **exatamente** o `_regras/firestore-publicar.rules`, byte a byte.
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
 - Testes de regras no arquivo remontado: **1375 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).

@@ -35,6 +35,7 @@ import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=1";
 // ======================================================
 // Configurações (salvas no aparelho)
 // ======================================================
@@ -3449,13 +3450,13 @@ async function abrirAnexar() {
   op("pix", "Pix", "#32bcad", abrirCartaoPix, "Cobrar ou receber");
   // Entregas e corridas (entregas.html): enviar algo para esta pessoa (ela acompanha e recebe o PIN) ou pedir um carro.
   const outro = ativa.equipe ? "" : ativa.outroId || "";
-  op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
-  op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
+  if (!EM_BREVE.corridas) op("pacote", "Entrega", "#f5b301", () => irParaTopo(`entregas.html?modo=entrega${outro ? `&para=${encodeURIComponent(outro)}&conversa=${encodeURIComponent(ativa.id)}` : ""}`), outro ? `Enviar para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}` : "Enviar algo");
+  if (!EM_BREVE.corridas) op("carro", "Corrida", "#00adee", () => irParaTopo("entregas.html?modo=corrida"), "Pedir um carro");
   op("alerta", "Help", "#e5484d", () => irParaTopo("alertas.html?sos=novo"), "Pedir ajuda");
   if (outro) op("presente", "Presente", "#e5487f", () => irParaTopo(`presentes.html?para=${encodeURIComponent(outro)}`), `Para ${String(ativa.nome || "").split(" ")[0] || "a pessoa"}`);
   corpo.appendChild(grade);
   // A pessoa é entregador/motorista no Help Floripa: chamar direto.
-  if (outro) fb.getDoc(fb.doc(fb.db, "entregadores", outro)).then((d) => {
+  if (outro && !EM_BREVE.corridas) fb.getDoc(fb.doc(fb.db, "entregadores", outro)).then((d) => {
     if (!d.exists() || d.data().status !== "ativo" || !grade.isConnected) return;
     op("carro", `Chamar ${String(ativa.nome || "").split(" ")[0] || "entregador"}`, "#2fbf71", () => irParaTopo(`entregas.html?entregador=${encodeURIComponent(outro)}`), d.data().servicos?.includes("corrida") ? "Entrega ou corrida" : "Para uma entrega");
   }).catch(() => {});
@@ -3566,6 +3567,8 @@ function cartaoEntrega(c, minha) {
   link.textContent = c.papel === "entregador" && !minha ? "Abrir o painel do entregador" : "Acompanhar no mapa";
   link.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); irParaTopo(link.getAttribute("href")); });
   box.append(cab, rota, st, barra, link);
+  // Corridas e entregas guardadas para a próxima atualização (em-breve.js): cartão antigo só mostra o que diz, sem ler.
+  if (EM_BREVE.corridas) { link.remove(); st.textContent = "Corridas e entregas voltam na próxima atualização."; return box; }
   if (id) fb.getDoc(fb.doc(fb.db, "corridas", id)).then((d) => {
     if (!d.exists()) return;
     const x = d.data();

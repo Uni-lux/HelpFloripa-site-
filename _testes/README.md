@@ -143,3 +143,10 @@ Capturas de tela, Excel baixados e logs ficam em `saida/` (fora do git).
 | `t-solicitacoes.mjs` | Solicitações de mensagem (desconhecido vira solicitação, aceitar/recusar, "Só quem eu sigo"), Quem pode mandar mensagem (pessoal e negócios), aba Negócios só para quem tem, Chamadas sem "Nova chamada" no topo, filtros alinhados e atalhos dos negócios no perfil. |
 | `t-veiculos-presentes.mjs` | Marca "ponte", Presentes em cartões, ocorrência/consulta (IMEI, placa Mercosul), veículos (roubado → busca da mesma placa e parecidos), venda de carro/moto com placa obrigatória e bloqueio, "Combina com você" da Comunidade e o painel Segurança e alertas. |
 | `t-perdidos.mjs` | Help e alertas compacto, telefones `tel:`, formulário único do pet (Social) sem cores, Perdidos com Pets e Pessoas (desaparecido com boletim, conferido no painel, pistas anônimas) e Regras da Comunidade na própria página. |
+
+## Funções guardadas para a próxima atualização (25/11/2026)
+Corridas/entregas, roubos/veículos e desaparecidos saíram das regras (`_regras/proxima-atualizacao.rules`) e o site mostra
+"Em breve" (`em-breve.js`). Enquanto `EM_BREVE` estiver ligado, estes testes de tela testam o que está guardado e vão falhar:
+`t-entregas.mjs`, `t-veiculos-presentes.mjs`, `t-perdidos.mjs` (parte de pessoas) e as partes de roubos de `t-sos-pets.mjs`.
+`t-em-breve.mjs` confere o "Em breve" (páginas, menu, Início, Automotivo, Comunidade, presentes e o painel › Segurança).
+`testes-regras.mjs` pula sozinho os testes dessas regras quando elas não estão no arquivo.

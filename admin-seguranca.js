@@ -14,6 +14,9 @@ import { destaque, num } from "./graficos.js?v=7";
 import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";
 import { hashPlaca, formatarPlaca, placaEscondida, semelhancaVeiculo, textoSemelhancaVeiculo, nomeVeiculo } from "./veiculos-base.js?v=1";
+// Roubos/veículos e desaparecidos ficaram para a próxima atualização (em-breve.js): enquanto isso, não lê nem mostra.
+import { EM_BREVE } from "./em-breve.js?v=1";
+const ROUBOS = !EM_BREVE.roubos, DESAP = !EM_BREVE.desaparecidos;
 
 const PAGINA_VENDA = { lojinha: "shopping.html", automotivo: "automotivo.html" };
 const linkVenda = (a) => `${PAGINA_VENDA[a.tipoNegocio] || "shopping.html"}?negocio=${encodeURIComponent(a.negocioId)}`;
@@ -30,12 +33,12 @@ function chips(opcoes, atual, aoMudar) {
 async function ler(fb) {
   const q = (col, ...f) => fb.getDocs(fb.query(fb.collection(fb.db, col), ...f)).then((s) => s.docs.map((d) => ({ id: d.id, ...d.data() }))).catch((e) => { console.warn(col, e.code || e.message); return null; });
   const [oc, vendas, sos, perdidos, achados, desap] = await Promise.all([
-    q("ocorrencias", fb.where("status", "==", "ativo"), fb.limit(400)),
-    q("veiculos_venda", fb.limit(800)),
+    ROUBOS ? q("ocorrencias", fb.where("status", "==", "ativo"), fb.limit(400)) : [],
+    ROUBOS ? q("veiculos_venda", fb.limit(800)) : [],
     q("sos", fb.where("status", "in", ["aberto", "atendido"]), fb.limit(150)),
     q("pets", fb.where("status", "==", "perdido"), fb.limit(300)),
     q("pets_achados", fb.where("status", "==", "ativo"), fb.limit(300)),
-    q("desaparecidos", fb.where("status", "in", ["analise", "ativo"]), fb.limit(200))
+    DESAP ? q("desaparecidos", fb.where("status", "in", ["analise", "ativo"]), fb.limit(200)) : []
   ]);
   return { oc: oc || [], vendas: vendas || [], sos: (sos || []).filter((s) => sosVivo(s)), perdidos: perdidos || [], achados: achados || [], desap: desap || [], semRegras: vendas === null };
 }
@@ -60,29 +63,29 @@ async function cruzar(d) {
 
 export function seguranca(el) {
   const cab = h("div", "ad-cab"); const t = h("div");
-  t.append(h("h1", null, "Segurança e alertas"), h("p", null, "Help, ocorrências, veículos à venda e pets, com os cruzamentos feitos sozinhos: mesma placa, veículo parecido, pet perdido × encontrado e ocorrência repetida."));
+  t.append(h("h1", null, "Segurança e alertas"), h("p", null, ROUBOS ? "Help, ocorrências, veículos à venda e pets, com os cruzamentos feitos sozinhos: mesma placa, veículo parecido, pet perdido × encontrado e ocorrência repetida." : "Help e pets, com o cruzamento pet perdido × encontrado feito sozinho. Roubos, veículos e desaparecidos chegam na próxima atualização."));
   cab.appendChild(t);
   const bt = btn("Atualizar", "mini", async () => { cache = null; await montar(); }); cab.appendChild(bt);
   el.appendChild(cab);
   if (!pode("moderar")) el.appendChild(h("div", "ad-aviso-papel", "Seu papel pode ver; quem age (esconder, tirar do ar, avisar) é a moderação."));
   const kp = h("div", "ad-kpis"), filtros = h("div"), lista = h("div", "ad-lista");
   el.append(kp, filtros, lista);
-  lista.appendChild(h("div", "ad-vazio", "Lendo Help, ocorrências, veículos e pets..."));
+  lista.appendChild(h("div", "ad-vazio", ROUBOS ? "Lendo Help, ocorrências, veículos e pets..." : "Lendo Help e pets..."));
   let d = null, cruz = [];
   async function montar() {
     d = cache?.d || await ler(C.fb); cruz = cache?.cruz || await cruzar(d); cache = { d, cruz };
     const placa = cruz.filter((x) => x.tipo === "placa").length;
-    kp.replaceChildren(
-      destaque({ rotulo: "Cruzamentos", valor: cruz.length, dica: `${placa} com a mesma placa`, alerta: placa > 0 }),
+    kp.replaceChildren(...[
+      destaque({ rotulo: "Cruzamentos", valor: cruz.length, dica: ROUBOS ? `${placa} com a mesma placa` : "pet perdido × encontrado", alerta: placa > 0 }),
       destaque({ rotulo: "Help em aberto", valor: d.sos.length, dica: `${d.sos.filter((s) => s.status === "aberto").length} sem ninguém ajudando`, alerta: d.sos.some((s) => s.status === "aberto") }),
-      destaque({ rotulo: "Ocorrências ativas", valor: d.oc.length, dica: `${d.oc.filter((o) => ms(o.quando) > Date.now() - 7 * 864e5).length} nos últimos 7 dias` }),
-      destaque({ rotulo: "Veículos roubados", valor: d.oc.filter((o) => ehVeiculo(o.objeto)).length, dica: "carros e motos com alerta" }),
-      destaque({ rotulo: "Veículos à venda", valor: d.vendas.length, dica: "com a placa registrada (oculta)" }),
-      destaque({ rotulo: "Desaparecidos", valor: d.desap.length, dica: `${d.desap.filter((x) => x.status === "analise").length} esperando conferir o boletim`, alerta: d.desap.some((x) => x.status === "analise") }),
+      ROUBOS && destaque({ rotulo: "Ocorrências ativas", valor: d.oc.length, dica: `${d.oc.filter((o) => ms(o.quando) > Date.now() - 7 * 864e5).length} nos últimos 7 dias` }),
+      ROUBOS && destaque({ rotulo: "Veículos roubados", valor: d.oc.filter((o) => ehVeiculo(o.objeto)).length, dica: "carros e motos com alerta" }),
+      ROUBOS && destaque({ rotulo: "Veículos à venda", valor: d.vendas.length, dica: "com a placa registrada (oculta)" }),
+      DESAP && destaque({ rotulo: "Desaparecidos", valor: d.desap.length, dica: `${d.desap.filter((x) => x.status === "analise").length} esperando conferir o boletim`, alerta: d.desap.some((x) => x.status === "analise") }),
       destaque({ rotulo: "Pets perdidos", valor: d.perdidos.length, dica: `${d.achados.length} encontrados esperando o tutor` })
-    );
-    filtros.replaceChildren(chips([["cruzamentos", `Cruzamentos (${cruz.length})`], ["help", `Help (${d.sos.length})`], ["ocorrencias", `Ocorrências (${d.oc.length})`], ["vendas", `Veículos à venda (${d.vendas.length})`], ["desaparecidos", `Desaparecidos (${d.desap.length})`], ["pets", `Pets (${d.perdidos.length})`]], aba, (v) => { aba = v; pintar(); }));
-    if (d.semRegras) filtros.appendChild(h("div", "ad-aviso-papel", "Veículos à venda aparecem depois que as regras novas forem publicadas (coleção veiculos_venda)."));
+    ].filter(Boolean));
+    filtros.replaceChildren(chips([["cruzamentos", `Cruzamentos (${cruz.length})`], ["help", `Help (${d.sos.length})`], ROUBOS && ["ocorrencias", `Ocorrências (${d.oc.length})`], ROUBOS && ["vendas", `Veículos à venda (${d.vendas.length})`], DESAP && ["desaparecidos", `Desaparecidos (${d.desap.length})`], ["pets", `Pets (${d.perdidos.length})`]].filter(Boolean), aba, (v) => { aba = v; pintar(); }));
+    if (ROUBOS && d.semRegras) filtros.appendChild(h("div", "ad-aviso-papel", "Veículos à venda aparecem depois que as regras novas forem publicadas (coleção veiculos_venda)."));
     pintar();
   }
   function pintar() {

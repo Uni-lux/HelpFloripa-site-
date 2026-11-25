@@ -1,0 +1,327 @@
+rules_version = '2';
+service cloud.firestore {
+match /databases/{database}/documents {
+function Nq() { return request.resource.data; }
+function Rq() { return resource.data; }
+function Uq() { return request.auth.uid; }
+function Tq() { return request.time; }
+function Dq(c, i) { return /databases/$(database)/documents/$(c)/$(i); }
+function b() {
+return request.auth != null;
+}
+function m() {
+return request.auth.token.email_verified == true && !ad(request.auth.uid);
+}
+function bA() {
+return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('verificado', false) == true;
+}
+function g() {
+return request.auth != null
+&& exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+}
+function M() {
+return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('papel', 'nenhum');
+}
+function l() {
+return g() && M() in ['dono', 'moderacao'];
+}
+function cG(j) {
+return Nq().get('verificado', false) != true
+|| Rq().get('verificado', false) == true
+|| M() == 'dono'
+|| (exists(Dq('verificacoes', j))
+&& get(Dq('verificacoes', j)).data.status == 'aprovada');
+}
+function bB() {
+return g() && M() in ['dono', 'comercial'];
+}
+function S() {
+return g() && M() == 'dono';
+}
+function ad(j) {
+let u = /databases/$(database)/documents/sancoes/$(j);
+return exists(u)
+&& (get(u).data.tipo == 'banimento'
+|| (get(u).data.get('ate', null) is timestamp && get(u).data.ate > request.time));
+}
+function aH(j, a7) {
+let D = /databases/$(database)/documents/programa_banidos/$(j + '_' + a7);
+return exists(D) && (get(D).data.get('ate', null) == null || get(D).data.ate > request.time);
+}
+function bC() {
+return ['verificado', 'avaliacaoMedia', 'totalAvaliacoes'];
+}
+function aI() {
+return !request.resource.data.keys().hasAny(bC().concat(['plano', 'valorPlanoMensal']))
+&& request.resource.data.get('tipoUsuario', 'usuario') == 'usuario';
+}
+function aJ() {
+return !request.resource.data.diff(resource.data).affectedKeys()
+.hasAny(bC().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
+}
+function v(w, J) {
+return e(request.resource.data.get(w, null), J);
+}
+function e(s, J) {
+return s == null || (s is string && s.size() <= J);
+}
+function bD(t, bE, cH) {
+return t is map && t.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'k', 'fimEm', 'anonima', 'cor', 'certa'])
+&& t.get('anonima', false) is bool
+&& (!('certa' in t) || (t.certa is int && t.certa >= 0 && t.certa < t.opcoes.size()))
+&& (!('cor' in t) || bF(t.cor))
+&& (!('fimEm' in t) || (t.fimEm is timestamp && t.fimEm > bE && t.fimEm <= bE + duration.value(cH, 'm')))
+&& t.pergunta.size() >= 1 && t.pergunta.size() <= 120
+&& t.opcoes.size() <= 4 && t.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
+&& (string(t.get('x', 0)) + ' ' + string(t.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function bF(n) {
+return n is string && n.matches('^(escuro|azul|rosa|laranja|verde|roxo)$');
+}
+function bG(n) {
+return n is map && n.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'k', 'cor'])
+&& (!('cor' in n) || bF(n.cor))
+&& n.pergunta.size() >= 1 && n.pergunta.size() <= 120
+&& n.anonima is bool
+&& (string(n.get('x', 0)) + ' ' + string(n.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function cI(o) {
+return o is map && o.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y', 'k'])
+&& o.negocioId is string && o.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
+&& exists(/databases/$(database)/documents/negocios/$(o.negocioId))
+&& e(o.get('nome', ''), 80)
+&& o.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& (string(o.get('x', 0)) + ' ' + string(o.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
+}
+function cJ(i) {
+let am = /databases/$(database)/documents/stories/$(i.storyId);
+return i is map && i.keys().hasOnly(['storyId', 'autorId', 'nome'])
+&& i.storyId is string && i.storyId.matches('^[A-Za-z0-9]{1,64}$')
+&& exists(am)
+&& get(am).data.autorId == i.autorId
+&& get(am).data.get('mencoes', []).hasAny([request.auth.uid])
+&& e(i.get('nome', ''), 80);
+}
+function cK(a) {
+let p = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude|automotivo))';
+return (!('negocios' in a) || (a.negocios is list && a.negocios.size() >= 1 && a.negocios.size() <= 4
+&& a.negocios.join(' ').matches('^' + p + '( ' + p + '){0,3}$')))
+&& (!('perfil' in a) || (a.perfil is bool && (a.perfil || 'negocios' in a)));
+}
+function cL(i) {
+let am = /databases/$(database)/documents/diario/$(i.postId);
+let bH = /databases/$(database)/documents/pref_publicas/$(i.autorId);
+return i is map && i.keys().hasOnly(['postId', 'autorId', 'nome'])
+&& i.postId is string && i.postId.matches('^[A-Za-z0-9]{1,64}$')
+&& i.autorId is string
+&& exists(am) && get(am).data.autorId == i.autorId
+&& (i.autorId == request.auth.uid || !exists(bH) || get(bH).data.get('permiteFlash', true) != false)
+&& e(i.get('nome', ''), 80);
+}
+function cM(y) {
+let cN = 'l[|][^|\n]{2,60}[|](-(3[0-3]|[12]?[0-9])|[0-5])([.][0-9]{1,6})?[|]-(7[0-4]|[3-6][0-9]|2[89])([.][0-9]{1,6})?';
+let ax = 'n[|][A-Za-z0-9]{1,64}_(servicos|delivery|lojinha|imoveis|saude|automotivo)[|][tlo][|][^|\n]{1,60}';
+let an = '(h[|][^|\n]{1,28}|m[|][A-Za-z0-9]{1,64}|' + cN + '|' + ax + ')([|][01]([.][0-9]{1,3})?){4}';
+return y.join('\n').matches('^' + an + '(\n' + an + '){0,17}$');
+}
+function cO(a) {
+return cK(a) && cP(a)
+&& (!('toques' in a) || cM(a.toques))
+&& (!('mencoesOcultas' in a) || aK(a.mencoesOcultas, 10))
+&& (!('caixa' in a) || bG(a.caixa))
+&& (!('link' in a) || cI(a.link))
+&& (!('repostDe' in a) || cJ(a.repostDe))
+&& (!('postDe' in a) || cL(a.postDe));
+}
+function cQ(a) {
+let r = a.keys();
+return r.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo', 'restrito'])
+&& (!r.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || cO(a))
+&& (!('enquete' in r) || bD(a.enquete, request.time, 1450))
+&& (!('mencoes' in r) || aK(a.mencoes, 10))
+&& a.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
+&& a.get('publico', 'todos') in ['todos', 'amigos']
+&& (!('lista' in r) || aK(a.lista, 150))
+&& (!('ocultoPara' in r) || aK(a.ocultoPara, 100))
+&& a.restrito == (a.get('publico', 'todos') == 'amigos' || a.get('ocultoPara', []).size() > 0)
+&& (a.get('publico', 'todos') == 'amigos' ? ('lista' in r && !('ocultoPara' in r)) : !('lista' in r))
+&& a.autorId == request.auth.uid
+&& a.criadoEm == request.time
+&& a.tipo in ['imagem', 'video']
+&& a.midia is string && a.midia.size() <= 950000
+&& a.midia.matches(a.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
+&& e(a.get('texto', ''), 150)
+&& e(a.get('nome', ''), 80)
+&& (!('duracao' in r) || (a.duracao is number && a.duracao <= 60));
+}
+function cP(a) {
+return (!('contagem' in a) || (a.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y', 'k'])
+&& a.contagem.titulo.size() >= 1 && a.contagem.titulo.size() <= 40
+&& a.contagem.fim > request.time + duration.value(4, 'm') && a.contagem.fim <= request.time + duration.value(366, 'd')))
+&& (!('alvo' in a) || a.alvo.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores']));
+}
+function aK(o, J) {
+return o is list && o.size() <= J
+&& (o.size() == 0 || o.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64})*$'));
+}
+function aL() {
+let a = request.resource.data;
+let ao = a.get('uf', null);
+let a8 = a.get('cidadeIbge', null);
+return (ao == null || ao == ''
+|| (ao is string && ao.matches('^(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)$')))
+&& (a8 == null
+|| (a8 is int && ao is string
+&& (ao + string(a8)).matches('^(RO11|AC12|AM13|RR14|PA15|AP16|TO17|MA21|PI22|CE23|RN24|PB25|PE26|AL27|SE28|BA29|MG31|ES32|RJ33|SP35|PR41|SC42|RS43|MS50|MT51|GO52|DF53)[0-9]{5}$')));
+}
+function bI() {
+let aM = request.resource.data.get('cep', null);
+return (aM == null || aM == '' || (aM is string && aM.matches('^[0-9]{8}$')))
+&& v('bairro', 60)
+&& v('rua', 100)
+&& v('numero', 10)
+&& v('complemento', 60);
+}
+function N(w, J) {
+return cR(request.resource.data.get(w, null), J);
+}
+function cR(s, J) {
+return s == null || (s is list && s.size() <= J);
+}
+function a9(T) {
+return T == null
+|| (T is map && T.keys().hasOnly(['lat', 'lng'])
+&& T.lat is number && T.lat >= -34 && T.lat <= 6
+&& T.lng is number && T.lng >= -75 && T.lng <= -28);
+}
+function ae(s) {
+return s == null || s == ''
+|| (s is string && s.matches('^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/|https://lh3[.]googleusercontent[.]com/).*'));
+}
+function aN(w) {
+return !(w in request.resource.data) || ae(request.resource.data[w]);
+}
+function k() {
+return request.resource.data.diff(resource.data).affectedKeys();
+}
+function aO() {
+return !k().hasAny(['ocultoPelaEquipe'])
+&& !(resource.data.get('ocultoPelaEquipe', false) == true && k().hasAny(['ocultoAte']));
+}
+function a_(a) {
+return !(a.get('ocultoAte', null) is timestamp && a.ocultoAte > request.time)
+&& !(a.get('agendadoPara', null) is timestamp && a.agendadoPara > request.time);
+}
+function aP(ba) {
+return resource == null || a_(resource.data)
+|| resource.data.get(ba, '') == request.auth.uid || g();
+}
+function aQ(U, c) {
+return /databases/$(database)/documents/guardados/$(U + '_' + c);
+}
+function ap() {
+return resource.data.get('guardado', false) == true;
+}
+function aR(U, c, w) {
+let p = request.resource.data;
+return p.get('guardado', false) == true
+&& !ap()
+&& p.keys().hasOnly([w, 'tipo', 'ocultoAte', 'ocultoPelaEquipe', 'guardado'])
+&& p[w] == resource.data[w]
+&& p.get('tipo', null) == resource.data.get('tipo', null)
+&& p.ocultoAte is timestamp && p.ocultoAte > request.time
+&& !exists(aQ(U, c))
+&& p.ocultoPelaEquipe == getAfter(aQ(U, c)).data.porEquipe;
+}
+function aS(U, c) {
+return ap()
+&& !existsAfter(aQ(U, c))
+&& request.resource.data == get(aQ(U, c)).data.dados;
+}
+function aT() {
+return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ocultoAte', 'ocultoPelaEquipe'])
+&& Z('ocultoAte')
+&& request.resource.data.get('ocultoPelaEquipe', false) is bool;
+}
+function ay() {
+let a = request.resource.data.diff(resource.data);
+return a.addedKeys().union(a.changedKeys());
+}
+function bb(d, D) {
+return exists(Dq('bloqueios', d + '_' + D));
+}
+function z(d, D) {
+return bb(d, D) || bb(D, d);
+}
+function F(d, D) {
+return d < D ? d + '_' + D : D + '_' + d;
+}
+function bJ(j) {
+let aq = Dq('usuarios', j);
+return exists(aq)
+&& get(aq).data.get('criadoEm', null) is timestamp
+&& get(aq).data.criadoEm < Tq() - duration.value(3, 'd');
+}
+function az(d, D, cS) {
+let n = Dq('conversas', F(d, D));
+return exists(n) && get(n).data.get('falaram', {}).get(cS, false) == true;
+}
+function cT(j) {
+let f = Dq('perfis_publicos', j);
+return exists(f)
+&& get(f).data.get('desativadaAte', null) is timestamp
+&& get(f).data.desativadaAte > Tq();
+}
+function Z(w) {
+return !(w in request.resource.data)
+|| request.resource.data[w] == null
+|| request.resource.data[w] is timestamp;
+}
+function aA() {
+let nL = Nq();
+let i = nL.get('responsavel', null);
+return (i == null || (i is string && exists(Dq('admins', i))))
+&& e(nL.get('responsavelNome', null), 80)
+&& (!k().hasAny(['responsavel']) || nL.get('assumidoEm', null) == Tq());
+}
+function ar(a7) {
+let i = getAfter(/databases/$(database)/documents/ritmo/$(request.auth.uid)).data;
+return i.ultimaEm == request.time && i.ultimoTipo == a7;
+}
+function bc(af) {
+return get(Dq('negocios', af)).data.donoId;
+}
+match /usuarios/{G} {
+allow read: if b()
+&& Uq() == G;
+allow read: if l();
+function A0() {
+return l() && (G != Uq() || M() == 'dono')
+&& Nq().diff(Rq()).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
+&& cG(G);
+}
+allow update: if A0();
+function A1() {
+let nL = Nq();
+return b()
+&& Uq() == G
+&& nL.uid == G
+&& nL.aceiteTermos == true
+&& (!('criadoEm' in nL) || nL.criadoEm == Tq())
+&& bK()
+&& bL()
+&& aI();
+}
+allow create: if A1();
+function bK() {
+let nL = Nq();
+return !('emailConfirmado' in nL)
+|| nL.emailConfirmado == (request.auth.token.email_verified == true);
+}
+function bL() {
+let nL = Nq();
+return !('email' in nL)
+|| nL.email == null || nL.email == ''
+|| nL.email.lower() == request.auth.token.email.lower();
+}
+// ===== FIM DA PARTE 1 DE 11 =====

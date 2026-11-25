@@ -1,0 +1,400 @@
+allow update: if A43();
+function A44() {
+let nL = Nq();
+return bd()
+&& Rq().status in ['chamando', 'aceita']
+&& k().hasOnly(['status', 'fimEm', 'encerradaPor'])
+&& nL.status in ['recusada', 'cancelada', 'perdida', 'encerrada']
+&& nL.encerradaPor == Uq()
+&& nL.fimEm == Tq();
+}
+allow update: if A44();
+allow delete: if false;
+match /candidatos/{n} {
+function aB() { return get(Dq('chamadas', c)).data; }
+allow read: if b() && Uq() in [aB().de, aB().para];
+function A45() {
+let nL = Nq();
+let uL = Uq();
+return b() && uL in [aB().de, aB().para]
+&& aB().status in ['chamando', 'aceita']
+&& nL.keys().hasOnly(['de', 'c', 'em'])
+&& nL.de == uL
+&& nL.c is map && nL.c.keys().hasOnly(['candidate', 'sdpMid', 'sdpMLineIndex'])
+&& nL.c.candidate is string && nL.c.candidate.size() <= 1000
+&& nL.em == Tq();
+}
+allow create: if A45();
+allow update, delete: if false;
+}
+}
+match /conversas/{H} {
+function P(w) {
+let nL = Nq();
+return !k().hasAny([w])
+|| (nL[w] is map
+&& nL[w].diff(Rq().get(w, {})).affectedKeys().hasOnly([Uq()]));
+}
+function b3() {
+let n = Nq().get('contexto', null);
+return n == null
+|| (n is map && n.keys().hasOnly(['tipo', 'titulo'])
+&& n.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo', 'comunidade']
+&& e(n.get('titulo', ''), 120));
+}
+function c8(K, f) {
+return K is map && K.keys().hasOnly(['tipo', 'id']) && K.id is string && K.id.size() <= 64
+&& (K.tipo == 'sos'
+? get(Dq('sos', K.id)).data.uid in f
+&& get(Dq('sos', K.id)).data.status in ['aberto', 'atendido']
+: K.tipo == 'pet'
+? get(Dq('pets', K.id)).data.donoId in f
+&& get(Dq('pets', K.id)).data.status == 'perdido'
+: K.tipo == 'achado'
+&& get(Dq('pets_achados', K.id)).data.autorId in f
+&& get(Dq('pets_achados', K.id)).data.status == 'ativo');
+}
+function c9() {
+let uL = Uq();
+let a = Nq();
+let be = a.participantes[0] == uL ? a.participantes[1] : a.participantes[0];
+let b4 = Dq('pref_publicas', be);
+let bf = a.get('contexto', null);
+let ax = bf != null && bf.tipo != 'comunidade' && exists(Dq('negocios', be + '_' + bf.tipo));
+let b5 = exists(b4) ? get(b4).data.get(ax ? 'msgNegocios' : 'msgPessoal', ax ? 'todos' : 'seguindo') : (ax ? 'todos' : 'seguindo');
+let ah = Dq('vinculos', H);
+let f = a.get('pedido', null);
+return ('servico' in a)
+? (f == null && c8(a.servico, a.participantes))
+: f == null
+? (b5 == 'todos'
+|| exists(Dq('relacoes', be + '_' + uL))
+|| (exists(ah) && get(ah).data.status == 'aceito'))
+: (b5 != 'fechado' && f is map && f.keys().hasOnly(['de', 'status', 'em'])
+&& f.de == uL && f.status == 'pendente' && f.em == Tq());
+}
+function c_() {
+let d = Rq().get('pedido', null);
+let p = Nq().get('pedido', null);
+return d != null && p is map && Uq() != d.de
+&& p.keys().hasOnly(['de', 'status', 'em', 'decididoEm'])
+&& p.de == d.de && p.em == d.em
+&& d.get('status', 'pendente') == 'pendente'
+&& p.status in ['aceito', 'recusado']
+&& p.get('decididoEm', null) == Tq();
+}
+function A46() {
+let uL = Uq();
+return b()
+&& ((resource == null && uL in H.split('_'))
+|| (resource != null && uL in Rq().participantes));
+}
+allow get: if A46();
+function A47() {
+return b()
+&& Uq() in Rq().participantes;
+}
+allow list: if A47();
+allow read: if l();
+function A48() {
+let nL = Nq();
+return b()
+&& nL.participantes is list
+&& nL.participantes.size() == 2
+&& Uq() in nL.participantes
+&& nL.participantes[0] < nL.participantes[1]
+&& H == nL.participantes[0]
++ '_' + nL.participantes[1]
+&& !z(nL.participantes[0],
+nL.participantes[1])
+&& m()
+&& nL.keys().hasOnly(['participantes', 'ultimaMensagem', 'atualizadoEm', 'contexto', 'criadoEm', 'pedido', 'servico'])
+&& b3()
+&& c9()
+&& v('ultimaMensagem', 200);
+}
+allow create: if A48();
+function A49() {
+let nL = Nq();
+let rL = Rq();
+let uL = Uq();
+return b()
+&& uL in rL.participantes
+&& nL.participantes == rL.participantes
+&& !z(rL.participantes[0], rL.participantes[1])
+&& k().hasOnly(['ultimaMensagem', 'ultimaMensagemRemetenteId', 'atualizadoEm', 'lidoEm', 'vistoEm', 'digitando', 'contexto', 'arquivadaPara', 'ocultaPara', 'falaram', 'fixadaPara', 'silenciadaPara', 'mensagemFixada', 'pedido', 'entregueEm', 'ouvidos'])
+&& (!k().hasAny(['pedido']) || c_())
+&& (!k().hasAny(['ultimaMensagem', 'ultimaMensagemRemetenteId'])
+|| nL.get('ultimaMensagemRemetenteId', '') == uL)
+&& P('lidoEm')
+&& P('vistoEm')
+&& P('entregueEm')
+&& P('ouvidos')
+&& (!k().hasAny(['ouvidos']) || (nL.ouvidos[uL] is list
+&& nL.ouvidos[uL].size() <= 50))
+&& P('digitando')
+&& P('arquivadaPara')
+&& P('ocultaPara')
+&& P('fixadaPara')
+&& P('silenciadaPara')
+&& P('falaram')
+&& (!k().hasAny(['falaram']) || nL.falaram[uL] == true)
+&& (!k().hasAny(['contexto']) || b3())
+&& (!k().hasAny(['mensagemFixada'])
+|| nL.mensagemFixada == null
+|| (nL.mensagemFixada is map
+&& nL.mensagemFixada.keys().hasOnly(['id', 'texto', 'por', 'em'])
+&& nL.mensagemFixada.id is string
+&& nL.mensagemFixada.por == uL
+&& e(nL.mensagemFixada.get('texto', ''), 200)))
+&& v('ultimaMensagem', 200);
+}
+allow update: if A49();
+allow delete: if l();
+match /mensagens/{ai} {
+function bg() {
+return Uq() in
+get(Dq('conversas', H)).data.participantes;
+}
+function da() {
+let f = get(Dq('conversas', H)).data.participantes;
+return !z(f[0], f[1]);
+}
+function db() {
+let aW = get(Dq('conversas', H)).data.get('pedido', null);
+return aW == null || aW.status == 'aceito' || (aW.status == 'pendente' && aW.de == Uq());
+}
+function dc() {
+let f = get(Dq('conversas', H)).data.participantes;
+return !cT(f[0] == Uq() ? f[1] : f[0]);
+}
+function aa(i) {
+let b6 = /databases/$(database)/documents/conversas/$(H)/mensagens/$(i.id);
+return i is map
+&& i.keys().hasOnly(['id', 'texto', 'remetenteId'])
+&& i.id is string
+&& e(i.get('texto', ''), 200)
+&& exists(b6)
+&& get(b6).data.remetenteId == i.remetenteId;
+}
+function dd() {
+let a = Nq();
+return a.keys().hasOnly(['remetenteId', 'texto', 'criadoEm', 'resposta', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao'])
+&& (!('tipoArquivo' in a) || a.tipoArquivo in ['imagem', 'video', 'audio', 'cartao', 'avaliacao'])
+&& (!('avaliacao' in a)
+|| (a.avaliacao is map && a.get('tipoArquivo', '') == 'avaliacao'
+&& a.avaliacao.keys().hasOnly(['pedidoId', 'titulo', 'tipo', 'negocioNome'])
+&& get(Dq('pedidos', a.avaliacao.pedidoId)).data.vendedorId == Uq()
+&& e(a.avaliacao.get('titulo', ''), 120)
+&& e(a.avaliacao.get('negocioNome', ''), 80)))
+&& (!('arquivoUrl' in a)
+|| (a.arquivoUrl is string
+&& a.arquivoUrl.matches('^(data:(image|video|audio)/[^,]{1,80},|https://firebasestorage[.]googleapis[.]com/).*')))
+&& (!('nomeArquivo' in a) || e(a.nomeArquivo, 120))
+&& (!('cartao' in a) || (a.cartao is map && a.get('tipoArquivo', '') == 'cartao'))
+&& (!('resposta' in a) || aa(a.resposta));
+}
+function de(s) {
+let rL = Rq();
+return s is map && s.keys().hasOnly(['texto', 'em'])
+&& s.texto == rL.get('texto', '')
+&& s.em == rL.get('editadaEm', rL.criadoEm);
+}
+allow read: if b() && bg();
+allow get: if l();
+function A50() {
+let nL = Nq();
+return b()
+&& m()
+&& bg()
+&& da()
+&& db()
+&& dc()
+&& ar('msg')
+&& nL.remetenteId == Uq()
+&& nL.criadoEm == Tq()
+&& v('texto', 4000)
+&& dd();
+}
+allow create: if A50();
+function bh() { return Tq() < Rq().criadoEm + duration.value(10, 'm'); }
+function A51() {
+let nL = Nq();
+let rL = Rq();
+return b()
+&& Uq() == rL.remetenteId
+&& bh()
+&& !('apagada' in rL)
+&& rL.get('tipoArquivo', '') in ['', 'imagem', 'video', 'audio']
+&& k().hasOnly(['texto', 'editadaEm', 'edicoes'])
+&& nL.texto is string && nL.texto.size() <= 4000
+&& (nL.texto.size() > 0 || 'arquivoUrl' in rL)
+&& nL.editadaEm == Tq()
+&& nL.edicoes is list
+&& nL.edicoes.size() == rL.get('edicoes', []).size() + 1
+&& nL.edicoes.size() <= 20
+&& nL.edicoes == rL.get('edicoes', []).concat([nL.edicoes[rL.get('edicoes', []).size()]])
+&& de(nL.edicoes[rL.get('edicoes', []).size()]);
+}
+allow update: if A51();
+function A52() {
+let nL = Nq();
+let rL = Rq();
+let uL = Uq();
+return b()
+&& uL == rL.remetenteId
+&& bh()
+&& !('apagada' in rL)
+&& nL.keys().hasOnly(['remetenteId', 'criadoEm', 'apagada'])
+&& nL.remetenteId == rL.remetenteId
+&& nL.criadoEm == rL.criadoEm
+&& nL.apagada is map
+&& nL.apagada.keys().hasOnly(['por', 'em'])
+&& nL.apagada.por == uL
+&& nL.apagada.em == Tq()
+&& existsAfter(/databases/$(database)/documents/conversas/$(H)/apagadas/$(ai));
+}
+allow update: if A52();
+function A53() {
+let nL = Nq();
+let rL = Rq();
+let uL = Uq();
+return b()
+&& bg()
+&& !('apagada' in rL)
+&& k().hasOnly(['reacoes'])
+&& nL.reacoes is map
+&& nL.reacoes.diff(rL.get('reacoes', {})).affectedKeys().hasOnly([uL])
+&& (!(uL in nL.reacoes)
+|| nL.reacoes[uL] in ['❤️', '👍', '😂', '😮', '😢', '🙏', '🔥', '👏']);
+}
+allow update: if A53();
+function A54() {
+return b()
+&& Uq() == Rq().remetenteId
+&& bh()
+&& existsAfter(/databases/$(database)/documents/conversas/$(H)/apagadas/$(ai));
+}
+allow delete: if A54();
+}
+match /apagadas/{ai} {
+function bi() {
+return Uq() in get(Dq('conversas', H)).data.participantes;
+}
+function X() {
+return get(/databases/$(database)/documents/conversas/$(H)/mensagens/$(ai)).data;
+}
+function bj() { return Tq() < Rq().apagadaEm + duration.value(24, 'h'); }
+allow get: if b() && bi() && bj();
+allow get: if l();
+function A55() {
+let nL = Nq();
+let uL = Uq();
+return b()
+&& nL.keys().hasOnly(['remetenteId', 'conteudo', 'apagadaEm'])
+&& nL.remetenteId == uL
+&& X().remetenteId == uL
+&& (!existsAfter(/databases/$(database)/documents/conversas/$(H)/mensagens/$(ai))
+|| getAfter(/databases/$(database)/documents/conversas/$(H)/mensagens/$(ai)).data.apagada.por == uL)
+&& nL.apagadaEm == Tq()
+&& nL.conteudo is map
+&& nL.conteudo.keys().hasOnly(['texto', 'tipoArquivo', 'arquivoUrl', 'nomeArquivo', 'cartao', 'avaliacao', 'resposta', 'edicoes'])
+&& nL.conteudo.get('texto', '') == X().get('texto', '')
+&& nL.conteudo.get('tipoArquivo', '') == X().get('tipoArquivo', '')
+&& nL.conteudo.get('arquivoUrl', '') == X().get('arquivoUrl', '')
+&& nL.conteudo.get('nomeArquivo', null) == X().get('nomeArquivo', null)
+&& nL.conteudo.get('cartao', null) == X().get('cartao', null)
+&& nL.conteudo.get('avaliacao', null) == X().get('avaliacao', null)
+&& nL.conteudo.get('resposta', null) == X().get('resposta', null)
+&& nL.conteudo.get('edicoes', null) == X().get('edicoes', null);
+}
+allow create: if A55();
+function A56() {
+return b() && bi() && bj()
+&& Uq() != Rq().remetenteId
+&& k().hasOnly(['denunciada'])
+&& Nq().denunciada == true;
+}
+allow update: if A56();
+function df() {
+let f = get(Dq('conversas', H)).data.participantes;
+let dg = f[0] == Rq().remetenteId ? f[1] : f[0];
+return exists(Dq('denuncias', 'mensagem_' + ai + '_' + dg));
+}
+allow delete: if b() && bi() && !bj() && Rq().get('denunciada', false) != true && !df();
+allow delete: if l();
+}
+}
+match /pedidos/{c} {
+function A57() {
+let rL = Rq();
+let uL = Uq();
+return b()
+&& (rL.vendedorId == uL
+|| rL.clienteId == uL);
+}
+allow read: if A57();
+allow read: if g();
+function A58() {
+let nL = Nq();
+let uL = Uq();
+return b()
+&& m()
+&& nL.keys().hasOnly(['vendedorId', 'clienteId', 'negocioId', 'tipo', 'titulo', 'conversaId', 'criadoEm'])
+&& nL.vendedorId == uL
+&& nL.clienteId is string
+&& nL.clienteId != uL
+&& nL.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
+&& nL.negocioId == uL + '_' + nL.tipo
+&& exists(Dq('negocios', nL.negocioId))
+&& uL in get(Dq('conversas', nL.conversaId)).data.participantes
+&& nL.clienteId in get(Dq('conversas', nL.conversaId)).data.participantes
+&& e(nL.get('titulo', ''), 120)
+&& nL.criadoEm == Tq()
+&& !z(uL, nL.clienteId);
+}
+allow create: if A58();
+allow update, delete: if false;
+}
+match /avaliacoes/{c} {
+function dh() {
+let uL = Uq();
+let a = Nq();
+return a.keys().hasOnly(['tipo', 'autorId', 'autorNome', 'autorFoto', 'alvoId', 'negocioId', 'pedidoId', 'postId', 'nota', 'comentario', 'chaves', 'criadoEm'])
+&& a.autorId == uL
+&& a.nota is int && a.nota >= 1 && a.nota <= 5
+&& e(a.get('comentario', ''), 500)
+&& e(a.get('autorNome', ''), 80)
+&& ae(a.get('autorFoto', ''))
+&& di(a, Dq('perfis_publicos', uL))
+&& a.criadoEm == Tq();
+}
+function di(a, bk) {
+return (a.get('autorNome', '') == '' && a.get('autorFoto', '') == '')
+|| (exists(bk) && a.get('autorNome', '') in ['', get(bk).data.get('nome', '')]
+&& a.get('autorFoto', '') in ['', get(bk).data.get('fotoPerfil', '')]);
+}
+function aX(aY) {
+return getAfter(Dq('notas', aY)).data.ultima == c;
+}
+function at(a, dj, af) {
+return !('pedidoId' in a)
+|| (get(Dq('pedidos', a.pedidoId)).data.clienteId == dj
+&& get(Dq('pedidos', a.pedidoId)).data.negocioId == af);
+}
+function dk() {
+let a = Nq();
+let L = bc(a.negocioId);
+let C = Uq();
+return c == 'n_' + a.negocioId + '_' + C
+&& a.alvoId == L
+&& L != C
+&& a.chaves == ['neg_' + a.negocioId]
+&& bJ(C)
+&& az(C, L, C)
+&& az(C, L, L)
+&& !z(C, L)
+&& at(a, C, a.negocioId)
+&& aX('neg_' + a.negocioId);
+}
+// ===== FIM DA PARTE 4 DE 11 =====

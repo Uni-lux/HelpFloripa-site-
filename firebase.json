@@ -20,6 +20,7 @@
     "rules": "storage.rules"
   },
   "firestore": {
+    "rules": "_regras/firestore-publicar.rules",
     "indexes": "firestore.indexes.json"
   }
 }

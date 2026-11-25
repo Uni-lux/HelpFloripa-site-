@@ -7,9 +7,15 @@ import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writ
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
 const env = await initializeTestEnvironment({ projectId: "demo-regras", firestore: { rules: readFileSync(arquivo, "utf8"), host: "127.0.0.1", port: 8085 } });
-let ok = 0, falhou = 0;
+let ok = 0, falhou = 0, guardados = 0;
+// Partes guardadas para a próxima atualização (_regras/proxima-atualizacao.rules): sem elas nas regras, os testes delas
+// não rodam (corridas/entregas, roubos/ocorrências, veículos e desaparecidos).
+const textoRegras = readFileSync(arquivo, "utf8");
+const GUARDADAS = !/match \/corridas\//.test(textoRegras);
+const SO_GUARDADAS = /^(serviço: corrida|ocorrência|autoria:|consulta:|pista|pistas|pistas_autoria|ocorrência anônima)/;
 const resultados = [];
 async function t(nome, fn) {
+  if (GUARDADAS && SO_GUARDADAS.test(nome)) { guardados++; return; }
   try { await fn(); ok++; resultados.push(["ok", nome]); }
   catch (e) { falhou++; resultados.push(["FALHOU", nome, e.message.split("\n")[0].slice(0, 200)]); }
 }
@@ -1691,7 +1697,7 @@ await t("cadastro: tipoUsuario diferente de 'usuario' é recusado", () => assert
 await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => assertSucceeds(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, tipoUsuario: "usuario" })));
 
 // ===================== Entregas e corridas =====================
-{
+if (!GUARDADAS) {
   const db0 = (fn) => semRegras(fn);
   await db0(async (db) => {
     for (const u of ["cli", "moto1", "moto2", "carro1", "semVerif", "dest"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: u !== "semVerif" });
@@ -1852,7 +1858,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("presente: quem mandou desiste antes da resposta", () => assertSucceeds(updateDoc(doc(ctx("gi"), "presentes", "pr9"), { status: "cancelado", atualizadoEm: serverTimestamp() })));
   await t("presente: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("gi"), "presentes", "pr1"))));
   await t("presente: lista os recebidos", () => assertSucceeds(getDocs(query(collection(ctx("go"), "presentes"), where("para", "==", "go")))));
-  // Corrida de presente
+  if (!GUARDADAS) { // Corrida de presente (volta com as regras de entregas)
   await t("presente: corrida", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "prC"), pres({ tipo: "corrida", mimo: undefined, valor: 40 }))));
   await updateDoc(doc(ctx("go"), "presentes", "prC"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
   const ponto = (lat, lng) => ({ lat, lng, nome: "Rua", sub: "" });
@@ -1864,6 +1870,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("corrida de presente: usa o presente", () => assertSucceeds(usar(ctx("go"), "corridaPres04")));
   await t("corrida de presente: quem pagou acompanha", () => assertSucceeds(getDoc(doc(ctx("gi"), "corridas", "corridaPres04"))));
   await t("corrida comum não usa pagamento 'presente'", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres05"), (() => { const o = corridaP(); delete o.presenteId; delete o.pagadorId; return o; })()); b.set(doc(db, "corridas", "corridaPres05", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });
+  }
   // Localização em tempo real
   const vivo = (extra) => ({ uid: "gi", conv: "gi_go", participantes: ["gi", "go"], lat: -27.59, lng: -48.54, precisao: 12, rumo: 0, ate: Timestamp.fromMillis(Date.now() + 3600e3), parado: false, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("local ao vivo: cria na conversa", () => assertSucceeds(setDoc(doc(ctx("gi"), "locais_vivos", "lv1"), vivo())));
@@ -1973,7 +1980,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
 }
 
 // ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================
-{
+if (!GUARDADAS) {
   const H = createHash("sha256").update("hf-veiculo:ABC1D23").digest("hex"), H2 = "b".repeat(64);
   const vei = (extra) => ({ donoId: "vd", tipo: "carro", placa: "ABC1D23", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", apelido: "", chassiFim: "", status: "ok", ocorrenciaId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("veículo: o dono cadastra", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "v1"), vei())));
@@ -2003,7 +2010,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
 }
 
 // ===================== Desaparecidos (18/11/2026) =====================
-{
+if (!GUARDADAS) {
   await semRegras(async (db) => { await setDoc(doc(db, "admins", "dsMod"), { papel: "moderacao" }); });
   const des = (extra) => ({ autorId: "dsA", autorNome: "Ds A", nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", quando: Timestamp.fromMillis(Date.now() - 3600e3), bo: "2026/123456", lat: -27.59, lng: -48.54, geo4: "6gj7", cidade: "Florianópolis", uf: "SC", status: "analise", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("desaparecido: registra com boletim (em análise)", () => assertSucceeds(setDoc(doc(ctx("dsA"), "desaparecidos", "d1"), des())));
@@ -2281,6 +2288,6 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
 
 // ---------- resultado ----------
 for (const r of resultados) console.log(r[0] === "ok" ? "  ✔" : "  ✘", r[1], r[2] ? "→ " + r[2] : "");
-console.log(`\n${ok} passaram, ${falhou} falharam (${arquivo})`);
+console.log(`\n${ok} passaram, ${falhou} falharam${guardados ? `, ${guardados} guardados para a próxima atualização` : ""} (${arquivo})`);
 await env.cleanup();
 process.exit(falhou ? 1 : 0);

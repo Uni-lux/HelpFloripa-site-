@@ -1,0 +1,332 @@
+allow get, list: if A156();
+function A157() {
+let nL = Nq();
+let uL = Uq();
+return b() && m()
+&& nL.keys().hasOnly(['dados', 'autorId', 'postAutorId', 'por', 'em'])
+&& exists(ac())
+&& nL.dados == get(ac()).data
+&& nL.autorId == get(ac()).data.autorId
+&& nL.postAutorId == get(ac()).data.postAutorId
+&& nL.postAutorId == uL
+&& nL.por == uL
+&& nL.em == Tq()
+&& getAfter(ac()).data.get('oculto', false) == true
+&& !('texto' in getAfter(ac()).data);
+}
+allow create: if A157();
+allow update: if false;
+function A158() {
+let rL = Rq();
+let uL = Uq();
+return b() && (
+l()
+|| ((rL.postAutorId == uL || rL.autorId == uL)
+&& (!existsAfter(ac()) || getAfter(ac()).data.get('oculto', false) == false)));
+}
+allow delete: if A158();
+}
+match /comentario_votos/{c} {
+allow read: if b();
+function A159() {
+let nL = Nq();
+let uL = Uq();
+return b()
+&& m()
+&& nL.keys().hasOnly(['comentarioId', 'uid', 'opcao', 'criadoEm'])
+&& nL.uid == uL
+&& c == nL.comentarioId + '_' + uL
+&& nL.opcao is int && nL.opcao >= 0
+&& nL.opcao < get(Dq('comentarios', nL.comentarioId)).data.enquete.opcoes.size()
+&& get(Dq('comentarios', nL.comentarioId)).data.get('oculto', false) == false
+&& !z(uL, get(Dq('comentarios', nL.comentarioId)).data.autorId)
+&& nL.criadoEm == Tq();
+}
+allow create: if A159();
+allow delete: if l();
+}
+match /curtidas_comentarios/{c} {
+allow read: if b();
+function cs(a) { return !('reacao' in a) || a.reacao in ['❤️', '👍', '😂', '😮', '😢', '👏']; }
+function A160() {
+let nL = Nq();
+let uL = Uq();
+return b()
+&& m()
+&& nL.keys().hasOnly(['comentarioId', 'uid', 'criadoEm', 'reacao', 'comentarioAutorId'])
+&& (!('comentarioAutorId' in nL)
+|| nL.comentarioAutorId == get(Dq('comentarios', nL.comentarioId)).data.autorId)
+&& nL.uid == uL
+&& c == nL.comentarioId + '_' + uL
+&& exists(Dq('comentarios', nL.comentarioId))
+&& cs(nL)
+&& nL.criadoEm == Tq();
+}
+allow create: if A160();
+function A161() {
+return b()
+&& Rq().uid == Uq()
+&& k().hasOnly(['reacao'])
+&& cs(Nq());
+}
+allow update: if A161();
+function A162() {
+return b() && Rq().uid == Uq();
+}
+allow delete: if A162();
+}
+match /diario/{ak} {
+allow get: if b() && aP('autorId');
+allow list: if b();
+function ct() {
+let a = Nq();
+return v('texto', 1000)
+&& (!('titulo' in a) || (a.titulo is string && a.titulo.size() >= 1 && a.titulo.size() <= 90))
+&& (!('layout' in a) || (a.layout is string && a.layout.matches('^(topo|lado|fundo|citacao|simples|destaque|carrossel|grade|mosaico|baralho|pizza|polaroid|lista|cartoes|duelo|normal|cinema|vertical)$')))
+&& v('nome', 80)
+&& aN('fotoPerfil')
+&& (!('mediaTipo' in a) || a.mediaTipo in ['', 'image', 'video'])
+&& (!('mediaUrl' in a) || a.mediaUrl == ''
+|| (a.mediaUrl is string
+&& dO(a.mediaUrl, a.autorId)))
+&& (!('midias' in a)
+|| (a.midias is list && a.midias.size() >= 2 && a.midias.size() <= 4
+&& a.get('mediaTipo', '') == 'image' && a.midias[0] == a.get('mediaUrl', '')
+&& a.midias.join(' ').matches('^(' + bu(a.autorId) + ')( (' + bu(a.autorId) + ')){1,3}$')));
+}
+function cu(a) {
+return !('tags' in a) || (a.tags is list && a.tags.size() <= 10
+&& (a.tags.size() == 0 || a.tags.join(' ').matches('^[\\p{Ll}\\p{N}_]{1,30}( [\\p{Ll}\\p{N}_]{1,30}){0,9}$')));
+}
+function cv(a) {
+return !('marcados' in a) || (a.marcados is list && a.marcados.size() <= 10
+&& (a.marcados.size() == 0 || a.marcados.join(' ').matches('^[A-Za-z0-9]{1,64}( [A-Za-z0-9]{1,64}){0,9}$')));
+}
+function cw(a) {
+return !('local' in a) || a.local == null
+|| (a.local is map && a.local.keys().hasOnly(['nome', 'lat', 'lng'])
+&& a.local.nome is string && a.local.nome.size() >= 2 && a.local.nome.size() <= 80
+&& a.local.lat is number && a.local.lat >= -34 && a.local.lat <= 6
+&& a.local.lng is number && a.local.lng >= -75 && a.local.lng <= -28);
+}
+function cx(a) {
+let f = a.get('publico', null);
+return f == null
+|| (f is map && f.keys().hasOnly(['idadeMin', 'idadeMax', 'genero', 'local', 'ufs', 'cidades', 'perto', 'seguidores'])
+&& f.get('idadeMin', 16) is int && f.get('idadeMax', 100) is int
+&& 16 <= f.get('idadeMin', 16) && f.get('idadeMin', 16) <= f.get('idadeMax', 100) && f.get('idadeMax', 100) <= 100
+&& (!('genero' in f) || f.genero in ['f', 'm'])
+&& (!('local' in f) || f.local in ['brasil', 'estados', 'cidades', 'perto'])
+&& (!('ufs' in f) || (f.ufs is list && f.ufs.size() >= 1 && f.ufs.size() <= 27 && f.ufs.join(' ').matches('^[A-Z]{2}( [A-Z]{2}){0,26}$')))
+&& (!('cidades' in f) || (f.cidades is list && f.cidades.size() >= 1 && f.cidades.size() <= 10 && f.cidades.join(' ').matches('^[0-9]{7}( [0-9]{7}){0,9}$')))
+&& (!('perto' in f) || (f.perto is map && f.perto.keys().hasOnly(['lat', 'lng', 'km', 'nome'])
+&& f.perto.lat is number && f.perto.lat >= -34 && f.perto.lat <= 6
+&& f.perto.lng is number && f.perto.lng >= -75 && f.perto.lng <= -28
+&& f.perto.km is int && f.perto.km >= 5 && f.perto.km <= 300
+&& (!('nome' in f.perto) || (f.perto.nome is string && f.perto.nome.size() <= 60))))
+&& (!('seguidores' in f) || f.seguidores in ['todos', 'seguidores', 'novos']));
+}
+function bu(j) {
+return '(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/diario%2F' + j + '%2F)[^ ]*';
+}
+function dO(aq, j) {
+return aq is string && aq.matches('^' + bu(j) + '$');
+}
+function dP(a) {
+let y = a.get('tipo', '');
+let bv = a.get('mediaUrl', '') != '';
+let a5 = a.get('mediaTipo', '') == 'video';
+let bw = ('enquete' in a) || ('caixa' in a);
+return (y == '' && !('estilo' in a))
+|| (y == 'texto' && a.get('texto', '').size() >= 1 && !bw && !a5 && !('midias' in a)
+&& (bv ? (a.get('estilo', '') == 'casada' && a.texto.size() <= 500) : !('estilo' in a)))
+|| (y == 'foto' && bv && !a5 && !bw && !('estilo' in a))
+|| (y == 'video' && bv && a5 && !bw && !('midias' in a) && !('estilo' in a))
+|| (y in ['enquete', 'caixa'] && (y == 'enquete') == ('enquete' in a) && (y == 'caixa') == ('caixa' in a)
+&& !a5 && !('midias' in a) && !('estilo' in a));
+}
+function A163() {
+let nL = Nq();
+return b()
+&& m()
+&& nL.autorId == Uq()
+&& nL.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
+'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
+&& dP(nL)
+&& (!('quemComenta' in nL) || nL.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+&& (!('ocultarNotas' in nL) || nL.ocultarNotas is bool)
+&& (!('autorUf' in nL) || (nL.autorUf is string && nL.autorUf.matches('^[A-Z]{2}$')))
+&& (!('autorIbge' in nL) || (nL.autorIbge is int && nL.autorIbge > 1000000 && nL.autorIbge < 6000000))
+&& cw(nL) && cx(nL)
+&& (!('caixa' in nL) || bG(nL.caixa))
+&& (!('enquete' in nL) || bD(nL.enquete, Tq(), 10090))
+&& ar('pub')
+&& ct()
+&& cu(nL) && cv(nL)
+&& !('agendadoPara' in nL);
+}
+allow create: if A163();
+function A164() {
+let nL = Nq();
+let rL = Rq();
+let tL = Tq();
+return b() && !ap()
+&& m()
+&& rL.autorId == Uq()
+&& nL.autorId == rL.autorId
+&& ay().hasOnly(['texto', 'nome', 'fotoPerfil', 'comentariosOcultos', 'ocultoAte', 'editadoEm', 'quemComenta', 'comentarioFixo', 'tags', 'marcados', 'agendadoPara', 'local', 'publico', 'ocultarNotas', 'titulo', 'layout'])
+&& (!('ocultarNotas' in nL) || nL.ocultarNotas is bool)
+&& (nL.get('estilo', '') != 'casada' || nL.texto.size() <= 500)
+&& cw(nL) && cx(nL)
+&& cu(nL) && cv(nL)
+&& (!k().hasAny(['agendadoPara']) || nL.agendadoPara == tL)
+&& (!('quemComenta' in nL) || nL.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
+&& (!('comentarioFixo' in nL) || nL.comentarioFixo == null
+|| (nL.comentarioFixo is string && nL.comentarioFixo.size() <= 40))
+&& Z('ocultoAte')
+&& aO()
+&& (!k().hasAny(['texto']) || nL.get('editadoEm', null) == tL)
+&& (!k().hasAny(['editadoEm']) || nL.editadoEm == tL)
+&& (!('comentariosOcultos' in nL) || nL.comentariosOcultos is bool)
+&& ct();
+}
+allow update: if A164();
+allow update: if b() && (aR('diario', ak, 'autorId') || aS('diario', ak));
+function A165() {
+return b()
+&& Rq().autorId == Uq();
+}
+allow delete: if A165();
+match /vistas/{j} {
+function A166() {
+let nL = Nq();
+return b() && j == Uq()
+&& nL.keys().hasOnly(['criadoEm', 'origem'])
+&& nL.criadoEm == Tq()
+&& (!('origem' in nL) || nL.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos']);
+}
+allow create: if A166();
+allow read: if b() && get(Dq('diario', ak)).data.autorId == Uq();
+allow update, delete: if false;
+}
+allow update: if l()
+&& aT();
+allow delete: if l();
+}
+function dQ() {
+let y = Tq() - duration.value(3, 'h');
+return string(y.year()) + (y.month() < 10 ? '0' : '') + string(y.month()) + (y.day() < 10 ? '0' : '') + string(y.day());
+}
+function dR() {
+return (Tq().hours() + 21) % 24;
+}
+function cy(af, bx) {
+return Dq('neg_stats', af + '_' + bx);
+}
+function cz(af, bx) {
+return Dq('neg_visitas', af + '_' + Uq() + '_' + bx);
+}
+match /neg_visitas/{c} {
+function dS() {
+let uL = Uq();
+let a = Nq();
+let E = cy(a.negocioId, a.dia);
+return a.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
+&& a.uid == uL
+&& a.negocioId is string && a.negocioId.size() <= 60
+&& a.dia == dQ() && a.hora == dR()
+&& c == a.negocioId + '_' + uL + '_' + a.dia
+&& a.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
+&& a.acoes == [] && a.itens == []
+&& get(Dq('negocios', a.negocioId)).data.donoId != uL
+&& getAfter(E).data.v == (exists(E) ? get(E).data.v : 0) + 1;
+}
+function cA(w, J) {
+let rL = Rq();
+let a = Nq();
+let q = a[w][a[w].size() - 1];
+let E = cy(rL.negocioId, rL.dia);
+let al = w == 'acoes' ? 'a' : 'it';
+return a.diff(rL).affectedKeys().hasOnly([w])
+&& a[w].size() <= J
+&& a[w] == rL[w].concat([q])
+&& !(q in rL[w])
+&& (w == 'acoes' ? dT(q) : dU(q))
+&& getAfter(E).data[al].get(q, 0) == get(E).data[al].get(q, 0) + 1;
+}
+function dT(q) {
+return q in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
+}
+function dU(q) {
+return q is string && q.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
+}
+function A167() {
+return b() && (resource == null || Rq().uid == Uq());
+}
+allow read: if A167();
+allow create: if b() && dS();
+function A168() {
+return b() && Rq().uid == Uq()
+&& (cA('acoes', 12) || cA('itens', 40));
+}
+allow update: if A168();
+allow delete: if false;
+}
+match /neg_stats/{c} {
+function dV() {
+let a = Nq();
+let I = cz(a.negocioId, a.dia);
+let aG = getAfter(I).data;
+return a.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it'])
+&& c == a.negocioId + '_' + a.dia
+&& a.donoId == get(Dq('negocios', a.negocioId)).data.donoId
+&& !exists(I) && aG.dia == a.dia
+&& a.v == 1
+&& a.o.keys().hasOnly([aG.origem]) && a.o[aG.origem] == 1
+&& a.h.keys().hasOnly([string(aG.hora)]) && a.h[string(aG.hora)] == 1
+&& a.a == {} && a.it == {};
+}
+function a6(a, i, al, q) {
+return a[al].diff(i[al]).affectedKeys().hasOnly([q]) && a[al][q] == i[al].get(q, 0) + 1;
+}
+function dW() {
+let a = Nq();
+let i = Rq();
+let r = a.diff(i).affectedKeys();
+let I = cz(i.negocioId, i.dia);
+return (r.hasOnly(['v', 'o', 'h'])
+&& !exists(I) && getAfter(I).data.dia == i.dia
+&& a.v == i.v + 1
+&& a6(a, i, 'o', getAfter(I).data.origem)
+&& a6(a, i, 'h', string(getAfter(I).data.hora)))
+|| (r.hasOnly(['a'])
+&& getAfter(I).data.acoes.size() == get(I).data.acoes.size() + 1
+&& a6(a, i, 'a', getAfter(I).data.acoes[getAfter(I).data.acoes.size() - 1]))
+|| (r.hasOnly(['it'])
+&& getAfter(I).data.itens.size() == get(I).data.itens.size() + 1
+&& a6(a, i, 'it', getAfter(I).data.itens[getAfter(I).data.itens.size() - 1]));
+}
+function A169() {
+return b() && (Rq().donoId == Uq() || l());
+}
+allow read: if A169();
+allow create: if b() && dV();
+allow update: if b() && dW();
+allow delete: if false;
+}
+function dX(cB, by) {
+let f = Dq('pref_publicas', by);
+let x = exists(f) ? get(f).data.get('presentes', 'seguindo') : 'seguindo';
+let s = Dq('vinculos', F(cB, by));
+return x == 'todos'
+|| (x in ['seguindo', 'vinculos'] && exists(s) && get(s).data.status == 'aceito')
+|| (x == 'seguindo' && exists(Dq('relacoes', by + '_' + cB)));
+}
+match /presentes/{c} {
+function a() { return Nq(); }
+function i() { return Rq(); }
+function A170() {
+let uL = Uq();
+return b() && (i().de == uL || i().para == uL);
+}
+// ===== FIM DA PARTE 10 DE 11 =====
