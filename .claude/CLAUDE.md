@@ -3138,6 +3138,21 @@ chat da equipe).
   desaparecidos voltam às regras da plataforma; 6) testes gerais. **Pendente dele:** onde fica a Ponte (pasta
   helpfloripa.com.br/ponte = mesma sessão; domínio próprio = outro site e login de novo, ou passagem automática por
   Cloud Function), nome final/ícone e se quer app nas lojas.
+- **NOVA DECISÃO dele (25/11/2026, depois da opção 2): LANÇAR SÓ A PLATAFORMA HELP FLORIPA AGORA; a rede social (Ponte)
+  fica para concluir depois.** Proposta minha (ainda SEM resposta dele, não começar antes):
+  1) a Ponte fica guardada com "Em breve" (como as corridas: `em-breve.js`); 2) as regras sociais saem das regras publicadas
+  e ficam guardadas (como `_regras/proxima-atualizacao.rules`) → sobra espaço e **corridas, roubos e desaparecidos voltam
+  já**, SEM banco novo; 3) quando a Ponte for lançar, ela ganha um BANCO NOVO começando do zero (dados sociais de hoje são
+  quase todos de teste: nada para migrar) — isso inverte o "Ponte no (default)" combinado antes; a cota grátis vale no
+  máximo ~US$ 3/mês, não compensa mudar o banco da plataforma; 4) mesmo repositório (não precisa criar outro; só com
+  domínio próprio da Ponte: Cloudflare Pages publica os dois sites do mesmo repositório).
+  **Tabela que mandei para ele confirmar o que fica no ar:** FICA = Início, vitrines (Freelances, Delivery, Shopping,
+  Imóveis, Saúde, Automotivo), Meus negócios, planos, Mensagens e ligações, Suporte/Ajuda/painel, avaliações/reclamações,
+  Perfil simples (foto, nome, cidade, negócios; sem publicações/Flash/destaques), Help, pets, presentes. PONTE DEPOIS =
+  Diário, Flash, Explorar, Vídeos, Meu diário (Social/duo), enquetes, seguidores. **Perguntas abertas:** Comunidade (fica na
+  plataforma, sem o Mural?), seguidores/Social (o Help usa o Social para avisar; sem ele = contatos de fora, perto e equipe)
+  e se a barra de baixo da rede sai (Mensagens e Perfil pelo menu/topo). Com as respostas: UM PR = esconder a Ponte,
+  enxugar as regras e trazer corridas/roubos/desaparecidos de volta (medir com `_regras/medir-regras.py`).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
