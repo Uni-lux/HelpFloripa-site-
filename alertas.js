@@ -1409,7 +1409,7 @@ function abrirConfig() {
   const chave = (k, texto) => { const l = h("label", "ent-check"); const i = h("input"); i.type = "checkbox"; i.checked = cfg[k] !== false; i.dataset.cfg = k; i.addEventListener("change", () => (cfg[k] = i.checked)); l.append(i, h("span", null, texto)); c.appendChild(l); };
   chave("sosArea", "Pedidos de Help de quem está perto");
   chave("petsArea", "Pets perdidos e encontrados");
-  chave("roubosArea", "Alertas de roubo, furto e golpe");
+  if (!EM_BREVE.roubos) chave("roubosArea", "Alertas de roubo, furto e golpe");
   c.appendChild(h("p", "ent-sub", "Pedidos de Help do seu Social chegam sempre (no Mensagens). Quando as notificações no celular estiverem ligadas, chegam também com o app fechado."));
   c.appendChild(botao("Salvar", "ent-btn", async () => {
     try { await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { alertas: { ...cfg } }, { merge: true }); dados.alertas = { ...cfg }; toast("Salvo"); fechar(); pintarAba(); }

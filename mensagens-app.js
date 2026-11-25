@@ -3567,6 +3567,8 @@ function cartaoEntrega(c, minha) {
   link.textContent = c.papel === "entregador" && !minha ? "Abrir o painel do entregador" : "Acompanhar no mapa";
   link.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); irParaTopo(link.getAttribute("href")); });
   box.append(cab, rota, st, barra, link);
+  // Corridas e entregas guardadas para a próxima atualização (em-breve.js): cartão antigo só mostra o que diz, sem ler.
+  if (EM_BREVE.corridas) { link.remove(); st.textContent = "Corridas e entregas voltam na próxima atualização."; return box; }
   if (id) fb.getDoc(fb.doc(fb.db, "corridas", id)).then((d) => {
     if (!d.exists()) return;
     const x = d.data();

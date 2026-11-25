@@ -25,7 +25,16 @@ await p.goto(BASE + "automotivo.html", { waitUntil: "domcontentloaded" }); await
 ok(await p.locator(".mob-op").count() === 0, "Automotivo: sem o bloco de corridas");
 await p.goto(BASE + "presentes.html?aba=enviar", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(3500);
 ok(!(await p.content()).includes(">Mobilidade<"), "Presentes: sem o grupo Mobilidade");
+await p.goto(BASE + "mural.html", { waitUntil: "domcontentloaded" }); await p.waitForTimeout(3000);
+ok(await p.locator(".mu-al.roubos").count() === 0, "Comunidade: sem o cartão Alertas de roubos");
+// Painel dos admins: Segurança e alertas só com Help e Pets
+const B = await navegador({ mobile: true }); // outro navegador: duas abas no mesmo travam o Firestore do teste
+const pa = await entrar(B.ctx, "admin", "admin.html#seguranca");
+pa.on("pageerror", (e) => erros.push("painel: " + e.message));
+await pa.waitForFunction(() => document.querySelectorAll(".ad-chip[data-aba]").length >= 3, null, { timeout: 30000 }).catch(() => {});
+const abas = await pa.locator(".ad-chip[data-aba]").evaluateAll((l) => l.map((b) => b.dataset.aba));
+ok(abas.includes("help") && abas.includes("pets") && !abas.some((a) => ["ocorrencias", "vendas", "desaparecidos"].includes(a)), "Painel › Segurança: só Cruzamentos, Help e Pets (" + abas.join(", ") + ")");
 ok(erros.length === 0, "sem erro de JavaScript" + (erros.length ? ": " + erros.join(" | ").slice(0, 300) : ""));
-await nav.close();
+await nav.close(); await B.browser.close();
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTudo certo");
 process.exit(falhas ? 1 : 0);

@@ -128,7 +128,7 @@ const SECOES_MENU = [
     ["automotivo.html", "automotivo", "Automotivo", "#f5b301"],
     ["comunidade.html", "comunidade", "Comunidade", "#e5487f"],
     // Entregas e corridas: volta na próxima atualização (em-breve.js)
-    ["alertas.html", "alerta", "Help e alertas", "#e5484d", null, "Pedir ajuda, pets perdidos e roubos perto de você"]
+    ["alertas.html", "alerta", "Help e alertas", "#e5484d", null, "Pedir ajuda e pets perdidos perto de você"]
   ]],
   ["Minha conta", [
     ["feed.html", "feed", "Diário"],
