@@ -19,6 +19,8 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   as partes saem da versão COMPACTA (sem comentários/linhas vazias/recuo): `python3 _testes/compactar-regras.py` →
   `python3 _testes/dividir-regras.py saida/firestore-compacto.rules ../_regras` (rodar de dentro de `_testes`) →
   `node testes-regras.mjs saida/remontado-com-marcas.rules`. O `firestore.rules` com comentários continua sendo a fonte.
+  Copiar também para `_regras/firestore-publicar.rules` (`compactar-regras.py ../firestore.rules ../_regras/firestore-publicar.rules`):
+  é o que o `firebase.json` publica pelo Cloud Shell (`deploy --only firestore:rules`, que mostra o erro de verdade).
 - Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
   Tudo pronto em `_testes/` (leia `_testes/README.md`). `clearFirestore()` no demo-hf apaga os dados do navegador:
   os testes de regras usam o projeto `demo-regras`.

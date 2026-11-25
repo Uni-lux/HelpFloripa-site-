@@ -5,6 +5,14 @@
 > estas partes têm as MESMAS regras sem comentários, linhas vazias e recuo (191 KB). Apague tudo no editor e cole as partes
 > 1 a 16 em ordem. As regras ficam todas encostadas à esquerda: é assim mesmo. 1375 testes passando no arquivo remontado.
 
+> **Se o console continuar com "Ocorreu um erro desconhecido" — publicar pelo Cloud Shell (mostra o erro de verdade):**
+> 1. Abra o Cloud Shell (ícone `>_` no topo do console do Google Cloud, projeto helpfloripa-61e0d).
+> 2. Cole, uma linha por vez:
+>    `rm -rf hf && git clone https://github.com/Uni-lux/HelpFloripa-site- hf && cd hf`
+>    `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+> 3. Se publicar, aparece "Deploy complete!". Se não, copie a mensagem de erro (ou mande print) para o Claude.
+> O `firebase.json` publica o `_regras/firestore-publicar.rules` (as mesmas regras das 16 partes, sem comentários).
+
 > **Versão de 03/11/2026 (2) — e-mail da conta:** o e-mail gravado na conta (`usuarios.email`) tem que ser o do login (antes a
 > pessoa podia gravar o e-mail de outra e o painel mostrava e buscava por ele).
 
