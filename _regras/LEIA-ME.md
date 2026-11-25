@@ -1,6 +1,21 @@
 # Regras do Firestore — publicação
 
-> **Versão de 25/11/2026 (3) — corridas e entregas de volta, pelo servidor (12 partes).** As mudanças nos pedidos
+> **Versão de 25/11/2026 (4) — roubos, furtos, golpes e veículos de volta, pelo servidor (12 partes).** Registrar
+> ocorrência, pistas, encerrar, cadastrar veículo e o índice dos carros/motos à venda agora passam pela Cloud Function
+> **`roubos`** (functions/roubos.js); as regras deles ficaram só de leitura. Texto: 139.059 (antes 138.151).
+> Desaparecidos continuam em `_regras/proxima-atualizacao.rules` ("Em breve"). 1312 testes passando.
+>
+> **Ordem para publicar (Cloud Shell, pasta `hf`), depois de mesclar o PR:**
+> 1. `cd ~/hf && git fetch origin && git reset --hard origin/main`
+> 2. `cd functions && npm ci && cd ..`
+> 3. `npx firebase-tools@latest deploy --only functions:roubos --project helpfloripa-61e0d` (✔ no fim)
+> 4. `python3 _regras/medir-regras.py` — tem que aparecer **CABE** na linha `final.rules` (com erro 503 do Google, pode ir
+>    direto ao passo 5: o deploy recusa se não couber).
+> 5. `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+>    (erro "409 ... already exists": `python3 _regras/ligar-regras.py`, deve dizer **PRONTO**).
+> Até o passo 5, as abas Roubos e Veículos aparecem mas não leem as ocorrências (as regras do ar ainda não têm elas).
+
+> **Versão de 25/11/2026 (3), publicada — corridas e entregas de volta, pelo servidor (12 partes).** As mudanças nos pedidos
 > (criar, oferta, aceitar, PIN, cancelar, avaliar) agora são feitas pela Cloud Function **`corrida`** (functions/corridas.js);
 > as regras das corridas ficaram pequenas (só quem lê e a posição ao vivo de quem leva). Texto: 138.151 (antes 133.633).
 > Roubos/veículos e desaparecidos continuam em `_regras/proxima-atualizacao.rules` ("Em breve"). 1280 testes passando.

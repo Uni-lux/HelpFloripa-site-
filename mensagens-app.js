@@ -35,7 +35,7 @@ import { MIMOS } from "./presentes-base.js?v=2";
 import { garantirConversa, solicitacaoParaMim, decidirSolicitacao, MSG_PESSOAL, MSG_NEGOCIOS, prefMensagens, esquecerPrefMensagens } from "./conversa-acesso.js?v=1";
 import { ouvirItensEquipe, linkEquipe, seloOficial, TEXTO_EQUIPE } from "./avisos-equipe.js?v=1";
 import { escolherApagar, editarTextoHF, verEdicoesHF, janelaHF, horaCurta, noPrazo, tempoRestante, podeMexer } from "./msg-acoes.js?v=2";
-import { EM_BREVE } from "./em-breve.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=3";
 // ======================================================
 // Configurações (salvas no aparelho)
 // ======================================================

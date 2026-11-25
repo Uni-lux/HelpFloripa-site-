@@ -26,7 +26,7 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   atalhos N/R/U/T/D + let, protegendo stories e negocios do limite de 1.000 expressões → partes + `_regras/firestore-publicar.rules`).
   Medir sem mexer no ar: `_regras/medir-regras.py` (Cloud Shell, arquivos em `_regras/medir/`); se o deploy der 409,
   `_regras/ligar-regras.py`. Medido: nomes curtos ~1 byte compilado por letra, expressão ~2 por letra, chamada de função ~36.
-  **Roubos/veículos e desaparecidos guardados** (corridas voltaram em 25/11 pelo servidor, função `corrida`) em `_regras/proxima-atualizacao.rules` (25/11/2026,
+  **Desaparecidos guardados** (corridas e roubos/veículos voltaram em 25/11 pelo servidor, funções `corrida` e `roubos`) em `_regras/proxima-atualizacao.rules` (25/11/2026,
   decisão dele) com o site em "Em breve" (`em-breve.js` `EM_BREVE`); testes delas pulados quando as regras não as têm.
   Para voltar: colar os blocos de volta, virar `EM_BREVE` false e medir (vai precisar enxugar outra coisa ou separar a rede social).
 - Testar de verdade antes de cada push: emulador (firestore 8085, auth 9099, projeto demo-hf) + Playwright.
@@ -3186,6 +3186,20 @@ chat da equipe).
   "Deploy complete!"; aviso "Unused function: ea" = `pontoAproxOk` encurtado, só das regras guardadas). O medidor deu 503 do
   Google (instável) e depois 409 (a release de teste `hf-medida-0` tinha sido criada mesmo com o 503): `medir-regras.py` agora
   apaga a release de teste antes de criar. Com 503 seguido, pode publicar direto: o deploy recusa se não couber.
+- **Roubos e veículos de volta, pelo servidor (25/11/2026, etapa 2, PR depois do #263, MUDA REGRAS — não publicadas; 12 partes,
+  1312 testes):** Cloud Function **`roubos`** (onCall, `functions/roubos.js`; `alertas-base.js` e `veiculos-base.js` copiados no
+  predeploy/emulador.sh): ações `ocorrencia` (servidor arredonda o ponto, geohash, cidade/UF do perfil, placa em Mercosul, autoria
+  anônima em `ocorrencias_autoria`, `minhasOcorrencias`, veículo da pessoa vira roubado; 5 por dia em `servidor_limites/{uid}`),
+  `status` (autor: recuperado/removido e o veículo ligado sai do roubado; moderação: ativo/removido), `pista` (anônima com
+  `pistas_autoria`, 30 por dia; `auto: "consulta"` uma por pessoa/ocorrência/dia com id `auto_<hash>`; `equipe: true` só moderação,
+  nome "Equipe Help Floripa"), `veiculo` (hash SHA-256 no servidor, até 10, devolve `alerta` se a placa tem ocorrência de outra
+  pessoa), `conferirPlacas` (placa com alerta bloqueia e manda pista automática; autoria = quem tentou) e `vendas` (índice
+  `veiculos_venda` só com o hash, cidade/UF do negócio, confere de novo; lista vazia tira tudo). Site: `funcoes.js`
+  (`chamarFuncao(nome, acao, dados)`, `acaoRoubos`; `acaoCorrida` do entregas-comum usa ele), alertas.js, negocios.js e
+  admin-seguranca.js sem gravação direta (só apagar o próprio veículo/índice). Regras: só leitura (+ delete do dono em veiculos e
+  veiculos_venda). `EM_BREVE.roubos = false`; textos de Ajuda, menu, Configurações, Privacidade e alertas.html voltaram.
+  Limpeza de conta apaga `servidor_limites`. Testes `t-roubos-servidor.mjs` (34), `t-veiculos-presentes`, `t-sos-pets`, `t-em-breve`
+  (com `__hfFuncoesEmulador`). Para publicar: `functions:roubos` + regras (`_regras/LEIA-ME.md`). Próximo: desaparecidos (etapa 3).
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**

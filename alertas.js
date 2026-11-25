@@ -15,13 +15,14 @@ import {
   ESPECIES, CORES_PET, PORTES, PORTES_ESPECIE, nomePorte, STATUS_PET, rgPet, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, MOSTRAR_A_PARTIR,
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=2";
-import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=7";
+import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=8";
 import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=4";
 import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
 import { abrirCadastroPet } from "./pet-cadastro.js?v=5";
 import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
-import { EM_BREVE } from "./em-breve.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=3";
+import { acaoRoubos } from "./funcoes.js?v=1";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).
@@ -1033,28 +1034,23 @@ function registrarOcorrencia(pre = {}) {
     }
     const g = await lerGps(8000) || pos;
     if (!g) { ok.disabled = false; toast("Ative a localização para marcar a região."); return; }
-    const ref = fb.doc(fb.collection(fb.db, "ocorrencias"));
-    const doc = {
-      anonimo: st.anonimo, autorId: st.anonimo ? "" : eu.uid, ...(st.anonimo ? {} : { autorNome: String(dados.nome || "").slice(0, 80) }),
-      tipo: st.tipo, objeto: st.objeto, identificador: ident, descricao: d.slice(0, 500),
-      quando: fb.Timestamp.fromMillis(Math.min(Date.now() - 1000, new Date(`${dia.value}T${horaI.value || "12:00"}`).getTime() || Date.now() - 1000)),
-      lat: Math.round(g.lat * 1e3) / 1e3, lng: Math.round(g.lng * 1e3) / 1e3, geo4: geohash(g.lat, g.lng, 4),
-      bairro: bairro.value.trim().slice(0, 60), cidade: String(dados.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(dados.uf || "") ? dados.uf : "",
-      status: "ativo", criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp()
-    };
     const vei = veiAtual?.ler();
-    if (vei && (vei.marca || vei.modelo || vei.ano || vei.cor)) doc.veiculo = vei;
-    const gravar = async (x) => { const lote = fb.writeBatch(fb.db); lote.set(ref, x); if (st.anonimo) lote.set(fb.doc(fb.db, "ocorrencias_autoria", ref.id), { uid: eu.uid }); await lote.commit(); };
+    const quando = Math.min(Date.now() - 1000, new Date(`${dia.value}T${horaI.value || "12:00"}`).getTime() || Date.now() - 1000);
     try {
-      // Regras de antes da atualização não aceitam "veiculo": grava sem ele (a placa vai do mesmo jeito).
-      try { await gravar(doc); } catch (e) { if (e?.code !== "permission-denied" || !doc.veiculo) throw e; const sem = { ...doc }; delete sem.veiculo; await gravar(sem); }
-      fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { minhasOcorrencias: fb.arrayUnion(ref.id) }, { merge: true }).catch(() => {});
-      dados.minhasOcorrencias = [...(dados.minhasOcorrencias || []), ref.id];
-      if (st.veiculoDoc) await marcarVeiculo(st.veiculoDoc, { status: "roubado", ocorrenciaId: ref.id, roubadoEm: fb.serverTimestamp() }).catch(() => {});
+      // O servidor confere tudo, guarda a autoria (anônima) e marca o veículo cadastrado como roubado.
+      const r = await acaoRoubos("ocorrencia", {
+        anonimo: st.anonimo, tipo: st.tipo, objeto: st.objeto, identificador: ident, descricao: d.slice(0, 500), quando,
+        lat: g.lat, lng: g.lng, bairro: bairro.value.trim().slice(0, 60),
+        ...(vei && (vei.marca || vei.modelo || vei.ano || vei.cor) ? { veiculo: vei } : {}),
+        ...(st.veiculoDoc && !st.veiculoDoc._guardado ? { veiculoId: st.veiculoDoc.id } : {})
+      });
+      dados.minhasOcorrencias = [...(dados.minhasOcorrencias || []), r.id];
+      meusVeiculosCache = null;
+      if (st.veiculoDoc?._guardado) await marcarVeiculo(st.veiculoDoc, { status: "roubado", ocorrenciaId: r.id, roubadoEm: Date.now() }).catch(() => {});
       fechar(); toast("Ocorrência registrada");
-      dicas(st.objeto, ehVeiculo(st.objeto) ? { tipo: st.objeto, placa: ident, ...(vei || {}), uf: doc.uf, cidade: doc.cidade, quando: doc.quando } : null);
+      dicas(st.objeto, ehVeiculo(st.objeto) ? { tipo: st.objeto, placa: ident, ...(vei || {}), uf: dados.uf, cidade: dados.cidade, quando: fb.Timestamp.fromMillis(quando) } : null);
       if (aba === "roubos" || aba === "veiculos") pintarAba();
-    } catch (e) { ok.disabled = false; toast(e?.code === "permission-denied" ? "Esta função ainda está sendo liberada." : "Não foi possível: " + erroAmigavel(e)); }
+    } catch (e) { ok.disabled = false; toast(e.message || "Não foi possível agora."); }
   });
   ok.id = "alOcOk";
   c.appendChild(ok);
@@ -1085,11 +1081,10 @@ async function abrirOcorrencia(id) {
     if (minha) {
       if (o.status === "ativo") c.appendChild(botao("Recuperei", "ent-btn ok", async () => {
         try {
-          await fb.updateDoc(fb.doc(fb.db, "ocorrencias", id), { status: "recuperado", atualizadoEm: fb.serverTimestamp() });
-          const v = (await lerMeusVeiculos().catch(() => [])).find((x) => x.ocorrenciaId === id);
-          if (v) await marcarVeiculo(v, { status: "recuperado" }).catch(() => {});
+          await acaoRoubos("status", { id, status: "recuperado" }); // o servidor tira o veículo ligado do "roubado"
+          meusVeiculosCache = null;
           toast("Que bom!");
-        } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+        } catch (e) { toast(e.message || "Não foi possível agora."); }
       }));
       if (ehVeiculo(o.objeto) && o.identificador && o.status === "ativo") {
         c.appendChild(h("h3", null, "Anúncios no Help Floripa"));
@@ -1120,17 +1115,13 @@ function mandarPista(id, textoPronto = "") {
     if (t.value.trim().length < 3) { toast("Escreva a pista."); return; }
     ok.disabled = true;
     try { await gravarPista(id, t.value.trim(), ca.checked); toast("Pista enviada. Obrigado!"); fechar(); }
-    catch (e) { ok.disabled = false; toast("Não foi possível: " + erroAmigavel(e)); }
+    catch (e) { ok.disabled = false; toast(e.message || "Não foi possível agora."); }
   });
   ok.id = "alPistaOk";
   c.appendChild(ok);
 }
 async function gravarPista(id, texto, anonimo) {
-  const ref = fb.doc(fb.collection(fb.db, "ocorrencias", id, "pistas"));
-  const lote = fb.writeBatch(fb.db);
-  lote.set(ref, anonimo ? { texto: texto.slice(0, 400), anonimo: true, criadoEm: fb.serverTimestamp() } : { texto: texto.slice(0, 400), anonimo: false, uid: eu.uid, nome: String(dados.nome || "").slice(0, 80), criadoEm: fb.serverTimestamp() });
-  if (anonimo) lote.set(fb.doc(fb.db, "pistas_autoria", `${id}_${ref.id}`), { uid: eu.uid });
-  await lote.commit();
+  return acaoRoubos("pista", { id, texto: texto.slice(0, 400), anonimo });
 }
 // Consulta antes de comprar usado: escolhe o que é, o campo se ajusta e confere o número (IMEI pela soma, placa nos
 // dois padrões). Para carro/moto mostra também se está anunciado no Help Floripa.
@@ -1167,7 +1158,7 @@ async function consultar(inicial, tipoIni = "") {
           botao("Mandar pista anônima", "ent-btn", () => mandarPista(o.id, `Este número foi oferecido à venda${dados.cidade ? " em " + dados.cidade : ""}.`)));
         // Quem registrou fica sabendo que alguém consultou (pista anônima automática, 1 vez por sessão).
         const k = `hf-consulta-${o.id}`;
-        try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, "1"); gravarPista(o.id, `Alguém consultou este número no Help Floripa${dados.cidade ? " (" + dados.cidade + ")" : ""}: pode estar à venda.`, true).catch(() => {}); } } catch {}
+        try { if (!sessionStorage.getItem(k)) { sessionStorage.setItem(k, "1"); acaoRoubos("pista", { id: o.id, auto: "consulta" }).catch(() => {}); } } catch {}
       }
       if (tipo === "veiculo") {
         try {
@@ -1209,7 +1200,7 @@ async function lerMeusVeiculos(forcar = false) {
     // As regras já aceitam: passa o que estava guardado na conta para a coleção.
     for (const g of guardados) {
       if (l.some((x) => x.id === g.id)) continue;
-      try { const { _guardado, id, ...resto } = g; await fb.setDoc(fb.doc(fb.db, "veiculos", id), { ...resto, donoId: eu.uid, criadoEm: fb.serverTimestamp(), atualizadoEm: fb.serverTimestamp() }); l.push({ ...g, _guardado: false }); }
+      try { const r = await acaoRoubos("veiculo", { id: g.id, tipo: g.tipo, placa: g.placa, marca: g.marca, modelo: g.modelo, ano: g.ano, cor: g.cor, apelido: g.apelido }); l.push({ ...g, id: r.id, _guardado: false }); }
       catch { l.push(g); }
     }
     if (guardados.length && guardados.every((g) => l.some((x) => x.id === g.id && !x._guardado))) { fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: fb.deleteField() }, { merge: true }).catch(() => {}); dados.veiculosGuardados = {}; }
@@ -1225,7 +1216,7 @@ async function marcarVeiculo(v, mudancas) {
     novo[v.id] = resto; dados.veiculosGuardados = novo;
     return fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true });
   }
-  return fb.updateDoc(fb.doc(fb.db, "veiculos", v.id), { ...mudancas, atualizadoEm: fb.serverTimestamp() });
+  // Os da coleção só o servidor muda (ocorrência e "recuperado" pela função "roubos").
 }
 async function procurarAnuncios(v) {
   const out = { iguais: [], parecidos: [], erro: false };
@@ -1329,9 +1320,10 @@ function abrirVeiculo(v) {
     if (v.ocorrenciaId) acoes.push(cartaoOp({ nome: "Ver a ocorrência e as pistas", desc: "O que a vizinhança mandou", icone: "olho", aoTocar: () => abrirOcorrencia(v.ocorrenciaId) }));
     acoes.push(cartaoOp({ nome: "Recuperei", desc: "Encerra o alerta e a ocorrência", icone: "check", aoTocar: async () => {
       try {
-        if (v.ocorrenciaId) await fb.updateDoc(fb.doc(fb.db, "ocorrencias", v.ocorrenciaId), { status: "recuperado", atualizadoEm: fb.serverTimestamp() }).catch(() => {});
-        await marcarVeiculo(v, { status: "recuperado" }); toast("Que bom! Alerta encerrado."); fechar(); pintarAba();
-      } catch (e) { toast("Não foi possível: " + erroAmigavel(e)); }
+        if (v.ocorrenciaId && !v._guardado) await acaoRoubos("status", { id: v.ocorrenciaId, status: "recuperado" });
+        else await marcarVeiculo(v, { status: "recuperado" });
+        meusVeiculosCache = null; toast("Que bom! Alerta encerrado."); fechar(); pintarAba();
+      } catch (e) { toast(e.message || "Não foi possível agora."); }
     } }));
   } else {
     acoes.push(cartaoOp({ nome: "Fui roubado ou furtado", desc: "Registra a ocorrência e procura anúncios com esta placa", icone: "sirene", classe: "perigo", dados: { acao: "roubado" }, aoTocar: () => { fechar(); registrarOcorrencia({ objeto: v.tipo, veiculo: v, tipo: "roubo" }); } }));
@@ -1365,30 +1357,14 @@ function editarVeiculo(v) {
     const placa = placaMercosul(campoPlaca.input.value), x = campos.ler();
     if (!x.marca || !x.modelo) { toast("Informe a marca e o modelo."); return; }
     ok.disabled = true;
-    // A placa tem alerta de outra pessoa? (pode ter comprado um veículo roubado sem saber)
-    try {
-      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "in", formasPlaca(placa)), fb.limit(3)));
-      const alheia = s.docs.find((d) => !(dados.minhasOcorrencias || []).includes(d.id) && d.data().autorId !== eu.uid);
-      if (alheia) await confirmarHF({ titulo: "Esta placa tem alerta de roubo ou furto", texto: "Alguém registrou uma ocorrência ativa com esta placa. Se você comprou este veículo há pouco tempo, procure a polícia com o documento de compra. O cadastro continua.", ok: "Entendi", soOk: true, icone: "alerta", cor: "normal" });
-    } catch {}
-    const doc = { donoId: eu.uid, tipo, placa, placaHash: await hashPlaca(placa), ...x, apelido: ap.value.trim().slice(0, 30), chassiFim: "", status: v?.status || "ok", ocorrenciaId: v?.ocorrenciaId || "", atualizadoEm: fb.serverTimestamp() };
     try {
       meusVeiculosCache = null;
-      if (v && !v._guardado) await fb.updateDoc(fb.doc(fb.db, "veiculos", v.id), doc);
-      else {
-        const ref = v ? fb.doc(fb.db, "veiculos", v.id) : fb.doc(fb.collection(fb.db, "veiculos"));
-        try { await fb.setDoc(ref, { ...doc, criadoEm: fb.serverTimestamp() }); if (v?._guardado) { const novo = { ...(dados.veiculosGuardados || {}) }; delete novo[v.id]; dados.veiculosGuardados = novo; fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true }).catch(() => {}); } }
-        catch (e) {
-          if (e?.code !== "permission-denied") throw e;
-          // Regras de antes: guarda na conta (só a pessoa lê) e passa para a coleção depois.
-          const { atualizadoEm, ...semData } = doc;
-          const novo = { ...(dados.veiculosGuardados || {}), [ref.id]: { ...semData, criadoEm: Date.now() } };
-          await fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true });
-          dados.veiculosGuardados = novo;
-        }
-      }
+      // O servidor calcula o código da placa e diz se ela tem alerta de outra pessoa.
+      const r = await acaoRoubos("veiculo", { ...(v ? { id: v.id } : {}), tipo, placa, ...x, apelido: ap.value.trim().slice(0, 30) });
+      if (v?._guardado) { const novo = { ...(dados.veiculosGuardados || {}) }; delete novo[v.id]; dados.veiculosGuardados = novo; fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosGuardados: novo }, { merge: true }).catch(() => {}); }
+      if (r.alerta) await confirmarHF({ titulo: "Esta placa tem alerta de roubo ou furto", texto: "Alguém registrou uma ocorrência ativa com esta placa. Se você comprou este veículo há pouco tempo, procure a polícia com o documento de compra. O cadastro foi salvo.", ok: "Entendi", soOk: true, icone: "alerta", cor: "normal" });
       toast(v ? "Veículo salvo" : "Veículo cadastrado"); fechar(); aba = "veiculos"; pintarAba();
-    } catch (e) { ok.disabled = false; toast("Não foi possível salvar: " + erroAmigavel(e)); }
+    } catch (e) { ok.disabled = false; toast(e.message || "Não foi possível salvar agora."); }
   });
   ok.id = "alVeiSalvar";
   c.appendChild(ok);

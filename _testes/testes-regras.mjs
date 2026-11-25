@@ -14,6 +14,8 @@ const textoRegras = readFileSync(arquivo, "utf8");
 const GUARDADAS = !/match \/ocorrencias\//.test(textoRegras);
 // Corridas voltaram em 25/11/2026 (pelo servidor); com regras antigas sem elas, os testes delas são pulados.
 const SEM_CORRIDAS = !/match \/corridas\//.test(textoRegras);
+// Roubos/veículos voltaram em 25/11/2026 (pelo servidor); desaparecidos continuam guardados.
+const SEM_DESAP = !/match \/desaparecidos\//.test(textoRegras);
 const SO_GUARDADAS = /^(ocorrência|autoria:|consulta:|pista|pistas|pistas_autoria|ocorrência anônima)/;
 const resultados = [];
 async function t(nome, fn) {
@@ -1911,26 +1913,36 @@ if (!SEM_CORRIDAS) {
     await assertSucceeds(getDoc(doc(ctx("sa"), "sos", "s7")));
   });
   await t("sos: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("sa"), "sos", "s1"))));
-  // Ocorrências
+  // Ocorrências (25/11/2026): quem grava é o servidor (functions/roubos.js); aqui só a leitura e "o aparelho não grava".
   const oc = (extra) => ({ anonimo: false, autorId: "sa", autorNome: "Sa", tipo: "furto", objeto: "celular", identificador: "356789012345678", descricao: "Levaram meu celular no ônibus", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  await t("ocorrência: com nome", () => assertSucceeds(setDoc(doc(ctx("sa"), "ocorrencias", "o1"), oc())));
-  await t("ocorrência: posição exata (mais de 3 casas) é recusada", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "oP"), oc({ lat: -27.59412, lng: -48.54871 }))));
-  await t("ocorrência: anônima com a autoria junto", () => { const db = ctx("sb"); const b = writeBatch(db); const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; b.set(doc(db, "ocorrencias", "o2"), o); b.set(doc(db, "ocorrencias_autoria", "o2"), { uid: "sb" }); return assertSucceeds(b.commit()); });
-  await t("ocorrência anônima: sem a autoria é recusada", () => { const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; return assertFails(setDoc(doc(ctx("sb"), "ocorrencias", "o3"), o)); });
-  await t("ocorrência anônima: não leva o nome", () => { const db = ctx("sb"); const b = writeBatch(db); b.set(doc(db, "ocorrencias", "o4"), oc({ anonimo: true, autorId: "" })); b.set(doc(db, "ocorrencias_autoria", "o4"), { uid: "sb" }); return assertFails(b.commit()); });
-  await t("ocorrência: identificador fora do formato", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "o5"), oc({ identificador: "356-789" }))));
-  await t("ocorrência: data no futuro", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "o6"), oc({ quando: Timestamp.fromMillis(Date.now() + 864e5) }))));
+  await t("ocorrência: o aparelho não registra direto (só o servidor)", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "o0"), oc())));
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "ocorrencias", "o1"), oc());
+    const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome;
+    await setDoc(doc(db, "ocorrencias", "o2"), o); await setDoc(doc(db, "ocorrencias_autoria", "o2"), { uid: "sb" });
+    await setDoc(doc(db, "ocorrencias", "o3"), oc({ status: "removido" }));
+    await setDoc(doc(db, "ocorrencias", "o2", "pistas", "p1"), { texto: "Vi à venda na praça", anonimo: true, criadoEm: Timestamp.now() });
+    await setDoc(doc(db, "pistas_autoria", "o2_p1"), { uid: "sc" });
+    await setDoc(doc(db, "admins", "sMod"), { papel: "moderacao" });
+  });
+  await t("ocorrência: ativa, qualquer conta lê", () => assertSucceeds(getDoc(doc(ctx("sc"), "ocorrencias", "o1"))));
+  await t("ocorrência: tirada do ar, outra pessoa não lê", () => assertFails(getDoc(doc(ctx("sc"), "ocorrencias", "o3"))));
+  await t("ocorrência: tirada do ar, quem registrou lê", () => assertSucceeds(getDoc(doc(ctx("sa"), "ocorrencias", "o3"))));
+  await t("ocorrência: sem conta não lê", () => assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "ocorrencias", "o1"))));
+  await t("ocorrência: o aparelho não muda o status", () => assertFails(updateDoc(doc(ctx("sa"), "ocorrencias", "o1"), { status: "recuperado", atualizadoEm: serverTimestamp() })));
+  await t("ocorrência: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("sa"), "ocorrencias", "o1"))));
   await t("autoria: outra pessoa não lê quem registrou", () => assertFails(getDoc(doc(ctx("sc"), "ocorrencias_autoria", "o2"))));
   await t("autoria: quem registrou lê a própria", () => assertSucceeds(getDoc(doc(ctx("sb"), "ocorrencias_autoria", "o2"))));
+  await t("autoria: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("sMod"), "ocorrencias_autoria", "o2"))));
+  await t("autoria: o aparelho não grava", () => assertFails(setDoc(doc(ctx("sb"), "ocorrencias_autoria", "o9"), { uid: "sb" })));
   await t("consulta: busca pelo IMEI", () => assertSucceeds(getDocs(query(collection(ctx("sc"), "ocorrencias"), where("status", "==", "ativo"), where("identificador", "==", "356789012345678")))));
-  await t("pista anônima com a autoria só para a moderação", () => { const db = ctx("sc"); const b = writeBatch(db); b.set(doc(db, "ocorrencias", "o2", "pistas", "p1"), { texto: "Vi à venda na praça", anonimo: true, criadoEm: serverTimestamp() }); b.set(doc(db, "pistas_autoria", "o2_p1"), { uid: "sc" }); return assertSucceeds(b.commit()); });
-  await t("pista anônima: sem a autoria é recusada", () => assertFails(setDoc(doc(ctx("sc"), "ocorrencias", "o2", "pistas", "p2"), { texto: "Vi", anonimo: true, criadoEm: serverTimestamp() })));
-  await t("pista com nome", () => assertSucceeds(setDoc(doc(ctx("sc"), "ocorrencias", "o1", "pistas", "p3"), { texto: "Vi na feira", anonimo: false, uid: "sc", nome: "Sc", criadoEm: serverTimestamp() })));
+  await t("consulta: quem registrou lista as próprias", () => assertSucceeds(getDocs(query(collection(ctx("sa"), "ocorrencias"), where("autorId", "==", "sa")))));
+  await t("pista: o aparelho não grava (só o servidor)", () => assertFails(setDoc(doc(ctx("sc"), "ocorrencias", "o1", "pistas", "p3"), { texto: "Vi na feira", anonimo: false, uid: "sc", nome: "Sc", criadoEm: serverTimestamp() })));
   await t("pistas: quem registrou (anônimo) lê", () => assertSucceeds(getDocs(collection(ctx("sb"), "ocorrencias", "o2", "pistas"))));
   await t("pistas: outra pessoa não lê", () => assertFails(getDocs(collection(ctx("sc"), "ocorrencias", "o2", "pistas"))));
+  await t("pistas: a moderação lê", () => assertSucceeds(getDocs(collection(ctx("sMod"), "ocorrencias", "o2", "pistas"))));
   await t("pistas_autoria: só a moderação lê", () => assertFails(getDoc(doc(ctx("sb"), "pistas_autoria", "o2_p1"))));
-  await t("ocorrência anônima: quem registrou marca recuperado", () => assertSucceeds(updateDoc(doc(ctx("sb"), "ocorrencias", "o2"), { status: "recuperado", atualizadoEm: serverTimestamp() })));
-  await t("ocorrência: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sc"), "ocorrencias", "o1"), { status: "removido", atualizadoEm: serverTimestamp() })));
+  await t("pistas_autoria: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("sMod"), "pistas_autoria", "o2_p1"))));
   // Pets
   const pet = (extra) => ({ donoId: "sa", donoNome: "Sa", nome: "Pipoca", especie: "cao", raca: "SRD", cores: ["caramelo", "branco"], porte: "M", sexo: "f", sinais: "coleira vermelha", microchip: "985112003456789", cidade: "Florianópolis", uf: "SC", geo4: "6gj7", status: "casa", visivel: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("pet: cor fora da lista é recusada", () => assertFails(setDoc(doc(ctx("sa"), "pets", "petCor"), pet({ cores: ["azul-bebê"] }))));
@@ -1948,38 +1960,35 @@ if (!SEM_CORRIDAS) {
   await t("achado: recusa local fora do Brasil", () => assertFails(setDoc(doc(ctx("sc"), "pets_achados", "a9"), achado({ local: { lat: 48.85, lng: 2.35, nome: "Paris" } }))));
 }
 
-// ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================
+// ===================== Veículos: carro/moto da pessoa, índice de venda com o hash da placa (gravados pelo servidor) =====================
 if (!GUARDADAS) {
   const H = createHash("sha256").update("hf-veiculo:ABC1D23").digest("hex"), H2 = "b".repeat(64);
   const vei = (extra) => ({ donoId: "vd", tipo: "carro", placa: "ABC1D23", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", apelido: "", chassiFim: "", status: "ok", ocorrenciaId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  await t("veículo: o dono cadastra", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "v1"), vei())));
-  await t("veículo: código da placa que não é o da placa é recusado", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "vH"), vei({ placaHash: "c".repeat(64) }))));
-  await t("veículo: placa antiga usa o mesmo código da Mercosul", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "vAnt"), vei({ placa: "ABC1323" }))));
-  await t("veículo: placa fora do formato é recusada", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "v2"), vei({ placa: "AB-123" }))));
-  await t("veículo: não cadastra no nome de outra pessoa", () => assertFails(setDoc(doc(ctx("vo"), "veiculos", "v3"), vei())));
+  const venda = (extra) => ({ negocioId: "vl_lojinha", donoId: "vl", tipoNegocio: "lojinha", item: "Fiat Uno 2015", tipo: "carro", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", cidade: "Florianópolis", uf: "SC", criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now(), ...extra });
+  await t("veículo: o aparelho não cadastra direto (só o servidor)", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "v0"), vei())));
+  await t("venda: o aparelho não indexa direto (só o servidor)", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda())));
+  await semRegras(async (db) => {
+    await setDoc(doc(db, "veiculos", "v1"), vei({ criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now() }));
+    await setDoc(doc(db, "veiculos", "v2"), vei({ criadoEm: Timestamp.now(), atualizadoEm: Timestamp.now() }));
+    await setDoc(doc(db, "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda());
+    await setDoc(doc(db, "veiculos_venda", "vl_automotivo_" + H2.slice(0, 16)), venda({ negocioId: "vl_automotivo", tipoNegocio: "automotivo", placaHash: H2 }));
+    await setDoc(doc(db, "admins", "vMod"), { papel: "moderacao" });
+  });
   await t("veículo: outra pessoa não lê (a placa é só do dono)", () => assertFails(getDoc(doc(ctx("vo"), "veiculos", "v1"))));
   await t("veículo: o dono lista os dele", () => assertSucceeds(getDocs(query(collection(ctx("vd"), "veiculos"), where("donoId", "==", "vd")))));
-  await t("veículo: marca como roubado com a ocorrência", () => assertSucceeds(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { status: "roubado", ocorrenciaId: "oc1", roubadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("veículo: status inventado é recusado", () => assertFails(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { status: "sumiu", atualizadoEm: serverTimestamp() })));
-  await t("veículo: não muda a data de criação", () => assertFails(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { criadoEm: antigo, atualizadoEm: serverTimestamp() })));
+  await t("veículo: a moderação lê", () => assertSucceeds(getDoc(doc(ctx("vMod"), "veiculos", "v1"))));
+  await t("veículo: o dono não muda direto (status pelo servidor)", () => assertFails(updateDoc(doc(ctx("vd"), "veiculos", "v1"), { status: "recuperado", atualizadoEm: serverTimestamp() })));
   await t("veículo: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("vo"), "veiculos", "v1"))));
-  const venda = (extra) => ({ negocioId: "vl_lojinha", donoId: "vl", tipoNegocio: "lojinha", item: "Fiat Uno 2015", tipo: "carro", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", cidade: "Florianópolis", uf: "SC", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  await t("venda: o dono da loja indexa o carro (só o hash)", () => assertSucceeds(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda())));
-  await t("venda: id que não bate com o hash é recusado", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H2.slice(0, 16)), venda())));
-  await t("venda: em negócio de outra pessoa é recusado", () => assertFails(setDoc(doc(ctx("vo"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda({ donoId: "vo" }))));
-  await t("venda: com a placa aberta é recusado", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), venda({ placa: "ABC1D23" }))));
-  await t("venda: no Automotivo também", () => assertSucceeds(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_automotivo_" + H2.slice(0, 16)), venda({ negocioId: "vl_automotivo", tipoNegocio: "automotivo", placaHash: H2, tipo: "moto" }))));
-  await t("venda: delivery não vende veículo", () => assertFails(setDoc(doc(ctx("vl"), "veiculos_venda", "vl_delivery_" + H.slice(0, 16)), venda({ negocioId: "vl_delivery", tipoNegocio: "lojinha" }))));
+  await t("veículo: o dono apaga", () => assertSucceeds(deleteDoc(doc(ctx("vd"), "veiculos", "v2"))));
   await t("venda: qualquer conta procura pelo hash", () => assertSucceeds(getDocs(query(collection(ctx("vo"), "veiculos_venda"), where("placaHash", "==", H)))));
+  await t("venda: o dono não muda direto", () => assertFails(updateDoc(doc(ctx("vl"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)), { item: "Outro" })));
   await t("venda: outra pessoa não apaga", () => assertFails(deleteDoc(doc(ctx("vo"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)))));
   await t("venda: o dono tira", () => assertSucceeds(deleteDoc(doc(ctx("vl"), "veiculos_venda", "vl_automotivo_" + H2.slice(0, 16)))));
-  const ocV = { anonimo: false, autorId: "vd", autorNome: "Vd", tipo: "roubo", objeto: "carro", identificador: "ABC1D23", descricao: "Levaram meu carro na rua", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() };
-  await t("ocorrência: carro com marca, modelo, ano e cor", () => assertSucceeds(setDoc(doc(ctx("vd"), "ocorrencias", "ov1"), { ...ocV, veiculo: { marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata" } })));
-  await t("ocorrência: veículo com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("vd"), "ocorrencias", "ov2"), { ...ocV, veiculo: { marca: "Fiat", placa: "ABC1D23" } })));
+  await t("venda: a moderação tira", () => assertSucceeds(deleteDoc(doc(ctx("vMod"), "veiculos_venda", "vl_lojinha_" + H.slice(0, 16)))));
 }
 
 // ===================== Desaparecidos (18/11/2026) =====================
-if (!GUARDADAS) {
+if (!SEM_DESAP) {
   await semRegras(async (db) => { await setDoc(doc(db, "admins", "dsMod"), { papel: "moderacao" }); });
   const des = (extra) => ({ autorId: "dsA", autorNome: "Ds A", nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", quando: Timestamp.fromMillis(Date.now() - 3600e3), bo: "2026/123456", lat: -27.59, lng: -48.54, geo4: "6gj7", cidade: "Florianópolis", uf: "SC", status: "analise", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("desaparecido: registra com boletim (em análise)", () => assertSucceeds(setDoc(doc(ctx("dsA"), "desaparecidos", "d1"), des())));

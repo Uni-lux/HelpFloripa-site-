@@ -19,6 +19,7 @@ import { LIMITES_GRATIS, perfisDoPlano } from "./planos-base.js?v=16";
 import { compartilharPerfil, baixarArte, desenharQr } from "./qr.js?v=1";
 import { abrirPlanos, lerPlano, esquecerPlano, nivelPlano, emTolerancia, pedidoAberto, lerNegociacao, testeDisponivel, seloPlano, nomePlano, diasRestantes, textoFalta, PRECO_MIN, DIAS_TESTE, reais } from "./planos.js?v=35";
 import { termosBusca } from "./busca.js?v=1";
+import { acaoRoubos } from "./funcoes.js?v=1";
 import { MARCAS, CORES_VEICULO, placaOk, placaMercosul, formasPlaca, formatarPlaca, hashPlaca, idVenda, pareceVeiculo } from "./veiculos-base.js?v=1";
 import { PROFISSOES_SAUDE, CATEGORIAS_SAUDE, MODALIDADES_SAUDE, PUBLICO_SAUDE, PUBLICO_VET, CONVENIOS, IDIOMAS, UFS, conselhoDe, ehVet, textoRegistro } from "./saude-dados.js?v=1";
 import { completarGuardados, motivoTexto } from "./guardar.js?v=1";
@@ -1261,24 +1262,11 @@ function blocoVeiculoItem(it, det) {
   pintar();
   return box;
 }
-// Índice veiculos_venda do negócio: grava os carros/motos à venda (só o hash da placa) e tira os que saíram.
-async function sincronizarVendas(negocioId, tipoNegocio, itensVei, loc) {
-  const col = fb.collection(fb.db, "veiculos_venda");
-  let antigos = [];
-  try { antigos = (await fb.getDocs(fb.query(col, fb.where("negocioId", "==", negocioId), fb.where("donoId", "==", eu.uid), fb.limit(40)))).docs.map((d) => d.id); } catch {}
-  const novos = new Set();
-  for (const { it, hash } of itensVei) {
-    const id = idVenda(negocioId, hash); novos.add(id);
-    const doc = { negocioId, donoId: eu.uid, tipoNegocio, item: String(it.nome || "").slice(0, 60), tipo: it.veiculoTipo, placaHash: hash,
-      marca: String(it.veiculoMarca || "").trim().slice(0, 30), modelo: String(it.veiculoModelo || "").trim().slice(0, 40), ano: /^\d{4}$/.test(String(it.veiculoAno || "").trim()) ? String(it.veiculoAno).trim() : "",
-      cor: String(it.veiculoCor || "").trim().slice(0, 20), cidade: String(loc?.cidade || "").slice(0, 60), uf: /^[A-Z]{2}$/.test(loc?.uf || "") ? loc.uf : "", atualizadoEm: fb.serverTimestamp() };
-    try {
-      const ja = antigos.includes(id);
-      if (ja) await fb.updateDoc(fb.doc(fb.db, "veiculos_venda", id), doc);
-      else await fb.setDoc(fb.doc(fb.db, "veiculos_venda", id), { ...doc, criadoEm: fb.serverTimestamp() });
-    } catch {}
-  }
-  for (const id of antigos) if (!novos.has(id)) await fb.deleteDoc(fb.doc(fb.db, "veiculos_venda", id)).catch(() => {});
+// Índice veiculos_venda do negócio: o servidor grava os carros/motos à venda (só o hash da placa), confere as placas de
+// novo e tira os que saíram (função "roubos", ação "vendas").
+async function sincronizarVendas(negocioId, tipoNegocio, itensVei) {
+  await acaoRoubos("vendas", { negocioId, itens: itensVei.map(({ it, placa }) => ({ placa, item: String(it.nome || "").slice(0, 60), tipo: it.veiculoTipo,
+    marca: it.veiculoMarca || "", modelo: it.veiculoModelo || "", ano: it.veiculoAno || "", cor: it.veiculoCor || "" })) });
   // A placa fica só na conta do dono (para editar depois sem digitar de novo).
   if (itensVei.length) {
     const mapa = Object.fromEntries(itensVei.map(({ hash, placa }) => [hash.slice(0, 16), placa]));
@@ -1286,8 +1274,8 @@ async function sincronizarVendas(negocioId, tipoNegocio, itensVei, loc) {
     fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { veiculosVenda: mapa }, { merge: true }).catch(() => {});
   }
 }
-// Confere as placas dos carros/motos antes de salvar. Placa com alerta ativo: não deixa anunciar e avisa quem registrou
-// (pista automática anônima; a autoria fica com a moderação, que vê quem tentou).
+// Confere as placas dos carros/motos antes de salvar. Placa com alerta ativo: não deixa anunciar e o servidor avisa quem
+// registrou (pista automática anônima; a autoria fica com a moderação, que vê quem tentou).
 async function conferirVeiculosDoNegocio(itens, nomeNegocio) {
   const out = [];
   for (const it of itens || []) {
@@ -1298,23 +1286,11 @@ async function conferirVeiculosDoNegocio(itens, nomeNegocio) {
     if (!placaOk(it.veiculoPlaca)) throw new Error(`Informe a placa de “${it.nome}” (ABC-1234 ou ABC1D23). Ela não aparece no anúncio.`);
     if (!String(it.veiculoMarca || "").trim() || !String(it.veiculoModelo || "").trim()) throw new Error(`Informe a marca e o modelo de “${it.nome}”.`);
     const placa = placaMercosul(it.veiculoPlaca);
-    try {
-      const s = await fb.getDocs(fb.query(fb.collection(fb.db, "ocorrencias"), fb.where("status", "==", "ativo"), fb.where("identificador", "in", formasPlaca(placa)), fb.limit(3)));
-      if (s.docs.length) {
-        for (const d of s.docs) {
-          const k = `hf-alerta-venda-${d.id}`;
-          let ja = false; try { ja = !!sessionStorage.getItem(k); sessionStorage.setItem(k, "1"); } catch {}
-          if (ja) continue;
-          const ref = fb.doc(fb.collection(fb.db, "ocorrencias", d.id, "pistas"));
-          const lote = fb.writeBatch(fb.db);
-          lote.set(ref, { texto: `Alerta automático: um veículo com esta placa tentou ser anunciado no Help Floripa (${nomeNegocio || "um perfil de negócio"}). O anúncio foi bloqueado e a equipe de segurança sabe quem tentou.`.slice(0, 400), anonimo: true, criadoEm: fb.serverTimestamp() });
-          lote.set(fb.doc(fb.db, "pistas_autoria", `${d.id}_${ref.id}`), { uid: eu.uid });
-          lote.commit().catch(() => {});
-        }
-        throw Object.assign(new Error(`A placa de “${it.nome}” tem um alerta de roubo ou furto ativo no Help Floripa, então o anúncio não pode ser publicado. Se o veículo foi recuperado, quem registrou precisa encerrar o alerta. Se você comprou este veículo, procure a polícia com o documento de compra.`), { veiculoBloqueado: true });
-      }
-    } catch (e) { if (e?.veiculoBloqueado) throw e; }
     out.push({ it, placa, hash: await hashPlaca(placa) });
+  }
+  if (out.length) {
+    const r = await acaoRoubos("conferirPlacas", { nomeNegocio, itens: out.map(({ it, placa }) => ({ nome: String(it.nome || "").slice(0, 60), placa })) });
+    if (r.bloqueados?.length) throw Object.assign(new Error(`A placa de “${r.bloqueados[0]}” tem um alerta de roubo ou furto ativo no Help Floripa, então o anúncio não pode ser publicado. Se o veículo foi recuperado, quem registrou precisa encerrar o alerta. Se você comprou este veículo, procure a polícia com o documento de compra.`), { veiculoBloqueado: true });
   }
   return out;
 }
@@ -1950,7 +1926,7 @@ $("negSalvar").addEventListener("click", async () => {
       fb.setDoc(fb.doc(fb.db, "usuarios", eu.uid), { negociosExtras: { [id]: fb.deleteField() } }, { merge: true }).catch(() => {});
       if (dados.negociosExtras) delete dados.negociosExtras[id];
     }
-    if (negTipo === "lojinha" || negTipo === "automotivo") sincronizarVendas(id, negTipo, veiculosItens, loc).catch(() => {});
+    if (negTipo === "lojinha" || negTipo === "automotivo") sincronizarVendas(id, negTipo, veiculosItens).catch(() => {});
     fecharFolha("folhaNegocio");
     toast(pendente ? "Salvo. Instagram, site, CNPJ, capa, horário e promoção aparecem para os clientes assim que a atualização do sistema for publicada."
       : negEditando ? "Perfil de negócio atualizado" : "Perfil de negócio criado");
@@ -1969,7 +1945,7 @@ $("negExcluir").addEventListener("click", async () => {
     }
     await fb.deleteDoc(fb.doc(fb.db, "negocios", negEditando.id));
     // Carros/motos à venda: o índice da placa sai junto.
-    if (negEditando.tipo === "lojinha" || negEditando.tipo === "automotivo") sincronizarVendas(negEditando.id, negEditando.tipo, [], null).catch(() => {});
+    if (negEditando.tipo === "lojinha" || negEditando.tipo === "automotivo") sincronizarVendas(negEditando.id, negEditando.tipo, []).catch(() => {});
     fecharFolha("folhaNegocio");
     toast("Perfil de negócio excluído");
     carregarMeusNegocios().then(carregarNumeros);

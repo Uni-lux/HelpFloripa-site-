@@ -3,6 +3,8 @@ node_modules/
 planos-base.js
 limpeza-conta.mjs
 corridas-base.js
+alertas-base.js
+veiculos-base.js
 # Segredos e variáveis só do emulador (os de verdade ficam no Secret Manager do Firebase).
 .secret.local
 .env.local

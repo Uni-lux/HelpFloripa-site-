@@ -16,6 +16,7 @@ for (const c of ["sos", "pets", "pets_achados", "ocorrencias"]) for (const d of 
 
 async function abrir(quem, lat, lng, pagina) {
   const n = await navegador({ mobile: true });
+  await n.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // roubos pela função "roubos"
   await n.ctx.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ body: PNG, contentType: "image/png" }));
   await n.ctx.grantPermissions(["geolocation"]); await n.ctx.setGeolocation({ latitude: lat, longitude: lng });
   await n.ctx.addInitScript(([la, lo]) => { try { localStorage.setItem("hf-perto", JSON.stringify({ lat: la, lng: lo, em: Date.now() })); } catch {} }, [lat, lng]);

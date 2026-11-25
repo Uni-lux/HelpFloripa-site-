@@ -22,7 +22,7 @@ return !('nickname' in a)
 || a.nickname == ''
 || getAfter(Dq('nicknames', a.nickname)).data.uid == Uq();
 }
-function cZ() {
+function c0() {
 let aW = Rq().get('nickname', '');
 return aW == null || aW == '' || aW == Nq().get('nickname', '')
 || !existsAfter(Dq('nicknames', aW));
@@ -50,36 +50,36 @@ function bS() {
 let a = Nq();
 return (!('socialVisibilidade' in a) || a.socialVisibilidade in ['todos', 'seguidores', 'amigos', 'ocultar'])
 && (!('duoCapa' in a) || a.duoCapa in ['gaveta', 'gaveta-fixa', 'clicavel', 'foto', 'rosa', 'ocultar'])
-&& (!('nickname' in a) || d(a.nickname, 20))
-&& c0();
+&& (!('nickname' in a) || e(a.nickname, 20))
+&& c1();
 }
-function c1(t) {
+function c2(t) {
 return t is string && t.matches('^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$');
 }
-function c2(u) {
+function c3(u) {
 return u == null
 || (u is list && u.size() == 7
 && u.join(';').matches('^(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?(;(([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9])?){6}$'));
 }
-function c0() {
-let e = Nq().get('atendimento', null);
-return e == null
-|| (e is map
-&& e.keys().hasOnly(['horario', 'semana', 'almoco', 'ausente', 'mensagem', 'volta', 'resposta'])
-&& (!('semana' in e) || c2(e.semana))
-&& (!('almoco' in e) || e.almoco == null || c1(e.almoco))
-&& (!('volta' in e) || e.volta == null || e.volta is timestamp)
-&& (!('ausente' in e) || e.ausente is bool)
-&& (!('mensagem' in e) || (e.mensagem is string && e.mensagem.size() <= 200))
-&& (!('horario' in e) || e.horario == null
-|| (e.horario is map && e.horario.keys().hasOnly(['dias', 'inicio', 'fim'])
-&& e.horario.dias is list && e.horario.dias.size() <= 7
-&& e.horario.inicio is string && e.horario.inicio.size() == 5
-&& e.horario.fim is string && e.horario.fim.size() == 5))
-&& (!('resposta' in e)
-|| (e.resposta is map && e.resposta.keys().hasOnly(['media', 'n'])
-&& e.resposta.media is number && e.resposta.media >= 0 && e.resposta.media <= 1440
-&& e.resposta.n is int && e.resposta.n >= 0 && e.resposta.n <= 1000)));
+function c1() {
+let d = Nq().get('atendimento', null);
+return d == null
+|| (d is map
+&& d.keys().hasOnly(['horario', 'semana', 'almoco', 'ausente', 'mensagem', 'volta', 'resposta'])
+&& (!('semana' in d) || c3(d.semana))
+&& (!('almoco' in d) || d.almoco == null || c2(d.almoco))
+&& (!('volta' in d) || d.volta == null || d.volta is timestamp)
+&& (!('ausente' in d) || d.ausente is bool)
+&& (!('mensagem' in d) || (d.mensagem is string && d.mensagem.size() <= 200))
+&& (!('horario' in d) || d.horario == null
+|| (d.horario is map && d.horario.keys().hasOnly(['dias', 'inicio', 'fim'])
+&& d.horario.dias is list && d.horario.dias.size() <= 7
+&& d.horario.inicio is string && d.horario.inicio.size() == 5
+&& d.horario.fim is string && d.horario.fim.size() == 5))
+&& (!('resposta' in d)
+|| (d.resposta is map && d.resposta.keys().hasOnly(['media', 'n'])
+&& d.resposta.media is number && d.resposta.media >= 0 && d.resposta.media <= 1440
+&& d.resposta.n is int && d.resposta.n >= 0 && d.resposta.n <= 1000)));
 }
 function bT() {
 return ((resource != null && !k().hasAny(['fotoPerfil'])) || aP('fotoPerfil'))
@@ -123,7 +123,7 @@ return b()
 && nL.uid == rL.uid
 && aL()
 && (!nL.diff(rL).affectedKeys().hasAny(['nickname'])
-|| (bP() && cZ()))
+|| (bP() && c0()))
 && aA().hasOnly(bR())
 && (!k().hasAny(['desativadaAte']) || !ae(uL))
 && bQ()
@@ -279,7 +279,7 @@ return b()
 && nL.diff(rL).affectedKeys().hasOnly(['conheceram', 'frase', 'retrato', 'memoriaEm', 'memoriaPor'])
 && nL.get('conheceram', '') is string
 && nL.get('conheceram', '').matches('^((19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))?$')
-&& d(nL.get('frase', ''), 90)
+&& e(nL.get('frase', ''), 90)
 && nL.get('retrato', false) is bool
 && nL.memoriaEm == Tq()
 && nL.memoriaPor == uL;
@@ -292,8 +292,8 @@ return b()
 allow delete: if A20();
 }
 match /momentos/{c} {
-function ah(e, D) { return exists(Dq('relacoes', e + '_' + D)); }
-function c3(a) {
+function ah(d, D) { return exists(Dq('relacoes', d + '_' + D)); }
+function c4(a) {
 let uL = Uq();
 return a.uid == uL || l()
 || (!z(uL, a.uid)
@@ -307,7 +307,7 @@ return a.keys().hasOnly(['uid', 'tipo', 'titulo', 'texto', 'data', 'local', 'cat
 && a.tipo in ['foto', 'lembranca']
 && a.ver in ['todos', 'seguidores', 'amigos', 'eu']
 && a.categoria.matches('^(conquista|viagem|familia|amor|amizade|trabalho|estudo|pet|festa|fe|esporte|outro)$')
-&& a.titulo is string && a.titulo.size() <= 60 && d(a.get('texto', ''), 400) && d(a.get('local', ''), 60)
+&& a.titulo is string && a.titulo.size() <= 60 && e(a.get('texto', ''), 400) && e(a.get('local', ''), 60)
 && a.get('data', '').matches('^((19|20)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))?$')
 && a.get('fixado', false) is bool
 && a.get('com', []) is list && a.get('com', []).size() <= 10
@@ -317,7 +317,7 @@ return a.keys().hasOnly(['uid', 'tipo', 'titulo', 'texto', 'data', 'local', 'cat
 && (a.tipo == 'foto' || a.titulo.size() >= 1)
 && a.atualizadoEm == Tq();
 }
-allow get, list: if b() && c3(Rq());
+allow get, list: if b() && c4(Rq());
 function A21() {
 let nL = Nq();
 return b() && n() && bW(nL) && nL.criadoEm == Tq();
@@ -368,7 +368,7 @@ return ['donoId', 'tipo', 'nome', 'descricao', 'cidade', 'uf', 'cidadeIbge', 'ba
 'principal',
 'ocultoAte'];
 }
-function c4(u) {
+function c5(u) {
 return u.keys().hasOnly(['profissao', 'profissaoOutra', 'especialidades', 'registro', 'registroUf', 'rqe', 'modalidades',
 'convenios', 'particular', 'valorConsulta', 'duracao', 'publico', 'idiomas', 'acessivel', 'formacao'])
 && [u.profissao, u.profissaoOutra, u.registro, u.registroUf, u.rqe, u.formacao, u.modalidades.join(','), u.publico.join(','),
@@ -376,11 +376,11 @@ string(u.particular), string(u.acessivel), string(u.valorConsulta), string(u.dur
 .matches('^(medico|enfermeiro|tecEnfermagem|psicologo|veterinario|dentista|fisioterapeuta|nutricionista|fonoaudiologo|terapeutaOcupacional|farmaceutico|educadorFisico|cuidador|outros)\n[^\n]{0,40}\n[0-9A-Za-z./ -]{0,20}\n([A-Z]{2})?\n[0-9A-Za-z./-]{0,12}\n[^\n]{0,200}\n((consultorio|online|domicilio)(,(consultorio|online|domicilio)){0,2})?\n([a-z]{3,14}(,[a-z]{3,14}){0,5})?\n(true|false)\n(true|false)\n(null|[0-9]{1,5}([.][0-9]{1,2})?)\n(null|[1-9][0-9]{0,2})$')
 && [u.especialidades.join('\n'), u.convenios.join('\n'), u.idiomas.join('\n')].join('\n').matches('^[^\n]{0,40}(\n[^\n]{0,40}){0,29}$');
 }
-function c5(f) {
+function c6(f) {
 return f is map
 && f.keys().hasOnly(['titulo', 'texto', 'codigo', 'ate'])
 && f.titulo is string && f.titulo.size() >= 3 && f.titulo.size() <= 60
-&& d(f.get('texto', ''), 200)
+&& e(f.get('texto', ''), 200)
 && (f.get('codigo', '') == '' || (f.codigo is string && f.codigo.matches('^[A-Z0-9]{3,20}$')))
 && f.ate is timestamp && f.ate > request.time && f.ate < request.time + duration.value(62, 'd');
 }

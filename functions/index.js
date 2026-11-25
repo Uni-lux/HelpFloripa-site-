@@ -447,3 +447,13 @@ export const corrida = onCall({ region: REGIAO, maxInstances: 20, concurrency: 4
   try { return await acaoCorrida(db, req.auth, req.data); }
   catch (e) { if (e instanceof HttpsError) throw e; logger.error("corrida", req.data?.acao, e?.message || e); throw new HttpsError("internal", "Não foi possível agora. Tente de novo."); }
 });
+
+// =====================================================
+// Roubos, furtos, golpes e veículos pelo servidor (25/11/2026, etapa 2): functions/roubos.js confere tudo.
+// alertas-base.js e veiculos-base.js são copiados no predeploy.
+// =====================================================
+import { acaoRoubos } from "./roubos.js";
+export const roubos = onCall({ region: REGIAO, maxInstances: 20, concurrency: 40 }, async (req) => {
+  try { return await acaoRoubos(db, req.auth, req.data); }
+  catch (e) { if (e instanceof HttpsError) throw e; logger.error("roubos", req.data?.acao, e?.message || e); throw new HttpsError("internal", "Não foi possível agora. Tente de novo."); }
+});
