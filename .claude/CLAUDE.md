@@ -3153,6 +3153,13 @@ chat da equipe).
   plataforma, sem o Mural?), seguidores/Social (o Help usa o Social para avisar; sem ele = contatos de fora, perto e equipe)
   e se a barra de baixo da rede sai (Mensagens e Perfil pelo menu/topo). Com as respostas: UM PR = esconder a Ponte,
   enxugar as regras e trazer corridas/roubos/desaparecidos de volta (medir com `_regras/medir-regras.py`).
+- **Repositório Uni-lux/Ponte- (25/11/2026, pedido dele):** cópia inteira deste repositório (histórico completo, até o
+  merge do #260, commit 4b9e5f2) enviada para `Uni-lux/Ponte-` na branch `ccr-72f55b31-5i29m2` (virou a principal, o repo
+  estava vazio). Por enquanto é idêntico: mesmo projeto do Firebase (`helpfloripa-61e0d`), vitrines, painel e tudo. Os dois
+  andam separados daqui em diante (mudanças aqui NÃO vão sozinhas para lá). Antes de ligar o GitHub Pages no Ponte-: tirar ou
+  trocar o `CNAME` (aponta para helpfloripa.com.br). Isso muda o item 4 da proposta acima ("mesmo repositório"): perguntar a
+  ele se a Ponte passa a ser desenvolvida no Ponte- (e o que sai de cada lado). A proposta "lançar só a Help agora" continua
+  sem resposta dele.
 **AO COMEÇAR O PRÓXIMO CHAT (pedido dele em 13/11/2026): trazer logo de cara a listinha do que falta corrigir nas
 regras — `_regras/REGRAS-PENDENTES.md` (revisão completa das regras em 5 etapas, 12–13/11; prioridade: Flash "Amigos
 próximos"/"Ocultar de" só escondidos pelo app). Correções da revisão no PR #205 (partes 2, 3, 4, 6, 9, 10, 19, 20; 1053 testes).**
