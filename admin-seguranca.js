@@ -15,7 +15,8 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";
 import { hashPlaca, formatarPlaca, placaEscondida, semelhancaVeiculo, textoSemelhancaVeiculo, nomeVeiculo } from "./veiculos-base.js?v=1";
 // Roubos/veículos e desaparecidos ficaram para a próxima atualização (em-breve.js): enquanto isso, não lê nem mostra.
-import { EM_BREVE } from "./em-breve.js?v=2";
+import { EM_BREVE } from "./em-breve.js?v=3";
+import { acaoRoubos } from "./funcoes.js?v=1";
 const ROUBOS = !EM_BREVE.roubos, DESAP = !EM_BREVE.desaparecidos;
 
 const PAGINA_VENDA = { lojinha: "shopping.html", automotivo: "automotivo.html" };
@@ -117,7 +118,7 @@ export function seguranca(el) {
         toast("Negócio escondido");
       }));
       if (o) ac.appendChild(btn("Avisar a vítima", "mini", async () => {
-        await C.fb.setDoc(C.fb.doc(C.fb.collection(C.fb.db, "ocorrencias", o.id, "pistas")), { texto: `Equipe de segurança do Help Floripa: encontramos um anúncio que pode ser do seu veículo (${v.item || nomeVeiculo(v)}, ${[v.cidade, v.uf].filter(Boolean).join("/")}). Não vá sozinho ao encontro: fale com a polícia (190). Vamos entrar em contato pelo Suporte.`.slice(0, 400), anonimo: false, uid: C.eu.uid, nome: "Equipe Help Floripa", criadoEm: C.fb.serverTimestamp() });
+        await acaoRoubos("pista", { equipe: true, id: o.id, texto: `Equipe de segurança do Help Floripa: encontramos um anúncio que pode ser do seu veículo (${v.item || nomeVeiculo(v)}, ${[v.cidade, v.uf].filter(Boolean).join("/")}). Não vá sozinho ao encontro: fale com a polícia (190). Vamos entrar em contato pelo Suporte.`.slice(0, 400) }).catch((e) => { toast(e.message); throw e; });
         await registrar("avisar_vitima", "", `ocorrencia ${o.id} × venda ${v.id}`, `ocorrencias:${o.id}`);
         toast("Pista enviada para quem registrou");
       }));
@@ -164,7 +165,7 @@ export function seguranca(el) {
       ac.appendChild(btn("Quem registrou", "mini", async () => { const uid = await autoria(o); if (uid) abrirFicha(uid); else toast("Não foi possível ver a autoria."); }));
       ac.appendChild(btn("Tirar do ar", "mini perigo", async () => {
         if (!(await confirmarHF({ titulo: "Tirar a ocorrência do ar?", texto: "Use para ocorrência falsa, com dados pessoais ou repetida. Ela some dos alertas e da consulta.", ok: "Tirar do ar", icone: "lixo" }))) return;
-        await C.fb.updateDoc(C.fb.doc(C.fb.db, "ocorrencias", o.id), { status: "removido", atualizadoEm: C.fb.serverTimestamp() });
+        try { await acaoRoubos("status", { id: o.id, status: "removido" }); } catch (e) { toast(e.message); return; }
         await registrar("remover_ocorrencia", o.autorId || "", `${o.tipo} ${o.objeto}: ${String(o.descricao || "").slice(0, 80)}`, `ocorrencias:${o.id}`);
         d.oc = d.oc.filter((x) => x !== o); cache = null; toast("Ocorrência tirada do ar"); pintar();
       }));

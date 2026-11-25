@@ -39,15 +39,15 @@ let tL = Tq();
 let a = Nq();
 return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
 && a.titulo is string && a.titulo.size() >= 2 && a.titulo.size() <= 140
-&& d(a.get('descricao', null), 2000)
+&& e(a.get('descricao', null), 2000)
 && a.status in ['a_fazer', 'fazendo', 'feito']
 && a.prioridade in ['baixa', 'normal', 'alta', 'urgente']
 && (a.get('responsavel', null) == null || (a.responsavel is string && exists(Dq('admins', a.responsavel))))
-&& d(a.get('responsavelNome', null), 80)
+&& e(a.get('responsavelNome', null), 80)
 && (a.get('prazo', null) == null || a.prazo is timestamp)
-&& d(a.get('ligacao', null), 160)
-&& d(a.get('ligacaoNome', null), 120)
-&& d(a.get('criadoPorNome', null), 80)
+&& e(a.get('ligacao', null), 160)
+&& e(a.get('ligacaoNome', null), 120)
+&& e(a.get('criadoPorNome', null), 80)
 && (a.status != 'feito' ? a.get('concluidaEm', null) == null
 : (resource == null || rL.status != 'feito') ? a.get('concluidaEm', null) == tL
 : a.get('concluidaEm', null) == rL.get('concluidaEm', null))
@@ -82,7 +82,7 @@ return i()
 && nL.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
 && nL.alvo is string && nL.alvo.size() <= 128
 && nL.autorId == Uq()
-&& d(nL.get('autorNome', null), 80)
+&& e(nL.get('autorNome', null), 80)
 && nL.texto is string && nL.texto.size() >= 1 && nL.texto.size() <= 2000
 && nL.em == Tq();
 }
@@ -99,12 +99,12 @@ function A120() {
 let nL = Nq();
 return i()
 && nL.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
-&& d(nL.get('alvo', ''), 300) && d(nL.get('ref', ''), 300)
-&& d(nL.get('porNome', ''), 80)
+&& e(nL.get('alvo', ''), 300) && e(nL.get('ref', ''), 300)
+&& e(nL.get('porNome', ''), 80)
 && nL.por == Uq()
 && nL.em == Tq()
 && nL.acao is string && nL.acao.size() <= 60
-&& d(nL.get('detalhe', ''), 1000);
+&& e(nL.get('detalhe', ''), 1000);
 }
 allow create: if A120();
 allow update, delete: if false;
@@ -118,7 +118,7 @@ allow read: if i();
 allow write: if false;
 }
 match /ritmo/{g} {
-function dI(y) {
+function dJ(y) {
 return y == 'msg' ? 500 : (y == 'pub' ? 20 : (y == 'parc' ? 3 : (y == 'flash' ? 50 : (y == 'sup' ? 5 : 200))));
 }
 function bu() {
@@ -148,7 +148,7 @@ return b()
 && ax('parc', nL.ultimoTipo)
 && ax('flash', nL.ultimoTipo)
 && ax('sup', nL.ultimoTipo)
-&& nL.get(nL.ultimoTipo, 0) <= dI(nL.ultimoTipo);
+&& nL.get(nL.ultimoTipo, 0) <= dJ(nL.ultimoTipo);
 }
 allow create, update: if A121();
 allow delete: if false;
@@ -162,7 +162,7 @@ return b()
 && Uq() == g
 && nL.keys().hasOnly(['pedidaEm', 'motivo'])
 && nL.pedidaEm == Tq()
-&& d(nL.get('motivo', ''), 300);
+&& e(nL.get('motivo', ''), 300);
 }
 allow create: if A122();
 allow update: if false;
@@ -262,12 +262,12 @@ return b() && (Rq().uid == Uq() || l());
 allow delete: if A130();
 allow update: if false;
 }
-match /contagem_lembretes/{dJ} {
+match /contagem_lembretes/{dK} {
 function A131() {
 let nL = Nq();
 let uL = Uq();
 return b() && nL.uid == uL
-&& dJ == nL.flashId + '_' + uL
+&& dK == nL.flashId + '_' + uL
 && nL.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
 && nL.criadoEm == Tq()
 && get(Dq('stories', nL.flashId)).data.autorId == nL.autorId
@@ -304,7 +304,7 @@ allow get: if b() && (resource.data.autorId == request.auth.uid || l()
 allow list: if b() && (resource.data.autorId == request.auth.uid || l()
 || (resource.data.criadoEm > request.time - duration.value(26, 'h')
 && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
-allow create: if b() && n() && cV(request.resource.data) && !ae(request.auth.uid) && au('flash');
+allow create: if b() && n() && cW(request.resource.data) && !ae(request.auth.uid) && au('flash');
 allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
 allow update: if b() && resource.data.autorId == request.auth.uid
 && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])

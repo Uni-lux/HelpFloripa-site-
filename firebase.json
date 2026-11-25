@@ -13,7 +13,9 @@
       "predeploy": [
         "cp planos-base.js functions/planos-base.js",
         "cp scripts/limpeza/limpeza-conta.mjs functions/limpeza-conta.mjs",
-        "cp corridas-base.js functions/corridas-base.js"
+        "cp corridas-base.js functions/corridas-base.js",
+        "cp alertas-base.js functions/alertas-base.js",
+        "cp veiculos-base.js functions/veiculos-base.js"
       ]
     }
   ],

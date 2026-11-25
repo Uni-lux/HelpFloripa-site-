@@ -10,6 +10,8 @@ if [ "$FUNCOES" = "1" ]; then
   cp ../planos-base.js ../functions/planos-base.js
   cp ../scripts/limpeza/limpeza-conta.mjs ../functions/limpeza-conta.mjs
   cp ../corridas-base.js ../functions/corridas-base.js
+  cp ../alertas-base.js ../functions/alertas-base.js
+  cp ../veiculos-base.js ../functions/veiculos-base.js
   printf 'MP_ACCESS_TOKEN=TEST-token-falso\nMP_WEBHOOK_SECRET=segredo-de-teste\nCF_TURN_KEY_ID=chave-teste\nCF_TURN_TOKEN=token-teste\n' > ../functions/.secret.local
   printf 'MP_API=http://127.0.0.1:5099\nTURN_API=http://127.0.0.1:5098\n' > ../functions/.env.local
   exec npx firebase emulators:start --only firestore,auth,storage,functions --project demo-hf

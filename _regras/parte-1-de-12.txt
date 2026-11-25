@@ -25,7 +25,7 @@ return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get
 function l() {
 return i() && M() in ['dono', 'moderacao'];
 }
-function cL(g) {
+function cM(g) {
 return Nq().get('verificado', false) != true
 || Rq().get('verificado', false) == true
 || M() == 'dono'
@@ -60,17 +60,17 @@ return !request.resource.data.diff(resource.data).affectedKeys()
 .hasAny(bF().concat(['plano', 'valorPlanoMensal', 'tipoUsuario']));
 }
 function v(w, K) {
-return d(request.resource.data.get(w, null), K);
+return e(request.resource.data.get(w, null), K);
 }
-function d(t, K) {
+function e(t, K) {
 return t == null || (t is string && t.size() <= K);
 }
-function bG(p, bH, cM) {
+function bG(p, bH, cN) {
 return p is map && p.keys().hasOnly(['pergunta', 'opcoes', 'x', 'y', 'k', 'fimEm', 'anonima', 'cor', 'certa'])
 && p.get('anonima', false) is bool
 && (!('certa' in p) || (p.certa is int && p.certa >= 0 && p.certa < p.opcoes.size()))
 && (!('cor' in p) || bI(p.cor))
-&& (!('fimEm' in p) || (p.fimEm is timestamp && p.fimEm > bH && p.fimEm <= bH + duration.value(cM, 'm')))
+&& (!('fimEm' in p) || (p.fimEm is timestamp && p.fimEm > bH && p.fimEm <= bH + duration.value(cN, 'm')))
 && p.pergunta.size() >= 1 && p.pergunta.size() <= 120
 && p.opcoes.size() <= 4 && p.opcoes.join('\n').matches('^[^\n]{1,40}(\n[^\n]{1,40}){1,3}$')
 && (string(p.get('x', 0)) + ' ' + string(p.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
@@ -85,30 +85,30 @@ return m is map && m.keys().hasOnly(['pergunta', 'anonima', 'x', 'y', 'k', 'cor'
 && m.anonima is bool
 && (string(m.get('x', 0)) + ' ' + string(m.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
 }
-function cN(o) {
+function cO(o) {
 return o is map && o.keys().hasOnly(['negocioId', 'nome', 'tipo', 'x', 'y', 'k'])
 && o.negocioId is string && o.negocioId.matches('^[A-Za-z0-9_-]{1,100}$')
 && exists(/databases/$(database)/documents/negocios/$(o.negocioId))
-&& d(o.get('nome', ''), 80)
+&& e(o.get('nome', ''), 80)
 && o.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
 && (string(o.get('x', 0)) + ' ' + string(o.get('y', 0))).matches('^(0|1|0[.][0-9]+|1[.]0+) (0|1|0[.][0-9]+|1[.]0+)$');
 }
-function cO(j) {
+function cP(j) {
 let ao = /databases/$(database)/documents/stories/$(j.storyId);
 return j is map && j.keys().hasOnly(['storyId', 'autorId', 'nome'])
 && j.storyId is string && j.storyId.matches('^[A-Za-z0-9]{1,64}$')
 && exists(ao)
 && get(ao).data.autorId == j.autorId
 && get(ao).data.get('mencoes', []).hasAny([request.auth.uid])
-&& d(j.get('nome', ''), 80);
+&& e(j.get('nome', ''), 80);
 }
-function cP(a) {
+function cQ(a) {
 let q = '(' + request.auth.uid + '_(servicos|delivery|lojinha|imoveis|saude|automotivo))';
 return (!('negocios' in a) || (a.negocios is list && a.negocios.size() >= 1 && a.negocios.size() <= 4
 && a.negocios.join(' ').matches('^' + q + '( ' + q + '){0,3}$')))
 && (!('perfil' in a) || (a.perfil is bool && (a.perfil || 'negocios' in a)));
 }
-function cQ(j) {
+function cR(j) {
 let ao = /databases/$(database)/documents/diario/$(j.postId);
 let bK = /databases/$(database)/documents/pref_publicas/$(j.autorId);
 return j is map && j.keys().hasOnly(['postId', 'autorId', 'nome'])
@@ -116,27 +116,27 @@ return j is map && j.keys().hasOnly(['postId', 'autorId', 'nome'])
 && j.autorId is string
 && exists(ao) && get(ao).data.autorId == j.autorId
 && (j.autorId == request.auth.uid || !exists(bK) || get(bK).data.get('permiteFlash', true) != false)
-&& d(j.get('nome', ''), 80);
+&& e(j.get('nome', ''), 80);
 }
-function cR(y) {
-let cS = 'l[|][^|\n]{2,60}[|](-(3[0-3]|[12]?[0-9])|[0-5])([.][0-9]{1,6})?[|]-(7[0-4]|[3-6][0-9]|2[89])([.][0-9]{1,6})?';
+function cS(y) {
+let cT = 'l[|][^|\n]{2,60}[|](-(3[0-3]|[12]?[0-9])|[0-5])([.][0-9]{1,6})?[|]-(7[0-4]|[3-6][0-9]|2[89])([.][0-9]{1,6})?';
 let az = 'n[|][A-Za-z0-9]{1,64}_(servicos|delivery|lojinha|imoveis|saude|automotivo)[|][tlo][|][^|\n]{1,60}';
-let ap = '(h[|][^|\n]{1,28}|m[|][A-Za-z0-9]{1,64}|' + cS + '|' + az + ')([|][01]([.][0-9]{1,3})?){4}';
+let ap = '(h[|][^|\n]{1,28}|m[|][A-Za-z0-9]{1,64}|' + cT + '|' + az + ')([|][01]([.][0-9]{1,3})?){4}';
 return y.join('\n').matches('^' + ap + '(\n' + ap + '){0,17}$');
 }
-function cT(a) {
-return cP(a) && cU(a)
-&& (!('toques' in a) || cR(a.toques))
+function cU(a) {
+return cQ(a) && cV(a)
+&& (!('toques' in a) || cS(a.toques))
 && (!('mencoesOcultas' in a) || aM(a.mencoesOcultas, 10))
 && (!('caixa' in a) || bJ(a.caixa))
-&& (!('link' in a) || cN(a.link))
-&& (!('repostDe' in a) || cO(a.repostDe))
-&& (!('postDe' in a) || cQ(a.postDe));
+&& (!('link' in a) || cO(a.link))
+&& (!('repostDe' in a) || cP(a.repostDe))
+&& (!('postDe' in a) || cR(a.postDe));
 }
-function cV(a) {
+function cW(a) {
 let s = a.keys();
 return s.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enquete', 'caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'mencoes', 'respostas', 'publico', 'lista', 'ocultoPara', 'criadoEm', 'toques', 'mencoesOcultas', 'contagem', 'alvo', 'restrito'])
-&& (!s.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || cT(a))
+&& (!s.hasAny(['caixa', 'link', 'repostDe', 'postDe', 'negocios', 'perfil', 'toques', 'mencoesOcultas', 'contagem', 'alvo']) || cU(a))
 && (!('enquete' in s) || bG(a.enquete, request.time, 1450))
 && (!('mencoes' in s) || aM(a.mencoes, 10))
 && a.get('respostas', 'todos') in ['todos', 'seguindo', 'ninguem']
@@ -150,11 +150,11 @@ return s.hasOnly(['autorId', 'nome', 'tipo', 'midia', 'texto', 'duracao', 'enque
 && a.tipo in ['imagem', 'video']
 && a.midia is string && a.midia.size() <= 950000
 && a.midia.matches(a.tipo == 'imagem' ? '^(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/).*' : '^https://firebasestorage[.]googleapis[.]com/.*')
-&& d(a.get('texto', ''), 150)
-&& d(a.get('nome', ''), 80)
+&& e(a.get('texto', ''), 150)
+&& e(a.get('nome', ''), 80)
 && (!('duracao' in s) || (a.duracao is number && a.duracao <= 60));
 }
-function cU(a) {
+function cV(a) {
 return (!('contagem' in a) || (a.contagem.keys().hasOnly(['titulo', 'fim', 'cor', 'x', 'y', 'k'])
 && a.contagem.titulo.size() >= 1 && a.contagem.titulo.size() <= 40
 && a.contagem.fim > request.time + duration.value(4, 'm') && a.contagem.fim <= request.time + duration.value(366, 'd')))
@@ -183,9 +183,9 @@ return (aO == null || aO == '' || (aO is string && aO.matches('^[0-9]{8}$')))
 && v('complemento', 60);
 }
 function N(w, K) {
-return cW(request.resource.data.get(w, null), K);
+return cX(request.resource.data.get(w, null), K);
 }
-function cW(t, K) {
+function cX(t, K) {
 return t == null || (t is list && t.size() <= K);
 }
 function bc(U) {
@@ -247,14 +247,14 @@ function aA() {
 let a = request.resource.data.diff(resource.data);
 return a.addedKeys().union(a.changedKeys());
 }
-function bf(e, D) {
-return exists(Dq('bloqueios', e + '_' + D));
+function bf(d, D) {
+return exists(Dq('bloqueios', d + '_' + D));
 }
-function z(e, D) {
-return bf(e, D) || bf(D, e);
+function z(d, D) {
+return bf(d, D) || bf(D, d);
 }
-function F(e, D) {
-return e < D ? e + '_' + D : D + '_' + e;
+function F(d, D) {
+return d < D ? d + '_' + D : D + '_' + d;
 }
 function bM(g) {
 let at = Dq('usuarios', g);
@@ -262,11 +262,11 @@ return exists(at)
 && get(at).data.get('criadoEm', null) is timestamp
 && get(at).data.criadoEm < Tq() - duration.value(3, 'd');
 }
-function aB(e, D, cX) {
-let m = Dq('conversas', F(e, D));
-return exists(m) && get(m).data.get('falaram', {}).get(cX, false) == true;
+function aB(d, D, cY) {
+let m = Dq('conversas', F(d, D));
+return exists(m) && get(m).data.get('falaram', {}).get(cY, false) == true;
 }
-function cY(g) {
+function cZ(g) {
 let f = Dq('perfis_publicos', g);
 return exists(f)
 && get(f).data.get('desativadaAte', null) is timestamp
@@ -281,7 +281,7 @@ function aC() {
 let nL = Nq();
 let j = nL.get('responsavel', null);
 return (j == null || (j is string && exists(Dq('admins', j))))
-&& d(nL.get('responsavelNome', null), 80)
+&& e(nL.get('responsavelNome', null), 80)
 && (!k().hasAny(['responsavel']) || nL.get('assumidoEm', null) == Tq());
 }
 function au(ba) {
@@ -298,7 +298,7 @@ allow read: if l();
 function A0() {
 return l() && (G != Uq() || M() == 'dono')
 && Nq().diff(Rq()).affectedKeys().hasOnly(['verificado', 'solicitacaoVerificacao', 'verificacaoRespondidaEm'])
-&& cL(G);
+&& cM(G);
 }
 allow update: if A0();
 function A1() {

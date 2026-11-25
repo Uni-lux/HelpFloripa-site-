@@ -114,6 +114,7 @@ export function criarLimpeza({ db, auth, FieldValue, pegarBucket = async () => n
     await apagar("momentos", col("momentos").where("uid", "==", uid)); // Salão (momentos e lembranças)
     await apagar("veiculos", col("veiculos").where("donoId", "==", uid)); // veículos (placa) e o índice dos à venda
     await apagar("veiculos_venda", col("veiculos_venda").where("donoId", "==", uid));
+    if (!simular) await col("servidor_limites").doc(uid).delete().catch(() => {}); // contadores do dia (função "roubos")
     await apagar("desaparecidos", col("desaparecidos").where("autorId", "==", uid)); // avisos de desaparecimento (com as pistas)
     await apagar("negocios", col("negocios").where("donoId", "==", uid));
     await apagar("anuncios", col("anuncios").where("donoId", "==", uid));

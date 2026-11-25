@@ -1,4 +1,4 @@
-function dr() {
+function ds() {
 let a = Nq();
 let L = bg(a.negocioId);
 let C = Uq();
@@ -13,7 +13,7 @@ return c == 'n_' + a.negocioId + '_' + C
 && av(a, C, a.negocioId)
 && a0('neg_' + a.negocioId);
 }
-function ds() {
+function dt() {
 let a = Nq();
 let C = Uq();
 return c == 'c_' + a.negocioId + '_' + a.alvoId
@@ -26,7 +26,7 @@ return c == 'c_' + a.negocioId + '_' + a.alvoId
 && av(a, a.alvoId, a.negocioId)
 && a0('cli_' + a.alvoId);
 }
-function dt() {
+function du() {
 let uL = Uq();
 let a = Nq();
 let a2 = get(Dq('diario', a.postId)).data;
@@ -42,10 +42,10 @@ function A59() {
 let nL = Nq();
 return b()
 && n()
-&& dn()
-&& ((nL.tipo == 'negocio' && dr())
-|| (nL.tipo == 'cliente' && ds())
-|| (nL.tipo == 'publicacao' && dt()));
+&& dp()
+&& ((nL.tipo == 'negocio' && ds())
+|| (nL.tipo == 'cliente' && dt())
+|| (nL.tipo == 'publicacao' && du()));
 }
 allow create: if A59();
 function A60() {
@@ -58,7 +58,7 @@ return b()
 && (c.matches('^n_.*') || c.matches('^c_.*'))
 && k().hasOnly(['nota', 'comentario', 'atualizadoEm', 'pedidoId'])
 && nL.nota is int && nL.nota >= 1 && nL.nota <= 5
-&& d(nL.get('comentario', ''), 500)
+&& e(nL.get('comentario', ''), 500)
 && nL.atualizadoEm == Tq()
 && (!k().hasAny(['pedidoId'])
 || (!('pedidoId' in rL)
@@ -112,7 +112,7 @@ return b()
 && nL[a3()] == rL.get(a3(), 0) + 1;
 }
 allow update: if A62();
-function du() {
+function dv() {
 let nL = Nq();
 let rL = Rq();
 let B = get(Q()).data;
@@ -129,7 +129,7 @@ return nL.ultima is string
 && nL['n' + string(B.nota)] == rL.get('n' + string(B.nota), 0) - 1
 && nL['n' + string(ak.nota)] == rL.get('n' + string(ak.nota), 0) + 1;
 }
-allow update: if b() && du();
+allow update: if b() && dv();
 allow delete: if false;
 }
 match /reclamacoes/{ca} {
@@ -179,11 +179,11 @@ allow update: if A64();
 allow delete: if false;
 }
 match /queixas/{c} {
-function dv(W) {
+function dw(W) {
 return W in ['atraso', 'qualidade', 'cobranca', 'ausencia', 'atendimento', 'golpe', 'outro'];
 }
 function cb(a) {
-return dv(a.motivo)
+return dw(a.motivo)
 && a.texto is string && a.texto.size() >= 20 && a.texto.size() <= 1000
 && af(a.get('foto', ''));
 }
@@ -205,8 +205,8 @@ return b()
 && nL.alvoId != uL
 && nL.tipo in ['servicos', 'delivery', 'lojinha', 'imoveis', 'saude', 'automotivo']
 && cb(nL)
-&& d(nL.get('autorNome', ''), 80)
-&& d(nL.get('negocioNome', ''), 80)
+&& e(nL.get('autorNome', ''), 80)
+&& e(nL.get('negocioNome', ''), 80)
 && nL.status == 'aberta'
 && nL.aberturas == 1
 && nL.get('resposta', null) == null
@@ -294,7 +294,7 @@ allow update: if A68();
 allow delete: if false;
 }
 match /denuncias/{c} {
-function dw(a) {
+function dx(a) {
 return (a.tipo == 'perfil' && a.itemId == a.alvoId)
 || (a.tipo == 'publicacao' && get(Dq('diario', a.itemId)).data.autorId == a.alvoId)
 || (a.tipo == 'comentario' && get(Dq('comentarios', a.itemId)).data.autorId == a.alvoId)
@@ -317,7 +317,7 @@ return l()
 && nL.status in ['nova', 'em_analise', 'resolvida', 'descartada']
 && (!k().hasAny(['status', 'acao', 'nota', 'analisadaEm', 'analisadaPor']) || nL.analisadaPor == Uq())
 && aC()
-&& d(nL.get('nota', ''), 1000);
+&& e(nL.get('nota', ''), 1000);
 }
 allow update: if A70();
 function A71() {
@@ -333,8 +333,8 @@ return b()
 && nL.tipo in ['perfil', 'publicacao', 'comentario', 'mensagem', 'negocio', 'comunidade']
 && c == nL.tipo + '_' + nL.itemId + '_' + uL
 && nL.motivo in ['golpe', 'falso', 'assedio', 'odio', 'improprio', 'spam', 'menor', 'venda', 'outro']
-&& d(nL.get('detalhe', ''), 500)
-&& d(nL.get('trecho', ''), 300)
+&& e(nL.get('detalhe', ''), 500)
+&& e(nL.get('trecho', ''), 300)
 && (!('contexto' in nL)
 || (nL.tipo == 'mensagem'
 && nL.contexto is list
@@ -342,7 +342,7 @@ return b()
 && nL.contexto.join('\n').matches('^([A-Za-z0-9]{1,40}(\n[A-Za-z0-9]{1,40}){0,11})?$')))
 && nL.status == 'nova'
 && nL.criadoEm == Tq()
-&& dw(nL);
+&& dx(nL);
 }
 allow create: if A71();
 allow delete: if false;
@@ -353,12 +353,12 @@ allow list: if i();
 allow write: if false;
 }
 match /sancoes/{g} {
-function dx() {
-let e = resource == null ? [] : Rq().get('historico', []);
+function dy() {
+let d = resource == null ? [] : Rq().get('historico', []);
 let q = Nq().get('historico', []);
-return e.size() == 0 ? q.size() <= 1
-: (q.size() == e.size() + 1 && q[0:e.size()] == e)
-|| (e.size() == 50 && q.size() == 50 && q[0:49] == e[1:50]);
+return d.size() == 0 ? q.size() <= 1
+: (q.size() == d.size() + 1 && q[0:d.size()] == d)
+|| (d.size() == 50 && q.size() == 50 && q[0:49] == d[1:50]);
 }
 allow get: if b() && Uq() == g;
 allow read: if i();
@@ -367,12 +367,12 @@ let nL = Nq();
 return l() && (M() == 'dono' || !exists(Dq('admins', g)))
 && nL.keys().hasOnly(['tipo', 'motivo', 'ate', 'por', 'em', 'historico'])
 && nL.tipo in ['suspensao', 'banimento']
-&& d(nL.get('motivo', ''), 500)
+&& e(nL.get('motivo', ''), 500)
 && (nL.tipo == 'banimento' || nL.ate is timestamp)
 && nL.por == Uq()
 && nL.em == Tq()
 && N('historico', 50)
-&& dx();
+&& dy();
 }
 allow create, update: if A72();
 allow delete: if l() && M() == 'dono';
@@ -388,7 +388,7 @@ let nL = Nq();
 return i()
 && nL.keys().hasOnly(['uid', 'titulo', 'texto', 'tipo', 'por', 'em', 'lidoEm'])
 && nL.uid is string
-&& d(nL.get('titulo', ''), 120)
+&& e(nL.get('titulo', ''), 120)
 && nL.texto is string && nL.texto.size() <= 2000
 && nL.tipo in ['info', 'alerta', 'grave']
 && nL.por == Uq()
@@ -412,8 +412,8 @@ let nL = Nq();
 let tL = Tq();
 return l()
 && nL.keys().hasOnly(['titulo', 'texto', 'tipo', 'ativo', 'link', 'por', 'em', 'ate'])
-&& d(nL.get('titulo', ''), 120)
-&& d(nL.get('texto', ''), 600)
+&& e(nL.get('titulo', ''), 120)
+&& e(nL.get('texto', ''), 600)
 && nL.tipo in ['info', 'novidade', 'alerta']
 && nL.ativo is bool
 && nL.por == Uq()

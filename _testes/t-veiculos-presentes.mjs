@@ -20,6 +20,7 @@ ok(imeiOk("490154203237518") && !imeiOk("490154203237517"), "IMEI conferido pela
 ok(pareceVeiculo("Fiat Uno Way 2015", 25000) && !pareceVeiculo("Capacete para moto", 200), "anúncio com cara de carro/moto é reconhecido (capacete não)");
 
 const A = await navegador({ mobile: true });
+await A.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // roubos/veículos passam pela função "roubos"
 await A.ctx.grantPermissions(["geolocation"]); await A.ctx.setGeolocation({ latitude: -27.5954, longitude: -48.548 });
 const erros = [];
 const p = await entrar(A.ctx, "ana", "feed.html");
@@ -81,6 +82,7 @@ ok(/não confere/.test(await p.locator(".al-valida").last().textContent()), "IME
 // ---------- Venda: placa obrigatória, bloqueio com alerta e índice só com o hash ----------
 await db.doc(`negocios/${BRUNO}_lojinha`).set({ donoId: BRUNO, tipo: "lojinha", nome: "Bruno Garagem", cidade: "Florianópolis", uf: "SC", cidadeIbge: 4205407, bairro: "Centro", categoria: "outros", categoriaPersonalizada: "Veículos", itens: [{ nome: "Camiseta", preco: 50, foto: "" }], fotos: [], criadoEm: FieldValue.serverTimestamp(), atualizadoEm: FieldValue.serverTimestamp() });
 const B = await navegador({ mobile: true });
+await B.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // roubos/veículos passam pela função "roubos"
 const pb = await entrar(B.ctx, "bruno", "negocios.html?tipo=lojinha");
 pb.on("pageerror", (e) => erros.push("bruno: " + e.message));
 await pb.waitForSelector("text=Bruno Garagem", { timeout: 25000 }); await pb.waitForTimeout(1500);
@@ -132,6 +134,7 @@ ok(await p.locator("#muCombina:not([hidden]) .mu-combina-item").count() >= 1 && 
 // Alguém que burlou o app (sem passar pela conferência) e anunciou o carro roubado: o painel acha pelo cruzamento.
 await db.doc(`veiculos_venda/${idVenda(BRUNO + "_automotivo", h)}`).set({ negocioId: BRUNO + "_automotivo", donoId: BRUNO, tipoNegocio: "automotivo", item: "Uno Way 2015 de repasse", tipo: "carro", placaHash: h, marca: "Fiat", modelo: "Uno Way", ano: "2015", cor: "Prata", cidade: "Palhoça", uf: "SC", criadoEm: FieldValue.serverTimestamp(), atualizadoEm: FieldValue.serverTimestamp() });
 const C = await navegador({ mobile: false });
+await C.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // roubos/veículos passam pela função "roubos"
 const pa = await entrar(C.ctx, "admin", "admin.html#seguranca");
 pa.on("pageerror", (e) => erros.push("painel: " + e.message));
 await pa.waitForSelector(".ad-item", { timeout: 30000 }).catch(() => {});

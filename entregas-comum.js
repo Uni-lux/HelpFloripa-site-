@@ -4,6 +4,7 @@
 import { svgIcone } from "./mapa-vivo.js?v=2";
 import { VEICULOS, formatarPlaca } from "./corridas-base.js?v=1";
 import { garantirConversa as criarConversa } from "./conversa-acesso.js?v=1";
+import { chamarFuncao } from "./funcoes.js?v=1";
 
 export function h(tag, cls, texto) { const e = document.createElement(tag); if (cls) e.className = cls; if (texto != null) e.textContent = texto; return e; }
 export function ic(nome, cls = "i") {
@@ -138,19 +139,4 @@ export const comEnderecos = (c, r) => (c && r?.origem && r?.destino ? { ...c, or
 // ---------- pedidos pelo servidor (25/11/2026) ----------
 // Criar, mudar oferta, aceitar, avançar etapa (PIN), cancelar e avaliar passam pela Cloud Function "corrida"
 // (functions/corridas.js confere tudo). Só a posição ao vivo de quem leva é gravada direto no pedido.
-let fnsCorrida = null;
-export async function acaoCorrida(acao, dados = {}) {
-  fnsCorrida ||= import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
-    .then((m) => {
-      const f = m.getFunctions(window.firebaseApp, "southamerica-east1");
-      if (window.__hfFuncoesEmulador) m.connectFunctionsEmulator(f, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
-      return { m, f };
-    });
-  const { m, f } = await fnsCorrida;
-  try { return (await m.httpsCallable(f, "corrida", { timeout: 30000 })({ acao, ...dados })).data; }
-  catch (e) {
-    const codigo = String(e?.code || "").replace(/^functions\//, "");
-    const x = new Error(["internal", "unavailable", "deadline-exceeded", "not-found"].includes(codigo) && !/[a-zà-ú]{3}/i.test(e?.message || "") ? "Sem conexão com o servidor. Tente de novo." : (e?.message || "Não foi possível agora."));
-    x.code = codigo; throw x;
-  }
-}
+export const acaoCorrida = (acao, dados = {}) => chamarFuncao("corrida", acao, dados);

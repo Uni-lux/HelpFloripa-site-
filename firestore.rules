@@ -4085,6 +4085,36 @@ service cloud.firestore {
     }
 
 
+    // ROUBOS, FURTOS, GOLPES E VEÍCULOS (25/11/2026): quem grava é o servidor (functions/roubos.js, função "roubos"),
+    // que confere tudo. Aqui só a leitura, e o dono pode apagar o próprio veículo e o índice de venda.
+    // Ocorrência anônima: sem autorId; quem fez fica em ocorrencias_autoria/{id} (só a pessoa e a moderação leem).
+    function autorOcorrencia(oc) {
+      let a = /databases/$(database)/documents/ocorrencias_autoria/$(oc);
+      return exists(a) && get(a).data.uid == request.auth.uid;
+    }
+    match /ocorrencias/{id} {
+      allow get, list: if logado() && (resource.data.status == 'ativo' || resource.data.autorId == request.auth.uid || podeModerar() || autorOcorrencia(id));
+      // Pistas ("eu vi"): só quem fez a ocorrência e a moderação leem.
+      match /pistas/{p} {
+        allow read: if logado() && (get(/databases/$(database)/documents/ocorrencias/$(id)).data.autorId == request.auth.uid || autorOcorrencia(id) || podeModerar());
+      }
+    }
+    match /ocorrencias_autoria/{id} {
+      allow get: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+      allow list: if podeModerar();
+    }
+    match /pistas_autoria/{id} { allow read: if podeModerar(); }
+    // O carro/moto da pessoa, com a placa: só o dono e a moderação leem.
+    match /veiculos/{id} {
+      allow get, list: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+      allow delete: if logado() && resource.data.donoId == request.auth.uid;
+    }
+    // Carros/motos à venda (Shopping e Automotivo): só o HASH da placa. Quem tem a placa acha o anúncio.
+    match /veiculos_venda/{id} {
+      allow get, list: if logado();
+      allow delete: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
+    }
+
     // RG do pet: o dono cadastra; "visivel" deixa o pet entrar nas buscas de animais encontrados.
     function petOk(d) {
       return d.especie in ['cao', 'gato', 'ave', 'outro']

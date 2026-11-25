@@ -88,7 +88,7 @@ return v('texto', 1000)
 && (!('mediaTipo' in a) || a.mediaTipo in ['', 'image', 'video'])
 && (!('mediaUrl' in a) || a.mediaUrl == ''
 || (a.mediaUrl is string
-&& dU(a.mediaUrl, a.autorId)))
+&& dV(a.mediaUrl, a.autorId)))
 && (!('midias' in a)
 || (a.midias is list && a.midias.size() >= 2 && a.midias.size() <= 4
 && a.get('mediaTipo', '') == 'image' && a.midias[0] == a.get('mediaUrl', '')
@@ -129,10 +129,10 @@ return f == null
 function by(g) {
 return '(data:image/(jpeg|png|webp);base64,|https://firebasestorage[.]googleapis[.]com/v0/b/[^/]+/o/diario%2F' + g + '%2F)[^ ]*';
 }
-function dU(at, g) {
+function dV(at, g) {
 return at is string && at.matches('^' + by(g) + '$');
 }
-function dV(a) {
+function dW(a) {
 let y = a.get('tipo', '');
 let bz = a.get('mediaUrl', '') != '';
 let a8 = a.get('mediaTipo', '') == 'video';
@@ -152,7 +152,7 @@ return b()
 && nL.autorId == Uq()
 && nL.keys().hasOnly(['autorId', 'nome', 'fotoPerfil', 'texto', 'mediaUrl', 'mediaTipo', 'midias', 'tags', 'marcados', 'agendadoPara', 'enquete', 'caixa', 'local',
 'autorUf', 'autorIbge', 'publico', 'tipo', 'estilo', 'quemComenta', 'ocultarNotas', 'titulo', 'layout', 'criadoEm'])
-&& dV(nL)
+&& dW(nL)
 && (!('quemComenta' in nL) || nL.quemComenta in ['todos', 'seguidores', 'mutuos', 'ninguem'])
 && (!('ocultarNotas' in nL) || nL.ocultarNotas is bool)
 && (!('autorUf' in nL) || (nL.autorUf is string && nL.autorUf.matches('^[A-Z]{2}$')))
@@ -213,11 +213,11 @@ allow update: if l()
 && aV();
 allow delete: if l();
 }
-function dW() {
+function dX() {
 let y = Tq() - duration.value(3, 'h');
 return string(y.year()) + (y.month() < 10 ? '0' : '') + string(y.month()) + (y.day() < 10 ? '0' : '') + string(y.day());
 }
-function dX() {
+function dY() {
 return (Tq().hours() + 21) % 24;
 }
 function cB(ag, bB) {
@@ -227,14 +227,14 @@ function cC(ag, bB) {
 return Dq('neg_visitas', ag + '_' + Uq() + '_' + bB);
 }
 match /neg_visitas/{c} {
-function dY() {
+function dZ() {
 let uL = Uq();
 let a = Nq();
 let E = cB(a.negocioId, a.dia);
 return a.keys().hasOnly(['negocioId', 'uid', 'dia', 'hora', 'origem', 'acoes', 'itens'])
 && a.uid == uL
 && a.negocioId is string && a.negocioId.size() <= 60
-&& a.dia == dW() && a.hora == dX()
+&& a.dia == dX() && a.hora == dY()
 && c == a.negocioId + '_' + uL + '_' + a.dia
 && a.origem in ['vitrine', 'busca', 'explorar', 'inicio', 'perfil', 'link', 'flash', 'mensagens', 'outro']
 && a.acoes == [] && a.itens == []
@@ -251,20 +251,20 @@ return a.diff(rL).affectedKeys().hasOnly([w])
 && a[w].size() <= K
 && a[w] == rL[w].concat([r])
 && !(r in rL[w])
-&& (w == 'acoes' ? dZ(r) : d0(r))
+&& (w == 'acoes' ? d0(r) : d1(r))
 && getAfter(E).data[am].get(r, 0) == get(E).data[am].get(r, 0) + 1;
 }
-function dZ(r) {
+function d0(r) {
 return r in ['whats', 'mensagem', 'orcamento', 'pedido', 'rota', 'site', 'instagram', 'compartilhar', 'cupom', 'avaliar'];
 }
-function d0(r) {
+function d1(r) {
 return r is string && r.matches('^(p_[a-z0-9_]{1,30}|an_[A-Za-z0-9]{1,30})$');
 }
 function A167() {
 return b() && (resource == null || Rq().uid == Uq());
 }
 allow read: if A167();
-allow create: if b() && dY();
+allow create: if b() && dZ();
 function A168() {
 return b() && Rq().uid == Uq()
 && (cD('acoes', 12) || cD('itens', 40));
@@ -273,7 +273,7 @@ allow update: if A168();
 allow delete: if false;
 }
 match /neg_stats/{c} {
-function d1() {
+function d2() {
 let a = Nq();
 let J = cC(a.negocioId, a.dia);
 let aI = getAfter(J).data;
@@ -289,7 +289,7 @@ return a.keys().hasOnly(['negocioId', 'donoId', 'dia', 'v', 'o', 'h', 'a', 'it']
 function a9(a, j, am, r) {
 return a[am].diff(j[am]).affectedKeys().hasOnly([r]) && a[am][r] == j[am].get(r, 0) + 1;
 }
-function d2() {
+function d3() {
 let a = Nq();
 let j = Rq();
 let s = a.diff(j).affectedKeys();
@@ -310,15 +310,15 @@ function A169() {
 return b() && (Rq().donoId == Uq() || l());
 }
 allow read: if A169();
-allow create: if b() && d1();
-allow update: if b() && d2();
+allow create: if b() && d2();
+allow update: if b() && d3();
 allow delete: if false;
 }
 function cE(g) {
 let p = Dq('entregadores', g);
 return exists(p) && get(p).data.get('status', '') == 'ativo';
 }
-function d3(f) {
+function d4(f) {
 return f is map && f.keys().hasOnly(['lat', 'lng', 'rumo', 'vel', 'em'])
 && f.lat is number && f.lat >= -34 && f.lat <= 6
 && f.lng is number && f.lng >= -75 && f.lng <= -28
