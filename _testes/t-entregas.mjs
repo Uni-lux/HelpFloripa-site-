@@ -30,6 +30,7 @@ async function simularMapa(ctx) {
 
 // ---------- Bruno: cadastro e online ----------
 const B = await navegador({ mobile: true });
+await B.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // os pedidos passam pela função "corrida"
 await B.ctx.grantPermissions(["geolocation"]); await B.ctx.setGeolocation({ latitude: -27.592, longitude: -48.545 });
 await simularMapa(B.ctx);
 const pb = await entrar(B.ctx, "bruno", "entregador.html");
@@ -56,6 +57,7 @@ await pb.screenshot({ path: "saida/entregador-online.png" });
 
 // ---------- Ana: pedir uma entrega ----------
 const A = await navegador({ mobile: true });
+await A.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; });
 await A.ctx.grantPermissions(["geolocation"]); await A.ctx.setGeolocation({ latitude: -27.595, longitude: -48.548 });
 await simularMapa(A.ctx);
 const pa = await entrar(A.ctx, "ana", "entregas.html");
@@ -197,6 +199,7 @@ await pa.screenshot({ path: "saida/entregas-anexar.png" });
 
 // ---------- computador ----------
 const C = await navegador();
+await C.ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; });
 await C.ctx.addInitScript(() => { try { localStorage.setItem("hf-chat-config", JSON.stringify({ tema: "escuro" })); } catch {} });
 await simularMapa(C.ctx);
 const pc = await entrar(C.ctx, "ana", "entregas.html?id=" + pedidoId);

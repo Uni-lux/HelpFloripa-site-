@@ -4,7 +4,7 @@
 // =====================================================
 import { vizinhos, sosVivo } from "./alertas-base.js?v=2";
 import { posicaoGuardada } from "./perto.js?v=3";
-import { EM_BREVE } from "./em-breve.js?v=1";
+import { EM_BREVE } from "./em-breve.js?v=2";
 const ms = (t) => (t?.toMillis ? t.toMillis() : 0);
 (async () => {
   const faixa = document.getElementById("muAlertas");

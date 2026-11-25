@@ -15,13 +15,13 @@ import {
   ESPECIES, CORES_PET, PORTES, PORTES_ESPECIE, nomePorte, STATUS_PET, rgPet, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, MOSTRAR_A_PARTIR,
   distKm, geohash, vizinhos, RAIOS_ALERTA
 } from "./alertas-base.js?v=2";
-import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=6";
+import { h, ic, botao, ms, dataCurta, avatar, lerGps, garantirConversa, irPara, abrirTela, avisarSom } from "./entregas-comum.js?v=7";
 import { iconeEl, iconeSos, iconeEspecie } from "./icones-hf.js?v=4";
 import { cartaoOp, grupoOps } from "./cartoes-op.js?v=2";
 import { abrirCadastroPet } from "./pet-cadastro.js?v=5";
 import { TIPOS_VEICULO, STATUS_VEICULO, MARCAS, CORES_VEICULO, normalizarPlaca, placaOk, placaMercosul, placaAntiga, formasPlaca, formatarPlaca, hashPlaca, imeiOk, semelhancaVeiculo, textoSemelhancaVeiculo, PARECIDO_A_PARTIR, nomeVeiculo } from "./veiculos-base.js?v=1";
 import { lerHelp, avisadosDe, textoHelp, textoTudoBem, blocoAvisarFora, numeroLigar, TIPOS_RAPIDO, abrirConfigHelp } from "./help-rede.js?v=2";
-import { EM_BREVE } from "./em-breve.js?v=1";
+import { EM_BREVE } from "./em-breve.js?v=2";
 
 // SOS em etapas (12/11/2026): 1) o Social na hora; 2) se ninguém do Social aceitar em ESCALAR_MIN minutos (ou na hora,
 // se a pessoa não tem Social), quem está perto E a equipe de segurança do Help Floripa (chamado URGENTE no suporte).

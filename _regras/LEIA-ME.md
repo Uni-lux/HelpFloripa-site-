@@ -1,6 +1,20 @@
 # Regras do Firestore — publicação
 
-> **Versão de 25/11/2026 (2) — 11 partes, cabe no limite do Firebase.** O Firebase recusa regras com mais de **256.000 bytes
+> **Versão de 25/11/2026 (3) — corridas e entregas de volta, pelo servidor (12 partes).** As mudanças nos pedidos
+> (criar, oferta, aceitar, PIN, cancelar, avaliar) agora são feitas pela Cloud Function **`corrida`** (functions/corridas.js);
+> as regras das corridas ficaram pequenas (só quem lê e a posição ao vivo de quem leva). Texto: 138.151 (antes 133.633).
+> Roubos/veículos e desaparecidos continuam em `_regras/proxima-atualizacao.rules` ("Em breve"). 1280 testes passando.
+>
+> **Ordem para publicar (Cloud Shell, pasta `hf`):**
+> 1. `cd ~/hf && git fetch origin && git reset --hard origin/main`
+> 2. `cd functions && npm ci && cd ..`
+> 3. `npx firebase-tools@latest deploy --only functions:corrida --project helpfloripa-61e0d` (✔ no fim)
+> 4. `python3 _regras/medir-regras.py` — tem que aparecer **CABE** na linha `final.rules`. Se der NÃO CABE, pare e avise o Claude.
+> 5. `npx firebase-tools@latest deploy --only firestore:rules --project helpfloripa-61e0d`
+>    (erro "409 ... already exists": `python3 _regras/ligar-regras.py`, deve dizer **PRONTO**).
+> Até o passo 5, as corridas abrem no site mas não leem os pedidos (as regras do ar ainda não têm `corridas`).
+
+> **Versão de 25/11/2026 (2), publicada — 11 partes, cabe no limite do Firebase.** O Firebase recusa regras com mais de **256.000 bytes
 > compilados** (as de antes davam 353.213). Agora:
 > 1. **Corridas/entregas, roubos/veículos e pessoas desaparecidas ficaram para a próxima atualização** (decidido em 25/11/2026):
 >    as regras delas estão guardadas em `_regras/proxima-atualizacao.rules` e o site mostra "Em breve" (`em-breve.js`).

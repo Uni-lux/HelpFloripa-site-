@@ -11,8 +11,10 @@ let ok = 0, falhou = 0, guardados = 0;
 // Partes guardadas para a próxima atualização (_regras/proxima-atualizacao.rules): sem elas nas regras, os testes delas
 // não rodam (corridas/entregas, roubos/ocorrências, veículos e desaparecidos).
 const textoRegras = readFileSync(arquivo, "utf8");
-const GUARDADAS = !/match \/corridas\//.test(textoRegras);
-const SO_GUARDADAS = /^(serviço: corrida|ocorrência|autoria:|consulta:|pista|pistas|pistas_autoria|ocorrência anônima)/;
+const GUARDADAS = !/match \/ocorrencias\//.test(textoRegras);
+// Corridas voltaram em 25/11/2026 (pelo servidor); com regras antigas sem elas, os testes delas são pulados.
+const SEM_CORRIDAS = !/match \/corridas\//.test(textoRegras);
+const SO_GUARDADAS = /^(ocorrência|autoria:|consulta:|pista|pistas|pistas_autoria|ocorrência anônima)/;
 const resultados = [];
 async function t(nome, fn) {
   if (GUARDADAS && SO_GUARDADAS.test(nome)) { guardados++; return; }
@@ -1697,7 +1699,7 @@ await t("cadastro: tipoUsuario diferente de 'usuario' é recusado", () => assert
 await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => assertSucceeds(setDoc(doc(ctx("novoPlano"), "usuarios", "novoPlano"), { uid: "novoPlano", aceiteTermos: true, tipoUsuario: "usuario" })));
 
 // ===================== Entregas e corridas =====================
-if (!GUARDADAS) {
+if (!SEM_CORRIDAS) {
   const db0 = (fn) => semRegras(fn);
   await db0(async (db) => {
     for (const u of ["cli", "moto1", "moto2", "carro1", "semVerif", "dest"]) await setDoc(doc(db, "usuarios", u), { uid: u, nome: u, criadoEm: antigo, aceiteTermos: true, verificado: u !== "semVerif" });
@@ -1734,22 +1736,14 @@ if (!GUARDADAS) {
   const ponto = (lat, lng, nome) => ({ lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100, nome, sub: "Centro · Florianópolis" });
   const rotaExata = { origem: { lat: -27.5954, lng: -48.5481, nome: "Rua A, 10", sub: "Centro" }, destino: { lat: -27.6012, lng: -48.5203, nome: "Rua B, 20", sub: "Saco" } };
   const pedido = (extra) => ({ servico: "entrega", modalidade: "entrega_moto", veiculo: "moto", clienteId: "cli", clienteNome: "Cli", origem: ponto(-27.595, -48.548, "Rua A, 10"), destino: ponto(-27.6, -48.52, "Rua B, 20"), km: 4.2, min: 12, valor: 15, valorSugerido: 14.5, pagamento: "pix", pacote: { tamanho: "P", oque: "Documentos" }, status: "procurando", paraId: "", destinatarioId: "dest", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "entrega", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  const criar = (db, id, extra, pin = "1234", semRota = false) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), pedido(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin }); if (!semRota) b.set(doc(db, "corridas", id, "privado", "rota"), rotaExata); b.set(doc(db, "corridas", id, "privado", "contato"), { nome: "Dest", telefone: "48999990000", obs: "Apto 302" }); return b.commit(); };
-  await t("pedido: cria com PIN e contato na mesma gravação", () => assertSucceeds(criar(ctx("cli"), "pedidoEntrega01")));
-  await t("pedido: sem o PIN é recusado", () => assertFails(setDoc(doc(ctx("cli"), "corridas", "pedidoSemPin01"), pedido())));
-  await t("pedido: não cria em nome de outra pessoa", () => assertFails(criar(ctx("cli"), "pedidoOutro0001", { clienteId: "dest" })));
-  await t("pedido: veículo tem que bater com a modalidade", () => assertFails(criar(ctx("cli"), "pedidoVeic00001", { veiculo: "carro" })));
-  await t("pedido: valor abaixo do mínimo", () => assertFails(criar(ctx("cli"), "pedidoBarato001", { valor: 1 })));
-  await t("pedido: corrida não leva pacote", () => assertFails(criar(ctx("cli"), "pedidoCorrPac01", { servico: "corrida", modalidade: "corrida_moto", pinEm: "embarque" })));
-  await t("pedido: corrida de carro (PIN no embarque)", () => assertSucceeds(criar(ctx("cli"), "pedidoCorrida01", { servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", pacote: null, pinEm: "embarque", destinatarioId: "" }, "4321")));
-  await t("pedido: PIN no lugar errado (entrega com PIN no embarque)", () => assertFails(criar(ctx("cli"), "pedidoPinErr001", { pinEm: "embarque" })));
-  await t("pedido: ponto fora do Brasil", () => assertFails(criar(ctx("cli"), "pedidoFora00001", { destino: ponto(48.8, 2.3, "Paris") })));
-  await t("destinatário: sem conversa com quem pede é recusado", () => assertFails(criar(ctx("cli"), "pedidoDest00001", { destinatarioId: "estranho" })));
-  await t("destinatário: solicitação de mensagem ainda pendente é recusada", () => assertFails(criar(ctx("cli"), "pedidoDest00002", { destinatarioId: "pend" })));
-  await t("destinatário: com bloqueio entre os dois é recusado", () => assertFails(criar(ctx("cli"), "pedidoDest00003", { destinatarioId: "bloq" })));
-  await t("pedido: direcionado a quem não é entregador", () => assertFails(criar(ctx("cli"), "pedidoPara00001", { paraId: "dest" })));
-  await t("pedido: direcionado a um entregador ativo", () => assertSucceeds(criar(ctx("cli"), "pedidoPara00002", { paraId: "moto2", raioKm: 40 })));
-  await t("pedido: sem e-mail confirmado não pede", () => assertFails(criar(ctx("cli", false), "pedidoSemEmail1")));
+  // Desde 25/11/2026 os pedidos são gravados pelo SERVIDOR (functions/corridas.js, testado em t-corridas-servidor.mjs).
+  // Aqui: o aparelho não cria nem muda nada (menos a posição ao vivo de quem leva) e quem pode ler.
+  const criar = (db, id, extra, pin = "1234") => { const b = writeBatch(db); b.set(doc(db, "corridas", id), pedido(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin, erros: 0 }); b.set(doc(db, "corridas", id, "privado", "rota"), rotaExata); b.set(doc(db, "corridas", id, "privado", "contato"), { nome: "Dest", telefone: "48999990000", obs: "Apto 302" }); return b.commit(); };
+  const peloServidor = (id, extra, pin) => semRegras((db) => criar(db, id, extra, pin));
+  const mudarServidor = (id, dados) => semRegras((db) => updateDoc(doc(db, "corridas", id), dados));
+  await t("pedido: o aparelho NÃO cria pedido (só o servidor)", () => assertFails(criar(ctx("cli"), "pedidoEntrega99")));
+  await peloServidor("pedidoEntrega01");
+  await peloServidor("pedidoPara00002", { paraId: "moto2", raioKm: 40 });
   await t("PIN: quem pede lê", () => assertSucceeds(getDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01", "privado", "pin"))));
   await t("PIN: quem recebe lê", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01", "privado", "pin"))));
   await t("PIN: o entregador NÃO lê", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "pin"))));
@@ -1758,60 +1752,29 @@ if (!GUARDADAS) {
   await t("pedido: quem não é entregador não lista os pedidos", () => assertFails(getDocs(query(collection(ctx("dest"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", ""), where("geo4", "in", ["6gkz"])))));
   await t("pedido: o direcionado só aparece para quem foi chamado", () => assertSucceeds(getDocs(query(collection(ctx("moto2"), "corridas"), where("status", "==", "procurando"), where("paraId", "==", "moto2")))));
   await t("pedido: outro entregador não lê o direcionado", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoPara00002"))));
-  await t("região: ponto exato no documento é recusado", () => assertFails(criar(ctx("cli"), "pedidoExato001", { origem: { lat: -27.5954, lng: -48.5481, nome: "Rua A, 10", sub: "" } })));
-  await t("região: sem o endereço exato em privado/rota é recusado", () => assertFails(criar(ctx("cli"), "pedidoSemRota1", {}, "1234", true)));
   await t("rota exata: entregador não lê antes de aceitar", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("rota exata: quem pede lê", () => assertSucceeds(getDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("rota exata: quem recebe lê", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("contato: entregador não lê antes de aceitar", () => assertFails(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
-  await t("pedido: quem pede aumenta a oferta e o raio", () => assertSucceeds(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 18, raioKm: 10, atualizadoEm: serverTimestamp() })));
-  await t("pedido: não diminui a oferta", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 10, atualizadoEm: serverTimestamp() })));
+  await t("pedido: quem pede NÃO muda a oferta direto (só pelo servidor)", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { valor: 18, raioKm: 10, atualizadoEm: serverTimestamp() })));
   const ent = (extra) => ({ nome: "Moto 1", veiculo: "moto", modelo: "Honda CG 160", cor: "Vermelha", placa: "QWE1R23", ...extra });
-  const aceitar = (uid, id, extra) => updateDoc(doc(ctx(uid), "corridas", id), { status: "aceita", entregadorId: uid, aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: ent(extra) });
-  await t("aceitar: carro não aceita pedido de moto", () => assertFails(aceitar("carro1", "pedidoEntrega01", { veiculo: "carro", placa: "XYZ9876", modelo: "Gol", cor: "Branco" })));
-  await t("aceitar: não mostra outra placa", () => assertFails(aceitar("moto1", "pedidoEntrega01", { placa: "AAA1111" })));
-  await t("aceitar: quem pede não aceita o próprio", () => assertFails(aceitar("cli", "pedidoEntrega01")));
-  await t("aceitar: banido de Entregas não aceita (mesmo com o cadastro ativo)", async () => {
-    await semRegras((db) => setDoc(doc(db, "programa_banidos", "moto1_entregas"), { uid: "moto1", tipo: "entregas", motivo: "teste", ate: null }));
-    await assertFails(aceitar("moto1", "pedidoEntrega01"));
-    await semRegras((db) => deleteDoc(doc(db, "programa_banidos", "moto1_entregas")));
-  });
-  await t("aceitar: moto aceita", () => assertSucceeds(aceitar("moto1", "pedidoEntrega01")));
-  await t("aceitar: outro não aceita depois", () => assertFails(aceitar("moto2", "pedidoEntrega01", { nome: "Moto 2", modelo: "CG", cor: "Preta", placa: "ABC1D23" })));
+  await t("aceitar: o entregador NÃO aceita direto (só pelo servidor)", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "aceita", entregadorId: "moto1", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: ent() })));
+  await mudarServidor("pedidoEntrega01", { status: "aceita", entregadorId: "moto1", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: ent() });
   await t("rota exata: quem aceitou lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("rota exata: outro entregador não lê", () => assertFails(getDoc(doc(ctx("moto2"), "corridas", "pedidoEntrega01", "privado", "rota"))));
   await t("contato: o entregador do pedido lê", () => assertSucceeds(getDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01", "privado", "contato"))));
   await t("posição: o entregador manda a posição ao vivo", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 90, vel: 8, em: serverTimestamp() } })));
   await t("posição: quem pede não mexe na posição", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
   await t("posição: recusa ponto fora do Brasil", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: 40, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
-  await t("etapa: não pula para entregue", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "1234" })));
-  await t("etapa: cheguei na coleta", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "chegou", chegouEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("etapa: coletei (entrega não pede PIN aqui)", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("etapa: quem pede não cancela depois que saiu", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { status: "cancelada", canceladaPor: "cliente", motivo: "x", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("etapa: PIN errado não finaliza a entrega", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "9999" })));
-  await t("etapa: PIN certo finaliza a entrega", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "1234" })));
+  await t("posição: não leva outra mudança junto", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() }, status: "concluida" })));
+  await t("etapa: o entregador NÃO avança direto (só pelo servidor, que confere o PIN)", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { status: "chegou", chegouEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
   await t("quem recebe acompanha o pedido", () => assertSucceeds(getDoc(doc(ctx("dest"), "corridas", "pedidoEntrega01"))));
   await t("outra pessoa não vê o pedido", () => assertFails(getDoc(doc(ctx("moto2"), "corridas", "pedidoEntrega01"))));
-  const avaliar = (db, nota, notas) => { const b = writeBatch(db); b.update(doc(db, "corridas", "pedidoEntrega01"), { avaliacao: { nota, elogios: ["Rápido"], texto: "Ótimo", em: serverTimestamp() } }); b.set(doc(db, "entregadores_notas", "moto1"), notas); return b.commit(); };
-  await t("avaliação: nota no resumo tem que ser a mesma", () => assertFails(avaliar(ctx("cli"), 5, { soma: 50, n: 1, ultima: "pedidoEntrega01" })));
-  await t("avaliação: sem o resumo junto é recusada", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { avaliacao: { nota: 5, elogios: [], texto: "", em: serverTimestamp() } })));
-  await t("avaliação: quem pediu avalia (com o resumo)", () => assertSucceeds(avaliar(ctx("cli"), 5, { soma: 5, n: 1, ultima: "pedidoEntrega01" })));
-  await t("avaliação: só uma vez", () => assertFails(avaliar(ctx("cli"), 4, { soma: 9, n: 2, ultima: "pedidoEntrega01" })));
-  await t("avaliação: o entregador avalia quem pediu", () => assertSucceeds(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { avaliacaoEntregador: { nota: 5, em: serverTimestamp() } })));
+  await mudarServidor("pedidoEntrega01", { status: "concluida", concluidaEm: serverTimestamp() });
+  await t("posição: depois de concluído não manda mais", () => assertFails(updateDoc(doc(ctx("moto1"), "corridas", "pedidoEntrega01"), { pos: { lat: -27.59, lng: -48.55, rumo: 0, vel: 0, em: serverTimestamp() } })));
+  await t("avaliação: quem pediu NÃO grava direto (só pelo servidor)", () => assertFails(updateDoc(doc(ctx("cli"), "corridas", "pedidoEntrega01"), { avaliacao: { nota: 5, elogios: [], texto: "", em: serverTimestamp() } })));
   await t("notas: ninguém sobe a própria nota", () => assertFails(setDoc(doc(ctx("moto1"), "entregadores_notas", "moto1"), { soma: 100, n: 20, ultima: "pedidoEntrega01" })));
-  // corrida: PIN no embarque, desistir e cancelar
-  await t("corrida: moto não aceita corrida de carro", () => assertFails(aceitar("moto1", "pedidoCorrida01")));
-  await semRegras((db) => setDoc(doc(db, "entregadores", "carro2"), { uid: "carro2", nome: "Carro 2", servicos: ["entrega", "corrida"], veiculo: "carro", modelo: "Onix", cor: "Prata", placa: "BRA2E19", cnh: "B", declaracoes: { maior: true, documentos: true, autonomo: true }, status: "ativo", criadoEm: antigo, atualizadoEm: antigo }));
-  const entC = { nome: "Carro 2", veiculo: "carro", modelo: "Onix", cor: "Prata", placa: "BRA2E19" };
-  await t("corrida: carro aceita", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "aceita", entregadorId: "carro2", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: entC })));
-  await t("corrida: desistir volta a procurar", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "procurando", entregadorId: "", entregador: deleteField(), aceitaEm: deleteField(), desistencias: 1, atualizadoEm: serverTimestamp() })));
-  await t("corrida: aceita de novo", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "aceita", entregadorId: "carro2", aceitaEm: serverTimestamp(), atualizadoEm: serverTimestamp(), entregador: entC })));
-  await t("corrida: chegou", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "chegou", chegouEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("corrida: motorista não cancela antes de 5 minutos esperando", () => assertFails(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "cancelada", canceladaPor: "entregador", motivo: "Não apareceu", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("corrida: sem PIN não inicia a viagem", () => assertFails(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("corrida: PIN do passageiro inicia a viagem", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "em_rota", coletadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), pinInformado: "4321" })));
-  await t("corrida: finaliza sem PIN", () => assertSucceeds(updateDoc(doc(ctx("carro2"), "corridas", "pedidoCorrida01"), { status: "concluida", concluidaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
-  await t("pedido: quem pede cancela enquanto procura", () => assertSucceeds(updateDoc(doc(ctx("cli"), "corridas", "pedidoPara00002"), { status: "cancelada", canceladaPor: "cliente", motivo: "Mudei de planos", canceladaEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await t("notas: todos leem o resumo", () => assertSucceeds(getDoc(doc(ctx("cli"), "entregadores_notas", "moto1"))));
   await t("pedido: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("cli"), "corridas", "pedidoPara00002"))));
   await t("pedido: quem pede lista o histórico", () => assertSucceeds(getDocs(query(collection(ctx("cli"), "corridas"), where("clienteId", "==", "cli"), orderBy("criadoEm", "desc"), limit(30)))));
   await t("pedido: entregador lista o trabalho ativo", () => assertSucceeds(getDocs(query(collection(ctx("moto1"), "corridas"), where("entregadorId", "==", "moto1"), where("status", "in", ["aceita", "chegou", "em_rota"])))));
@@ -1858,18 +1821,24 @@ if (!GUARDADAS) {
   await t("presente: quem mandou desiste antes da resposta", () => assertSucceeds(updateDoc(doc(ctx("gi"), "presentes", "pr9"), { status: "cancelado", atualizadoEm: serverTimestamp() })));
   await t("presente: ninguém apaga", () => assertFails(deleteDoc(doc(ctx("gi"), "presentes", "pr1"))));
   await t("presente: lista os recebidos", () => assertSucceeds(getDocs(query(collection(ctx("go"), "presentes"), where("para", "==", "go")))));
-  if (!GUARDADAS) { // Corrida de presente (volta com as regras de entregas)
+  if (!SEM_CORRIDAS) { // Corrida de presente e gorjeta
   await t("presente: corrida", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "prC"), pres({ tipo: "corrida", mimo: undefined, valor: 40 }))));
   await updateDoc(doc(ctx("go"), "presentes", "prC"), { status: "aceito", respondidoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
   const ponto = (lat, lng) => ({ lat, lng, nome: "Rua", sub: "" });
   const corridaP = (extra) => ({ servico: "corrida", modalidade: "corrida_carro", veiculo: "carro", clienteId: "go", clienteNome: "Go", origem: ponto(-27.59, -48.54), destino: ponto(-27.6, -48.52), km: 4, min: 10, valor: 30, valorSugerido: 20, pagamento: "presente", pacote: null, status: "procurando", paraId: "", destinatarioId: "", geo4: "6gkz", geo5: "6gkzm", raioKm: 5, pinEm: "embarque", presenteId: "prC", pagadorId: "gi", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
-  const usar = (db, id, extra) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), corridaP(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin: "1111" }); b.set(doc(db, "corridas", id, "privado", "rota"), { origem: { lat: -27.5912, lng: -48.5431, nome: "Rua", sub: "" }, destino: { lat: -27.6033, lng: -48.5212, nome: "Rua", sub: "" } }); b.update(doc(db, "presentes", "prC"), { status: "usado", corridaId: id, usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }); return b.commit(); };
-  await t("corrida de presente: valor acima do presente é recusado", () => assertFails(usar(ctx("go"), "corridaPres01", { valor: 60 })));
-  await t("corrida de presente: pagador tem que ser quem deu", () => assertFails(usar(ctx("go"), "corridaPres02", { pagadorId: "gu" })));
-  await t("corrida de presente: sem marcar o presente como usado é recusada", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres03"), corridaP()); b.set(doc(db, "corridas", "corridaPres03", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });
-  await t("corrida de presente: usa o presente", () => assertSucceeds(usar(ctx("go"), "corridaPres04")));
+  // Usar o presente agora é pelo servidor (ele cria o pedido e marca "usado" juntos): o aparelho não faz nenhum dos dois.
+  const usar = (db, id, extra) => { const b = writeBatch(db); b.set(doc(db, "corridas", id), corridaP(extra)); b.set(doc(db, "corridas", id, "privado", "pin"), { pin: "1111" }); b.update(doc(db, "presentes", "prC"), { status: "usado", corridaId: id, usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() }); return b.commit(); };
+  await t("corrida de presente: o aparelho NÃO usa o presente sozinho", () => assertFails(usar(ctx("go"), "corridaPres01")));
+  await t("corrida de presente: não marca 'usado' sem o servidor", () => assertFails(updateDoc(doc(ctx("go"), "presentes", "prC"), { status: "usado", corridaId: "x", usadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
+  await semRegras((db) => usar(db, "corridaPres04"));
   await t("corrida de presente: quem pagou acompanha", () => assertSucceeds(getDoc(doc(ctx("gi"), "corridas", "corridaPres04"))));
-  await t("corrida comum não usa pagamento 'presente'", () => { const db = ctx("go"); const b = writeBatch(db); b.set(doc(db, "corridas", "corridaPres05"), (() => { const o = corridaP(); delete o.presenteId; delete o.pagadorId; return o; })()); b.set(doc(db, "corridas", "corridaPres05", "privado", "pin"), { pin: "1111" }); return assertFails(b.commit()); });
+  await t("corrida de presente: quem pagou lê o endereço (rota)", () => semRegras((db) => setDoc(doc(db, "corridas", "corridaPres04", "privado", "rota"), { origem: ponto(-27.59, -48.54), destino: ponto(-27.6, -48.52) })).then(() => assertSucceeds(getDoc(doc(ctx("gi"), "corridas", "corridaPres04", "privado", "rota")))));
+  await t("corrida de presente: quem pagou NÃO lê o PIN", () => assertFails(getDoc(doc(ctx("gi"), "corridas", "corridaPres04", "privado", "pin"))));
+  // Gorjeta (Pix) para quem levou: só quem pediu, para quem levou, depois de concluída.
+  await semRegras((db) => setDoc(doc(db, "corridas", "corridaGorj1"), corridaP({ status: "concluida", entregadorId: "gu", presenteId: null, pagadorId: null, pagamento: "pix" })));
+  const gorjeta = (extra) => pres({ tipo: "pix", mimo: undefined, valor: 5, para: "gu", corridaId: "corridaGorj1", ...extra });
+  await t("gorjeta: quem pediu dá para quem levou", () => assertSucceeds(setDoc(doc(ctx("go"), "presentes", "gorj1"), gorjeta({ de: "go" }))));
+  await t("gorjeta: outra pessoa não dá gorjeta por essa corrida", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "gorj2"), gorjeta({ de: "gi" }))));
   }
   // Localização em tempo real
   const vivo = (extra) => ({ uid: "gi", conv: "gi_go", participantes: ["gi", "go"], lat: -27.59, lng: -48.54, precisao: 12, rumo: 0, ate: Timestamp.fromMillis(Date.now() + 3600e3), parado: false, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });

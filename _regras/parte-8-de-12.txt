@@ -2,7 +2,7 @@ allow read: if A112();
 function A113() {
 let nL = Nq();
 let uL = Uq();
-return g()
+return i()
 && nL.keys().hasOnly(['autorId', 'conversa', 'dados', 'em'])
 && nL.autorId == uL
 && nL.em == Tq()
@@ -18,14 +18,14 @@ allow create: if A113();
 allow update, delete: if false;
 }
 match /equipe_info/{c} {
-allow read: if g();
+allow read: if i();
 function A114() {
 let nL = Nq();
-return g()
+return i()
 && c == 'grupo'
 && nL.keys().hasOnly(['foto', 'por', 'em'])
 && (nL.foto == null
-|| (nL.foto is string && nL.foto.size() <= 250000 && ae(nL.foto)))
+|| (nL.foto is string && nL.foto.size() <= 250000 && af(nL.foto)))
 && nL.por == Uq()
 && nL.em == Tq();
 }
@@ -33,30 +33,30 @@ allow create, update: if A114();
 allow delete: if false;
 }
 match /equipe_tarefas/{c} {
-function ci() {
+function cl() {
 let rL = Rq();
 let tL = Tq();
 let a = Nq();
 return a.keys().hasOnly(['titulo', 'descricao', 'status', 'prioridade', 'responsavel', 'responsavelNome', 'prazo', 'ligacao', 'ligacaoNome', 'criadoPor', 'criadoPorNome', 'criadoEm', 'atualizadoEm', 'concluidaEm'])
 && a.titulo is string && a.titulo.size() >= 2 && a.titulo.size() <= 140
-&& e(a.get('descricao', null), 2000)
+&& d(a.get('descricao', null), 2000)
 && a.status in ['a_fazer', 'fazendo', 'feito']
 && a.prioridade in ['baixa', 'normal', 'alta', 'urgente']
 && (a.get('responsavel', null) == null || (a.responsavel is string && exists(Dq('admins', a.responsavel))))
-&& e(a.get('responsavelNome', null), 80)
+&& d(a.get('responsavelNome', null), 80)
 && (a.get('prazo', null) == null || a.prazo is timestamp)
-&& e(a.get('ligacao', null), 160)
-&& e(a.get('ligacaoNome', null), 120)
-&& e(a.get('criadoPorNome', null), 80)
+&& d(a.get('ligacao', null), 160)
+&& d(a.get('ligacaoNome', null), 120)
+&& d(a.get('criadoPorNome', null), 80)
 && (a.status != 'feito' ? a.get('concluidaEm', null) == null
 : (resource == null || rL.status != 'feito') ? a.get('concluidaEm', null) == tL
 : a.get('concluidaEm', null) == rL.get('concluidaEm', null))
 && a.atualizadoEm == tL;
 }
-allow read: if g();
+allow read: if i();
 function A115() {
 let nL = Nq();
-return g() && ci()
+return i() && cl()
 && nL.criadoPor == Uq()
 && nL.criadoEm == Tq();
 }
@@ -64,153 +64,153 @@ allow create: if A115();
 function A116() {
 let nL = Nq();
 let rL = Rq();
-return g() && ci()
+return i() && cl()
 && nL.criadoPor == rL.criadoPor
 && nL.criadoEm == rL.criadoEm;
 }
 allow update: if A116();
 function A117() {
-return g() && (Rq().criadoPor == Uq() || M() == 'dono');
+return i() && (Rq().criadoPor == Uq() || M() == 'dono');
 }
 allow delete: if A117();
 }
 match /notas_internas/{c} {
-allow read: if g();
+allow read: if i();
 function A118() {
 let nL = Nq();
-return g()
+return i()
 && nL.keys().hasOnly(['alvo', 'texto', 'autorId', 'autorNome', 'em'])
 && nL.alvo is string && nL.alvo.size() <= 128
 && nL.autorId == Uq()
-&& e(nL.get('autorNome', null), 80)
+&& d(nL.get('autorNome', null), 80)
 && nL.texto is string && nL.texto.size() >= 1 && nL.texto.size() <= 2000
 && nL.em == Tq();
 }
 allow create: if A118();
 allow update: if false;
 function A119() {
-return g() && (Rq().autorId == Uq() || M() == 'dono');
+return i() && (Rq().autorId == Uq() || M() == 'dono');
 }
 allow delete: if A119();
 }
 match /admin_log/{c} {
-allow read: if S() || (g() && Rq().acao == 'cobrar_reclamacao');
+allow read: if T() || (i() && Rq().acao == 'cobrar_reclamacao');
 function A120() {
 let nL = Nq();
-return g()
+return i()
 && nL.keys().hasOnly(['acao', 'alvo', 'detalhe', 'ref', 'por', 'porNome', 'em'])
-&& e(nL.get('alvo', ''), 300) && e(nL.get('ref', ''), 300)
-&& e(nL.get('porNome', ''), 80)
+&& d(nL.get('alvo', ''), 300) && d(nL.get('ref', ''), 300)
+&& d(nL.get('porNome', ''), 80)
 && nL.por == Uq()
 && nL.em == Tq()
 && nL.acao is string && nL.acao.size() <= 60
-&& e(nL.get('detalhe', ''), 1000);
+&& d(nL.get('detalhe', ''), 1000);
 }
 allow create: if A120();
 allow update, delete: if false;
 }
 match /estatisticas/{c} {
-allow read: if g();
+allow read: if i();
 allow write: if false;
 }
 match /relatorios/{c} {
-allow read: if g();
+allow read: if i();
 allow write: if false;
 }
-match /ritmo/{j} {
-function dC(y) {
+match /ritmo/{g} {
+function dI(y) {
 return y == 'msg' ? 500 : (y == 'pub' ? 20 : (y == 'parc' ? 3 : (y == 'flash' ? 50 : (y == 'sup' ? 5 : 200))));
 }
-function bq() {
+function bu() {
 return resource == null || Rq().inicio < Tq() - duration.value(1, 'd');
 }
-function av(r, y) {
+function ax(s, y) {
 let rL = Rq();
-let s = Nq().get(r, 0);
-return s is int
-&& s == (r == y ? (bq() ? 1 : rL.get(r, 0) + 1)
-: (bq() ? 0 : rL.get(r, 0)));
+let t = Nq().get(s, 0);
+return t is int
+&& t == (s == y ? (bu() ? 1 : rL.get(s, 0) + 1)
+: (bu() ? 0 : rL.get(s, 0)));
 }
-allow get: if b() && Uq() == j;
-allow read: if g();
+allow get: if b() && Uq() == g;
+allow read: if i();
 function A121() {
 let nL = Nq();
 let tL = Tq();
 return b()
-&& Uq() == j
+&& Uq() == g
 && nL.keys().hasOnly(['inicio', 'msg', 'pub', 'com', 'parc', 'flash', 'sup', 'ultimaEm', 'ultimoTipo'])
 && nL.ultimoTipo in ['msg', 'pub', 'com', 'parc', 'flash', 'sup']
 && nL.ultimaEm == tL
-&& nL.inicio == (bq() ? tL : Rq().inicio)
-&& av('msg', nL.ultimoTipo)
-&& av('pub', nL.ultimoTipo)
-&& av('com', nL.ultimoTipo)
-&& av('parc', nL.ultimoTipo)
-&& av('flash', nL.ultimoTipo)
-&& av('sup', nL.ultimoTipo)
-&& nL.get(nL.ultimoTipo, 0) <= dC(nL.ultimoTipo);
+&& nL.inicio == (bu() ? tL : Rq().inicio)
+&& ax('msg', nL.ultimoTipo)
+&& ax('pub', nL.ultimoTipo)
+&& ax('com', nL.ultimoTipo)
+&& ax('parc', nL.ultimoTipo)
+&& ax('flash', nL.ultimoTipo)
+&& ax('sup', nL.ultimoTipo)
+&& nL.get(nL.ultimoTipo, 0) <= dI(nL.ultimoTipo);
 }
 allow create, update: if A121();
 allow delete: if false;
 }
-match /exclusoes/{j} {
-allow get: if b() && Uq() == j;
-allow read: if g();
+match /exclusoes/{g} {
+allow get: if b() && Uq() == g;
+allow read: if i();
 function A122() {
 let nL = Nq();
 return b()
-&& Uq() == j
+&& Uq() == g
 && nL.keys().hasOnly(['pedidaEm', 'motivo'])
 && nL.pedidaEm == Tq()
-&& e(nL.get('motivo', ''), 300);
+&& d(nL.get('motivo', ''), 300);
 }
 allow create: if A122();
 allow update: if false;
-allow delete: if b() && Uq() == j;
+allow delete: if b() && Uq() == g;
 }
 match /curtidas/{c} {
 allow read: if b();
-function cj(a) {
+function cm(a) {
 return a.nota is int && a.nota >= 1 && a.nota <= 5;
 }
-function br(ak) {
-let i = Dq('diario_notas', ak);
-return existsAfter(i)
-&& getAfter(i).data.get('soma', 0) != (exists(i) ? get(i).data.get('soma', 0) : 0);
+function bv(al) {
+let j = Dq('diario_notas', al);
+return existsAfter(j)
+&& getAfter(j).data.get('soma', 0) != (exists(j) ? get(j).data.get('soma', 0) : 0);
 }
 function A123() {
 let nL = Nq();
 let uL = Uq();
 return b()
-&& m()
+&& n()
 && nL.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nota', 'criadoEm', 'origem'])
 && (!('origem' in nL) || nL.origem in ['principais', 'seguindo', 'amigos', 'perfil', 'link', 'tag', 'salvos'])
 && nL.uid == uL
 && c == nL.postId + '_' + uL
 && exists(Dq('diario', nL.postId))
 && get(Dq('diario', nL.postId)).data.autorId == nL.postAutorId
-&& cj(nL)
+&& cm(nL)
 && !z(uL, nL.postAutorId)
 && nL.criadoEm == Tq()
-&& br(nL.postId);
+&& bv(nL.postId);
 }
 allow create: if A123();
 function A124() {
 let nL = Nq();
 let rL = Rq();
 return b()
-&& m()
+&& n()
 && rL.uid == Uq()
 && k().hasOnly(['nota', 'atualizadoEm'])
-&& cj(nL)
+&& cm(nL)
 && nL.atualizadoEm == Tq()
-&& br(rL.postId);
+&& bv(rL.postId);
 }
 allow update: if A124();
 function A125() {
 let rL = Rq();
 return b() && rL.uid == Uq()
-&& (br(rL.postId)
+&& (bv(rL.postId)
 || !exists(Dq('diario', rL.postId)));
 }
 allow delete: if A125();
@@ -244,7 +244,7 @@ allow read: if b();
 function A129() {
 let nL = Nq();
 let uL = Uq();
-return b() && m()
+return b() && n()
 && nL.keys().hasOnly(['postId', 'uid', 'postAutorId', 'nome', 'criadoEm'])
 && nL.uid == uL
 && nL.postId is string && nL.postId.size() <= 64
@@ -262,12 +262,12 @@ return b() && (Rq().uid == Uq() || l());
 allow delete: if A130();
 allow update: if false;
 }
-match /contagem_lembretes/{dD} {
+match /contagem_lembretes/{dJ} {
 function A131() {
 let nL = Nq();
 let uL = Uq();
 return b() && nL.uid == uL
-&& dD == nL.flashId + '_' + uL
+&& dJ == nL.flashId + '_' + uL
 && nL.keys().hasOnly(['flashId', 'autorId', 'uid', 'titulo', 'fim', 'criadoEm'])
 && nL.criadoEm == Tq()
 && get(Dq('stories', nL.flashId)).data.autorId == nL.autorId
@@ -289,7 +289,7 @@ allow delete: if A133();
 allow update: if false;
 }
 match /stories/{c} {
-function ck() {
+function cn() {
 let u = get(/databases/$(database)/documents/stories/$(c)).data;
 return u.autorId == request.auth.uid
 || (u.criadoEm > request.time - duration.value(26, 'h') || u.get('destacado', false) == true)
@@ -304,7 +304,7 @@ allow get: if b() && (resource.data.autorId == request.auth.uid || l()
 allow list: if b() && (resource.data.autorId == request.auth.uid || l()
 || (resource.data.criadoEm > request.time - duration.value(26, 'h')
 && (resource.data.restrito == false || request.auth.uid in resource.data.lista)));
-allow create: if b() && m() && cQ(request.resource.data) && !ad(request.auth.uid) && ar('flash');
+allow create: if b() && n() && cV(request.resource.data) && !ae(request.auth.uid) && au('flash');
 allow delete: if b() && (resource.data.autorId == request.auth.uid || l());
 allow update: if b() && resource.data.autorId == request.auth.uid
 && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['destacado'])
@@ -313,26 +313,26 @@ allow update: if b() && resource.data.autorId == request.auth.uid
 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['restrito'])
 && request.resource.data.restrito == (resource.data.get('publico', 'todos') == 'amigos'
 || resource.data.get('ocultoPara', []).size() > 0)));
-match /vistos/{j} {
-allow create: if b() && j == request.auth.uid
+match /vistos/{g} {
+allow create: if b() && g == request.auth.uid
 && request.resource.data.keys().hasOnly(['criadoEm'])
 && request.resource.data.criadoEm == request.time
-&& ck();
-allow read: if b() && (j == request.auth.uid
+&& cn();
+allow read: if b() && (g == request.auth.uid
 || get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
 allow update, delete: if false;
 }
-match /reacoes/{j} {
-allow create, update: if b() && j == request.auth.uid
+match /reacoes/{g} {
+allow create, update: if b() && g == request.auth.uid
 && request.resource.data.keys().hasOnly(['curtiu', 'emoji', 'em'])
 && request.resource.data.em == request.time
 && (!('curtiu' in request.resource.data) || request.resource.data.curtiu is bool)
 && (!('emoji' in request.resource.data) || request.resource.data.emoji in ['🔥', '😍', '😂', '😮', '👏', '💯', '⭐'])
 && get(/databases/$(database)/documents/stories/$(c)).data.autorId != request.auth.uid
-&& ck();
-allow read: if b() && (j == request.auth.uid
+&& cn();
+allow read: if b() && (g == request.auth.uid
 || get(/databases/$(database)/documents/stories/$(c)).data.autorId == request.auth.uid);
-allow delete: if b() && j == request.auth.uid;
+allow delete: if b() && g == request.auth.uid;
 }
 }
 match /stories_restritos/{c} {
@@ -358,7 +358,7 @@ return b() && (Rq().autorId == Uq() || l());
 allow delete: if A135();
 }
 match /destaques/{c} {
-function cl(a) {
+function co(a) {
 return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
 && a.nome is string && a.nome.size() >= 1 && a.nome.size() <= 30
 && a.ids is list && a.ids.size() >= 1 && a.ids.size() <= 100
@@ -368,16 +368,16 @@ return a.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', '
 && (!('capa' in a) || (a.capa is string && a.capa.size() <= 64 && a.capa in a.ids))
 && (!('capaMini' in a) || (a.capaMini is string && a.capaMini.size() <= 30000 && a.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
 }
-function cm(a, B) {
+function cp(a, B) {
 return !('capa' in a) || a.capa == B
 || get(Dq('stories', a.capa)).data.autorId == Uq();
 }
 allow read: if b();
 function A136() {
 let nL = Nq();
-return b() && m() && nL.uid == Uq()
-&& nL.criadoEm == Tq() && cl(nL)
-&& cm(nL, '');
+return b() && n() && nL.uid == Uq()
+&& nL.criadoEm == Tq() && co(nL)
+&& cp(nL, '');
 }
 allow create: if A136();
 function A137() {
@@ -385,8 +385,8 @@ let nL = Nq();
 let rL = Rq();
 let uL = Uq();
 return b() && rL.uid == uL && nL.uid == uL
-&& nL.criadoEm == rL.criadoEm && cl(nL)
-&& cm(nL, rL.get('capa', ''));
+&& nL.criadoEm == rL.criadoEm && co(nL)
+&& cp(nL, rL.get('capa', ''));
 }
 allow update: if A137();
 function A138() {
@@ -394,10 +394,10 @@ return b() && (Rq().uid == Uq() || l());
 }
 allow delete: if A138();
 }
-function cn(a) {
-let bs = Dq('enquete_contas', a.alvo + '_' + string(a.fatia));
-let r = 'n' + string(a.opcao);
+function cq(a) {
+let bw = Dq('enquete_contas', a.alvo + '_' + string(a.fatia));
+let s = 'n' + string(a.opcao);
 return a.fatia is int && a.fatia >= 0 && a.fatia < 10
-&& getAfter(bs).data.get(r, 0) == (exists(bs) ? get(bs).data.get(r, 0) : 0) + 1;
+&& getAfter(bw).data.get(s, 0) == (exists(bw) ? get(bw).data.get(s, 0) : 0) + 1;
 }
-// ===== FIM DA PARTE 8 DE 11 =====
+// ===== FIM DA PARTE 8 DE 12 =====

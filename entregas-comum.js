@@ -134,3 +134,23 @@ export async function lerEnderecos(fb, id) {
   try { const s = await fb.getDoc(fb.doc(fb.db, "corridas", id, "privado", "rota")); return s.exists() ? s.data() : null; } catch { return null; }
 }
 export const comEnderecos = (c, r) => (c && r?.origem && r?.destino ? { ...c, origem: { ...r.origem }, destino: { ...r.destino }, _exato: true } : c);
+
+// ---------- pedidos pelo servidor (25/11/2026) ----------
+// Criar, mudar oferta, aceitar, avançar etapa (PIN), cancelar e avaliar passam pela Cloud Function "corrida"
+// (functions/corridas.js confere tudo). Só a posição ao vivo de quem leva é gravada direto no pedido.
+let fnsCorrida = null;
+export async function acaoCorrida(acao, dados = {}) {
+  fnsCorrida ||= import("https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js")
+    .then((m) => {
+      const f = m.getFunctions(window.firebaseApp, "southamerica-east1");
+      if (window.__hfFuncoesEmulador) m.connectFunctionsEmulator(f, "127.0.0.1", window.__hfFuncoesEmulador); // só nos testes
+      return { m, f };
+    });
+  const { m, f } = await fnsCorrida;
+  try { return (await m.httpsCallable(f, "corrida", { timeout: 30000 })({ acao, ...dados })).data; }
+  catch (e) {
+    const codigo = String(e?.code || "").replace(/^functions\//, "");
+    const x = new Error(["internal", "unavailable", "deadline-exceeded", "not-found"].includes(codigo) && !/[a-zà-ú]{3}/i.test(e?.message || "") ? "Sem conexão com o servidor. Tente de novo." : (e?.message || "Não foi possível agora."));
+    x.code = codigo; throw x;
+  }
+}

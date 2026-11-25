@@ -5,7 +5,7 @@
 // =====================================================
 import { C, D, $, h, ms, toast, PAPEIS, vendoAgora, pode, registrar, garantirNegocios, garantirTodasPessoas, carregarPessoas } from "./admin-base.js?v=31";
 import * as S from "./admin-secoes.js?v=94";
-import { seguranca } from "./admin-seguranca.js?v=5";
+import { seguranca } from "./admin-seguranca.js?v=6";
 import { previa, tocarSom } from "./admin-chat.js?v=48";
 import { meusCanais, silenciado, canalPorId, convCanal } from "./equipe-canais.js?v=2";
 

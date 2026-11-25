@@ -11,6 +11,7 @@ let falhas = 0;
 const ok = (c, m) => { if (!c) falhas++; console.log(c ? "  ✔" : "  ✘", m); };
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
 async function simular(ctx) {
+  await ctx.addInitScript(() => { window.__hfFuncoesEmulador = 5001; }); // os pedidos de corrida passam pela função "corrida"
   await ctx.route(/tile\.openstreetmap\.org/, (r) => r.fulfill({ body: PNG, contentType: "image/png" }));
   await ctx.route(/nominatim\.openstreetmap\.org\/reverse/, (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ address: { road: "Rua Bocaiúva", house_number: "50", suburb: "Centro", city: "Florianópolis" } }) }));
   await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify([{ lat: "-27.6010", lon: "-48.5200", name: "Praça XV", address: { road: "Praça XV de Novembro", suburb: "Centro", city: "Florianópolis" } }]) }));

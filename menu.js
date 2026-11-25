@@ -127,7 +127,7 @@ const SECOES_MENU = [
     ["saude.html", "saude", "Saúde", "#0fb5a6"],
     ["automotivo.html", "automotivo", "Automotivo", "#f5b301"],
     ["comunidade.html", "comunidade", "Comunidade", "#e5487f"],
-    // Entregas e corridas: volta na próxima atualização (em-breve.js)
+    ["entregas.html", "entregas", "Entregas e corridas", "#f5b301", null, "Envie algo ou peça um carro e acompanhe no mapa"],
     ["alertas.html", "alerta", "Help e alertas", "#e5484d", null, "Pedir ajuda e pets perdidos perto de você"]
   ]],
   ["Minha conta", [
@@ -137,15 +137,15 @@ const SECOES_MENU = [
     ["mensagens.html", "chat", "Mensagens", null, "menuBadge"],
     ["social.html", "social", "Meu diário"],
     ["notas.html", "nota", "Notas", "#00adee", null, "Anotações, listas e estratégias · só você vê"],
-    ["presentes.html", "presente", "Presentes", "#e5487f", null, "Mimos, lanches, Pix e vale-presente para quem você gosta"],
+    ["presentes.html", "presente", "Presentes", "#e5487f", null, "Mimos, lanches, Pix e corridas para quem você gosta"],
     ["alertas.html?aba=pets", "coracao", "Meus pets (RG)", null, null, "Cadastro para achar o seu pet se ele sumir"],
     ["configuracoes.html", "config", "Configurações"]
   ]],
   ["Para quem anuncia", [
     ["negocios.html", "maleta", "Meus negócios"],
     ["negocios.html?planos=1", "selo", "Planos", "#fab219", null, "Plus, Pro e Premium · 30 dias grátis na 1ª assinatura"],
-    ["profissionais.html", "servicos", "Como anunciar"]
-    // "Seja entregador" volta junto com as corridas na próxima atualização (em-breve.js)
+    ["profissionais.html", "servicos", "Como anunciar"],
+    ["entregador.html", "volante", "Seja entregador", null, null, "Entregas e corridas pelo Help Floripa"]
   ]],
   ["Ajuda e suporte", [
     ["ajuda.html", "ajuda", "Central de Ajuda"],

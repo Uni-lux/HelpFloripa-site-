@@ -1,7 +1,7 @@
 // Funções guardadas para a próxima atualização (25/11/2026): o Firebase recusa regras com mais de 256.000 bytes compilados,
 // então as regras de corridas/entregas, roubos/veículos e desaparecidos ficaram em _regras/proxima-atualizacao.rules.
 // Enquanto true, as páginas escondem as entradas e mostram "Em breve". Para voltar: pôr as regras de volta e virar false.
-export const EM_BREVE = { corridas: true, roubos: true, desaparecidos: true };
+export const EM_BREVE = { corridas: false, roubos: true, desaparecidos: true };
 
 // Troca a página inteira por um aviso "Em breve" e nunca resolve (quem chama com await para ali).
 export function pararComEmBreve(titulo, texto) {

@@ -15,7 +15,7 @@ import { confirmarHF } from "./confirmar.js?v=6";
 import { TIPOS_OCORRENCIA, OBJETOS, TIPOS_SOS, STATUS_SOS, sosVivo, semelhanca, textoSemelhanca, AVISO_AUTOMATICO, ESPECIES } from "./alertas-base.js?v=2";
 import { hashPlaca, formatarPlaca, placaEscondida, semelhancaVeiculo, textoSemelhancaVeiculo, nomeVeiculo } from "./veiculos-base.js?v=1";
 // Roubos/veículos e desaparecidos ficaram para a próxima atualização (em-breve.js): enquanto isso, não lê nem mostra.
-import { EM_BREVE } from "./em-breve.js?v=1";
+import { EM_BREVE } from "./em-breve.js?v=2";
 const ROUBOS = !EM_BREVE.roubos, DESAP = !EM_BREVE.desaparecidos;
 
 const PAGINA_VENDA = { lojinha: "shopping.html", automotivo: "automotivo.html" };
