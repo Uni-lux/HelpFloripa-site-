@@ -1,5 +1,10 @@
 # Regras do Firestore — publicação
 
+> **Versão de 25/11/2026 — agora são 16 partes (eram 25), sem os comentários.** O console do Firebase recusa regras com mais
+> de 256 KB e mostra só "Erro ao salvar regras - Ocorreu um erro desconhecido". O arquivo com os comentários tinha 298 KB;
+> estas partes têm as MESMAS regras sem comentários, linhas vazias e recuo (191 KB). Apague tudo no editor e cole as partes
+> 1 a 16 em ordem. As regras ficam todas encostadas à esquerda: é assim mesmo. 1375 testes passando no arquivo remontado.
+
 > **Versão de 03/11/2026 (2) — e-mail da conta:** o e-mail gravado na conta (`usuarios.email`) tem que ser o do login (antes a
 > pessoa podia gravar o e-mail de outra e o painel mostrava e buscava por ele).
 
@@ -240,11 +245,11 @@
 > foto/vídeo do Storage numa publicação só da pasta `diario/<autor>/`. Continuam **25 partes**, 1375 testes.
 
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
-`firestore.rules` divididas em **25 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
+`firestore.rules` divididas em **16 partes** (versão compacta, sem comentários) (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
-
+- Arquivo de origem: `firestore.rules` (298.320 bytes, com comentários) → versão compacta de 191.423 bytes (limite do console: 256 KB).
 - Arquivo de origem: `firestore.rules` (298.320 bytes. 4.467 linhas. sha256 começa com `bc4c611a43dcafba`).
-- Cada parte termina com a linha `// ===== FIM DA PARTE X DE 25 =====`. É um comentário: **pode colar junto**,
+- Conferido: as 16 partes juntas, sem as linhas de fim, são **exatamente** o `_testes/saida/firestore-compacto.rules` (o `firestore.rules` sem comentários, gerado pelo `_testes/compactar-regras.py`), byte a byte.
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
 - Testes de regras no arquivo remontado: **1375 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).

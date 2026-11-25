@@ -1,0 +1,218 @@
+match /stories_restritos/{id} {
+allow read: if logado();
+allow create: if logado()
+&& request.resource.data.keys().hasOnly(['autorId', 'criadoEm', 'negocios', 'perfil'])
+&& request.resource.data.autorId == request.auth.uid
+&& request.resource.data.criadoEm == getAfter(/databases/$(database)/documents/stories/$(id)).data.criadoEm
+&& getAfter(/databases/$(database)/documents/stories/$(id)).data.autorId == request.auth.uid
+&& getAfter(/databases/$(database)/documents/stories/$(id)).data.restrito == true
+&& getAfter(/databases/$(database)/documents/stories/$(id)).data.get('publico', 'todos') != 'amigos'
+&& request.resource.data.get('negocios', []) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('negocios', [])
+&& request.resource.data.get('perfil', true) == getAfter(/databases/$(database)/documents/stories/$(id)).data.get('perfil', true);
+allow update: if false;
+allow delete: if logado() && (resource.data.autorId == request.auth.uid || podeModerar());
+}
+match /destaques/{id} {
+function destaqueOk(d) {
+return d.keys().hasOnly(['uid', 'nome', 'ids', 'capa', 'capaMini', 'criadoEm', 'atualizadoEm'])
+&& d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 30
+&& d.ids is list && d.ids.size() >= 1 && d.ids.size() <= 100
+&& d.ids.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,99}$')
+&& d.ids.toSet().size() == d.ids.size()
+&& d.atualizadoEm == request.time
+&& (!('capa' in d) || (d.capa is string && d.capa.size() <= 64 && d.capa in d.ids))
+&& (!('capaMini' in d) || (d.capaMini is string && d.capaMini.size() <= 30000 && d.capaMini.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')));
+}
+function capaMinha(d, antes) {
+return !('capa' in d) || d.capa == antes
+|| get(/databases/$(database)/documents/stories/$(d.capa)).data.autorId == request.auth.uid;
+}
+allow read: if logado();
+allow create: if logado() && emailOk() && request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == request.time && destaqueOk(request.resource.data)
+&& capaMinha(request.resource.data, '');
+allow update: if logado() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == resource.data.criadoEm && destaqueOk(request.resource.data)
+&& capaMinha(request.resource.data, resource.data.get('capa', ''));
+allow delete: if logado() && (resource.data.uid == request.auth.uid || podeModerar());
+}
+function fatiaSobe(d) {
+let pedaco = /databases/$(database)/documents/enquete_contas/$(d.alvo + '_' + string(d.fatia));
+let k = 'n' + string(d.opcao);
+return d.fatia is int && d.fatia >= 0 && d.fatia < 10
+&& getAfter(pedaco).data.get(k, 0) == (exists(pedaco) ? get(pedaco).data.get(k, 0) : 0) + 1;
+}
+match /enquete_votos/{id} {
+allow read: if logado() && (resource.data.uid == request.auth.uid || resource.data.autorId == request.auth.uid || podeModerar());
+function votoOk() {
+let d = request.resource.data;
+let doc = d.tipo == 'd'
+? /databases/$(database)/documents/diario/$(d.itemId)
+: /databases/$(database)/documents/stories/$(d.itemId);
+let e = get(doc).data.enquete;
+return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm', 'autorId'])
+&& d.uid == request.auth.uid
+&& d.get('autorId', get(doc).data.autorId) == get(doc).data.autorId
+&& d.tipo in ['d', 'f']
+&& d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& d.alvo == d.tipo + '_' + d.itemId
+&& id == d.alvo + '_' + request.auth.uid
+&& d.opcao is int && d.opcao >= 0
+&& exists(doc) && d.opcao < e.opcoes.size()
+&& e.get('anonima', false) == false
+&& (!('fimEm' in e) || request.time < e.fimEm)
+&& (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+&& fatiaSobe(d);
+}
+allow create: if logado() && votoOk() && request.resource.data.criadoEm == request.time && !sancionado(request.auth.uid);
+allow update, delete: if false;
+}
+match /enquete_anon/{id} {
+function votoAnonOk() {
+let d = request.resource.data;
+let doc = d.tipo == 'd'
+? /databases/$(database)/documents/diario/$(d.itemId)
+: /databases/$(database)/documents/stories/$(d.itemId);
+let e = get(doc).data.enquete;
+return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'uid', 'opcao', 'fatia', 'fimEm', 'criadoEm'])
+&& d.uid == request.auth.uid && d.criadoEm == request.time
+&& d.tipo in ['d', 'f']
+&& d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& d.alvo == d.tipo + '_' + d.itemId
+&& id == d.alvo + '_' + request.auth.uid
+&& d.opcao is int && d.opcao >= 0 && d.opcao < e.opcoes.size()
+&& e.get('anonima', false) == true
+&& (!('fimEm' in e) || request.time < e.fimEm)
+&& (!('fimEm' in d) || ('fimEm' in e && d.fimEm == e.fimEm))
+&& fatiaSobe(d);
+}
+allow get: if logado() && id.matches('.*_' + request.auth.uid);
+allow list: if logado() && resource.data.uid == request.auth.uid;
+allow create: if logado() && !sancionado(request.auth.uid) && votoAnonOk();
+allow update, delete: if false;
+}
+match /enquete_contas/{cid} {
+allow read: if logado();
+function partes() { return cid.split('_'); }
+function votoEm(colecao) { return /databases/$(database)/documents/$(colecao)/$(partes()[0] + '_' + partes()[1] + '_' + request.auth.uid); }
+function votoDeAgora() {
+return !exists(votoEm('enquete_anon')) && existsAfter(votoEm('enquete_anon')) ? votoEm('enquete_anon') : votoEm('enquete_votos');
+}
+function chaveDoVoto() { return 'n' + string(getAfter(votoDeAgora()).data.opcao); }
+function pedacoDoVoto() {
+return cid.matches('^[df]_[A-Za-z0-9]{1,64}_[0-9]$')
+&& !exists(votoDeAgora()) && existsAfter(votoDeAgora())
+&& string(getAfter(votoDeAgora()).data.fatia) == partes()[2];
+}
+allow create: if logado() && pedacoDoVoto()
+&& request.resource.data.keys().hasOnly([chaveDoVoto()])
+&& request.resource.data[chaveDoVoto()] == 1;
+allow update: if logado() && pedacoDoVoto()
+&& request.resource.data.diff(resource.data).affectedKeys().hasOnly([chaveDoVoto()])
+&& request.resource.data[chaveDoVoto()] == resource.data.get(chaveDoVoto(), 0) + 1;
+allow delete: if false;
+}
+match /caixa_respostas/{id} {
+function caixaDoItem(d) {
+return get(d.tipo == 'd'
+? /databases/$(database)/documents/diario/$(d.itemId)
+: /databases/$(database)/documents/stories/$(d.itemId)).data;
+}
+function respostaOk() {
+let d = request.resource.data;
+let item = caixaDoItem(d);
+let autoria = /databases/$(database)/documents/caixa_autoria/$(id);
+return d.keys().hasOnly(['alvo', 'tipo', 'itemId', 'autorId', 'uid', 'nome', 'foto', 'texto', 'anonima', 'criadoEm'])
+&& d.tipo in ['d', 'f']
+&& d.itemId is string && d.itemId.matches('^[A-Za-z0-9]{1,64}$')
+&& d.alvo == d.tipo + '_' + d.itemId
+&& d.texto is string && d.texto.size() >= 1 && d.texto.size() <= 300
+&& d.criadoEm == request.time
+&& 'caixa' in item && d.autorId == item.autorId
+&& d.anonima == item.caixa.anonima
+&& (d.anonima
+? (!d.keys().hasAny(['uid', 'nome', 'foto']) && existsAfter(autoria) && getAfter(autoria).data.uid == request.auth.uid)
+: (d.uid == request.auth.uid && textoAte('nome', 80) && textoAte('foto', 2000)));
+}
+allow create: if logado() && emailOk() && !sancionado(request.auth.uid) && respostaOk();
+allow read, delete: if logado() && (resource.data.autorId == request.auth.uid
+|| resource.data.get('uid', '') == request.auth.uid
+|| podeModerar());
+allow update: if false;
+}
+match /caixa_autoria/{id} {
+allow read, delete: if podeModerar();
+allow create: if logado()
+&& request.resource.data.keys().hasOnly(['uid', 'criadoEm'])
+&& request.resource.data.uid == request.auth.uid
+&& request.resource.data.criadoEm == request.time
+&& existsAfter(/databases/$(database)/documents/caixa_respostas/$(id));
+allow update: if false;
+}
+match /pref_publicas/{uid} {
+allow read: if logado();
+allow create, update: if logado() && uid == request.auth.uid
+&& request.resource.data.keys().hasOnly(['permiteMarcar', 'permiteFlash', 'presentes', 'atualizadoEm', 'msgPessoal', 'msgNegocios', 'negociosNoPerfil', 'perfil', 'pronomes', 'profissao', 'redes', 'salaoModelo'])
+&& request.resource.data.get('salaoModelo', 'mosaico') in ['mosaico', 'grade', 'revista', 'polaroid', 'filme']
+&& (!('redes' in request.resource.data) || (request.resource.data.redes is list && request.resource.data.redes.size() <= 10
+&& request.resource.data.redes.join(',').matches('^((instagram|whatsapp|email|telegram|tiktok|kwai|x|youtube|facebook|linkedin)(,|$))*$')))
+&& request.resource.data.get('pronomes', '') is string && request.resource.data.get('pronomes', '').size() <= 24
+&& request.resource.data.get('profissao', '') is string && request.resource.data.get('profissao', '').size() <= 40
+&& request.resource.data.get('msgPessoal', 'seguindo') in ['todos', 'seguindo', 'fechado']
+&& request.resource.data.get('msgNegocios', 'todos') in ['todos', 'pedidos']
+&& request.resource.data.get('negociosNoPerfil', true) is bool
+&& (!('perfil' in request.resource.data) || (request.resource.data.perfil is map
+&& request.resource.data.perfil.keys().hasOnly(['cidade', 'nota', 'destaques'])
+&& request.resource.data.perfil.get('cidade', true) is bool && request.resource.data.perfil.get('nota', true) is bool
+&& request.resource.data.perfil.get('destaques', true) is bool))
+&& (!('presentes' in request.resource.data) || request.resource.data.presentes in ['todos', 'seguindo', 'vinculos', 'ninguem'])
+&& (!('permiteMarcar' in request.resource.data) || request.resource.data.permiteMarcar in ['todos', 'seguindo', 'ninguem'])
+&& (!('permiteFlash' in request.resource.data) || request.resource.data.permiteFlash is bool);
+allow delete: if logado() && uid == request.auth.uid;
+}
+match /contatos_perfil/{id} {
+allow get: if logado() && resource != null
+&& (resource.data.uid == request.auth.uid || admin()
+|| (!bloqueioEntre(request.auth.uid, resource.data.uid)
+&& (resource.data.ver == 'todos'
+|| (resource.data.ver in ['seguidores', 'amigos']
+&& exists(/databases/$(database)/documents/relacoes/$(request.auth.uid + '_' + resource.data.uid))
+&& (resource.data.ver == 'seguidores'
+|| exists(/databases/$(database)/documents/relacoes/$(resource.data.uid + '_' + request.auth.uid)))))));
+allow list: if false;
+allow create, update: if logado()
+&& request.resource.data.keys().hasOnly(['uid', 'tipo', 'valor', 'ver', 'em'])
+&& request.resource.data.uid == request.auth.uid
+&& id == request.auth.uid + '_' + request.resource.data.tipo
+&& request.resource.data.ver in ['todos', 'seguidores', 'amigos']
+&& request.resource.data.tipo is string && request.resource.data.valor is string && request.resource.data.valor.size() <= 120
+&& (request.resource.data.tipo + ' ' + request.resource.data.valor).matches('^(instagram [A-Za-z0-9._]{1,30}|whatsapp [0-9]{10,13}|email [a-z0-9._%+-]{1,64}@[a-z0-9-]+([.][a-z0-9-]+)*[.][a-z]{2,24}|telegram [A-Za-z0-9_]{5,32}|tiktok [A-Za-z0-9._]{2,24}|kwai [A-Za-z0-9._]{2,30}|x [A-Za-z0-9_]{1,15}|youtube [A-Za-z0-9._-]{3,30}|facebook [A-Za-z0-9.]{5,50}|linkedin [A-Za-z0-9%_-]{3,100})$')
+&& request.resource.data.em == request.time;
+allow delete: if logado() && (resource.data.uid == request.auth.uid || admin());
+}
+match /notas/{uid}/itens/{id} {
+allow read, delete: if logado() && uid == request.auth.uid;
+allow create, update: if logado() && uid == request.auth.uid
+&& request.resource.data.keys().hasOnly(['titulo', 'texto', 'cor', 'pasta', 'fixada', 'arquivada', 'lixeira', 'prazo', 'criadoEm', 'em'])
+&& request.resource.data.titulo is string && request.resource.data.titulo.size() <= 120
+&& request.resource.data.texto is string && request.resource.data.texto.size() <= 20000
+&& request.resource.data.get('pasta', '') is string && request.resource.data.get('pasta', '').size() <= 40
+&& request.resource.data.get('cor', '') is string && request.resource.data.get('cor', '').size() <= 12
+&& request.resource.data.get('prazo', '') is string && request.resource.data.get('prazo', '').size() <= 10
+&& request.resource.data.get('fixada', false) is bool && request.resource.data.get('arquivada', false) is bool
+&& request.resource.data.get('lixeira', 0) is number && request.resource.data.em is number
+&& (resource == null || !('criadoEm' in resource.data)
+|| request.resource.data.get('criadoEm', null) == resource.data.criadoEm);
+}
+match /rascunhos/{uid}/itens/{id} {
+allow read, delete: if logado() && uid == request.auth.uid;
+allow create, update: if logado() && uid == request.auth.uid
+&& request.resource.data.keys().hasOnly(['texto', 'fotos', 'atualizadoEm'])
+&& valorTextoAte(request.resource.data.get('texto', ''), 1000)
+&& (!('fotos' in request.resource.data) || (request.resource.data.fotos is list && request.resource.data.fotos.size() <= 4));
+}
+match /ranking_diario/{id} {
+allow read: if logado();
+allow write: if false;
+}
+// ===== FIM DA PARTE 11 DE 16 =====
