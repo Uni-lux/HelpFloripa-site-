@@ -83,13 +83,27 @@
                     && (d().tipo != 'produto'
                         ? !('itens' in d())
                         : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
+                           && itensPresenteOk(d().itens)
                            && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     // Vale-presente (12/11/2026): um valor para usar num negócio do Help Floripa (qualquer tipo).
                     && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      // Cada item do presente: {nome ≤60, preco 0–100 mil, qtd 1–99} (o que o site grava).
+      function itemPresenteOk(l, i) {
+        return i >= l.size() || (l[i] is map && l[i].keys().hasOnly(['nome', 'preco', 'qtd'])
+            && valorTextoAte(l[i].get('nome', ''), 60)
+            && (l[i].preco is int || l[i].preco is float) && l[i].preco >= 0 && l[i].preco <= 100000
+            && l[i].qtd is int && l[i].qtd >= 1 && l[i].qtd <= 99);
+      }
+      function itensPresenteOk(l) {
+        return itemPresenteOk(l, 0) && itemPresenteOk(l, 1) && itemPresenteOk(l, 2) && itemPresenteOk(l, 3) && itemPresenteOk(l, 4)
+            && itemPresenteOk(l, 5) && itemPresenteOk(l, 6) && itemPresenteOk(l, 7) && itemPresenteOk(l, 8) && itemPresenteOk(l, 9);
+      }
       allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
       function presenteMuda(k, st, ns) {
         return d().atualizadoEm == request.time && (
@@ -119,33 +133,4 @@
         return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
             && d().precisao is number && d().precisao >= 0 && d().rumo is number;
       }
-      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
-      allow create: if logado() && emailOk()
-                    && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
-                    && d().uid == request.auth.uid
-                    && d().participantes is list && d().participantes.size() == 2 && request.auth.uid in d().participantes
-                    && d().participantes[0] < d().participantes[1]
-                    && d().conv == d().participantes[0] + '_' + d().participantes[1]
-                    && exists(/databases/$(database)/documents/conversas/$(d().conv))
-                    && !bloqueioEntre(d().participantes[0], d().participantes[1])
-                    && coordOk()
-                    && d().ate is timestamp && d().ate > request.time && d().ate <= request.time + duration.value(485, 'm')
-                    && d().parado == false && d().criadoEm == request.time && d().atualizadoEm == request.time;
-      allow update: if logado() && resource.data.uid == request.auth.uid
-                    && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
-                    && coordOk() && d().ate <= resource.data.ate && d().parado is bool
-                    && (resource.data.ate > request.time || d().parado == true)
-                    && d().atualizadoEm == request.time;
-      allow delete: if logado() && resource.data.uid == request.auth.uid;
-    }
-
-    // =====================================================
-    // SOS E ALERTAS (alertas.html)
-    // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
-    // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
-    // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
-    function pontoAlertaOk(d) {
-      return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
-          && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
-    }
 // ===== FIM DA PARTE 23 DE 25 =====

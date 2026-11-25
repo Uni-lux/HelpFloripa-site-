@@ -227,15 +227,22 @@
 > registro de ações só com os campos dele; visto e reação do Flash só de quem pode ver o flash. Continuam **25 partes**,
 > 1352 testes.
 
+> **4ª auditoria, partes 21 a 24 (25/11/2026):** presente de produto com itens no formato do site ({nome, preco, qtd}) e
+> presente/vale só para negócio no ar; localização ao vivo: com bloqueio a outra pessoa deixa de ver e a posição para de
+> mudar; Help: lista de avisados só com contas (sem a própria pessoa), número do chamado tem que ser da própria pessoa e quem
+> desiste de ajudar limpa nome e hora; autoria de pista anônima só para pista nova; ocorrência e desaparecido só com a
+> região (até 3 casas, ~100 m); ao publicar um desaparecido o boletim sai do aviso (fica no registro de ações); cores do pet
+> só da lista; código da placa do veículo conferido na regra (SHA-256 da placa). Continuam **25 partes**, 1366 testes.
+
 Esta pasta começa com `_`, então o GitHub Pages **não publica** nada daqui. São as regras do
 `firestore.rules` divididas em **25 partes** (cada uma com menos de 12.800 bytes, cortadas em fim de
 linha), para colar no console do Firebase.
 
-- Arquivo de origem: `firestore.rules` (293.415 bytes. 4.410 linhas. sha256 começa com `139719e9d7669658`).
+- Arquivo de origem: `firestore.rules` (296.845 bytes. 4.448 linhas. sha256 começa com `3afdcea9a4638c44`).
 - Cada parte termina com a linha `// ===== FIM DA PARTE X DE 25 =====`. É um comentário: **pode colar junto**,
   não atrapalha (os testes rodaram nas regras com e sem essas linhas).
 - Conferido: as 25 partes juntas, sem as linhas de fim, são **exatamente** o `firestore.rules`, byte a byte.
-- Testes de regras no arquivo remontado: **1352 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
+- Testes de regras no arquivo remontado: **1366 passaram, 0 falharam** (o emulador só cita o limite de 1.000 expressões ao explicar gravações recusadas; os testes "com TUDO junto" provam que as gravações máximas cabem).
 
 ## Como publicar (uma vez só)
 1. Abra o **console do Firebase** → projeto **helpfloripa-61e0d** → **Firestore Database** → aba **Regras**.

@@ -4105,13 +4105,27 @@ service cloud.firestore {
                     && (d().tipo != 'produto'
                         ? !('itens' in d())
                         : (d().itens is list && d().itens.size() >= 1 && d().itens.size() <= 10 && d().negocioId is string
+                           && itensPresenteOk(d().itens)
                            && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     // Vale-presente (12/11/2026): um valor para usar num negócio do Help Floripa (qualquer tipo).
                     && (d().tipo != 'vale' || (d().negocioId is string && valorTextoAte(d().get('negocioNome', ''), 80)
-                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId))
+                           && d().donoId == get(/databases/$(database)/documents/negocios/$(d().negocioId)).data.donoId
+                           && abertoAgora(get(/databases/$(database)/documents/negocios/$(d().negocioId)).data)))
                     && (('corridaId' in d()) ? gorjetaOk(d()) : presentePermitido(request.auth.uid, d().para))
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
+      // Cada item do presente: {nome ≤60, preco 0–100 mil, qtd 1–99} (o que o site grava).
+      function itemPresenteOk(l, i) {
+        return i >= l.size() || (l[i] is map && l[i].keys().hasOnly(['nome', 'preco', 'qtd'])
+            && valorTextoAte(l[i].get('nome', ''), 60)
+            && (l[i].preco is int || l[i].preco is float) && l[i].preco >= 0 && l[i].preco <= 100000
+            && l[i].qtd is int && l[i].qtd >= 1 && l[i].qtd <= 99);
+      }
+      function itensPresenteOk(l) {
+        return itemPresenteOk(l, 0) && itemPresenteOk(l, 1) && itemPresenteOk(l, 2) && itemPresenteOk(l, 3) && itemPresenteOk(l, 4)
+            && itemPresenteOk(l, 5) && itemPresenteOk(l, 6) && itemPresenteOk(l, 7) && itemPresenteOk(l, 8) && itemPresenteOk(l, 9);
+      }
       allow update: if logado() && presenteMuda(mudou(), r().status, request.resource.data.get('status', ''));
       function presenteMuda(k, st, ns) {
         return d().atualizadoEm == request.time && (
@@ -4141,7 +4155,9 @@ service cloud.firestore {
         return d().lat is number && d().lat >= -90 && d().lat <= 90 && d().lng is number && d().lng >= -180 && d().lng <= 180
             && d().precisao is number && d().precisao >= 0 && d().rumo is number;
       }
-      allow get, list: if logado() && request.auth.uid in resource.data.participantes;
+      // Bloqueou depois de começar: a outra pessoa deixa de ver na hora (quem compartilha continua vendo o próprio).
+      allow get, list: if logado() && request.auth.uid in resource.data.participantes
+                    && (resource.data.uid == request.auth.uid || !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1]));
       allow create: if logado() && emailOk()
                     && d().keys().hasOnly(['uid', 'conv', 'participantes', 'lat', 'lng', 'precisao', 'rumo', 'ate', 'parado', 'criadoEm', 'atualizadoEm'])
                     && d().uid == request.auth.uid
@@ -4157,6 +4173,8 @@ service cloud.firestore {
                     && mudou().hasOnly(['lat', 'lng', 'precisao', 'rumo', 'parado', 'ate', 'atualizadoEm'])
                     && coordOk() && d().ate <= resource.data.ate && d().parado is bool
                     && (resource.data.ate > request.time || d().parado == true)
+                    // com bloqueio entre os dois só dá para PARAR (posição nova não é mais aceita)
+                    && (d().parado == true || !bloqueioEntre(resource.data.participantes[0], resource.data.participantes[1]))
                     && d().atualizadoEm == request.time;
       allow delete: if logado() && resource.data.uid == request.auth.uid;
     }
@@ -4166,6 +4184,9 @@ service cloud.firestore {
     // SOS: quem pede avisa o Social (avisados) e, se quiser, quem está perto (publico); alguém aceita ajudar e os outros
     // veem que já tem gente indo. Ocorrências de roubo/furto (anônimas se a pessoa quiser, com pistas anônimas) e
     // RG do pet (cadastro, perdido e animais encontrados). Nada disso substitui 190/192/193.
+    // Ocorrência e desaparecido mostram só a região: lat/lng com até 3 casas (~100 m), como o site grava.
+    function tresCasas(v) { return math.abs(v * 1000 - math.round(v * 1000)) < 0.001; }
+    function pontoAproxOk(d) { return pontoAlertaOk(d) && tresCasas(d.lat) && tresCasas(d.lng); }
     function pontoAlertaOk(d) {
       return d.lat is number && d.lat >= -90 && d.lat <= 90 && d.lng is number && d.lng >= -180 && d.lng <= 180
           && d.geo4 is string && d.geo4.matches('^[0-9a-z]{4}$');
@@ -4184,6 +4205,8 @@ service cloud.firestore {
                     && valorTextoAte(d().get('texto', ''), 300)
                     && pontoAlertaOk(d()) && d().precisao is number
                     && d().publico is bool && d().avisados is list && d().avisados.size() <= 30
+                    && d().avisados.join(',').matches('^([A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,29})?$')
+                    && !(request.auth.uid in d().avisados)
                     && d().status == 'aberto' && d().ajudanteId == ''
                     && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && d().atualizadoEm == request.time && sosMuda(mudou(), r().status, d().get('status', ''));
@@ -4193,7 +4216,9 @@ service cloud.firestore {
         return (dono && st in ['aberto', 'atendido'] && k.hasOnly(['lat', 'lng', 'precisao', 'geo4', 'atualizadoEm']) && pontoAlertaOk(d()))
             // Escalonar (12/11/2026): ninguém do Social aceitou → avisa quem está perto (publico) e guarda o chamado urgente da equipe.
             || (dono && st in ['aberto', 'atendido'] && k.hasOnly(['publico', 'escaladoEm', 'suporteId', 'atualizadoEm']) && (!k.hasAny(['publico']) || d().publico == true)
-                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time) && valorTextoAte(d().get('suporteId', ''), 40))
+                && (!k.hasAny(['escaladoEm']) || d().escaladoEm == request.time)
+                && (!k.hasAny(['suporteId']) || (d().suporteId is string && d().suporteId.matches('^[A-Za-z0-9_-]{1,40}$')
+                    && get(/databases/$(database)/documents/suporte/$(d().suporteId)).data.uid == request.auth.uid)))
             || ((dono || ajudante) && st in ['aberto', 'atendido'] && ns in ['resolvido', 'cancelado'] && (dono || ns == 'resolvido')
                 && k.hasOnly(['status', 'fimEm', 'atualizadoEm']) && d().fimEm == request.time)
             || (!dono && st == 'aberto' && ns == 'atendido' && (r().publico == true || request.auth.uid in r().avisados)
@@ -4201,7 +4226,8 @@ service cloud.firestore {
                 && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm'])
                 && d().ajudanteId == request.auth.uid && valorTextoAte(d().get('ajudanteNome', ''), 80) && d().aceitoEm == request.time)
             || (ajudante && st == 'atendido' && ns == 'aberto'
-                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == '');
+                && k.hasOnly(['status', 'ajudanteId', 'ajudanteNome', 'aceitoEm', 'atualizadoEm']) && d().ajudanteId == ''
+                && d().get('ajudanteNome', '') == '' && d().get('aceitoEm', null) == null);
       }
       allow delete: if false;
     }
@@ -4229,7 +4255,7 @@ service cloud.firestore {
                     && d().descricao is string && d().descricao.size() >= 10 && d().descricao.size() <= 500
                     && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
                     && d().quando is timestamp && d().quando <= request.time
-                    && pontoAlertaOk(d())
+                    && pontoAproxOk(d())
                     && valorTextoAte(d().get('bairro', ''), 60) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
                     && d().status == 'ativo' && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
@@ -4262,6 +4288,11 @@ service cloud.firestore {
     }
 
     // VEÍCULOS (18/11/2026): o carro/moto da pessoa, com a placa. Só o dono e a moderação leem.
+    // SHA-256 de "hf-veiculo:" + placa no padrão Mercosul (a antiga ABC1234 vira ABC1C34), igual ao veiculos-base.js.
+    function hashDaPlaca(p) {
+      let q = p[4:5].matches('[0-9]') ? p[0:4] + 'ABCDEFGHIJ'[int(p[4:5]):int(p[4:5]) + 1] + p[5:7] : p;
+      return hashing.sha256('hf-veiculo:' + q).toHexString().lower();
+    }
     match /veiculos/{id} {
       function d() { return request.resource.data; }
       allow get, list: if logado() && (resource.data.donoId == request.auth.uid || podeModerar());
@@ -4271,6 +4302,7 @@ service cloud.firestore {
                     && d().tipo in ['carro', 'moto']
                     && d().placa is string && d().placa.matches('^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$')
                     && d().placaHash is string && d().placaHash.matches('^[a-f0-9]{64}$')
+                    && d().placaHash == hashDaPlaca(d().placa)
                     && valorTextoAte(d().get('marca', ''), 30) && valorTextoAte(d().get('modelo', ''), 40) && valorTextoAte(d().get('cor', ''), 20)
                     && valorTextoAte(d().get('apelido', ''), 30)
                     && d().get('ano', '') is string && d().get('ano', '').matches('^([0-9]{4})?$')
@@ -4312,6 +4344,8 @@ service cloud.firestore {
     match /pistas_autoria/{id} {
       allow read: if podeModerar();
       allow create: if logado() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid
+                    && id.split('_').size() == 2
+                    && !exists(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1]))
                     && getAfter(/databases/$(database)/documents/ocorrencias/$(id.split('_')[0])/pistas/$(id.split('_')[1])).data.anonimo == true;
       allow update, delete: if false;
     }
@@ -4334,11 +4368,14 @@ service cloud.firestore {
                     && d().quando is timestamp && d().quando <= request.time
                     && d().bo is string && d().bo.matches('^[A-Za-z0-9./-]{4,40}$')
                     && (!('foto' in d()) || (fotoOk(d().foto) && d().foto.size() <= 300000))
-                    && pontoAlertaOk(d()) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
+                    && pontoAproxOk(d()) && valorTextoAte(d().get('cidade', ''), 60) && valorTextoAte(d().get('uf', ''), 2)
                     && d().status == 'analise' && d().criadoEm == request.time && d().atualizadoEm == request.time;
       allow update: if logado() && mudou().hasOnly(['status', 'atualizadoEm']) && d().atualizadoEm == request.time
                     && ((resource.data.autorId == request.auth.uid && d().status in ['encontrado', 'removido'])
-                        || (podeModerar() && d().status in ['ativo', 'removido', 'encontrado']));
+                        || (podeModerar() && d().status in ['removido', 'encontrado']));
+      // Publicar (moderação): o número do boletim sai do aviso público (fica no registro de ações da equipe).
+      allow update: if podeModerar() && resource.data.status == 'analise' && d().status == 'ativo'
+                    && mudou().hasOnly(['status', 'atualizadoEm', 'bo']) && !('bo' in d()) && d().atualizadoEm == request.time;
       allow delete: if false;
       match /pistas/{p} {
         allow read: if logado() && (get(/databases/$(database)/documents/desaparecidos/$(id)).data.autorId == request.auth.uid || podeModerar());
@@ -4367,6 +4404,7 @@ service cloud.firestore {
     function petOk(d) {
       return d.especie in ['cao', 'gato', 'ave', 'outro']
           && d.cores is list && d.cores.size() <= 4
+          && d.cores.join(',').matches('^((preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)(,(preto|branco|marrom|caramelo|cinza|dourado|creme|tigrado|malhado|tricolor|laranja|rajado)){0,3})?$')
           && d.get('porte', '') in ['', 'P', 'M', 'G'] && d.get('sexo', '') in ['', 'm', 'f', '?']
           && valorTextoAte(d.get('raca', ''), 40) && valorTextoAte(d.get('sinais', ''), 300)
           && d.get('microchip', '') is string && d.get('microchip', '').matches('^[A-Z0-9]{0,20}$')

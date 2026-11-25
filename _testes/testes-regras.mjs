@@ -2,6 +2,7 @@
 // (não apaga os dados do demo-hf que o navegador usa). Uso: node testes-regras.mjs [arquivo.rules]
 import { initializeTestEnvironment, assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { doc, setDoc, updateDoc, getDoc, getDocs, collection, query, where, writeBatch, Timestamp, serverTimestamp, increment, deleteField, deleteDoc, orderBy, limit, addDoc, documentId } from "firebase/firestore";
 
 const arquivo = process.argv[2] || new URL("../firestore.rules", import.meta.url).pathname;
@@ -1820,6 +1821,9 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("presente: dinheiro com valor", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "pr7"), pres({ tipo: "pix", mimo: undefined, valor: 50 }))));
   await t("presente: dinheiro acima do limite", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "pr8"), pres({ tipo: "pix", mimo: undefined, valor: 5000 }))));
   await t("presente: produto com o dono certo da loja", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "pr9"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X-burguer", qtd: 1, preco: 30 }], negocioId: "loja2_delivery", negocioNome: "Lanches", donoId: "loja2" }))));
+  await t("presente: item fora do formato (preço em texto) é recusado", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "prIt1"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X", qtd: 1, preco: "30" }], negocioId: "loja2_delivery", negocioNome: "Lanches", donoId: "loja2" }))));
+  await t("presente: item com campo a mais é recusado", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "prIt2"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X", qtd: 1, preco: 30, desconto: 100 }], negocioId: "loja2_delivery", negocioNome: "Lanches", donoId: "loja2" }))));
+  await t("presente: quantidade zero é recusada", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "prIt3"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X", qtd: 0, preco: 30 }], negocioId: "loja2_delivery", negocioNome: "Lanches", donoId: "loja2" }))));
   await t("presente: produto com dono errado", () => assertFails(setDoc(doc(ctx("gi"), "presentes", "pr10"), pres({ tipo: "produto", mimo: undefined, valor: 30, itens: [{ nome: "X", qtd: 1, preco: 30 }], negocioId: "loja2_delivery", donoId: "gu" }))));
   // Vale-presente (12/11/2026): valor para usar num negócio de qualquer tipo
   await t("presente: vale num negócio com o dono certo", () => assertSucceeds(setDoc(doc(ctx("gi"), "presentes", "prV"), pres({ tipo: "vale", mimo: undefined, valor: 80, negocioId: "loja2_delivery", negocioNome: "Loja", donoId: "loja2" }))));
@@ -1854,6 +1858,13 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("local ao vivo: mais de 8 horas é recusado", () => assertFails(setDoc(doc(ctx("gi"), "locais_vivos", "lv2"), vivo({ ate: Timestamp.fromMillis(Date.now() + 10 * 3600e3) }))));
   await t("local ao vivo: sem conversa é recusado", () => assertFails(setDoc(doc(ctx("gu"), "locais_vivos", "lv3"), vivo({ uid: "gu", conv: "go_gu", participantes: ["go", "gu"] }))));
   await t("local ao vivo: a outra pessoa da conversa lê", () => assertSucceeds(getDoc(doc(ctx("go"), "locais_vivos", "lv1"))));
+  await t("local ao vivo: depois de um bloqueio a outra pessoa não lê mais e a posição não muda", async () => {
+    await semRegras((db) => setDoc(doc(db, "bloqueios", "go_gi"), { de: "go", para: "gi", criadoEm: Timestamp.now() }));
+    await assertFails(getDoc(doc(ctx("go"), "locais_vivos", "lv1")));
+    await assertSucceeds(getDoc(doc(ctx("gi"), "locais_vivos", "lv1")));
+    await assertFails(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { lat: -27.61, lng: -48.55, precisao: 8, rumo: 0, atualizadoEm: serverTimestamp() }));
+    await semRegras((db) => deleteDoc(doc(db, "bloqueios", "go_gi")));
+  });
   await t("local ao vivo: quem não é da conversa não lê", () => assertFails(getDoc(doc(ctx("gu"), "locais_vivos", "lv1"))));
   await t("local ao vivo: quem compartilha atualiza a posição", () => assertSucceeds(updateDoc(doc(ctx("gi"), "locais_vivos", "lv1"), { lat: -27.6, lng: -48.55, precisao: 8, rumo: 90, atualizadoEm: serverTimestamp() })));
   await t("local ao vivo: a outra pessoa não mexe", () => assertFails(updateDoc(doc(ctx("go"), "locais_vivos", "lv1"), { lat: 0, atualizadoEm: serverTimestamp() })));
@@ -1868,6 +1879,8 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   });
   const sos = (extra) => ({ uid: "sa", nome: "Sa", tipo: "saude", texto: "Passando mal", lat: -27.59, lng: -48.54, precisao: 10, geo4: "6gj7", publico: true, avisados: ["sb"], status: "aberto", ajudanteId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("sos: pede ajuda", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s1"), sos())));
+  await t("sos: lista de avisados com coisa que não é conta é recusada", () => assertFails(setDoc(doc(ctx("sa"), "sos", "sX1"), sos({ avisados: ["sb", "texto com espaço"] }))));
+  await t("sos: a própria pessoa nos avisados é recusada", () => assertFails(setDoc(doc(ctx("sa"), "sos", "sX2"), sos({ avisados: ["sa"] }))));
   await t("sos: não pede em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("sb"), "sos", "s2"), sos())));
   await t("sos: tipo desconhecido", () => assertFails(setDoc(doc(ctx("sa"), "sos", "s3"), sos({ tipo: "xyz" }))));
   await t("sos: só do Social (privado)", () => assertSucceeds(setDoc(doc(ctx("sa"), "sos", "s4"), sos({ publico: false }))));
@@ -1884,6 +1897,10 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("sos: quem pediu atualiza a posição", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s1"), { lat: -27.6, lng: -48.55, precisao: 8, geo4: "6gj7", atualizadoEm: serverTimestamp() })));
   await t("sos: quem ajuda não muda a posição", () => assertFails(updateDoc(doc(ctx("sc"), "sos", "s1"), { lat: 0, lng: 0, precisao: 1, geo4: "6gj7", atualizadoEm: serverTimestamp() })));
   await t("sos: quem ajuda desiste (volta a aberto)", () => assertSucceeds(updateDoc(doc(ctx("sc"), "sos", "s1"), { status: "aberto", ajudanteId: "", ajudanteNome: "", aceitoEm: null, atualizadoEm: serverTimestamp() })));
+  await t("sos: desistir deixando o nome de quem ia ajudar é recusado", async () => {
+    await semRegras((db) => setDoc(doc(db, "sos", "sDes"), { uid: "sa", status: "atendido", ajudanteId: "sc", ajudanteNome: "Sc", aceitoEm: Timestamp.now(), publico: true, avisados: [] }));
+    await assertFails(updateDoc(doc(ctx("sc"), "sos", "sDes"), { status: "aberto", ajudanteId: "", atualizadoEm: serverTimestamp() }));
+  });
   await t("sos: o Social aceita", () => assertSucceeds(aceitar("sb", "s1")));
   await t("sos: quem ajuda marca resolvido", () => assertSucceeds(updateDoc(doc(ctx("sb"), "sos", "s1"), { status: "resolvido", fimEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
   // SOS em etapas (12/11/2026): Social primeiro; depois quem está perto + chamado urgente da equipe
@@ -1891,6 +1908,10 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("sos em etapas: escalar mais de 15 min é recusado", () => assertFails(setDoc(doc(ctx("sa"), "sos", "s6"), sos({ publico: false, equipe: true, escalarMin: 60 }))));
   await t("sos: chamado urgente na fila de Segurança", async () => { const db = ctx("sa"), b = writeBatch(db); b.set(doc(db, "suporte", "sup-sos"), { prioridade: "urgente", uid: "sa", nome: "Sa", email: "", assunto: "SOS: Mal-estar", categoria: "sos", status: "aberto", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ultimaDe: "usuario" }); b.set(doc(db, "suporte", "sup-sos", "mensagens", "inicio"), { autorId: "sa", equipe: false, texto: "PEDIDO DE AJUDA (SOS)", em: serverTimestamp() }); await assertSucceeds(b.commit()); });
   await t("sos em etapas: quem pediu escala (perto + número do chamado)", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s5"), { publico: true, escaladoEm: serverTimestamp(), suporteId: "sup-sos", atualizadoEm: serverTimestamp() })));
+  await t("sos: número de chamado de outra pessoa é recusado", async () => {
+    await semRegras((db) => Promise.all([setDoc(doc(db, "suporte", "supOutro"), { uid: "sb", categoria: "sos", status: "aberto" }), setDoc(doc(db, "sos", "sEsc"), { uid: "sa", status: "aberto", ajudanteId: "", publico: false, avisados: [] })]));
+    await assertFails(updateDoc(doc(ctx("sa"), "sos", "sEsc"), { suporteId: "supOutro", atualizadoEm: serverTimestamp() }));
+  });
   await t("sos em etapas: não volta a ser só do Social", () => assertFails(updateDoc(doc(ctx("sa"), "sos", "s5"), { publico: false, atualizadoEm: serverTimestamp() })));
   await t("sos em etapas: outra pessoa não escala", () => assertFails(updateDoc(doc(ctx("sb"), "sos", "s4"), { publico: true, escaladoEm: serverTimestamp(), atualizadoEm: serverTimestamp() })));
   await t("sos: só o número do chamado, sem abrir para a área", () => assertSucceeds(updateDoc(doc(ctx("sa"), "sos", "s4"), { suporteId: "sup-sos", atualizadoEm: serverTimestamp() })));
@@ -1905,6 +1926,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   // Ocorrências
   const oc = (extra) => ({ anonimo: false, autorId: "sa", autorNome: "Sa", tipo: "furto", objeto: "celular", identificador: "356789012345678", descricao: "Levaram meu celular no ônibus", quando: Timestamp.fromMillis(Date.now() - 3600e3), lat: -27.59, lng: -48.54, geo4: "6gj7", bairro: "Centro", cidade: "Florianópolis", uf: "SC", status: "ativo", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("ocorrência: com nome", () => assertSucceeds(setDoc(doc(ctx("sa"), "ocorrencias", "o1"), oc())));
+  await t("ocorrência: posição exata (mais de 3 casas) é recusada", () => assertFails(setDoc(doc(ctx("sa"), "ocorrencias", "oP"), oc({ lat: -27.59412, lng: -48.54871 }))));
   await t("ocorrência: anônima com a autoria junto", () => { const db = ctx("sb"); const b = writeBatch(db); const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; b.set(doc(db, "ocorrencias", "o2"), o); b.set(doc(db, "ocorrencias_autoria", "o2"), { uid: "sb" }); return assertSucceeds(b.commit()); });
   await t("ocorrência anônima: sem a autoria é recusada", () => { const o = oc({ anonimo: true, autorId: "" }); delete o.autorNome; return assertFails(setDoc(doc(ctx("sb"), "ocorrencias", "o3"), o)); });
   await t("ocorrência anônima: não leva o nome", () => { const db = ctx("sb"); const b = writeBatch(db); b.set(doc(db, "ocorrencias", "o4"), oc({ anonimo: true, autorId: "" })); b.set(doc(db, "ocorrencias_autoria", "o4"), { uid: "sb" }); return assertFails(b.commit()); });
@@ -1923,6 +1945,7 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await t("ocorrência: outra pessoa não encerra", () => assertFails(updateDoc(doc(ctx("sc"), "ocorrencias", "o1"), { status: "removido", atualizadoEm: serverTimestamp() })));
   // Pets
   const pet = (extra) => ({ donoId: "sa", donoNome: "Sa", nome: "Pipoca", especie: "cao", raca: "SRD", cores: ["caramelo", "branco"], porte: "M", sexo: "f", sinais: "coleira vermelha", microchip: "985112003456789", cidade: "Florianópolis", uf: "SC", geo4: "6gj7", status: "casa", visivel: true, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
+  await t("pet: cor fora da lista é recusada", () => assertFails(setDoc(doc(ctx("sa"), "pets", "petCor"), pet({ cores: ["azul-bebê"] }))));
   await t("pet: cadastra o RG", () => assertSucceeds(setDoc(doc(ctx("sa"), "pets", "pt1"), pet())));
   await t("pet: não cadastra em nome de outra pessoa", () => assertFails(setDoc(doc(ctx("sb"), "pets", "pt2"), pet())));
   await t("pet: outra pessoa não edita", () => assertFails(setDoc(doc(ctx("sb"), "pets", "pt1"), pet({ donoId: "sb" }))));
@@ -1939,9 +1962,11 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
 
 // ===================== Veículos (18/11/2026): carro/moto da pessoa, índice de venda com o hash da placa =====================
 {
-  const H = "a".repeat(64), H2 = "b".repeat(64);
+  const H = createHash("sha256").update("hf-veiculo:ABC1D23").digest("hex"), H2 = "b".repeat(64);
   const vei = (extra) => ({ donoId: "vd", tipo: "carro", placa: "ABC1D23", placaHash: H, marca: "Fiat", modelo: "Uno", ano: "2015", cor: "Prata", apelido: "", chassiFim: "", status: "ok", ocorrenciaId: "", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("veículo: o dono cadastra", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "v1"), vei())));
+  await t("veículo: código da placa que não é o da placa é recusado", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "vH"), vei({ placaHash: "c".repeat(64) }))));
+  await t("veículo: placa antiga usa o mesmo código da Mercosul", () => assertSucceeds(setDoc(doc(ctx("vd"), "veiculos", "vAnt"), vei({ placa: "ABC1323" }))));
   await t("veículo: placa fora do formato é recusada", () => assertFails(setDoc(doc(ctx("vd"), "veiculos", "v2"), vei({ placa: "AB-123" }))));
   await t("veículo: não cadastra no nome de outra pessoa", () => assertFails(setDoc(doc(ctx("vo"), "veiculos", "v3"), vei())));
   await t("veículo: outra pessoa não lê (a placa é só do dono)", () => assertFails(getDoc(doc(ctx("vo"), "veiculos", "v1"))));
@@ -1970,12 +1995,14 @@ await t("cadastro: tipoUsuario 'usuario' (o que o site grava) passa", () => asse
   await semRegras(async (db) => { await setDoc(doc(db, "admins", "dsMod"), { papel: "moderacao" }); });
   const des = (extra) => ({ autorId: "dsA", autorNome: "Ds A", nome: "Joana Silva", idade: 8, condicao: "crianca", parentesco: "pais", descricao: "Cabelo cacheado, camiseta amarela", sinais: "", visto: "Praça XV", quando: Timestamp.fromMillis(Date.now() - 3600e3), bo: "2026/123456", lat: -27.59, lng: -48.54, geo4: "6gj7", cidade: "Florianópolis", uf: "SC", status: "analise", criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(), ...extra });
   await t("desaparecido: registra com boletim (em análise)", () => assertSucceeds(setDoc(doc(ctx("dsA"), "desaparecidos", "d1"), des())));
+  await t("desaparecido: posição exata é recusada", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "dP"), des({ lat: -27.59412, lng: -48.54871 }))));
   await t("desaparecido: sem boletim é recusado", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "d2"), des({ bo: "" }))));
   await t("desaparecido: já publicado na criação é recusado", () => assertFails(setDoc(doc(ctx("dsA"), "desaparecidos", "d3"), des({ status: "ativo" }))));
   await t("desaparecido: em análise outra pessoa não lê", () => assertFails(getDoc(doc(ctx("dsB"), "desaparecidos", "d1"))));
   await t("desaparecido: quem registrou não publica sozinho", () => assertFails(updateDoc(doc(ctx("dsA"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
   await t("desaparecido: pista antes de publicar é recusada", () => assertFails(setDoc(doc(ctx("dsB"), "desaparecidos", "d1", "pistas", "p0"), { texto: "Vi na praça", anonimo: false, uid: "dsB", nome: "B", criadoEm: serverTimestamp() })));
-  await t("desaparecido: a moderação publica", () => assertSucceeds(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: publicar sem tirar o boletim do aviso é recusado", () => assertFails(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", atualizadoEm: serverTimestamp() })));
+  await t("desaparecido: a moderação publica (o boletim sai do aviso)", () => assertSucceeds(updateDoc(doc(ctx("dsMod"), "desaparecidos", "d1"), { status: "ativo", bo: deleteField(), atualizadoEm: serverTimestamp() })));
   await t("desaparecido: publicado, quem está perto lê", () => assertSucceeds(getDocs(query(collection(ctx("dsB"), "desaparecidos"), where("status", "==", "ativo"), where("geo4", "in", ["6gj7"])))));
   await t("desaparecido: pista anônima com a autoria", () => { const db = ctx("dsB"); const b = writeBatch(db); b.set(doc(db, "desaparecidos", "d1", "pistas", "p1"), { texto: "Vi perto do terminal", anonimo: true, lat: -27.59, lng: -48.55, criadoEm: serverTimestamp() }); b.set(doc(db, "pistas_desap_autoria", "d1_p1"), { uid: "dsB" }); return assertSucceeds(b.commit()); });
   await t("desaparecido: pista anônima sem autoria é recusada", () => assertFails(setDoc(doc(ctx("dsB"), "desaparecidos", "d1", "pistas", "p2"), { texto: "Vi", anonimo: true, criadoEm: serverTimestamp() })));

@@ -2484,7 +2484,20 @@ Site estático (HTML/JS puro, sem build) publicado em helpfloripa.com.br pelo Gi
   prova), Help sem limite (emergência não se bloqueia), `planos` legível (selo nas vitrines; só metadados de cobrança),
   curtidas/republicações legíveis (quem deu estrelas/quem republicou aparece no Diário), citação no chat da equipe
   (equipe de confiança). Testes antigos acertados: verificação grava atualizadoEm, vídeo do suporte na pasta certa.
-  Aguardando as partes 16 a 25.
+  **Partes 21 a 24 (25/11/2026, mesmo PR #257; 25 partes, 1366 testes; ele pulou as partes 16 a 20 por enquanto):**
+  corrigido: `presentes.itens` = {nome ≤60, preco 0–100 mil, qtd 1–99} (`itensPresenteOk`, 10 posições) e produto/vale só com
+  negócio `abertoAgora`; `locais_vivos`: com bloqueio a outra pessoa não lê e só dá para PARAR; `sos.avisados` só ids (join +
+  regex) e sem a própria pessoa, `suporteId` tem que ser chamado da própria pessoa (get), devolver o pedido exige
+  ajudanteNome '' e aceitoEm null; `pistas_autoria` id em 2 partes e pista nova; ocorrências e desaparecidos com
+  `pontoAproxOk` (até 3 casas, `tresCasas` com math.round); publicar desaparecido = regra própria que exige tirar o `bo`
+  (painel admin-seguranca.js manda `bo: deleteField()`, o boletim fica no admin_log); `petOk` cores só da lista; `veiculos`
+  confere `placaHash == hashDaPlaca(placa)` (rules `hashing.sha256('hf-veiculo:' + placa Mercosul).toHexString().lower()`,
+  testado com a placa antiga e a Mercosul). Explicado: `veiculos_venda` só tem o hash (a placa fica na conta do dono do
+  negócio, a regra não tem como conferir; Cloud Function resolveria), avisados do Help só leem o próprio pedido de quem
+  pediu (não dá para conferir 30 vínculos: limite de 10–20 leituras por gravação), itens do presente não são conferidos com
+  o cardápio (o pedido vai para a loja, que confere — `conferirCardapio`), pets_achados com 4 casas (~11 m, lugar onde o
+  bicho foi achado, ajuda o dono). Testes `testes-regras` com `createHash` (node:crypto) para o código da placa.
+  Aguardando as partes 16 a 20.
 - **2ª auditoria (23/11/2026, "23 partes" das regras, feita por ele com outra ferramenta):** conferido no arquivo real.
   Corrigido: `entregadores` list só moderação (get pelo id continua: quem pede vê a placa de quem leva; o site só usa getDoc)
   e `pets_achados.local` dentro do Brasil. Comentário "oculto" (era só escondido pelo app) CORRIGIDO no PR seguinte:
@@ -3087,7 +3100,7 @@ uma área por vez, um PR por área, coisa nova só depois da parte 1. Marcar [x]
 ## Lista de prioridades a fazer (pedida por ele em 29/10/2026 — lembrar e propor quando der)
 Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) com o que faltou nos PRs #120 e seguinte.
 **Só ele pode fazer:**
-1. **Publicar as regras** (25 partes em `_regras/`, 1352 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
+1. **Publicar as regras** (25 partes em `_regras/`, 1366 testes; inclui os desaparecidos (`desaparecidos`, `pistas_desap_autoria`); inclui os veículos (`veiculos`, `veiculos_venda`, `ocorrencias.veiculo`); inclui ✓✓ entregue e áudio ouvido (`conversas.entregueEm/ouvidos`); inclui o modelo da galeria do Salão (`pref_publicas.salaoModelo`); inclui o Salão (`momentos`); inclui a memória do vínculo (`vinculos_retrato`); inclui o duo em gaveta (`duoCapa` gaveta/gaveta-fixa); inclui os links do perfil (`contatos_perfil`, 9 redes, Todos/Seguidores/Amigos), pronomes e profissão; inclui o que aparece no perfil (`pref_publicas.perfil`); inclui Notas, SOS em etapas e vale-presente; inclui as solicitações de mensagem e os negócios marcados no Flash; inclui SOS, roubos, RG do pet, Presentes, localização em tempo real, Entregas e corridas e o tipo Automotivo; inclui `ranking_diario` da Etapa A): tudo desde 26/10, incluindo o limite diário do Flash, o Teste, a Contagem regressiva e o público do Flash, `republicacoes`, destaques e arquivo do Flash,
    `stories/{id}/reacoes` (estrela do Flash), `diario.publico` (público da publicação) e os tipos de publicação
    (`diario.tipo/estilo/quemComenta/ocultarNotas`). Depois: "Recalcular estrelas" no
    painel e criar os **14 índices** (`_regras/INDICES-LEIA-ME.md`; os novos: `republicacoes` uid + criadoEm e `diario`
