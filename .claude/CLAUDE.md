@@ -3135,6 +3135,11 @@ Junta a lista do PR #119 (melhorias do Diário que ficaram de fora do PR #118) c
    promoções/cupons dos assinantes, sem regra nova; outras: Aulas e cursos, Eventos) e **Fretes e Entregas** com mapa em tempo
    real (etapas: pedido + propostas → acompanhar ao vivo com Realtime Database → distribuição automática com Cloud Functions →
    passageiros só depois do advogado e de app instalado; ele precisa escolher preço por proposta/estimativa e Mapbox/MapTiler).
+4c. **Motoristas e entregadores da Freelances no lugar das corridas (ele adiou, 25/11/2026: "depois eu vejo"):** enquanto as
+   corridas estão em "Em breve", usar o grupo Transporte da Freelances (áreas transporte, mudancas, entregas em `GRUPOS_SERV`):
+   botão "Encontrar motoristas e entregadores" na tela Em breve e atalhos "Motoristas"/"Entregadores" no Início e Automotivo
+   levando à vitrine filtrada (precisa de `?area=` na vitrine, que hoje não existe). Sem regra nova. Não substitui o pedido
+   na hora (despacho, mapa do pedido, PIN, valor sugerido); parte jurídica de passageiro igual.
 4b. **Música no Flash (ele adiou, 11/11/2026: "deixa pra depois"):** sugerido biblioteca livre (Pixabay Music/YouTube Audio
    Library, 30–50 faixas por clima) com figurinha da música e trecho de 15 s (campo novo + Storage/Blaze); músicas famosas só
    com licenciamento (ECAD/gravadoras ou Epidemic Sound/Soundstripe) e advogado; áudio enviado pela pessoa não recomendado.
